@@ -1,0 +1,14 @@
+{
+  "name": "monitored-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev:frontend": "npm run dev --prefix frontend -- --host 0.0.0.0 --port 3000",
+    "dev:backend": "npm run start --prefix backend",
+    "build:frontend": "npm run build --prefix frontend"
+  }
+}

@@ -1,0 +1,610 @@
+/* ===========================================
+   MONITORED - GLOBAL STYLES
+   =========================================== */
+
+:root {
+  --color-bg-primary: #030514;
+  --color-bg-secondary: #0a0f24;
+  --color-bg-card: #0d1533;
+  --color-bg-hover: #131c3f;
+  --color-border: #1b2550;
+  --color-border-light: #2a356a;
+  --color-text-primary: #e7eafe;
+  --color-text-secondary: #c5cbff;
+  --color-text-muted: #8ea1d2;
+  --color-accent: #6f7dff;
+  --color-twitter: #5aa5ff;
+  --color-reddit: #ff7a4a;
+  --color-rss: #fbc02d;
+  --color-news: #52e08a;
+  --color-rumors: #c88bff;
+  --color-flights: #40c2ff;
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+.header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--color-accent), #8b5cf6);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  width: 100%;
+}
+
+/* Map + Hotspot layout */
+.map-section {
+  position: relative;
+  min-height: 80vh;
+  display: block;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.draggable-panel {
+  position: absolute;
+  z-index: 5;
+  min-width: 260px;
+  min-height: 220px;
+  box-shadow: 0 16px 50px rgba(0,0,0,0.35);
+}
+
+.draggable-panel[data-resizable="true"] {
+  resize: both;
+  overflow: hidden;
+}
+
+.full-map {
+  position: relative;
+  z-index: 1;
+}
+
+.panel-handle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  cursor: grab;
+}
+
+.panel-handle.dragging { cursor: grabbing; }
+.drag-dots { opacity: 0.6; }
+
+.draggable-panel > .map-card,
+.draggable-panel > .hotspot-card {
+  margin-top: -1px;
+}
+
+.panel-resizer {
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+  border: 1px solid var(--color-border);
+  cursor: se-resize;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+.map-card,
+.hotspot-card {
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08), transparent 35%), var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.28);
+}
+
+.map-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.map-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.map-subtitle {
+  color: var(--color-text-secondary);
+  margin-top: 6px;
+  max-width: 720px;
+}
+
+.map-legend {
+  display: grid;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-low { background: rgba(59, 130, 246, 0.4); }
+.legend-mid { background: rgba(59, 130, 246, 0.65); }
+.legend-peak { background: rgba(59, 130, 246, 0.9); }
+
+.map-wrapper {
+  background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(59,130,246,0.05));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.map-wrapper svg {
+  width: 100%;
+  height: 70vh;
+}
+
+.hotspot-label {
+  fill: var(--color-text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pulse {
+  filter: drop-shadow(0 0 12px rgba(59,130,246,0.2));
+}
+
+.breathe circle {
+  animation: pulseGlow 3s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+@keyframes pulseGlow {
+  0% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.03); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+.hotspot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hotspot-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hotspot-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-border-light);
+  background: rgba(255,255,255,0.04);
+}
+
+.pill-news { color: var(--color-news); border-color: rgba(34,197,94,0.35); }
+.pill-tweet { color: var(--color-twitter); border-color: rgba(29,155,240,0.35); }
+.pill-reddit_post { color: var(--color-reddit); border-color: rgba(255,69,0,0.35); }
+
+.pill.mini { font-size: 0.72rem; padding: 4px 8px; }
+
+.hotspot-stream {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.hotspot-story {
+  display: block;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  transition: all 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hotspot-story:hover {
+  border-color: var(--color-border-light);
+  transform: translateY(-1px);
+  background: var(--color-bg-hover);
+}
+
+.story-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.story-source { color: var(--color-text-muted); font-size: 0.85rem; }
+.story-title { font-weight: 600; line-height: 1.4; margin-bottom: 6px; }
+.story-foot { color: var(--color-text-muted); font-size: 0.8rem; display: flex; gap: 6px; align-items: center; }
+.dot { color: var(--color-text-muted); }
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.filter-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.filter-btn.twitter.active { background: var(--color-twitter); border-color: var(--color-twitter); }
+.filter-btn.reddit.active { background: var(--color-reddit); border-color: var(--color-reddit); }
+.filter-btn.rss.active { background: var(--color-rss); border-color: var(--color-rss); }
+.filter-btn.news.active { background: var(--color-news); border-color: var(--color-news); }
+
+/* Feed */
+.feed { display: grid; gap: 16px; }
+
+.feed-item {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: all 0.15s;
+}
+
+.feed-item:hover {
+  border-color: var(--color-border-light);
+  transform: translateY(-1px);
+}
+
+.feed-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.feed-item-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-bg-hover);
+  object-fit: cover;
+}
+
+.feed-item-meta { flex: 1; }
+
+.feed-item-author {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feed-item-handle {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.feed-item-source {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.source-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.source-badge.tweet { background: rgba(29, 155, 240, 0.2); color: var(--color-twitter); }
+.source-badge.reddit_post { background: rgba(255, 69, 0, 0.2); color: var(--color-reddit); }
+.source-badge.article { background: rgba(34, 197, 94, 0.2); color: var(--color-news); }
+
+.feed-item-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.feed-item-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.feed-item-title a:hover { color: var(--color-accent); }
+
+.feed-item-content {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.feed-item-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.feed-item-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.feed-item-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.feed-item-time {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+/* Stats */
+.stats-bar {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.stat { text-align: center; }
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+/* Status */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--color-text-muted);
+}
+
+.connection-status {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 8px 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(234,179,8,0.08);
+  border: 1px solid rgba(234,179,8,0.3);
+  color: #facc15;
+  font-size: 0.9rem;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-news);
+}
+
+.connection-status.disconnected .connection-dot { background: #ef4444; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
+@media (max-width: 768px) {
+  .header-content { flex-direction: column; gap: 16px; }
+  .stats-bar { flex-wrap: wrap; }
+  .main { padding: 16px; }
+  .map-section { grid-template-columns: 1fr; }
+  .map-heading { flex-direction: column; }
+.hotspot-header { flex-direction: column; }
+.hotspot-stream { max-height: none; }
+}
+
+/* Switch filters */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  opacity: 0.9;
+}
+
+.switch:hover { border-color: var(--color-border-light); }
+.switch input { display: none; }
+
+.slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--color-border);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.slider::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .slider {
+  background: var(--color-accent);
+}
+
+.switch input:checked + .slider::after {
+  transform: translateX(20px);
+}
+
+.switch-label {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+
+.switch-twitter input:checked + .slider { background: var(--color-twitter); }
+.switch-reddit input:checked + .slider { background: var(--color-reddit); }
+.switch-news input:checked + .slider { background: var(--color-news); }
+.switch-rumors input:checked + .slider { background: var(--color-rumors); }
+.switch-flights input:checked + .slider { background: var(--color-flights); }
+
+.flight-line {
+  opacity: 0.8;
+  stroke-linecap: round;
+  stroke-dasharray: 6 6;
+}
