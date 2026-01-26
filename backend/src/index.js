@@ -55,6 +55,7 @@ app.get('/', (req, res) => {
       tweets: '/api/tweets',
       reddit: '/api/reddit',
       rss: '/api/rss',
+      stocks: '/api/stocks',
       search: '/api/search',
       health: '/health',
     },

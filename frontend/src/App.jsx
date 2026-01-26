@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { api } from './services/api';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ComposableMap, Geographies, Geography, Marker, Sphere, Graticule, ZoomableGroup, Line } from 'react-simple-maps';
 import { feature } from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
 import worldData from 'world-atlas/countries-110m.json';
 import usData from 'us-atlas/states-10m.json';
+import { useFeed } from './hooks/useFeed';
+import { useStocks } from './hooks/useStocks';
+import { useFlights } from './hooks/useFlights';
+import { fetchCountryProfile } from './services/countryInfo';
+import NewsFeed, { NewsItem } from './features/news/NewsFeed';
+import { StocksPanel } from './features/stocks/StocksPanel';
+import { timeAgo } from './utils/time';
 
 // Safe guard in case topojson fails to load
 const GEO_FEATURES = worldData?.objects?.countries
@@ -43,81 +49,6 @@ const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
 
 const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
 
-function DraggablePanel({ id, initial, width, height = 'auto', resizable = true, children }) {
-  const [pos, setPos] = useState(initial);
-  const [size, setSize] = useState({ width, height });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const startRef = useState({ startX: 0, startY: 0, origX: 0, origY: 0, origW: 0, origH: 0 })[0];
-
-  useEffect(() => {
-    const onMove = (e) => {
-      if (isDragging) {
-        const dx = e.clientX - startRef.startX;
-        const dy = e.clientY - startRef.startY;
-        setPos({ x: startRef.origX + dx, y: startRef.origY + dy });
-      }
-      if (isResizing) {
-        const dx = e.clientX - startRef.startX;
-        const dy = e.clientY - startRef.startY;
-        const newWidth = Math.max(260, startRef.origW + dx);
-        const newHeight = Math.max(200, startRef.origH + dy);
-        setSize({ width: newWidth, height: newHeight });
-      }
-    };
-    const onUp = () => {
-      setIsDragging(false);
-      setIsResizing(false);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    if (isDragging || isResizing) {
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-    }
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [isDragging, startRef]);
-
-  const onPointerDown = (e) => {
-    e.preventDefault();
-    startRef.startX = e.clientX;
-    startRef.startY = e.clientY;
-    startRef.origX = pos.x;
-    startRef.origY = pos.y;
-    startRef.origW = typeof size.width === 'number' ? size.width : 400;
-    startRef.origH = typeof size.height === 'number' ? size.height : 320;
-    setIsDragging(true);
-  };
-
-  const onResizeDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startRef.startX = e.clientX;
-    startRef.startY = e.clientY;
-    startRef.origW = typeof size.width === 'number' ? size.width : 400;
-    startRef.origH = typeof size.height === 'number' ? size.height : 320;
-    setIsResizing(true);
-  };
-
-  return (
-    <div
-      className="draggable-panel"
-      style={{ left: pos.x, top: pos.y, width: size.width, height: size.height }}
-      data-id={id}
-      data-resizable={resizable}
-    >
-      <div className={`panel-handle ${isDragging ? 'dragging' : ''}`} onPointerDown={onPointerDown}>
-        <span className="drag-dots">⋮⋮</span> Drag to move
-      </div>
-      {children}
-      {resizable && <div className="panel-resizer" onPointerDown={onResizeDown}>⇲</div>}
-    </div>
-  );
-}
-
 function deriveHotspots(items) {
   const buckets = GEO_MARKERS.map(marker => ({ ...marker, items: [] }));
 
@@ -137,283 +68,478 @@ function deriveHotspots(items) {
       bucket.items.forEach(entry => {
         byType[entry.contentType] = (byType[entry.contentType] || 0) + 1;
       });
+      const mostRecent = bucket.items.reduce((latest, item) => {
+        const itemDate = new Date(item.publishedAt);
+        return itemDate > latest ? itemDate : latest;
+      }, new Date(0));
       return {
         ...bucket,
         count: bucket.items.length,
         byType,
         items: bucket.items.slice(0, 30),
-        summary: buildSummary(bucket.name, bucket.items, byType),
+        lastUpdated: mostRecent,
       };
     })
     .sort((a, b) => b.count - a.count);
 }
 
-function buildSummary(name, items, byType) {
-  if (!items.length) return 'No live signals here yet.';
-  const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type]) => type);
-  const headlines = items.slice(0, 3).map(item => item.title).filter(Boolean).join(' • ');
-  return `Activity spike in ${name} led by ${topTypes.join(', ')} sources. Headlines: ${headlines || 'Multiple updates rolling in.'}`;
+// Get current time for a UTC offset
+function getCurrentTimeForOffset(offsetHours) {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const targetTime = new Date(utc + (3600000 * offsetHours));
+  const hours = targetTime.getHours();
+  const minutes = targetTime.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes} ${ampm}`;
 }
 
-// Format relative time
-function timeAgo(dateString) {
+function parseOffsetFromTimezone(tzString) {
+  const match = (tzString || '').match(/([-+]?\d+(?:\.\d+)?)/);
+  if (!match) return 0;
+  const val = parseFloat(match[1]);
+  return Number.isFinite(val) ? val : 0;
+}
+function CountryPanel({ data, position, onClose, onPositionChange, bounds }) {
+  const panelRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const clampPos = (x, y) => {
+    if (!bounds) return { x, y };
+    const pad = 16;
+    const w = 320;
+    const h = 220;
+    return {
+      x: Math.max(pad, Math.min(x, bounds.width - w - pad)),
+      y: Math.max(pad + 40, Math.min(y, bounds.height - h - pad)),
+    };
+  };
+
+  const onMouseDown = (e) => {
+    if (e.target.closest('button, a')) return;
+    setIsDragging(true);
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+  };
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const next = clampPos(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y);
+      onPositionChange(next);
+    };
+    const onUp = () => setIsDragging(false);
+    if (isDragging) {
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging, onPositionChange, bounds]);
+
+  if (!data || !position) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      className="country-panel"
+      style={{ left: position.x, top: position.y }}
+      onMouseDown={onMouseDown}
+    >
+      <div className="country-panel-header">
+        <div>
+          <div className="country-panel-title">{data.name}</div>
+          <div className="country-panel-subtitle">{data.leader || 'Unavailable'}</div>
+        </div>
+        <button className="country-panel-close" onClick={onClose} aria-label="Close">x</button>
+      </div>
+      <div className="country-panel-body">
+        <div className="country-panel-row">
+          <span>Population</span>
+          <strong>{data.population}</strong>
+        </div>
+        {data.capital && (
+          <div className="country-panel-row">
+            <span>Capital</span>
+            <strong>{data.capital}</strong>
+          </div>
+        )}
+        {data.region && (
+          <div className="country-panel-row">
+            <span>Region</span>
+            <strong>{data.region}{data.subregion ? ` - ${data.subregion}` : ''}</strong>
+          </div>
+        )}
+        <div className="country-panel-row">
+          <span>Timezone</span>
+          <strong>{data.timezone}</strong>
+        </div>
+        <div className="country-panel-row">
+          <span>Local Time</span>
+          <strong>{getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone))}</strong>
+        </div>
+        {data.error && (
+          <div className="country-panel-row">
+            <span>Error</span>
+            <strong>{data.error}</strong>
+          </div>
+        )}
+        <div className="country-panel-note">Drag to move - Esc/x to close</div>
+      </div>
+    </div>
+  );
+}
+
+// Timezone info
+const TIMEZONES = [
+  { offset: -12, name: 'UTC-12', lon: -180 },
+  { offset: -10, name: 'UTC-10', lon: -150 },
+  { offset: -8, name: 'UTC-8', lon: -120 },
+  { offset: -6, name: 'UTC-6', lon: -90 },
+  { offset: -4, name: 'UTC-4', lon: -60 },
+  { offset: -2, name: 'UTC-2', lon: -30 },
+  { offset: 0, name: 'UTC', lon: 0 },
+  { offset: 2, name: 'UTC+2', lon: 30 },
+  { offset: 4, name: 'UTC+4', lon: 60 },
+  { offset: 6, name: 'UTC+6', lon: 90 },
+  { offset: 8, name: 'UTC+8', lon: 120 },
+  { offset: 10, name: 'UTC+10', lon: 150 },
+];
+
+// Check if hotspot is recently updated (within last hour)
+function isRecentlyUpdated(dateString) {
   const now = new Date();
   const date = new Date(dateString);
   const seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
+  return seconds < 3600; // Within last hour
 }
 
-function buildStats(items) {
-  const byType = {};
-  items.forEach(item => {
-    byType[item.contentType] = (byType[item.contentType] || 0) + 1;
-  });
-  return {
-    totalItems: items.length,
-    byType,
-    lastUpdated: items[0]?.publishedAt || null,
+// Compact news item for sidebar
+
+// Hotspot Popover Component
+function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionChange }) {
+  const popoverRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  const handleDragStart = (e) => {
+    if (e.target.closest('button, a')) return;
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
   };
-}
 
-function getDemoFeed() {
-  const now = Date.now();
-  const minutes = n => new Date(now - n * 60 * 1000).toISOString();
-  return [
-    {
-      id: 'demo-1',
-      title: 'Global markets react to unexpected rate cut',
-      content: 'Central banks across Europe and the US signal coordinated policy shifts.',
-      summary: 'Investors rush to reprice risk as central banks blink.',
-      url: 'https://example.com/markets',
-      source: 'demo',
-      sourceName: 'Demo Wire',
-      contentType: 'article',
-      publishedAt: minutes(24),
-    },
-    {
-      id: 'demo-2',
-      title: 'Major outage hits social platforms across North America',
-      content: 'Users report widespread login failures and API instability.',
-      summary: 'Engineers triage cascading failures in core auth service.',
-      url: 'https://example.com/outage',
-      source: 'demo',
-      sourceName: 'Status Pulse',
-      contentType: 'article',
-      publishedAt: minutes(42),
-    },
-    {
-      id: 'demo-3',
-      title: 'Rapid escalation in Middle East ceasefire talks',
-      content: 'Delegations converge as mediators push for 48-hour pause.',
-      summary: 'Regional sources cite optimism but warn of fragile trust.',
-      url: 'https://example.com/ceasefire',
-      source: 'demo',
-      sourceName: 'Briefing Desk',
-      contentType: 'article',
-      publishedAt: minutes(12),
-    },
-    {
-      id: 'demo-4',
-      title: 'New AI model claims state-of-the-art reasoning',
-      content: 'Researchers from Tokyo release benchmarks challenging US labs.',
-      summary: 'Model touted as more data-efficient; details pending peer review.',
-      url: 'https://example.com/aimodel',
-      source: 'demo',
-      sourceName: 'Research Note',
-      contentType: 'article',
-      publishedAt: minutes(7),
-    },
-    {
-      id: 'demo-5',
-      title: 'Tweet: Coordinated protests erupt in multiple EU capitals',
-      content: 'Live threads sharing ground footage from Berlin, Paris, Madrid.',
-      url: 'https://twitter.com/demo/status/1',
-      source: 'demo',
-      sourceName: 'Twitter',
-      contentType: 'tweet',
-      author: '@livefeed',
-      publishedAt: minutes(5),
-    },
-    {
-      id: 'demo-6',
-      title: 'Reddit: Witnessing the outage from Toronto, anyone else?',
-      content: 'Users describing login loops and 500s.',
-      url: 'https://reddit.com/r/demo/1',
-      source: 'demo',
-      sourceName: 'Reddit',
-      contentType: 'reddit_post',
-      author: 'canuck-tech',
-      publishedAt: minutes(18),
-    },
-  ];
-}
+  const handleDragMove = (e) => {
+    if (isDragging && onPositionChange) {
+      onPositionChange({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    }
+  };
 
-// Feed item component
-function FeedItem({ item }) {
-  const hasImage = item.imageUrl && !item.imageUrl.includes('self') && item.contentType === 'article';
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  if (!hotspot || !position) return null;
+
   return (
-    <article className="feed-item">
-      <div className="feed-item-header">
-        {item.authorAvatarUrl ? (
-          <img src={item.authorAvatarUrl} alt="" className="feed-item-avatar" />
-        ) : (
-          <div className="feed-item-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 600, color: '#71717a' }}>
-            {(item.sourceName || item.source || '?')[0].toUpperCase()}
-          </div>
-        )}
-        <div className="feed-item-meta">
-          <div className="feed-item-author">
-            {item.author || item.sourceName || 'Unknown'}
-            {item.authorHandle && <span className="feed-item-handle">{item.authorHandle}</span>}
-          </div>
-          <div className="feed-item-source">
-            <span className={`source-badge ${item.contentType}`}>
-              {item.contentType === 'tweet' ? 'Twitter' : item.contentType === 'reddit_post' ? 'Reddit' : 'Article'}
-            </span>
-            <span>{item.sourceName}</span>
-          </div>
+    <div
+      ref={popoverRef}
+      className="hotspot-popover"
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        zIndex: 1000,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleDragStart}
+    >
+      <div className="hotspot-popover-arrow" />
+      <div className="hotspot-popover-content">
+        <div className="hotspot-popover-header" style={{ cursor: 'grab' }}>
+          <h3 className="hotspot-popover-title">{hotspot.name}</h3>
+          <button className="hotspot-popover-close" onClick={onClose} aria-label="Close">x</button>
         </div>
+        {isRecentlyUpdated(hotspot.lastUpdated) && (
+          <div className="hotspot-popover-badge">Updated {timeAgo(hotspot.lastUpdated)}</div>
+        )}
+        <div className="hotspot-popover-stats">
+          <div className="hotspot-popover-stat">
+            <span className="stat-value">{hotspot.count}</span>
+            <span className="stat-label">items</span>
+          </div>
+          {Object.entries(hotspot.byType).map(([type, count]) => (
+            <div key={type} className="hotspot-popover-stat">
+              <span className="stat-value">{count}</span>
+              <span className="stat-label">{type === 'article' ? 'news' : type}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hotspot-popover-items">
+          {hotspot.items.slice(0, 3).map((item, idx) => (
+            <div key={item.id || idx} className="hotspot-popover-item">
+              <div className="hotspot-popover-item-title">{item.title || 'Untitled'}</div>
+              <div className="hotspot-popover-item-meta">{item.sourceName} - {timeAgo(item.publishedAt)}</div>
+            </div>
+          ))}
+        </div>
+        <button className="hotspot-popover-btn" onClick={onOpenInPanel}>
+          Open in Panel
+        </button>
       </div>
+    </div>
+  );
+}
 
-      {item.title && (
-        <h3 className="feed-item-title">
-          <a href={item.url} target="_blank" rel="noopener noreferrer">
-            {item.title}
-          </a>
-        </h3>
-      )}
+// News Panel Component
+function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
+  const panelRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-      {(item.content || item.summary) && <p className="feed-item-content">{item.content || item.summary}</p>}
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
 
-      {hasImage && (
-        <img
-          src={item.imageUrl}
-          alt=""
-          className="feed-item-image"
-          loading="lazy"
-          onError={(e) => (e.target.style.display = 'none')}
-        />
-      )}
+  const handleDragStart = (e) => {
+    if (e.target.closest('button, a')) return;
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
 
-      <div className="feed-item-footer">
-        {item.likesCount > 0 && (
-          <span className="feed-item-stat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            {item.likesCount.toLocaleString()}
-          </span>
-        )}
-        {item.retweetsCount > 0 && (
-          <span className="feed-item-stat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 1l4 4-4 4" />
-              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-              <path d="M7 23l-4-4 4-4" />
-              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-            </svg>
-            {item.retweetsCount.toLocaleString()}
-          </span>
-        )}
-        {item.repliesCount > 0 && (
-          <span className="feed-item-stat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            {item.repliesCount.toLocaleString()}
-          </span>
-        )}
-        <span className="feed-item-time">{timeAgo(item.publishedAt)}</span>
+  const handleDragMove = (e) => {
+    if (isDragging && onPositionChange) {
+      onPositionChange({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  if (!hotspot || !position) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      className="news-panel"
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        zIndex: 1001,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleDragStart}
+    >
+      <div className="news-panel-header" style={{ cursor: 'grab' }}>
+        <div className="news-panel-title-section">
+          <h3 className="news-panel-title">{hotspot.name}</h3>
+          <div className="news-panel-subtitle">{hotspot.count} items</div>
+        </div>
+        <button className="news-panel-close" onClick={onClose} aria-label="Close">x</button>
       </div>
-    </article>
+      <div className="news-panel-content">
+        {hotspot.items.map((item, idx) => (
+          <NewsItem key={item.id || idx} item={item} />
+        ))}
+      </div>
+    </div>
   );
 }
 
 function App() {
-  const demoFeed = getDemoFeed();
-  const [feed, setFeed] = useState(demoFeed);
-  const [activeFilters, setActiveFilters] = useState(['all']);
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  // View state machine: 'world' | 'region' | 'hotspot'
+  const [viewMode, setViewMode] = useState('world');
+  const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const flightPaths = useMemo(
-    () => [
-      // Transatlantic
-      { id: 'flight-nyc-lon', from: [-74.006, 40.7128], to: [0.1276, 51.5074] },
-      { id: 'flight-nyc-par', from: [-74.006, 40.7128], to: [2.3522, 48.8566] },
-      { id: 'flight-bos-dub', from: [-71.0589, 42.3601], to: [-6.2603, 53.3498] },
-      // Transpacific
-      { id: 'flight-sfo-tok', from: [-122.4194, 37.7749], to: [139.6917, 35.6895] },
-      { id: 'flight-lax-syd', from: [-118.4085, 33.9416], to: [151.2093, -33.8688] },
-      { id: 'flight-hkg-sfo', from: [114.1694, 22.3193], to: [-122.4194, 37.7749] },
-      // Middle East to US/EU
-      { id: 'flight-dxb-nyc', from: [55.2708, 25.2048], to: [-74.006, 40.7128] },
-      { id: 'flight-doh-lhr', from: [51.531, 25.2854], to: [0.1276, 51.5074] },
-      // Europe intra + to Asia
-      { id: 'flight-par-ber', from: [2.3522, 48.8566], to: [13.405, 52.52] },
-      { id: 'flight-fra-del', from: [8.6821, 50.1109], to: [77.1025, 28.7041] },
-      { id: 'flight-lhr-cpt', from: [0.1276, 51.5074], to: [18.4241, -33.9249] },
-      // Americas
-      { id: 'flight-jfk-lax', from: [-73.7781, 40.6413], to: [-118.4085, 33.9416] },
-      { id: 'flight-mia-gru', from: [-80.1918, 25.7617], to: [-46.6333, -23.5505] },
-      { id: 'flight-mex-yyz', from: [-99.1332, 19.4326], to: [-79.3832, 43.6532] },
-      // Africa/Asia
-      { id: 'flight-nbo-dxb', from: [36.8219, -1.2921], to: [55.2708, 25.2048] },
-      { id: 'flight-jnb-sin', from: [28.0473, -26.2041], to: [103.8198, 1.3521] },
-      // SE Asia / Oceania
-      { id: 'flight-sin-syd', from: [103.8198, 1.3521], to: [151.2093, -33.8688] },
-      { id: 'flight-sin-hkg', from: [103.8198, 1.3521], to: [114.1694, 22.3193] },
-    ],
-    []
-  );
+  const [countryPanel, setCountryPanel] = useState({ open: false, data: null, pos: { x: 160, y: 120 } });
 
-  // Load feed data
-  const loadFeed = async () => {
-    try {
-      const [feedRes, statsRes] = await Promise.all([api.getFeed({ limit: 80 }), api.getStats()]);
-      const nextFeed = feedRes.data || [];
-      if (nextFeed.length) {
-        setFeed(nextFeed);
-        setIsDemoMode(false);
+  // Sidebar state
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+
+  // Popover state
+  const [popoverHotspot, setPopoverHotspot] = useState(null);
+  const [popoverPosition, setPopoverPosition] = useState(null);
+  const mapContainerRef = useRef(null);
+
+  // News panel state
+  const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
+  const [newsPanelPosition, setNewsPanelPosition] = useState(null);
+
+  // Stocks panel visibility
+  const [showStocksPanel, setShowStocksPanel] = useState(false);
+
+  // Tooltip state
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
+
+  // Layer toggles (flights disabled by default)
+  const [enabledLayers, setEnabledLayers] = useState({
+    news: true,
+    twitter: true,
+    reddit: true,
+    rumors: false,
+    flights: false,
+    stocks: false,
+  });
+
+  const { feed, loading: feedLoading, error: feedError } = useFeed(80);
+  const {
+    stocks,
+    marketStatus,
+    lastUpdated: stocksLastUpdated,
+    loading: stocksLoading,
+    error: stocksError,
+    refresh: refreshStocks,
+  } = useStocks(enabledLayers.stocks);
+  const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
+
+  const flightPaths = useMemo(() => {
+    return (flights || [])
+      .map((flight) => {
+        const fromArray = Array.isArray(flight.from) ? flight.from : [flight.from?.lon, flight.from?.lat];
+        const toArray = Array.isArray(flight.to) ? flight.to : [flight.to?.lon, flight.to?.lat];
+        if (!fromArray || !toArray) return null;
+        if (!Number.isFinite(fromArray[0]) || !Number.isFinite(fromArray[1]) || !Number.isFinite(toArray[0]) || !Number.isFinite(toArray[1])) {
+          return null;
+        }
+        return {
+          id: flight.id || `${fromArray.join(',')}-${toArray.join(',')}`,
+          from: fromArray,
+          to: toArray,
+        };
+      })
+      .filter(Boolean);
+  }, [flights]);
+
+  const toggleLayer = (layer) => {
+    setEnabledLayers(prev => {
+      const newState = { ...prev, [layer]: !prev[layer] };
+      // Show stocks panel when stocks layer is enabled
+      if (layer === 'stocks' && newState.stocks) {
+        setShowStocksPanel(true);
+      } else if (layer === 'stocks' && !newState.stocks) {
+        setShowStocksPanel(false);
       }
-    } catch (error) {
-      console.error('Failed to load feed, staying in demo mode:', error);
-      setFeed(demoFeed);
-      setIsDemoMode(true);
-    }
+      // Clear open overlays when turning layers off to avoid stale items
+      if (!newState[layer]) {
+        setPopoverHotspot(null);
+        setPopoverPosition(null);
+        setNewsPanelHotspot(null);
+        setNewsPanelPosition(null);
+        if (layer === 'twitter') {
+          setSelectedHotspotId(null);
+          setViewMode('world');
+        }
+      }
+      return newState;
+    });
   };
 
-  useEffect(() => {
-    loadFeed();
-    const interval = setInterval(loadFeed, 300000); // Refresh every 5 minutes
-    return () => clearInterval(interval);
-  }, []);
+  // Filter feed by enabled layers
+  const layerFilteredFeed = useMemo(() => {
+    return feed.filter(item => {
+      if (enabledLayers.news && item.contentType === 'article') return true;
+      if (enabledLayers.twitter && item.contentType === 'tweet') return true;
+      if (enabledLayers.reddit && item.contentType === 'reddit_post') return true;
+      if (enabledLayers.rumors && item.contentType === 'rumor') return true;
+      if (enabledLayers.flights && item.contentType === 'flight') return true;
+      if (enabledLayers.stocks && item.contentType === 'stock') return true;
+      return false;
+    });
+  }, [feed, enabledLayers]);
 
-  // Filter logic
-  const toggleFilter = (filter) => {
-    if (filter === 'all') {
-      setActiveFilters(['all']);
-    } else {
-      const newFilters = activeFilters.includes('all')
-        ? [filter]
-        : activeFilters.includes(filter)
-          ? activeFilters.filter((f) => f !== filter)
-          : [...activeFilters, filter];
-      setActiveFilters(newFilters.length === 0 ? ['all'] : newFilters);
-    }
-  };
+  const hotspots = useMemo(() => deriveHotspots(layerFilteredFeed), [layerFilteredFeed]);
 
-  const filteredFeed = activeFilters.includes('all')
-    ? feed
-    : feed.filter((item) => {
-        if (activeFilters.includes('twitter') && item.contentType === 'tweet') return true;
-        if (activeFilters.includes('reddit') && item.contentType === 'reddit_post') return true;
-        if (activeFilters.includes('news') && item.contentType === 'article') return true;
-        // Future toggles (rumors, flights) can map to their own contentType when available
-        return false;
+  // Get display feed based on view mode
+  const displayFeed = useMemo(() => {
+    if (viewMode === 'world') {
+      return layerFilteredFeed.slice(0, 50);
+    } else if (viewMode === 'region' && selectedRegion) {
+      const regionName = selectedRegion.name.toLowerCase();
+      return layerFilteredFeed.filter(item => {
+        const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`.toLowerCase();
+        return text.includes(regionName);
       });
+    } else if (viewMode === 'hotspot' && selectedHotspotId) {
+      const hotspot = hotspots.find(h => h.id === selectedHotspotId);
+      return hotspot ? hotspot.items : [];
+    }
+    return [];
+  }, [viewMode, selectedRegion, selectedHotspotId, layerFilteredFeed, hotspots]);
+
+  const filteredDisplayFeed = useMemo(() => {
+    return displayFeed.filter(item => {
+      if (item.contentType === 'tweet' && !enabledLayers.twitter) return false;
+      return true;
+    });
+  }, [displayFeed, enabledLayers.twitter]);
 
   const countryColor = (name) => {
     if (!name) return '#111216';
@@ -425,203 +551,587 @@ function App() {
     return `hsl(${hue}, 35%, 18%)`;
   };
 
-  const hotspots = useMemo(() => deriveHotspots(feed), [feed]);
-  const selectedHotspot = useMemo(
-    () => hotspots.find((h) => h.id === selectedHotspotId) || hotspots[0],
-    [hotspots, selectedHotspotId]
-  );
-  const flightsEnabled = activeFilters.includes('flights');
-
-  useEffect(() => {
-    if (hotspots.length && !selectedHotspotId) {
-      setSelectedHotspotId(hotspots[0].id);
+  const handleRegionClick = (geo, scope, event) => {
+    const name = geo.properties?.name || 'Unknown';
+    setSelectedRegion({ type: scope, id: geo.id, name });
+    setViewMode('region');
+    if (scope === 'country') {
+      handleCountryClick(geo, event);
     }
-  }, [hotspots, selectedHotspotId]);
+  };
+
+  const handleCountryClick = (geo, event) => {
+    if (!mapContainerRef.current) return;
+    const name = geo.properties?.name || 'Unknown';
+
+    const mapRect = mapContainerRef.current.getBoundingClientRect();
+    const clickX = event.clientX - mapRect.left;
+    const clickY = event.clientY - mapRect.top;
+
+    const panelWidth = 300;
+    const panelHeight = 200;
+    const padding = 32;
+
+    let x = clickX;
+    let y = clickY;
+
+    // Default place below and to the right of click
+    x = clickX + 24;
+    y = clickY + 24;
+
+    // Clamp to avoid edges
+    x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+    y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+
+    setCountryPanel({
+      open: true,
+      data: {
+        name,
+        population: 'Loading...',
+        leader: 'Loading...',
+        timezone: 'UTC',
+      },
+      pos: { x, y },
+    });
+
+    (async () => {
+      try {
+        const profile = await fetchCountryProfile(name);
+        if (profile) {
+          setCountryPanel(prev => ({
+            ...prev,
+            data: {
+              name: profile.name || name,
+              population: profile.population || 'Unknown',
+              leader: profile.leader || 'Unavailable',
+              timezone: profile.timezone || 'UTC',
+              capital: profile.capital,
+              region: profile.region,
+              subregion: profile.subregion,
+            },
+          }));
+        }
+      } catch (err) {
+        setCountryPanel(prev => ({
+          ...prev,
+          data: {
+            name,
+            population: 'Unknown',
+            leader: 'Unavailable',
+            timezone: 'UTC',
+          },
+          error: err?.message || 'Unable to load country info',
+        }));
+      }
+    })();
+  };
+
+  const handleHotspotClick = (hotspot, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+
+    // Calculate screen position with smart placement to avoid borders
+    if (mapContainerRef.current && event.currentTarget) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      const markerRect = event.currentTarget.getBoundingClientRect();
+
+      const popoverWidth = 320;
+      const popoverHeight = 450;
+      const padding = 40;
+
+      const markerCenterX = markerRect.left - mapRect.left + markerRect.width / 2;
+      const markerCenterY = markerRect.top - mapRect.top + markerRect.height / 2;
+
+      let x = markerCenterX;
+      let y = markerCenterY;
+      let placement = 'top'; // default placement
+
+      // Determine best placement based on available space
+      const spaceTop = markerCenterY;
+      const spaceBottom = mapRect.height - markerCenterY;
+      const spaceLeft = markerCenterX;
+      const spaceRight = mapRect.width - markerCenterX;
+
+      // Check if there's enough space above
+      if (spaceTop >= popoverHeight + padding) {
+        placement = 'top';
+        y = markerCenterY - 20;
+      }
+      // Check if there's enough space below
+      else if (spaceBottom >= popoverHeight + padding) {
+        placement = 'bottom';
+        y = markerCenterY + 40;
+      }
+      // Check if there's enough space on the right
+      else if (spaceRight >= popoverWidth + padding) {
+        placement = 'right';
+        x = markerCenterX + popoverWidth / 2 + 20;
+        y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
+      }
+      // Check if there's enough space on the left
+      else if (spaceLeft >= popoverWidth + padding) {
+        placement = 'left';
+        x = markerCenterX - popoverWidth / 2 - 20;
+        y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
+      }
+      // Fallback: place below and clamp
+      else {
+        placement = 'bottom';
+        y = markerCenterY + 40;
+      }
+
+      // Final clamping to ensure it stays within bounds
+      x = Math.max(popoverWidth / 2 + padding, Math.min(x, mapRect.width - popoverWidth / 2 - padding));
+      y = Math.max(padding + 60, Math.min(y, mapRect.height - padding - 60));
+
+      setPopoverPosition({ x, y, placement });
+      setPopoverHotspot(hotspot);
+      setTooltip({ show: false, text: '', x: 0, y: 0 });
+    }
+  };
+
+  const handleOpenHotspotInPanel = () => {
+    if (popoverHotspot && mapContainerRef.current) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+
+      // Open news panel in center of screen
+      const panelWidth = 480;
+      const panelHeight = 600;
+
+      const x = mapRect.width / 2;
+      const y = mapRect.height / 2;
+
+      setNewsPanelPosition({ x, y });
+      setNewsPanelHotspot(popoverHotspot);
+      setPopoverHotspot(null);
+      setPopoverPosition(null);
+    }
+  };
+
+  const handleClosePopover = () => {
+    setPopoverHotspot(null);
+    setPopoverPosition(null);
+  };
+
+  const handleCloseNewsPanel = () => {
+    setNewsPanelHotspot(null);
+    setNewsPanelPosition(null);
+  };
+
+  const updateNewsPanelPosition = (newPosition) => {
+    setNewsPanelPosition(newPosition);
+  };
+
+  const handleBackToWorld = () => {
+    setViewMode('world');
+    setSelectedRegion(null);
+    setSelectedHotspotId(null);
+  };
+
+  const handleRegionMouseMove = (geo, event) => {
+    if (mapContainerRef.current && !popoverHotspot) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      setTooltip({
+        show: true,
+        text: geo.properties?.name || 'Unknown',
+        x: event.clientX - mapRect.left,
+        y: event.clientY - mapRect.top
+      });
+    }
+  };
+
+  const handleRegionMouseLeave = () => {
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
+  };
+
+  const handleHotspotMouseEnter = (hotspot, event) => {
+    if (mapContainerRef.current && !popoverHotspot) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
+      const text = isRecent ? `${hotspot.name} - Updated ${timeAgo(hotspot.lastUpdated)}` : hotspot.name;
+      setTooltip({
+        show: true,
+        text,
+        x: event.clientX - mapRect.left,
+        y: event.clientY - mapRect.top
+      });
+    }
+  };
+
+  const handleHotspotMouseLeave = () => {
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
+  };
+
+  const updatePopoverPosition = (newPosition) => {
+    setPopoverPosition(newPosition);
+  };
+
+  const getBreadcrumb = () => {
+    if (viewMode === 'world') {
+      return [{ label: 'World', active: true }];
+    } else if (viewMode === 'region') {
+      return [
+        { label: 'World', active: false, onClick: handleBackToWorld },
+        { label: selectedRegion?.name || 'Region', active: true },
+      ];
+    } else if (viewMode === 'hotspot') {
+      const hotspot = hotspots.find(h => h.id === selectedHotspotId);
+      return [
+        { label: 'World', active: false, onClick: handleBackToWorld },
+        { label: hotspot?.name || 'Hotspot', active: true },
+      ];
+    }
+    return [];
+  };
+
+  const breadcrumb = getBreadcrumb();
 
   return (
     <div className="app">
-      <header className="header">
-        <div className="header-content">
-          <div className="logo">
-            <div className="logo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
-              </svg>
+      {/* Sidebar */}
+      <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-top-bar">
+            <div className="sidebar-logo">
+              <div className="logo-icon">
+                <img src="/earth.png" alt="Monitored" className="logo-image" />
+              </div>
+              <span className="sidebar-logo-text">Monitored</span>
             </div>
-            Monitored
+            <button
+              className="sidebar-toggle"
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            >
+              {sidebarExpanded ? '<' : '>'}
+            </button>
+          </div>
+          <div className="sidebar-breadcrumb">
+            {breadcrumb.map((item, idx) => (
+              <span key={idx}>
+                <span
+                  className={`breadcrumb-item ${item.active ? 'active' : ''}`}
+                  onClick={item.onClick}
+                >
+                  {item.label}
+                </span>
+                {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
+              </span>
+            ))}
           </div>
         </div>
-      </header>
 
-      <main className="main">
-        {isDemoMode && (
-          <div className="notice">
-            Live API not reachable right now — showing demo data so visuals stay lit.
-          </div>
+        <div className="sidebar-content">
+          {feedLoading && sidebarExpanded && (
+            <div className="notice" style={{ marginBottom: '12px' }}>
+              Loading live feed...
+            </div>
+          )}
+          {feedError && sidebarExpanded && (
+            <div className="notice" style={{ marginBottom: '12px' }}>
+              Feed unavailable: {feedError.message}
+            </div>
+          )}
+
+          {/* Source Toggles */}
+          {sidebarExpanded && (
+            <div className="source-toggles">
+              <div className="toggle-group-title">Layers & Sources</div>
+              {[
+                { id: 'news', label: 'Major News', tone: 'news', disabled: false },
+                { id: 'twitter', label: 'Twitter', tone: 'twitter', disabled: false },
+                { id: 'reddit', label: 'Reddit', tone: 'reddit', disabled: false },
+                { id: 'rumors', label: 'Rumors', tone: 'rumors', disabled: false },
+                { id: 'flights', label: 'Flights', tone: 'flights', disabled: false },
+                { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
+              ].map((layer) => (
+                <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                  <span className="switch-label">{layer.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={enabledLayers[layer.id]}
+                    onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                    disabled={layer.disabled}
+                  />
+                  <span className="slider" />
+                </label>
+              ))}
+            </div>
+          )}
+
+          {/* News Feed */}
+          {sidebarExpanded && (
+            <NewsFeed
+              items={filteredDisplayFeed}
+              viewMode={viewMode}
+              selectedRegion={selectedRegion}
+              onBackToWorld={handleBackToWorld}
+            />
+          )}
+
+          {!sidebarExpanded && (
+            <div className="sidebar-icon-stack">
+              <div className="sidebar-icon" title="Expand sidebar">
+                map
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Map */}
+      <div className="map-container" ref={mapContainerRef}>
+        {/* Timezone Labels Top */}
+        <div className="timezone-labels timezone-labels-top">
+          {TIMEZONES.map(tz => (
+            <div key={`top-${tz.name}`} className="timezone-label">
+              <div className="timezone-name">{tz.name}</div>
+              <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Timezone Labels Bottom */}
+        <div className="timezone-labels timezone-labels-bottom">
+          {TIMEZONES.map(tz => (
+            <div key={`bottom-${tz.name}`} className="timezone-label">
+              <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+              <div className="timezone-name">{tz.name}</div>
+            </div>
+          ))}
+        </div>
+
+        {enabledLayers.flights && flightsLoading && (
+          <div className="notice map-notice">Loading flights...</div>
+        )}
+        {enabledLayers.flights && flightsError && (
+          <div className="notice map-notice">Flights unavailable: {flightsError.message}</div>
+        )}
+        {/* Hotspot Popover */}
+        {popoverHotspot && (
+          <HotspotPopover
+            hotspot={popoverHotspot}
+            position={popoverPosition}
+            onClose={handleClosePopover}
+            onOpenInPanel={handleOpenHotspotInPanel}
+            onPositionChange={updatePopoverPosition}
+          />
         )}
 
-        <section className="map-section">
-          <div className="map-card full-map">
-            <div className="map-heading">
-              <div>
-                <p className="map-kicker">Global Signal Map</p>
-                <h2>Where the conversation is heating up</h2>
-                <p className="map-subtitle">Hotspots scale by how often a country or U.S. state is mentioned across headlines, tweets, and Reddit threads. Click any pulse to inspect the stories.</p>
-              </div>
-              <div className="map-legend">
-                <div className="legend-row"><span className="legend-dot legend-low"></span> Emerging</div>
-                <div className="legend-row"><span className="legend-dot legend-mid"></span> Active</div>
-                <div className="legend-row"><span className="legend-dot legend-peak"></span> Surging</div>
-              </div>
-            </div>
+        {/* News Panel */}
+        {newsPanelHotspot && (
+          <NewsPanel
+            hotspot={newsPanelHotspot}
+            position={newsPanelPosition}
+            onClose={handleCloseNewsPanel}
+            onPositionChange={updateNewsPanelPosition}
+          />
+        )}
 
-            <div className="map-wrapper">
-              <ComposableMap projection="geoEqualEarth">
-                <ZoomableGroup>
-                  <Sphere stroke="rgba(255,255,255,0.06)" strokeWidth={1} fill="rgba(255,255,255,0.01)" />
-                  <Graticule stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} />
+        {/* Stocks Panel */}
+        <StocksPanel
+          visible={showStocksPanel}
+          stocks={stocks}
+          marketStatus={marketStatus}
+          loading={stocksLoading}
+          error={stocksError}
+          lastUpdated={stocksLastUpdated}
+          onClose={() => setShowStocksPanel(false)}
+          onRefresh={refreshStocks}
+        />
 
-                  <Geographies geography={{ type: 'FeatureCollection', features: GEO_FEATURES }}>
-                    {({ geographies }) =>
-                      geographies.map((geo) => (
-                        <Geography
-                          key={geo.rsmKey}
-                          geography={geo}
-                          style={{
-                            default: { fill: countryColor(geo.properties.name), outline: 'none', stroke: '#1f2937', strokeWidth: 0.25 },
-                            hover: { fill: '#1b2334', outline: 'none' },
-                            pressed: { fill: '#1b2334', outline: 'none' },
-                          }}
-                        />
-                      ))
-                    }
-                  </Geographies>
+        {countryPanel.open && countryPanel.data && (
+          <CountryPanel
+            data={countryPanel.data}
+            position={countryPanel.pos}
+            bounds={
+              mapContainerRef.current
+                ? {
+                    width: mapContainerRef.current.getBoundingClientRect().width,
+                    height: mapContainerRef.current.getBoundingClientRect().height,
+                  }
+                : null
+            }
+            onPositionChange={(pos) => setCountryPanel(prev => ({ ...prev, pos }))}
+            onClose={() => setCountryPanel({ open: false, data: null, pos: { x: 160, y: 120 } })}
+          />
+        )}
 
-                  {US_STATE_FEATURES.length > 0 && (
-                    <Geographies geography={{ type: 'FeatureCollection', features: US_STATE_FEATURES }}>
-                      {({ geographies }) =>
-                        geographies.map((geo) => (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            style={{
-                              default: { fill: 'transparent', stroke: 'rgba(255,255,255,0.08)', strokeWidth: 0.6 },
-                              hover: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
-                              pressed: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
-                            }}
-                          />
-                        ))
-                      }
-                    </Geographies>
-                  )}
+        <ComposableMap projection="geoEqualEarth">
+          <ZoomableGroup>
+            <Sphere stroke="rgba(255,255,255,0.06)" strokeWidth={1} fill="rgba(199, 7, 7, 0.01)" />
+            <Graticule stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} />
 
-                  {hotspots.map((hotspot) => {
-                    const maxCount = hotspots[0]?.count || 1;
-                    const intensity = Math.max(0.2, hotspot.count / maxCount);
-                    const size = 6 + intensity * 12;
-                    return (
-                      <Marker key={hotspot.id} coordinates={[hotspot.lon, hotspot.lat]} onClick={() => setSelectedHotspotId(hotspot.id)}>
-                        <g className="pulse breathe">
-                          <circle r={size} fill={`rgba(108, 123, 255, ${0.15 + intensity * 0.35})`} stroke="rgba(108,123,255,0.7)" strokeWidth={1.5} />
-                          <circle r={size * 0.6} fill="rgba(108, 123, 255, 0.95)" />
-                        </g>
-                        <text textAnchor="middle" y={-size - 4} className="hotspot-label">
-                          {hotspot.name}
-                        </text>
-                      </Marker>
-                    );
-                  })}
-
-                  {flightsEnabled &&
-                    flightPaths.map((flight) => (
-                      <Line
-                        key={flight.id}
-                        from={flight.from}
-                        to={flight.to}
-                        stroke="rgba(80,200,255,0.7)"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        className="flight-line"
-                      />
-                    ))}
-                </ZoomableGroup>
-              </ComposableMap>
-            </div>
-          </div>
-
-          <DraggablePanel id="hotspot" initial={{ x: 24, y: 90 }} width={420} height={520}>
-            <div className="hotspot-card">
-              <div className="hotspot-header">
-                <div>
-                  <p className="map-kicker">Snapshot</p>
-                  <h3>{selectedHotspot ? selectedHotspot.name : 'Pick a hotspot'}</h3>
-                  <p className="map-subtitle">{selectedHotspot?.summary || 'Select a pulse on the map to see what is driving it.'}</p>
-                </div>
-                <div className="hotspot-pills">
-                  {(selectedHotspot ? Object.entries(selectedHotspot.byType) : []).map(([type, count]) => (
-                    <span key={type} className={`pill pill-${type}`}>
-                      {type === 'tweet' ? 'Twitter' : type === 'reddit_post' ? 'Reddit' : 'News'} · {count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="hotspot-stream">
-                {(selectedHotspot?.items || []).map((item, idx) => (
-                  <a key={item.id || `${item.contentType || 'item'}-${idx}`} href={item.url} target="_blank" rel="noopener noreferrer" className="hotspot-story">
-                    <div className="story-meta">
-                      <span className={`pill mini pill-${item.contentType}`}>
-                        {item.contentType === 'tweet' ? 'Twitter' : item.contentType === 'reddit_post' ? 'Reddit' : 'News'}
-                      </span>
-                      <span className="story-source">{item.sourceName || item.source}</span>
-                    </div>
-                    <div className="story-title">{item.title || item.content || 'Untitled update'}</div>
-                    <div className="story-foot">
-                      <span>{item.author || 'Unknown'}</span>
-                      <span className="dot">•</span>
-                      <span>{timeAgo(item.publishedAt)}</span>
-                    </div>
-                  </a>
-                ))}
-
-                {(selectedHotspot?.items || []).length === 0 && <div className="loading">Pick a hotspot to view linked stories.</div>}
-              </div>
-            </div>
-          </DraggablePanel>
-        </section>
-
-        <div className="filters">
-          {[
-            { id: 'all', label: 'All Sources' },
-            { id: 'news', label: 'News Articles', tone: 'news' },
-            { id: 'twitter', label: 'Twitter', tone: 'twitter' },
-            { id: 'reddit', label: 'Reddit', tone: 'reddit' },
-            { id: 'rumors', label: 'Rumors', tone: 'rumors' },
-            { id: 'flights', label: 'Flights', tone: 'flights' },
-          ].map((f) => (
-            <label key={f.id} className={`switch ${f.tone ? `switch-${f.tone}` : ''}`}>
-              <input
-                type="checkbox"
-                checked={activeFilters.includes(f.id)}
-                onChange={() => toggleFilter(f.id)}
-                aria-label={f.label}
+            {/* Timezone Lines */}
+            {[-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => (
+              <Line
+                key={`timezone-${lon}`}
+                from={[lon, -85]}
+                to={[lon, 85]}
+                stroke="rgba(255, 180, 80, 0.15)"
+                strokeWidth={lon === 0 ? 1.5 : 0.8}
+                strokeDasharray={lon === 0 ? "none" : "3,3"}
               />
-              <span className="slider" />
-              <span className="switch-label">{f.label}</span>
-            </label>
-          ))}
-        </div>
+            ))}
 
-        <div className="feed">
-          {filteredFeed.map((item, idx) => (
-            <FeedItem key={item.id || `${item.contentType || 'item'}-${idx}`} item={item} />
-          ))}
-        </div>
+            {/* Cardinal Direction Indicators */}
+            <Marker coordinates={[0, 85]}>
+              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+                N
+              </text>
+            </Marker>
+            <Marker coordinates={[0, -85]}>
+              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+                S
+              </text>
+            </Marker>
+            <Marker coordinates={[175, 0]}>
+              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+                E
+              </text>
+            </Marker>
+            <Marker coordinates={[-175, 0]}>
+              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+                W
+              </text>
+            </Marker>
 
-        {filteredFeed.length === 0 && <div className="loading">No content found for selected filters</div>}
-      </main>
+            {/* Countries */}
+            <Geographies geography={{ type: 'FeatureCollection', features: GEO_FEATURES }}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const isSelected = selectedRegion?.type === 'country' && selectedRegion.id === geo.id;
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      onClick={(event) => handleRegionClick(geo, 'country', event)}
+                      onMouseMove={(event) => handleRegionMouseMove(geo, event)}
+                      onMouseLeave={handleRegionMouseLeave}
+                      className={isSelected ? 'geography-selected' : 'geography-clickable'}
+                      style={{
+                        default: {
+                          fill: isSelected ? 'rgba(108, 123, 255, 0.3)' : countryColor(geo.properties.name),
+                          outline: 'none',
+                          stroke: isSelected ? 'var(--color-accent)' : '#1f2937',
+                          strokeWidth: isSelected ? 1.5 : 0.25,
+                        },
+                        hover: { fill: '#1b2334', outline: 'none' },
+                        pressed: { fill: '#1b2334', outline: 'none' },
+                      }}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+
+            {/* US States */}
+            {US_STATE_FEATURES.length > 0 && (
+              <Geographies geography={{ type: 'FeatureCollection', features: US_STATE_FEATURES }}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const isSelected = selectedRegion?.type === 'state' && selectedRegion.id === geo.id;
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        onClick={(event) => handleRegionClick(geo, 'state', event)}
+                        onMouseMove={(event) => handleRegionMouseMove(geo, event)}
+                        onMouseLeave={handleRegionMouseLeave}
+                        className={isSelected ? 'geography-selected' : 'geography-clickable'}
+                        style={{
+                          default: {
+                            fill: isSelected ? 'rgba(108, 123, 255, 0.3)' : 'transparent',
+                            stroke: isSelected ? 'var(--color-accent)' : 'rgba(255,255,255,0.08)',
+                            strokeWidth: isSelected ? 1.5 : 0.6,
+                          },
+                          hover: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
+                          pressed: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            )}
+
+            {/* Hotspots */}
+            {hotspots.map((hotspot) => {
+              const maxCount = hotspots[0]?.count || 1;
+              const intensity = Math.max(0.2, hotspot.count / maxCount);
+              const size = 6 + intensity * 12;
+              const isActive = hotspot.id === selectedHotspotId;
+              const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
+              const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
+
+              return (
+                <Marker
+                  key={hotspot.id}
+                  coordinates={[hotspot.lon, hotspot.lat]}
+                  onMouseEnter={(event) => handleHotspotMouseEnter(hotspot, event)}
+                  onMouseLeave={handleHotspotMouseLeave}
+                >
+                  <g
+                    className={`hotspot-marker breathe ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
+                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                    onClick={(event) => handleHotspotClick(hotspot, event)}
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  >
+                    <circle
+                      r={size}
+                      fill={`rgba(108, 123, 255, ${0.15 + intensity * 0.35})`}
+                      stroke="rgba(108,123,255,0.7)"
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    <circle r={size * 0.6} fill="rgba(108, 123, 255, 0.95)" />
+                    {isRecent && <circle r={size * 0.25} fill="#52e08a" />}
+                  </g>
+                  <text textAnchor="middle" y={-size - 4} className="hotspot-label" style={{ pointerEvents: 'none' }}>
+                    {hotspot.name}
+                  </text>
+                  {isRecent && (
+                    <text textAnchor="middle" y={-size - 14} className="hotspot-updated-badge" style={{ pointerEvents: 'none' }}>
+                      Updated {timeAgo(hotspot.lastUpdated)}
+                    </text>
+                  )}
+                </Marker>
+              );
+            })}
+
+            {/* Flight Lines */}
+            {enabledLayers.flights &&
+              flightPaths.map((flight) => (
+                <Line
+                  key={flight.id}
+                  from={flight.from}
+                  to={flight.to}
+                  stroke="rgba(80,200,255,0.7)"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  className="flight-line"
+                />
+              ))}
+          </ZoomableGroup>
+        </ComposableMap>
+
+        {/* Tooltip */}
+        {tooltip.show && (
+          <div
+            className="map-tooltip"
+            style={{
+              position: 'absolute',
+              left: tooltip.x,
+              top: tooltip.y,
+              pointerEvents: 'none'
+            }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 export default App;
+

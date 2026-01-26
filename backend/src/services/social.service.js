@@ -5,6 +5,8 @@
 
 import config from '../config/index.js';
 import { cacheService } from './cache.service.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 const CACHE_KEYS = {
   tweets: 'social:tweets',
@@ -15,7 +17,7 @@ const CACHE_KEYS = {
 
 class SocialService {
   constructor() {
-    this.hasTwitter = Boolean(config.twitter.bearerToken);
+    this.hasTwitter = Boolean(config.twitter.enabled && config.twitter.bearerToken);
     this.hasReddit = Boolean(config.reddit.clientId && config.reddit.clientSecret);
   }
 
@@ -28,7 +30,7 @@ class SocialService {
    */
   async fetchTweets(username) {
     if (!this.hasTwitter) {
-      return this.getMockTweets(username);
+      return this.getCustomTweets();
     }
 
     try {
@@ -41,10 +43,7 @@ class SocialService {
       );
       const userData = await userResponse.json();
       
-      if (!userData.data?.id) {
-        console.error(`[Twitter] User not found: ${username}`);
-        return [];
-      }
+      if (!userData.data?.id) return [];
 
       // Then get tweets
       const tweetsResponse = await fetch(
@@ -62,7 +61,7 @@ class SocialService {
       );
     } catch (error) {
       console.error('[Twitter] Fetch error:', error.message);
-      return this.getMockTweets(username);
+      return this.getCustomTweets();
     }
   }
 
@@ -75,12 +74,18 @@ class SocialService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
+    // If no Twitter auth, try custom feed and return early
+    if (!this.hasTwitter) {
+      const custom = await this.getCustomTweets();
+      await cacheService.set(cacheKey, custom, config.cache.tweets);
+      return custom;
+    }
+
     const allTweets = [];
     for (const account of config.twitter.accounts) {
       const tweets = await this.fetchTweets(account);
       allTweets.push(...tweets);
     }
-
     // Sort by date
     allTweets.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
@@ -188,59 +193,41 @@ class SocialService {
   }
 
   // ==========================================
-  // MOCK DATA (for development)
+  // CUSTOM DATA (for development/offline)
   // ==========================================
 
-  getMockTweets(username = 'news') {
-    const mockTweets = [
-      {
-        text: 'BREAKING: Major policy announcement expected from world leaders at upcoming summit. Stay tuned for live coverage.',
-        user: { name: 'Reuters', username: 'Reuters' },
-        metrics: { likes: 1542, retweets: 823, replies: 156 },
-        minutesAgo: 5,
-      },
-      {
-        text: 'Markets react positively to new economic data, with major indices reaching record highs in early trading.',
-        user: { name: 'AP News', username: 'AP' },
-        metrics: { likes: 892, retweets: 445, replies: 89 },
-        minutesAgo: 15,
-      },
-      {
-        text: 'Scientists announce breakthrough in renewable energy technology that could significantly reduce costs.',
-        user: { name: 'BBC Breaking', username: 'BBCBreaking' },
-        metrics: { likes: 2341, retweets: 1205, replies: 234 },
-        minutesAgo: 32,
-      },
-      {
-        text: 'Tech industry leaders to testify before Congress next week on AI regulation proposals.',
-        user: { name: 'CNN', username: 'CNN' },
-        metrics: { likes: 1123, retweets: 567, replies: 445 },
-        minutesAgo: 48,
-      },
-      {
-        text: 'Weather alert: Severe storms expected across multiple states this weekend. Residents advised to prepare.',
-        user: { name: 'The Weather Channel', username: 'weatherchannel' },
-        metrics: { likes: 756, retweets: 1234, replies: 123 },
-        minutesAgo: 67,
-      },
-    ];
+  async getCustomTweets() {
+    const customPath = config.twitter.customFeedPath;
+    if (!customPath) return [];
 
-    return mockTweets.map((tweet, i) => ({
-      id: `tweet-mock-${i}`,
-      contentType: 'tweet',
-      source: 'twitter',
-      sourceName: 'Twitter',
-      content: tweet.text,
-      url: `https://twitter.com/${tweet.user.username}/status/${Date.now() - i}`,
-      author: tweet.user.name,
-      authorHandle: `@${tweet.user.username}`,
-      authorAvatarUrl: `https://i.pravatar.cc/48?u=${tweet.user.username}`,
-      publishedAt: new Date(Date.now() - tweet.minutesAgo * 60000).toISOString(),
-      likesCount: tweet.metrics.likes,
-      retweetsCount: tweet.metrics.retweets,
-      repliesCount: tweet.metrics.replies,
-      fetchedAt: new Date().toISOString(),
-    }));
+    try {
+      const resolved = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', customPath);
+      const file = await fs.readFile(resolved, 'utf-8');
+      const data = JSON.parse(file);
+      if (!Array.isArray(data)) return [];
+      return data.map((tweet, idx) => ({
+        id: tweet.id || `tweet-custom-${idx}`,
+        contentType: 'tweet',
+        source: tweet.source || 'twitter',
+        sourceName: tweet.sourceName || 'Twitter',
+        title: tweet.title || null,
+        content: tweet.content || tweet.text || '',
+        summary: tweet.summary || tweet.content || tweet.text || '',
+        url: tweet.url || null,
+        imageUrl: tweet.imageUrl || null,
+        author: tweet.author || tweet.handle || null,
+        authorHandle: tweet.authorHandle || tweet.handle || null,
+        authorAvatarUrl: tweet.authorAvatarUrl || null,
+        publishedAt: tweet.publishedAt || new Date().toISOString(),
+        likesCount: tweet.likesCount || 0,
+        retweetsCount: tweet.retweetsCount || 0,
+        repliesCount: tweet.repliesCount || 0,
+        fetchedAt: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error('[Twitter] Custom feed load error:', error.message);
+      return [];
+    }
   }
 
   getMockRedditPosts(subreddit = 'news') {

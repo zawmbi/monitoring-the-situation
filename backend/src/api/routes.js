@@ -10,6 +10,7 @@ import { socialService } from '../services/social.service.js';
 import { feedService } from '../services/feed.service.js';
 import { cacheService } from '../services/cache.service.js';
 import { wsHandler } from '../services/websocket.service.js';
+import { stocksService } from '../services/stocks.service.js';
 
 const router = Router();
 
@@ -36,6 +37,20 @@ router.get('/stats', async (req, res) => {
     res.json({ success: true, data: stats });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/stocks
+ * Returns top movers and a padded list up to 100 tickers with market status
+ */
+router.get('/stocks', async (req, res) => {
+  try {
+    const data = await stocksService.getTopStocks(100);
+    res.json({ success: true, data });
+  } catch (error) {
+    const statusCode = error.code === 'NO_API_KEY' ? 400 : 502;
+    res.status(statusCode).json({ success: false, error: error.message });
   }
 });
 

@@ -4,7 +4,10 @@
  */
 
 import { config as dotenvConfig } from 'dotenv';
+import path from 'path';
 dotenvConfig();
+// Also load env from repository root if backend is launched from /backend
+dotenvConfig({ path: path.resolve(process.cwd(), '..', '.env'), override: false });
 
 export const config = {
   // Server
@@ -34,10 +37,15 @@ export const config = {
 
   // Twitter/X
   twitter: {
+    enabled: (process.env.TWITTER_ENABLED || 'false').toLowerCase() === 'true',
     bearerToken: process.env.TWITTER_BEARER_TOKEN || '',
     apiKey: process.env.TWITTER_API_KEY || '',
     apiSecret: process.env.TWITTER_API_SECRET || '',
-    accounts: (process.env.TWITTER_ACCOUNTS || 'Reuters,AP,BBCBreaking').split(','),
+    accounts: (process.env.TWITTER_ACCOUNTS || 'Reuters,AP,BBCBreaking')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
+    customFeedPath: process.env.TWITTER_CUSTOM_FEED_PATH || '../data/twitter-feed.json',
   },
 
   // Reddit
@@ -70,6 +78,17 @@ export const config = {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
     credentials: true,
+  },
+
+  // Alpha Vantage (stocks)
+  alphaVantage: {
+    key: process.env.ALPHA_VANTAGE_API_KEY || process.env.ALPHAADVANTAGE_API_KEY || '',
+    baseUrl: process.env.ALPHA_VANTAGE_BASE_URL || 'https://www.alphavantage.co/query',
+    refreshIntervals: {
+      movers: parseInt(process.env.STOCKS_REFRESH_SECONDS || '300', 10), // 5 minutes
+      markets: parseInt(process.env.STOCKS_MARKET_REFRESH_SECONDS || '600', 10), // 10 minutes
+      listings: parseInt(process.env.STOCKS_LISTING_REFRESH_SECONDS || '21600', 10), // 6 hours
+    },
   },
 };
 
