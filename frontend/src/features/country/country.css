@@ -1,0 +1,92 @@
+/* Country Panel Styles */
+
+.country-panel {
+  position: absolute;
+  background: rgba(10, 15, 36, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(108, 123, 255, 0.3);
+  border-radius: 8px;
+  width: 300px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: 1002;
+  cursor: move;
+}
+
+.country-panel-header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.country-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.country-panel-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.country-panel-close {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.country-panel-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.country-panel-body {
+  padding: 16px;
+}
+
+.country-panel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+
+.country-panel-row:last-of-type {
+  border-bottom: none;
+}
+
+.country-panel-row span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.country-panel-row strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+}
+
+.country-panel-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}

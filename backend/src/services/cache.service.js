@@ -19,45 +19,53 @@ class CacheService {
       this.client = new Redis(config.redis.url, {
         retryStrategy: (times) => Math.min(times * 50, 2000),
         maxRetriesPerRequest: 3,
+        lazyConnect: true,
       });
 
-      this.subscriber = new Redis(config.redis.url);
-      this.publisher = new Redis(config.redis.url);
+      this.subscriber = new Redis(config.redis.url, { lazyConnect: true });
+      this.publisher = new Redis(config.redis.url, { lazyConnect: true });
+
+      // Suppress unhandled error event listeners
+      this.client.on('error', () => {}); // Silently ignore connection errors
+      this.subscriber.on('error', () => {});
+      this.publisher.on('error', () => {});
 
       this.client.on('connect', () => {
         console.log('[Cache] Connected to Redis');
         this.isConnected = true;
       });
 
-      this.client.on('error', (err) => {
-        console.error('[Cache] Redis error:', err.message);
+      try {
+        await this.client.ping();
+        this.isConnected = true;
+        return true;
+      } catch {
+        console.log('[Cache] Redis unavailable - caching disabled (app will still work)');
         this.isConnected = false;
-      });
-
-      await this.client.ping();
-      return true;
+        return false;
+      }
     } catch (error) {
-      console.error('[Cache] Failed to connect:', error.message);
+      console.log('[Cache] Redis unavailable - caching disabled (app will still work)');
       return false;
     }
   }
 
   async get(key) {
+    if (!this.isConnected) return null;
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.error('[Cache] Get error:', error.message);
       return null;
     }
   }
 
   async set(key, value, ttlSeconds = 60) {
+    if (!this.isConnected) return false;
     try {
       await this.client.setex(key, ttlSeconds, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.error('[Cache] Set error:', error.message);
       return false;
     }
   }

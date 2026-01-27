@@ -56,6 +56,7 @@ app.get('/', (req, res) => {
       reddit: '/api/reddit',
       rss: '/api/rss',
       stocks: '/api/stocks',
+      polymarket: '/api/polymarket',
       search: '/api/search',
       health: '/health',
     },

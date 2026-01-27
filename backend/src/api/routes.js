@@ -11,6 +11,7 @@ import { feedService } from '../services/feed.service.js';
 import { cacheService } from '../services/cache.service.js';
 import { wsHandler } from '../services/websocket.service.js';
 import { stocksService } from '../services/stocks.service.js';
+import { polymarketService } from '../services/polymarket.service.js';
 
 const router = Router();
 
@@ -51,6 +52,44 @@ router.get('/stocks', async (req, res) => {
   } catch (error) {
     const statusCode = error.code === 'NO_API_KEY' ? 400 : 502;
     res.status(statusCode).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/polymarket
+ * Returns Polymarket prediction markets with >100k volume
+ * Query params:
+ * - country: filter by country name
+ * - limit: number of markets to return (default 50)
+ */
+router.get('/polymarket', async (req, res) => {
+  try {
+    const { country, limit = 50 } = req.query;
+
+    console.log(`[API] Polymarket request: country=${country || 'all'}, limit=${limit}`);
+
+    let markets;
+    if (country) {
+      markets = await polymarketService.getMarketsByCountry(country);
+      console.log(`[API] Found ${markets.length} markets for ${country}`);
+    } else {
+      markets = await polymarketService.getTopMarkets(parseInt(limit, 10));
+      console.log(`[API] Returning ${markets.length} top markets`);
+    }
+
+    res.json({
+      success: true,
+      count: markets.length,
+      data: markets,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[API] Polymarket error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Polymarket data',
+      details: error.message
+    });
   }
 });
 

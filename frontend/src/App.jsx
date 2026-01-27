@@ -7,9 +7,12 @@ import usData from 'us-atlas/states-10m.json';
 import { useFeed } from './hooks/useFeed';
 import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
-import { fetchCountryProfile } from './services/countryInfo';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
 import { StocksPanel } from './features/stocks/StocksPanel';
+import { PolymarketPanel } from './features/polymarket/PolymarketPanel';
+import { usePolymarket } from './features/polymarket/usePolymarket';
+import { CountryPanel } from './features/country/CountryPanel';
+import { useCountryPanel } from './features/country/useCountryPanel';
 import { timeAgo } from './utils/time';
 
 // Safe guard in case topojson fails to load
@@ -93,107 +96,6 @@ function getCurrentTimeForOffset(offsetHours) {
   const ampm = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours % 12 || 12;
   return `${displayHours}:${minutes} ${ampm}`;
-}
-
-function parseOffsetFromTimezone(tzString) {
-  const match = (tzString || '').match(/([-+]?\d+(?:\.\d+)?)/);
-  if (!match) return 0;
-  const val = parseFloat(match[1]);
-  return Number.isFinite(val) ? val : 0;
-}
-function CountryPanel({ data, position, onClose, onPositionChange, bounds }) {
-  const panelRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
-
-  const clampPos = (x, y) => {
-    if (!bounds) return { x, y };
-    const pad = 16;
-    const w = 320;
-    const h = 220;
-    return {
-      x: Math.max(pad, Math.min(x, bounds.width - w - pad)),
-      y: Math.max(pad + 40, Math.min(y, bounds.height - h - pad)),
-    };
-  };
-
-  const onMouseDown = (e) => {
-    if (e.target.closest('button, a')) return;
-    setIsDragging(true);
-    dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
-  };
-
-  useEffect(() => {
-    const onMove = (e) => {
-      if (!isDragging) return;
-      const next = clampPos(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y);
-      onPositionChange(next);
-    };
-    const onUp = () => setIsDragging(false);
-    if (isDragging) {
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    }
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-  }, [isDragging, onPositionChange, bounds]);
-
-  if (!data || !position) return null;
-
-  return (
-    <div
-      ref={panelRef}
-      className="country-panel"
-      style={{ left: position.x, top: position.y }}
-      onMouseDown={onMouseDown}
-    >
-      <div className="country-panel-header">
-        <div>
-          <div className="country-panel-title">{data.name}</div>
-          <div className="country-panel-subtitle">{data.leader || 'Unavailable'}</div>
-        </div>
-        <button className="country-panel-close" onClick={onClose} aria-label="Close">x</button>
-      </div>
-      <div className="country-panel-body">
-        <div className="country-panel-row">
-          <span>Population</span>
-          <strong>{data.population}</strong>
-        </div>
-        {data.capital && (
-          <div className="country-panel-row">
-            <span>Capital</span>
-            <strong>{data.capital}</strong>
-          </div>
-        )}
-        {data.region && (
-          <div className="country-panel-row">
-            <span>Region</span>
-            <strong>{data.region}{data.subregion ? ` - ${data.subregion}` : ''}</strong>
-          </div>
-        )}
-        <div className="country-panel-row">
-          <span>Timezone</span>
-          <strong>{data.timezone}</strong>
-        </div>
-        <div className="country-panel-row">
-          <span>Local Time</span>
-          <strong>{getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone))}</strong>
-        </div>
-        {data.error && (
-          <div className="country-panel-row">
-            <span>Error</span>
-            <strong>{data.error}</strong>
-          </div>
-        )}
-        <div className="country-panel-note">Drag to move - Esc/x to close</div>
-      </div>
-    </div>
-  );
 }
 
 // Timezone info
@@ -419,7 +321,14 @@ function App() {
   const [viewMode, setViewMode] = useState('world');
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const [countryPanel, setCountryPanel] = useState({ open: false, data: null, pos: { x: 160, y: 120 } });
+
+  // Country panel hook
+  const {
+    countryPanel,
+    openCountryPanel,
+    closeCountryPanel,
+    updateCountryPanelPosition,
+  } = useCountryPanel();
 
   // Sidebar state
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -435,6 +344,10 @@ function App() {
 
   // Stocks panel visibility
   const [showStocksPanel, setShowStocksPanel] = useState(false);
+
+  // Polymarket panel visibility and state
+  const [showPolymarketPanel, setShowPolymarketPanel] = useState(false);
+  const [polymarketCountry, setPolymarketCountry] = useState(null);
 
   // Tooltip state
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
@@ -459,6 +372,13 @@ function App() {
     refresh: refreshStocks,
   } = useStocks(enabledLayers.stocks);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
+  const {
+    markets: polymarkets,
+    loading: polymarketsLoading,
+    error: polymarketsError,
+    lastUpdated: polymarketsLastUpdated,
+    refresh: refreshPolymarkets,
+  } = usePolymarket(polymarketCountry, showPolymarketPanel);
 
   const flightPaths = useMemo(() => {
     return (flights || [])
@@ -572,58 +492,19 @@ function App() {
     const panelHeight = 200;
     const padding = 32;
 
-    let x = clickX;
-    let y = clickY;
-
-    // Default place below and to the right of click
-    x = clickX + 24;
-    y = clickY + 24;
+    let x = clickX + 24;
+    let y = clickY + 24;
 
     // Clamp to avoid edges
     x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
     y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
 
-    setCountryPanel({
-      open: true,
-      data: {
-        name,
-        population: 'Loading...',
-        leader: 'Loading...',
-        timezone: 'UTC',
-      },
-      pos: { x, y },
-    });
+    // Open country panel with calculated position
+    openCountryPanel(name, { x, y });
 
-    (async () => {
-      try {
-        const profile = await fetchCountryProfile(name);
-        if (profile) {
-          setCountryPanel(prev => ({
-            ...prev,
-            data: {
-              name: profile.name || name,
-              population: profile.population || 'Unknown',
-              leader: profile.leader || 'Unavailable',
-              timezone: profile.timezone || 'UTC',
-              capital: profile.capital,
-              region: profile.region,
-              subregion: profile.subregion,
-            },
-          }));
-        }
-      } catch (err) {
-        setCountryPanel(prev => ({
-          ...prev,
-          data: {
-            name,
-            population: 'Unknown',
-            leader: 'Unavailable',
-            timezone: 'UTC',
-          },
-          error: err?.message || 'Unable to load country info',
-        }));
-      }
-    })();
+    // Open Polymarket panel for this country
+    setPolymarketCountry(name);
+    setShowPolymarketPanel(true);
   };
 
   const handleHotspotClick = (hotspot, event) => {
@@ -940,6 +821,18 @@ function App() {
           onRefresh={refreshStocks}
         />
 
+        {/* Polymarket Panel */}
+        <PolymarketPanel
+          visible={showPolymarketPanel}
+          markets={polymarkets}
+          loading={polymarketsLoading}
+          error={polymarketsError}
+          lastUpdated={polymarketsLastUpdated}
+          country={polymarketCountry}
+          onClose={() => setShowPolymarketPanel(false)}
+          onRefresh={refreshPolymarkets}
+        />
+
         {countryPanel.open && countryPanel.data && (
           <CountryPanel
             data={countryPanel.data}
@@ -952,8 +845,8 @@ function App() {
                   }
                 : null
             }
-            onPositionChange={(pos) => setCountryPanel(prev => ({ ...prev, pos }))}
-            onClose={() => setCountryPanel({ open: false, data: null, pos: { x: 160, y: 120 } })}
+            onPositionChange={updateCountryPanelPosition}
+            onClose={closeCountryPanel}
           />
         )}
 
