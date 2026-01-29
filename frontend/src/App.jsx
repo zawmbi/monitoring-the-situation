@@ -4,6 +4,7 @@ import { feature } from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
 import worldData from 'world-atlas/countries-110m.json';
 import usData from 'us-atlas/states-10m.json';
+import countries from 'world-countries';
 import { useFeed } from './hooks/useFeed';
 import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
@@ -22,6 +23,41 @@ const GEO_FEATURES = worldData?.objects?.countries
 const US_STATE_FEATURES = usData?.objects?.states
   ? feature(usData, usData.objects.states).features
   : [];
+
+const COUNTRIES_DATA = Array.isArray(countries)
+  ? countries
+  : (countries?.default && Array.isArray(countries.default) ? countries.default : []);
+
+const COUNTRY_BY_CCN3 = new Map(
+  (COUNTRIES_DATA || [])
+    .filter((country) => country?.ccn3)
+    .map((country) => [String(country.ccn3).padStart(3, '0'), country])
+);
+
+const CAPITAL_MARKERS = GEO_FEATURES.map((geo, idx) => {
+  const country = COUNTRY_BY_CCN3.get(String(geo.id).padStart(3, '0'));
+  const capitalName = Array.isArray(country?.capital) ? country.capital[0] : country?.capital;
+  if (!capitalName) return null;
+
+  const capitalCoords = country?.capitalInfo?.latlng;
+  let lon;
+  let lat;
+
+  if (Array.isArray(capitalCoords) && capitalCoords.length === 2) {
+    [lat, lon] = capitalCoords;
+  } else {
+    [lon, lat] = geoCentroid(geo);
+  }
+
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+
+  return {
+    id: `capital-${geo.id || idx}`,
+    name: capitalName,
+    lon,
+    lat,
+  };
+}).filter(Boolean);
 
 // Build marker list for every country and US state
 const COUNTRY_MARKERS = GEO_FEATURES.map((geo, idx) => {
@@ -890,7 +926,7 @@ function App() {
             </Marker>
 
             {/* Countries */}
-            <Geographies geography={{ type: 'FeatureCollection', features: GEO_FEATURES }}>
+            <Geographies geography={GEO_FEATURES}>
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const isSelected = selectedRegion?.type === 'country' && selectedRegion.id === geo.id;
@@ -906,11 +942,24 @@ function App() {
                         default: {
                           fill: isSelected ? 'rgba(108, 123, 255, 0.3)' : countryColor(geo.properties.name),
                           outline: 'none',
-                          stroke: isSelected ? 'var(--color-accent)' : '#1f2937',
-                          strokeWidth: isSelected ? 1.5 : 0.25,
+                          stroke: isSelected ? 'var(--color-accent)' : 'var(--color-map-border)',
+                          strokeWidth: isSelected ? 1.6 : 0.8,
+                          vectorEffect: 'non-scaling-stroke',
                         },
-                        hover: { fill: '#1b2334', outline: 'none' },
-                        pressed: { fill: '#1b2334', outline: 'none' },
+                        hover: {
+                          fill: '#1b2334',
+                          outline: 'none',
+                          stroke: 'var(--color-map-border-strong)',
+                          strokeWidth: 0.9,
+                          vectorEffect: 'non-scaling-stroke',
+                        },
+                        pressed: {
+                          fill: '#1b2334',
+                          outline: 'none',
+                          stroke: 'var(--color-map-border-strong)',
+                          strokeWidth: 0.9,
+                          vectorEffect: 'non-scaling-stroke',
+                        },
                       }}
                     />
                   );
@@ -920,7 +969,7 @@ function App() {
 
             {/* US States */}
             {US_STATE_FEATURES.length > 0 && (
-              <Geographies geography={{ type: 'FeatureCollection', features: US_STATE_FEATURES }}>
+              <Geographies geography={US_STATE_FEATURES}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
                     const isSelected = selectedRegion?.type === 'state' && selectedRegion.id === geo.id;
@@ -947,6 +996,28 @@ function App() {
                 }
               </Geographies>
             )}
+
+            {/* Capital Cities */}
+            {CAPITAL_MARKERS.map((capital) => (
+              <Marker key={capital.id} coordinates={[capital.lon, capital.lat]}>
+                <g className="capital-marker">
+                  <polygon
+                    className="capital-star"
+                    points="0,-5 1.6,-1.6 5,-1.6 2.2,1 3.2,4.6 0,2.6 -3.2,4.6 -2.2,1 -5,-1.6 -1.6,-1.6"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    className="capital-label"
+                    x={7}
+                    y={1}
+                    textAnchor="start"
+                    dominantBaseline="middle"
+                  >
+                    {capital.name}
+                  </text>
+                </g>
+              </Marker>
+            ))}
 
             {/* Hotspots */}
             {hotspots.map((hotspot) => {

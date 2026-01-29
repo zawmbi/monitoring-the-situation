@@ -9,10 +9,14 @@
   --color-bg-hover: #131c3f;
   --color-border: #1b2550;
   --color-border-light: #2a356a;
+  --color-map-border: rgba(148, 163, 184, 0.55);
+  --color-map-border-strong: rgba(186, 200, 230, 0.75);
   --color-text-primary: #e7eafe;
   --color-text-secondary: #c5cbff;
   --color-text-muted: #8ea1d2;
   --color-accent: #6f7dff;
+  --color-capital: #f0d28b;
+  --color-capital-text: rgba(245, 230, 200, 0.95);
   --color-twitter: #5aa5ff;
   --color-reddit: #ff7a4a;
   --color-rss: #fbc02d;
@@ -452,6 +456,28 @@ body {
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.capital-marker {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.capital-star {
+  fill: var(--color-capital);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.6;
+  filter: drop-shadow(0 0 6px rgba(240, 210, 139, 0.45));
+}
+
+.capital-label {
+  fill: var(--color-capital-text);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 2;
 }
 
 .pulse {
