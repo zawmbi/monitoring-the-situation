@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const STOCKS_API_URL = import.meta.env.VITE_STOCKS_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const STOCKS_API_URL =
+  import.meta.env.VITE_STOCKS_API_URL ||
+  (API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, '')}/api/stocks` : '/api/stocks');
 
 async function fetchStocksFromApi() {
-  if (!STOCKS_API_URL) throw new Error('VITE_STOCKS_API_URL not set');
+  if (!STOCKS_API_URL) throw new Error('Stocks API URL not configured');
   const response = await fetch(STOCKS_API_URL);
   if (!response.ok) throw new Error(`Stocks API error: ${response.status}`);
   return response.json();

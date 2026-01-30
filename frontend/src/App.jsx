@@ -15,6 +15,7 @@ import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
 import { useCountryPanel } from './features/country/useCountryPanel';
 import { timeAgo } from './utils/time';
+import Navbar, { PagePanel } from './navbar/Navbar';
 
 // Safe guard in case topojson fails to load
 const GEO_FEATURES = worldData?.objects?.countries
@@ -352,11 +353,31 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   );
 }
 
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return 'dark';
+  const stored = window.localStorage.getItem('theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    return 'light';
+  }
+  return 'dark';
+};
+
+const getInitialNavCollapsed = () => {
+  if (typeof window === 'undefined') return false;
+  const stored = window.localStorage.getItem('navCollapsed');
+  if (stored === 'true' || stored === 'false') return stored === 'true';
+  return window.innerWidth < 1100;
+};
+
 function App() {
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [activePage, setActivePage] = useState(null);
+  const [navCollapsed, setNavCollapsed] = useState(getInitialNavCollapsed);
 
   // Country panel hook
   const {
@@ -368,6 +389,9 @@ function App() {
 
   // Sidebar state
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState('world');
+  const [showTimezones, setShowTimezones] = useState(false);
+  const [showCapitals, setShowCapitals] = useState(false);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -415,6 +439,32 @@ function App() {
     lastUpdated: polymarketsLastUpdated,
     refresh: refreshPolymarkets,
   } = usePolymarket(polymarketCountry, showPolymarketPanel);
+
+  const isLightTheme = theme === 'light';
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
+  }, [navCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem('navCollapsed', String(navCollapsed));
+  }, [navCollapsed]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1100) {
+        setNavCollapsed(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const flightPaths = useMemo(() => {
     return (flights || [])
@@ -498,13 +548,15 @@ function App() {
   }, [displayFeed, enabledLayers.twitter]);
 
   const countryColor = (name) => {
-    if (!name) return '#111216';
+    if (!name) return isLightTheme ? '#dfe6ff' : '#111827';
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 35%, 18%)`;
+    const saturation = isLightTheme ? 34 : 36;
+    const lightness = isLightTheme ? 78 : 18;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   };
 
   const handleRegionClick = (geo, scope, event) => {
@@ -639,6 +691,18 @@ function App() {
     setNewsPanelPosition(newPosition);
   };
 
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleNavigate = (pageId) => {
+    setActivePage(prev => (prev === pageId ? null : pageId));
+  };
+
+  const handleToggleNav = () => {
+    setNavCollapsed(prev => !prev);
+  };
+
   const handleBackToWorld = () => {
     setViewMode('world');
     setSelectedRegion(null);
@@ -704,119 +768,236 @@ function App() {
   const breadcrumb = getBreadcrumb();
 
   return (
+    <>
     <div className="app">
-      {/* Sidebar */}
-      <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-top-bar">
-            <div className="sidebar-logo">
-              <div className="logo-icon">
-                <img src="/earth.png" alt="Monitored" className="logo-image" />
-              </div>
-              <span className="sidebar-logo-text">Monitored</span>
+      <Navbar
+        title="Monitoring The Situation"
+        logoSrc="/earth.png"
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        collapsed={navCollapsed}
+        onToggleCollapse={handleToggleNav}
+      />
+
+      <div className="app-body">
+        {/* Sidebar */}
+        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-top-bar">
+
+              <button
+                className="sidebar-toggle"
+                onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              >
+                {sidebarExpanded ? '<' : '>'}
+              </button>
             </div>
-            <button
-              className="sidebar-toggle"
-              onClick={() => setSidebarExpanded(!sidebarExpanded)}
-              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-            >
-              {sidebarExpanded ? '<' : '>'}
-            </button>
-          </div>
-          <div className="sidebar-breadcrumb">
-            {breadcrumb.map((item, idx) => (
-              <span key={idx}>
-                <span
-                  className={`breadcrumb-item ${item.active ? 'active' : ''}`}
-                  onClick={item.onClick}
-                >
-                  {item.label}
+            <div className="sidebar-breadcrumb">
+              {breadcrumb.map((item, idx) => (
+                <span key={idx}>
+                  <span
+                    className={`breadcrumb-item ${item.active ? 'active' : ''}`}
+                    onClick={item.onClick}
+                  >
+                    {item.label}
+                  </span>
+                  {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
                 </span>
-                {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="sidebar-content">
-          {feedLoading && sidebarExpanded && (
-            <div className="notice" style={{ marginBottom: '12px' }}>
-              Loading live feed...
-            </div>
-          )}
-          {feedError && sidebarExpanded && (
-            <div className="notice" style={{ marginBottom: '12px' }}>
-              Feed unavailable: {feedError.message}
-            </div>
-          )}
-
-          {/* Source Toggles */}
-          {sidebarExpanded && (
-            <div className="source-toggles">
-              <div className="toggle-group-title">Layers & Sources</div>
-              {[
-                { id: 'news', label: 'Major News', tone: 'news', disabled: false },
-                { id: 'twitter', label: 'Twitter', tone: 'twitter', disabled: false },
-                { id: 'reddit', label: 'Reddit', tone: 'reddit', disabled: false },
-                { id: 'rumors', label: 'Rumors', tone: 'rumors', disabled: false },
-                { id: 'flights', label: 'Flights', tone: 'flights', disabled: false },
-                { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
-              ].map((layer) => (
-                <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                  <span className="switch-label">{layer.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={enabledLayers[layer.id]}
-                    onChange={() => !layer.disabled && toggleLayer(layer.id)}
-                    disabled={layer.disabled}
-                  />
-                  <span className="slider" />
-                </label>
               ))}
             </div>
-          )}
-
-          {/* News Feed */}
-          {sidebarExpanded && (
-            <NewsFeed
-              items={filteredDisplayFeed}
-              viewMode={viewMode}
-              selectedRegion={selectedRegion}
-              onBackToWorld={handleBackToWorld}
-            />
-          )}
-
-          {!sidebarExpanded && (
-            <div className="sidebar-icon-stack">
-              <div className="sidebar-icon" title="Expand sidebar">
-                map
+            {sidebarExpanded && (
+              <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+                <button
+                  type="button"
+                  className={`sidebar-tab ${sidebarTab === 'world' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('world')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'world'}
+                >
+                  World
+                </button>
+                <button
+                  type="button"
+                  className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('settings')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'settings'}
+                >
+                  Settings
+                </button>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
 
-      {/* Map */}
-      <div className="map-container" ref={mapContainerRef}>
-        {/* Timezone Labels Top */}
-        <div className="timezone-labels timezone-labels-top">
-          {TIMEZONES.map(tz => (
-            <div key={`top-${tz.name}`} className="timezone-label">
-              <div className="timezone-name">{tz.name}</div>
-              <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
-            </div>
-          ))}
+          <div className="sidebar-content">
+            {sidebarTab === 'world' && feedLoading && sidebarExpanded && (
+              <div className="notice" style={{ marginBottom: '12px' }}>
+                Loading live feed...
+              </div>
+            )}
+            {sidebarTab === 'world' && feedError && sidebarExpanded && (
+              <div className="notice" style={{ marginBottom: '12px' }}>
+                Feed unavailable: {feedError.message}
+              </div>
+            )}
+
+            {/* Source Toggles */}
+            {sidebarExpanded && sidebarTab === 'world' && (
+              <div className="source-toggles">
+                <div className="toggle-group-title">Layers & Sources</div>
+
+                <div className="source-group">
+                  <div className="source-group-title">News</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'news', label: 'Major News', tone: 'news', disabled: false },
+                      { id: 'reddit', label: 'Reddit', tone: 'reddit', disabled: false },
+                      { id: 'twitter', label: 'Twitter', tone: 'twitter', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Signals</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'rumors', label: 'Rumors', tone: 'rumors', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Live Data</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
+                      { id: 'flights', label: 'Flights', tone: 'flights', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* News Feed */}
+            {sidebarExpanded && sidebarTab === 'world' && (
+              <NewsFeed
+                items={filteredDisplayFeed}
+                viewMode={viewMode}
+                selectedRegion={selectedRegion}
+                onBackToWorld={handleBackToWorld}
+              />
+            )}
+
+            {sidebarExpanded && sidebarTab === 'settings' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Appearance</div>
+                <div className="settings-group">
+                  <label className="switch switch-theme">
+                    <span className="switch-label">Light mode</span>
+                    <input
+                      type="checkbox"
+                      checked={isLightTheme}
+                      onChange={(event) => setTheme(event.target.checked ? 'light' : 'dark')}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="toggle-group-title">Map Overlays</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Timezones</span>
+                    <input
+                      type="checkbox"
+                      checked={showTimezones}
+                      onChange={() => setShowTimezones(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-dev">
+                    <span className="switch-label">Capitals (dev)</span>
+                    <input
+                      type="checkbox"
+                      checked={showCapitals}
+                      onChange={() => setShowCapitals(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {!sidebarExpanded && (
+              <div className="sidebar-icon-stack">
+                <div className="sidebar-icon" title="Expand sidebar">
+                  map
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Map */}
+        <div className="map-container" ref={mapContainerRef}>
+        {/* Timezone Labels Top */}
+        {showTimezones && (
+          <div className="timezone-labels timezone-labels-top">
+            {TIMEZONES.map(tz => (
+              <div key={`top-${tz.name}`} className="timezone-label">
+                <div className="timezone-name">{tz.name}</div>
+                <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Timezone Labels Bottom */}
-        <div className="timezone-labels timezone-labels-bottom">
-          {TIMEZONES.map(tz => (
-            <div key={`bottom-${tz.name}`} className="timezone-label">
-              <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
-              <div className="timezone-name">{tz.name}</div>
-            </div>
-          ))}
-        </div>
+        {showTimezones && (
+          <div className="timezone-labels timezone-labels-bottom">
+            {TIMEZONES.map(tz => (
+              <div key={`bottom-${tz.name}`} className="timezone-label">
+                <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+                <div className="timezone-name">{tz.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {enabledLayers.flights && flightsLoading && (
           <div className="notice map-notice">Loading flights...</div>
@@ -888,8 +1069,8 @@ function App() {
 
         <ComposableMap projection="geoEqualEarth">
           <ZoomableGroup>
-            <Sphere stroke="rgba(255,255,255,0.06)" strokeWidth={1} fill="rgba(199, 7, 7, 0.01)" />
-            <Graticule stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} />
+            <Sphere stroke="rgba(var(--accent-alt-rgb), 0.16)" strokeWidth={1} fill="rgba(var(--accent-rgb), 0.05)" />
+            <Graticule stroke="rgba(var(--accent-alt-rgb), 0.12)" strokeWidth={0.5} />
 
             {/* Timezone Lines */}
             {[-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => (
@@ -897,7 +1078,7 @@ function App() {
                 key={`timezone-${lon}`}
                 from={[lon, -85]}
                 to={[lon, 85]}
-                stroke="rgba(255, 180, 80, 0.15)"
+                stroke="rgba(var(--accent-alt-rgb), 0.2)"
                 strokeWidth={lon === 0 ? 1.5 : 0.8}
                 strokeDasharray={lon === 0 ? "none" : "3,3"}
               />
@@ -905,22 +1086,22 @@ function App() {
 
             {/* Cardinal Direction Indicators */}
             <Marker coordinates={[0, 85]}>
-              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
                 N
               </text>
             </Marker>
             <Marker coordinates={[0, -85]}>
-              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
                 S
               </text>
             </Marker>
             <Marker coordinates={[175, 0]}>
-              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
                 E
               </text>
             </Marker>
             <Marker coordinates={[-175, 0]}>
-              <text textAnchor="middle" className="cardinal-label" fill="rgba(80, 200, 255, 1)" fontSize="13px" fontWeight="700">
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
                 W
               </text>
             </Marker>
@@ -940,21 +1121,21 @@ function App() {
                       className={isSelected ? 'geography-selected' : 'geography-clickable'}
                       style={{
                         default: {
-                          fill: isSelected ? 'rgba(108, 123, 255, 0.3)' : countryColor(geo.properties.name),
+                          fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : countryColor(geo.properties.name),
                           outline: 'none',
                           stroke: isSelected ? 'var(--color-accent)' : 'var(--color-map-border)',
                           strokeWidth: isSelected ? 1.6 : 0.8,
                           vectorEffect: 'non-scaling-stroke',
                         },
                         hover: {
-                          fill: '#1b2334',
+                          fill: 'var(--color-bg-hover)',
                           outline: 'none',
                           stroke: 'var(--color-map-border-strong)',
                           strokeWidth: 0.9,
                           vectorEffect: 'non-scaling-stroke',
                         },
                         pressed: {
-                          fill: '#1b2334',
+                          fill: 'var(--color-bg-hover)',
                           outline: 'none',
                           stroke: 'var(--color-map-border-strong)',
                           strokeWidth: 0.9,
@@ -983,12 +1164,12 @@ function App() {
                         className={isSelected ? 'geography-selected' : 'geography-clickable'}
                         style={{
                           default: {
-                            fill: isSelected ? 'rgba(108, 123, 255, 0.3)' : 'transparent',
-                            stroke: isSelected ? 'var(--color-accent)' : 'rgba(255,255,255,0.08)',
+                            fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : 'transparent',
+                            stroke: isSelected ? 'var(--color-accent)' : 'rgba(var(--accent-rgb), 0.18)',
                             strokeWidth: isSelected ? 1.5 : 0.6,
                           },
-                          hover: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
-                          pressed: { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 0.8 },
+                          hover: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
+                          pressed: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
                         }}
                       />
                     );
@@ -998,7 +1179,7 @@ function App() {
             )}
 
             {/* Capital Cities */}
-            {CAPITAL_MARKERS.map((capital) => (
+            {showCapitals && CAPITAL_MARKERS.map((capital) => (
               <Marker key={capital.id} coordinates={[capital.lon, capital.lat]}>
                 <g className="capital-marker">
                   <polygon
@@ -1043,12 +1224,12 @@ function App() {
                   >
                     <circle
                       r={size}
-                      fill={`rgba(108, 123, 255, ${0.15 + intensity * 0.35})`}
-                      stroke="rgba(108,123,255,0.7)"
+                      fill={`rgba(var(--accent-rgb), ${0.15 + intensity * 0.35})`}
+                      stroke="rgba(var(--accent-rgb), 0.7)"
                       strokeWidth={isActive ? 2 : 1.5}
                     />
-                    <circle r={size * 0.6} fill="rgba(108, 123, 255, 0.95)" />
-                    {isRecent && <circle r={size * 0.25} fill="#52e08a" />}
+                    <circle r={size * 0.6} fill="rgba(var(--accent-rgb), 0.95)" />
+                    {isRecent && <circle r={size * 0.25} fill="rgb(var(--success-rgb))" />}
                   </g>
                   <text textAnchor="middle" y={-size - 4} className="hotspot-label" style={{ pointerEvents: 'none' }}>
                     {hotspot.name}
@@ -1069,7 +1250,7 @@ function App() {
                   key={flight.id}
                   from={flight.from}
                   to={flight.to}
-                  stroke="rgba(80,200,255,0.7)"
+                  stroke="rgba(var(--accent-alt-rgb), 0.7)"
                   strokeWidth={2}
                   strokeLinecap="round"
                   className="flight-line"
@@ -1094,6 +1275,9 @@ function App() {
         )}
       </div>
     </div>
+    </div>
+    <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    </>
   );
 }
 

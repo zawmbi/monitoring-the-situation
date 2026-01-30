@@ -6,19 +6,21 @@
   right: 0;
   width: 480px;
   height: 100vh;
-  background: rgba(15, 16, 20, 0.98);
-  border-left: 1px solid rgba(108, 123, 255, 0.2);
+  background: var(--glass-bg);
+  border-left: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   z-index: 99;
-  backdrop-filter: blur(20px);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  box-shadow: var(--glass-shadow-glow);
   transform: translateX(0);
   transition: transform 0.3s ease;
 }
 
 .polymarket-panel-header {
   padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -31,19 +33,19 @@
 .polymarket-panel-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
 }
 
 .polymarket-panel-subtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
 }
 
 .polymarket-panel-close {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -56,13 +58,13 @@
 }
 
 .polymarket-panel-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text-primary);
 }
 
 .polymarket-panel-meta {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   gap: 12px;
   align-items: center;
@@ -71,9 +73,9 @@
 
 .polymarket-btn {
   padding: 8px 16px;
-  background: rgba(108, 123, 255, 0.15);
-  border: 1px solid rgba(108, 123, 255, 0.3);
-  color: #6c7bff;
+  background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  color: var(--color-accent);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -82,8 +84,8 @@
 }
 
 .polymarket-btn:hover:not(:disabled) {
-  background: rgba(108, 123, 255, 0.25);
-  border-color: rgba(108, 123, 255, 0.5);
+  background: rgba(var(--accent-rgb), 0.26);
+  border-color: rgba(var(--accent-rgb), 0.6);
 }
 
 .polymarket-btn:disabled {
@@ -93,19 +95,19 @@
 
 .polymarket-btn.ghost {
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .polymarket-btn.ghost:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
 }
 
 .polymarket-meta-small {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   margin-left: auto;
 }
 
@@ -118,12 +120,12 @@
 .polymarket-notice {
   padding: 20px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .polymarket-notice.error {
-  color: #ff6b6b;
+  color: var(--color-negative);
 }
 
 .polymarket-grid {
@@ -133,8 +135,8 @@
 }
 
 .polymarket-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
@@ -144,14 +146,14 @@
 }
 
 .polymarket-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(108, 123, 255, 0.3);
+  background: var(--panel-row-hover);
+  border-color: rgba(var(--accent-rgb), 0.35);
   transform: translateY(-2px);
 }
 
 .polymarket-card.selected {
-  background: rgba(108, 123, 255, 0.08);
-  border-color: rgba(108, 123, 255, 0.4);
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 
 .polymarket-card-header {
@@ -161,7 +163,7 @@
 .polymarket-question {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-primary);
   margin-bottom: 6px;
   line-height: 1.4;
 }
@@ -169,11 +171,11 @@
 .polymarket-category {
   display: inline-block;
   padding: 3px 8px;
-  background: rgba(108, 123, 255, 0.15);
-  border: 1px solid rgba(108, 123, 255, 0.3);
+  background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 4px;
   font-size: 11px;
-  color: #6c7bff;
+  color: var(--color-accent);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -193,7 +195,7 @@
 
 .polymarket-stat .stat-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -201,17 +203,17 @@
 .polymarket-stat .stat-value {
   font-size: 15px;
   font-weight: 700;
-  color: #52e08a;
+  color: var(--color-positive);
 }
 
 .polymarket-card-footer {
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--color-border);
 }
 
 .polymarket-end-date {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
 }
 
 /* Modal Styles */
@@ -222,30 +224,34 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .polymarket-modal {
-  background: rgba(15, 16, 20, 0.98);
-  border: 1px solid rgba(108, 123, 255, 0.3);
-  border-radius: 12px;
+  background: var(--glass-bg-dense);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-border-accent);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-shadow-glow);
 }
 
 .polymarket-modal-header {
   padding: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -255,7 +261,7 @@
 .polymarket-modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   line-height: 1.4;
   margin-bottom: 8px;
 }
@@ -263,20 +269,20 @@
 .polymarket-modal-category {
   display: inline-block;
   padding: 4px 10px;
-  background: rgba(108, 123, 255, 0.15);
-  border: 1px solid rgba(108, 123, 255, 0.3);
+  background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 4px;
   font-size: 12px;
-  color: #6c7bff;
+  color: var(--color-accent);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .polymarket-modal-close {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   width: 32px;
   height: 32px;
   min-width: 32px;
@@ -290,8 +296,8 @@
 }
 
 .polymarket-modal-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text-primary);
 }
 
 .polymarket-modal-body {
@@ -307,7 +313,7 @@
 .polymarket-description h4 {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -316,7 +322,7 @@
 .polymarket-description p {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .polymarket-stats-grid {
@@ -327,8 +333,8 @@
 }
 
 .polymarket-stat-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
   border-radius: 8px;
   padding: 16px;
   text-align: center;
@@ -336,7 +342,7 @@
 
 .polymarket-stat-card .stat-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -345,7 +351,7 @@
 .polymarket-stat-card .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #52e08a;
+  color: var(--color-positive);
 }
 
 .polymarket-outcomes {
@@ -355,7 +361,7 @@
 .polymarket-outcomes h4 {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -368,40 +374,40 @@
 }
 
 .outcome-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
   border-radius: 6px;
   padding: 10px 14px;
 }
 
 .outcome-name {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .polymarket-end-info {
   padding: 12px 16px;
-  background: rgba(255, 180, 80, 0.05);
-  border: 1px solid rgba(255, 180, 80, 0.2);
+  background: rgba(255, 184, 77, 0.12);
+  border: 1px solid rgba(255, 184, 77, 0.3);
   border-radius: 6px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   margin-bottom: 16px;
 }
 
 .polymarket-end-info strong {
-  color: #ffb450;
+  color: var(--color-rss);
 }
 
 .polymarket-link-btn {
   display: block;
   width: 100%;
   padding: 14px;
-  background: rgba(108, 123, 255, 0.15);
-  border: 1px solid rgba(108, 123, 255, 0.3);
+  background: rgba(var(--accent-rgb), 0.18);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
   border-radius: 8px;
-  color: #6c7bff;
+  color: var(--color-accent);
   text-align: center;
   text-decoration: none;
   font-size: 14px;
@@ -410,8 +416,8 @@
 }
 
 .polymarket-link-btn:hover {
-  background: rgba(108, 123, 255, 0.25);
-  border-color: rgba(108, 123, 255, 0.5);
+  background: rgba(var(--accent-rgb), 0.28);
+  border-color: rgba(var(--accent-rgb), 0.6);
   transform: translateY(-2px);
 }
 
