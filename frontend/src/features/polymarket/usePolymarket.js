@@ -5,8 +5,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-
 export function usePolymarket(country = null, enabled = true) {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +29,7 @@ export function usePolymarket(country = null, enabled = true) {
       }
       params.set('limit', '50');
 
-      const url = `${API_BASE}/api/polymarket?${params.toString()}`;
+      const url = `/api/polymarket?${params.toString()}`;
       console.log('[usePolymarket] Fetching from:', url);
 
       const response = await fetch(url);
