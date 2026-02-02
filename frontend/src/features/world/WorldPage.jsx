@@ -1,0 +1,1498 @@
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { ComposableMap, Geographies, Geography, Marker, Sphere, Graticule, ZoomableGroup, Line } from 'react-simple-maps';
+import { feature } from 'topojson-client';
+import { geoBounds, geoCentroid, geoEqualEarth, geoMercator } from 'd3-geo';
+import worldData from 'world-atlas/countries-110m.json';
+import usData from 'us-atlas/states-10m.json';
+import countries from 'world-countries';
+import { cities as worldCities } from 'world-cities-json';
+import { useFeed } from '../../hooks/useFeed';
+import { useStocks } from '../../hooks/useStocks';
+import { useFlights } from '../../hooks/useFlights';
+import NewsFeed, { NewsItem } from '../news/NewsFeed';
+import { StocksPanel } from '../stocks/StocksPanel';
+import { PolymarketPanel } from '../polymarket/PolymarketPanel';
+import { usePolymarket } from '../polymarket/usePolymarket';
+import { CountryPanel } from '../country/CountryPanel';
+import { useCountryPanel } from '../country/useCountryPanel';
+import { timeAgo } from '../../utils/time';
+import Navbar, { PagePanel } from '../../navbar/Navbar';
+
+// Safe guard in case topojson fails to load
+const GEO_FEATURES = worldData?.objects?.countries
+  ? feature(worldData, worldData.objects.countries).features
+  : [];
+const US_STATE_FEATURES = usData?.objects?.states
+  ? feature(usData, usData.objects.states).features
+  : [];
+
+const COUNTRIES_DATA = Array.isArray(countries)
+  ? countries
+  : (countries?.default && Array.isArray(countries.default) ? countries.default : []);
+
+const COUNTRY_BY_CCN3 = new Map(
+  (COUNTRIES_DATA || [])
+    .filter((country) => country?.ccn3)
+    .map((country) => [String(country.ccn3).padStart(3, '0'), country])
+);
+
+const CAPITAL_BY_ISO3 = new Map(
+  (worldCities || [])
+    .filter((city) => city?.capital === 'primary' && city?.iso3)
+    .map((city) => [city.iso3, city])
+);
+
+const CAPITAL_MARKERS = GEO_FEATURES.map((geo, idx) => {
+  const country = COUNTRY_BY_CCN3.get(String(geo.id).padStart(3, '0'));
+  const iso3 = country?.cca3;
+  const capitalCity = iso3 ? CAPITAL_BY_ISO3.get(iso3) : null;
+
+  if (!capitalCity) return null;
+
+  const capitalName = capitalCity.city || capitalCity.city_ascii;
+  const lon = Number(capitalCity.lng);
+  const lat = Number(capitalCity.lat);
+
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+
+  return {
+    id: `capital-${geo.id || idx}`,
+    geoId: geo.id,
+    name: capitalName,
+    lon,
+    lat,
+  };
+}).filter(Boolean);
+
+const CAPITAL_BY_GEO_ID = new Map(
+  CAPITAL_MARKERS.map((capital) => [capital.geoId, capital])
+);
+
+// Build marker list for every country and US state
+const COUNTRY_MARKERS = GEO_FEATURES.map((geo, idx) => {
+  const [lon, lat] = geoCentroid(geo);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  return {
+    id: geo.id || `country-${idx}`,
+    name: geo.properties?.name || `Country ${idx}`,
+    lon,
+    lat,
+    match: (geo.properties?.name || '').toLowerCase(),
+    scope: 'country',
+  };
+}).filter(Boolean);
+
+const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
+  const [lon, lat] = geoCentroid(geo);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  return {
+    id: `us-${geo.id || idx}`,
+    name: geo.properties?.name || `State ${idx}`,
+    lon,
+    lat,
+    match: (geo.properties?.name || '').toLowerCase(),
+    scope: 'state',
+  };
+}).filter(Boolean);
+
+const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
+
+function deriveHotspots(items) {
+  const buckets = GEO_MARKERS.map(marker => ({ ...marker, items: [] }));
+
+  items.forEach(item => {
+    const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`.toLowerCase();
+    buckets.forEach(bucket => {
+      if (bucket.match && text.includes(bucket.match)) {
+        bucket.items.push(item);
+      }
+    });
+  });
+
+  return buckets
+    .filter(bucket => bucket.items.length > 0)
+    .map(bucket => {
+      const byType = {};
+      bucket.items.forEach(entry => {
+        byType[entry.contentType] = (byType[entry.contentType] || 0) + 1;
+      });
+      const mostRecent = bucket.items.reduce((latest, item) => {
+        const itemDate = new Date(item.publishedAt);
+        return itemDate > latest ? itemDate : latest;
+      }, new Date(0));
+      return {
+        ...bucket,
+        count: bucket.items.length,
+        byType,
+        items: bucket.items.slice(0, 30),
+        lastUpdated: mostRecent,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+}
+
+// Get current time for a UTC offset
+function getCurrentTimeForOffset(offsetHours) {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const targetTime = new Date(utc + (3600000 * offsetHours));
+  const hours = targetTime.getHours();
+  const minutes = targetTime.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes} ${ampm}`;
+}
+
+// Timezone info
+const TIMEZONES = [
+  { offset: -12, name: 'UTC-12', lon: -180 },
+  { offset: -10, name: 'UTC-10', lon: -150 },
+  { offset: -8, name: 'UTC-8', lon: -120 },
+  { offset: -6, name: 'UTC-6', lon: -90 },
+  { offset: -4, name: 'UTC-4', lon: -60 },
+  { offset: -2, name: 'UTC-2', lon: -30 },
+  { offset: 0, name: 'UTC', lon: 0 },
+  { offset: 2, name: 'UTC+2', lon: 30 },
+  { offset: 4, name: 'UTC+4', lon: 60 },
+  { offset: 6, name: 'UTC+6', lon: 90 },
+  { offset: 8, name: 'UTC+8', lon: 120 },
+  { offset: 10, name: 'UTC+10', lon: 150 },
+];
+
+// Check if hotspot is recently updated (within last hour)
+function isRecentlyUpdated(dateString) {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now - date) / 1000);
+  return seconds < 3600; // Within last hour
+}
+
+// Compact news item for sidebar
+
+// Hotspot Popover Component
+function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionChange }) {
+  const popoverRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  const handleDragStart = (e) => {
+    if (e.target.closest('button, a')) return;
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleDragMove = (e) => {
+    if (isDragging && onPositionChange) {
+      onPositionChange({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  if (!hotspot || !position) return null;
+
+  return (
+    <div
+      ref={popoverRef}
+      className="hotspot-popover"
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        zIndex: 1000,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleDragStart}
+    >
+      <div className="hotspot-popover-arrow" />
+      <div className="hotspot-popover-content">
+        <div className="hotspot-popover-header" style={{ cursor: 'grab' }}>
+          <h3 className="hotspot-popover-title">{hotspot.name}</h3>
+          <button className="hotspot-popover-close" onClick={onClose} aria-label="Close">x</button>
+        </div>
+        {isRecentlyUpdated(hotspot.lastUpdated) && (
+          <div className="hotspot-popover-badge">Updated {timeAgo(hotspot.lastUpdated)}</div>
+        )}
+        <div className="hotspot-popover-stats">
+          <div className="hotspot-popover-stat">
+            <span className="stat-value">{hotspot.count}</span>
+            <span className="stat-label">items</span>
+          </div>
+          {Object.entries(hotspot.byType).map(([type, count]) => (
+            <div key={type} className="hotspot-popover-stat">
+              <span className="stat-value">{count}</span>
+              <span className="stat-label">{type === 'article' ? 'news' : type}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hotspot-popover-items">
+          {hotspot.items.slice(0, 3).map((item, idx) => (
+            <div key={item.id || idx} className="hotspot-popover-item">
+              <div className="hotspot-popover-item-title">{item.title || 'Untitled'}</div>
+              <div className="hotspot-popover-item-meta">{item.sourceName} - {timeAgo(item.publishedAt)}</div>
+            </div>
+          ))}
+        </div>
+        <button className="hotspot-popover-btn" onClick={onOpenInPanel}>
+          Open in Panel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// News Panel Component
+function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
+  const panelRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  const handleDragStart = (e) => {
+    if (e.target.closest('button, a')) return;
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleDragMove = (e) => {
+    if (isDragging && onPositionChange) {
+      onPositionChange({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  if (!hotspot || !position) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      className="news-panel"
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        zIndex: 1001,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleDragStart}
+    >
+      <div className="news-panel-header" style={{ cursor: 'grab' }}>
+        <div className="news-panel-title-section">
+          <h3 className="news-panel-title">{hotspot.name}</h3>
+          <div className="news-panel-subtitle">{hotspot.count} items</div>
+        </div>
+        <button className="news-panel-close" onClick={onClose} aria-label="Close">x</button>
+      </div>
+      <div className="news-panel-content">
+        {hotspot.items.map((item, idx) => (
+          <NewsItem key={item.id || idx} item={item} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return 'dark';
+  const stored = window.localStorage.getItem('theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    return 'light';
+  }
+  return 'dark';
+};
+
+const getInitialNavCollapsed = () => {
+  if (typeof window === 'undefined') return false;
+  const stored = window.localStorage.getItem('navCollapsed');
+  if (stored === 'true' || stored === 'false') return stored === 'true';
+  return window.innerWidth < 1100;
+};
+
+function WorldPage() {
+  // View state machine: 'world' | 'region' | 'hotspot'
+  const [viewMode, setViewMode] = useState('world');
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedHotspotId, setSelectedHotspotId] = useState(null);
+  const [mapPosition, setMapPosition] = useState({ coordinates: [0, 0], zoom: 1 });
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [activePage, setActivePage] = useState(null);
+  const [navCollapsed, setNavCollapsed] = useState(getInitialNavCollapsed);
+  const clickDelayRef = useRef(null);
+  const mapPositionRef = useRef(mapPosition);
+  const animationRef = useRef(null);
+
+  // Country panel hook
+  const {
+    countryPanel,
+    openCountryPanel,
+    closeCountryPanel,
+    updateCountryPanelPosition,
+  } = useCountryPanel();
+
+  // Sidebar state
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState('world');
+  const [showTimezones, setShowTimezones] = useState(false);
+
+  // Popover state
+  const [popoverHotspot, setPopoverHotspot] = useState(null);
+  const [popoverPosition, setPopoverPosition] = useState(null);
+  const mapContainerRef = useRef(null);
+  const [mapSize, setMapSize] = useState({ width: 900, height: 600 });
+
+  // News panel state
+  const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
+  const [newsPanelPosition, setNewsPanelPosition] = useState(null);
+
+  // Stocks panel visibility
+  const [showStocksPanel, setShowStocksPanel] = useState(false);
+
+  // Polymarket panel visibility and state
+  const [showPolymarketPanel, setShowPolymarketPanel] = useState(false);
+  const [polymarketCountry, setPolymarketCountry] = useState(null);
+
+  // Tooltip state
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
+
+  // Layer toggles (flights disabled by default)
+  const [enabledLayers, setEnabledLayers] = useState({
+    news: true,
+    twitter: true,
+    reddit: true,
+    rumors: false,
+    flights: false,
+    stocks: false,
+  });
+
+  const { feed, loading: feedLoading, error: feedError } = useFeed(80);
+  const {
+    stocks,
+    marketStatus,
+    lastUpdated: stocksLastUpdated,
+    loading: stocksLoading,
+    error: stocksError,
+    refresh: refreshStocks,
+  } = useStocks(enabledLayers.stocks);
+  const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
+  const {
+    markets: polymarkets,
+    loading: polymarketsLoading,
+    error: polymarketsError,
+    lastUpdated: polymarketsLastUpdated,
+    refresh: refreshPolymarkets,
+  } = usePolymarket(polymarketCountry, showPolymarketPanel);
+
+  const isLightTheme = theme === 'light';
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
+  }, [navCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem('navCollapsed', String(navCollapsed));
+  }, [navCollapsed]);
+
+  useEffect(() => {
+    mapPositionRef.current = mapPosition;
+  }, [mapPosition]);
+
+  useLayoutEffect(() => {
+    if (!mapContainerRef.current) return;
+    const updateSize = () => {
+      if (!mapContainerRef.current) return;
+      const width = Math.round(mapContainerRef.current.clientWidth);
+      const height = Math.round(mapContainerRef.current.clientHeight);
+      if (!width || !height) return;
+      setMapSize((prev) => {
+        if (prev.width === width && prev.height === height) return prev;
+        return { width, height };
+      });
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1100) {
+        setNavCollapsed(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const flightPaths = useMemo(() => {
+    return (flights || [])
+      .map((flight) => {
+        const fromArray = Array.isArray(flight.from) ? flight.from : [flight.from?.lon, flight.from?.lat];
+        const toArray = Array.isArray(flight.to) ? flight.to : [flight.to?.lon, flight.to?.lat];
+        if (!fromArray || !toArray) return null;
+        if (!Number.isFinite(fromArray[0]) || !Number.isFinite(fromArray[1]) || !Number.isFinite(toArray[0]) || !Number.isFinite(toArray[1])) {
+          return null;
+        }
+        return {
+          id: flight.id || `${fromArray.join(',')}-${toArray.join(',')}`,
+          from: fromArray,
+          to: toArray,
+        };
+      })
+      .filter(Boolean);
+  }, [flights]);
+
+  const toggleLayer = (layer) => {
+    setEnabledLayers(prev => {
+      const newState = { ...prev, [layer]: !prev[layer] };
+      // Show stocks panel when stocks layer is enabled
+      if (layer === 'stocks' && newState.stocks) {
+        setShowStocksPanel(true);
+      } else if (layer === 'stocks' && !newState.stocks) {
+        setShowStocksPanel(false);
+      }
+      // Clear open overlays when turning layers off to avoid stale items
+      if (!newState[layer]) {
+        setPopoverHotspot(null);
+        setPopoverPosition(null);
+        setNewsPanelHotspot(null);
+        setNewsPanelPosition(null);
+        if (layer === 'twitter') {
+          setSelectedHotspotId(null);
+          setViewMode('world');
+        }
+      }
+      return newState;
+    });
+  };
+
+  // Filter feed by enabled layers
+  const layerFilteredFeed = useMemo(() => {
+    return feed.filter(item => {
+      if (enabledLayers.news && item.contentType === 'article') return true;
+      if (enabledLayers.twitter && item.contentType === 'tweet') return true;
+      if (enabledLayers.reddit && item.contentType === 'reddit_post') return true;
+      if (enabledLayers.rumors && item.contentType === 'rumor') return true;
+      if (enabledLayers.flights && item.contentType === 'flight') return true;
+      if (enabledLayers.stocks && item.contentType === 'stock') return true;
+      return false;
+    });
+  }, [feed, enabledLayers]);
+
+  const hotspots = useMemo(() => deriveHotspots(layerFilteredFeed), [layerFilteredFeed]);
+
+  // Get display feed based on view mode
+  const displayFeed = useMemo(() => {
+    if (viewMode === 'world') {
+      return layerFilteredFeed.slice(0, 50);
+    } else if (viewMode === 'region' && selectedRegion) {
+      const regionName = selectedRegion.name.toLowerCase();
+      return layerFilteredFeed.filter(item => {
+        const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`.toLowerCase();
+        return text.includes(regionName);
+      });
+    } else if (viewMode === 'hotspot' && selectedHotspotId) {
+      const hotspot = hotspots.find(h => h.id === selectedHotspotId);
+      return hotspot ? hotspot.items : [];
+    }
+    return [];
+  }, [viewMode, selectedRegion, selectedHotspotId, layerFilteredFeed, hotspots]);
+
+  const filteredDisplayFeed = useMemo(() => {
+    return displayFeed.filter(item => {
+      if (item.contentType === 'tweet' && !enabledLayers.twitter) return false;
+      return true;
+    });
+  }, [displayFeed, enabledLayers.twitter]);
+
+  const selectedCapital = useMemo(() => {
+    if (!selectedRegion || selectedRegion.type !== 'country') return null;
+    const capital = CAPITAL_BY_GEO_ID.get(selectedRegion.id) || null;
+    console.log('Selected Region:', selectedRegion);
+    console.log('Looking for capital with geoId:', selectedRegion.id);
+    console.log('Found capital:', capital);
+    console.log('Total capitals in map:', CAPITAL_BY_GEO_ID.size);
+    return capital;
+  }, [selectedRegion]);
+
+  const isCountryFocus = viewMode === 'region' && selectedRegion?.type === 'country' && mapPosition.zoom > 1.1;
+
+  const focusedGeographies = useMemo(() => {
+    if (!isCountryFocus) return GEO_FEATURES;
+    return GEO_FEATURES.filter((geo) => geo.id === selectedRegion?.id);
+  }, [isCountryFocus, selectedRegion]);
+
+  const baseMapScale = useMemo(() => {
+    const minDim = Math.min(mapSize.width, mapSize.height) || 600;
+    return 150 * (minDim / 600);
+  }, [mapSize]);
+
+  const getProjectionForView = () => {
+    const projection = isCountryFocus ? geoMercator() : geoEqualEarth();
+    projection
+      .translate([mapSize.width / 2, mapSize.height / 2])
+      .scale(baseMapScale);
+    return projection;
+  };
+
+  const countryColor = (name) => {
+    if (!name) return isLightTheme ? '#dfe6ff' : '#111827';
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    const saturation = isLightTheme ? 34 : 36;
+    const lightness = isLightTheme ? 78 : 18;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const getZoomForBounds = (bounds) => {
+    if (!bounds || bounds.length !== 2) return 2;
+    let lonSpan = Math.abs(bounds[1][0] - bounds[0][0]) || 1;
+    if (lonSpan > 180) {
+      lonSpan = 360 - lonSpan;
+    }
+    const latSpan = Math.abs(bounds[1][1] - bounds[0][1]) || 1;
+    const widthFrac = lonSpan / 360;
+    const heightFrac = latSpan / 180;
+    const baseZoom = 1 / Math.max(widthFrac, heightFrac);
+    return Math.min(6, Math.max(1.4, baseZoom * 0.9));
+  };
+
+  const getCenterFromBounds = (bounds) => {
+    if (!bounds || bounds.length !== 2) return null;
+    const [minLon, minLat] = bounds[0];
+    const [maxLon, maxLat] = bounds[1];
+    let centerLon = (minLon + maxLon) / 2;
+    const rawSpan = Math.abs(maxLon - minLon);
+    if (rawSpan > 180) {
+      const adjMin = minLon < 0 ? minLon + 360 : minLon;
+      const adjMax = maxLon < 0 ? maxLon + 360 : maxLon;
+      const mid = (adjMin + adjMax) / 2;
+      centerLon = mid > 180 ? mid - 360 : mid;
+    }
+    const centerLat = (minLat + maxLat) / 2;
+    return [centerLon, centerLat];
+  };
+
+  const animateMapTo = (target, duration = 700) => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    const start = mapPositionRef.current;
+    const startTime = performance.now();
+    const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = easeInOutCubic(t);
+      const next = {
+        coordinates: [
+          start.coordinates[0] + (target.coordinates[0] - start.coordinates[0]) * eased,
+          start.coordinates[1] + (target.coordinates[1] - start.coordinates[1]) * eased,
+        ],
+        zoom: start.zoom + (target.zoom - start.zoom) * eased,
+      };
+      setMapPosition(next);
+      if (t < 1) {
+        animationRef.current = requestAnimationFrame(step);
+      } else {
+        animationRef.current = null;
+      }
+    };
+    animationRef.current = requestAnimationFrame(step);
+  };
+
+  const handleRegionClick = (geo, scope, event) => {
+    const name = geo.properties?.name || 'Unknown';
+    setSelectedRegion({ type: scope, id: geo.id, name });
+    setViewMode('region');
+    if (scope === 'country') {
+      handleCountryClick(geo, event);
+    }
+  };
+
+  const handleRegionClickDelayed = (geo, scope, event) => {
+    if (clickDelayRef.current) {
+      clearTimeout(clickDelayRef.current);
+      clickDelayRef.current = null;
+    }
+    if (event?.persist) event.persist();
+    clickDelayRef.current = setTimeout(() => {
+      handleRegionClick(geo, scope, event);
+      clickDelayRef.current = null;
+    }, 200);
+  };
+
+  const handleRegionDoubleClick = (geo, event) => {
+    if (clickDelayRef.current) {
+      clearTimeout(clickDelayRef.current);
+      clickDelayRef.current = null;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    const name = geo.properties?.name || 'Unknown';
+    setSelectedRegion({ type: 'country', id: geo.id, name });
+    setViewMode('region');
+    const bounds = geoBounds(geo);
+    const center = getCenterFromBounds(bounds);
+    if (!Number.isFinite(center[0]) || !Number.isFinite(center[1])) return;
+    const zoom = getZoomForBounds(bounds);
+    animateMapTo({ coordinates: center, zoom });
+  };
+
+  const handleResetZoom = () => {
+    animateMapTo({ coordinates: [0, 0], zoom: 1 });
+    setViewMode('world');
+    setSelectedRegion(null);
+    setSelectedHotspotId(null);
+  };
+
+  const handleGlobalMoveEnd = (event, position) => {
+    if (isCountryFocus) return;
+    if (!position || !Number.isFinite(position.zoom)) return;
+    if (position.zoom <= 1.05) {
+      setMapPosition({ coordinates: [0, 0], zoom: 1 });
+      return;
+    }
+    const projection = getProjectionForView();
+    const centerPx = [
+      (mapSize.width / 2 - position.x) / position.zoom,
+      (mapSize.height / 2 - position.y) / position.zoom,
+    ];
+    const center = projection.invert(centerPx);
+    if (!center || !Number.isFinite(center[0]) || !Number.isFinite(center[1])) return;
+    const lonLimit = Math.max(0, 180 - 180 / position.zoom);
+    const latLimit = Math.max(0, 85 - 85 / position.zoom);
+    const clamped = [
+      Math.max(-lonLimit, Math.min(lonLimit, center[0])),
+      Math.max(-latLimit, Math.min(latLimit, center[1])),
+    ];
+    setMapPosition({ coordinates: clamped, zoom: position.zoom });
+  };
+
+  const handleCountryClick = (geo, event) => {
+    if (!mapContainerRef.current) return;
+    const name = geo.properties?.name || 'Unknown';
+
+    const mapRect = mapContainerRef.current.getBoundingClientRect();
+    const clickX = event.clientX - mapRect.left;
+    const clickY = event.clientY - mapRect.top;
+
+    const panelWidth = 300;
+    const panelHeight = 200;
+    const padding = 32;
+
+    let x = clickX + 24;
+    let y = clickY + 24;
+
+    // Clamp to avoid edges
+    x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+    y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+
+    // Open country panel with calculated position
+    openCountryPanel(name, { x, y });
+
+    // Open Polymarket panel for this country
+    setPolymarketCountry(name);
+    setShowPolymarketPanel(true);
+  };
+
+  const handleHotspotClick = (hotspot, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+
+    // Calculate screen position with smart placement to avoid borders
+    if (mapContainerRef.current && event.currentTarget) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      const markerRect = event.currentTarget.getBoundingClientRect();
+
+      const popoverWidth = 320;
+      const popoverHeight = 450;
+      const padding = 40;
+
+      const markerCenterX = markerRect.left - mapRect.left + markerRect.width / 2;
+      const markerCenterY = markerRect.top - mapRect.top + markerRect.height / 2;
+
+      let x = markerCenterX;
+      let y = markerCenterY;
+      let placement = 'top'; // default placement
+
+      // Determine best placement based on available space
+      const spaceTop = markerCenterY;
+      const spaceBottom = mapRect.height - markerCenterY;
+      const spaceLeft = markerCenterX;
+      const spaceRight = mapRect.width - markerCenterX;
+
+      // Check if there's enough space above
+      if (spaceTop >= popoverHeight + padding) {
+        placement = 'top';
+        y = markerCenterY - 20;
+      }
+      // Check if there's enough space below
+      else if (spaceBottom >= popoverHeight + padding) {
+        placement = 'bottom';
+        y = markerCenterY + 40;
+      }
+      // Check if there's enough space on the right
+      else if (spaceRight >= popoverWidth + padding) {
+        placement = 'right';
+        x = markerCenterX + popoverWidth / 2 + 20;
+        y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
+      }
+      // Check if there's enough space on the left
+      else if (spaceLeft >= popoverWidth + padding) {
+        placement = 'left';
+        x = markerCenterX - popoverWidth / 2 - 20;
+        y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
+      }
+      // Fallback: place below and clamp
+      else {
+        placement = 'bottom';
+        y = markerCenterY + 40;
+      }
+
+      // Final clamping to ensure it stays within bounds
+      x = Math.max(popoverWidth / 2 + padding, Math.min(x, mapRect.width - popoverWidth / 2 - padding));
+      y = Math.max(padding + 60, Math.min(y, mapRect.height - padding - 60));
+
+      setPopoverPosition({ x, y, placement });
+      setPopoverHotspot(hotspot);
+      setTooltip({ show: false, text: '', x: 0, y: 0 });
+    }
+  };
+
+  const handleOpenHotspotInPanel = () => {
+    if (popoverHotspot && mapContainerRef.current) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+
+      // Open news panel in center of screen
+      const panelWidth = 480;
+      const panelHeight = 600;
+
+      const x = mapRect.width / 2;
+      const y = mapRect.height / 2;
+
+      setNewsPanelPosition({ x, y });
+      setNewsPanelHotspot(popoverHotspot);
+      setPopoverHotspot(null);
+      setPopoverPosition(null);
+    }
+  };
+
+  const handleClosePopover = () => {
+    setPopoverHotspot(null);
+    setPopoverPosition(null);
+  };
+
+  const handleCloseNewsPanel = () => {
+    setNewsPanelHotspot(null);
+    setNewsPanelPosition(null);
+  };
+
+  const updateNewsPanelPosition = (newPosition) => {
+    setNewsPanelPosition(newPosition);
+  };
+
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleNavigate = (pageId) => {
+    setActivePage(prev => (prev === pageId ? null : pageId));
+  };
+
+  const handleToggleNav = () => {
+    setNavCollapsed(prev => !prev);
+  };
+
+  const handleBackToWorld = () => {
+    setViewMode('world');
+    setSelectedRegion(null);
+    setSelectedHotspotId(null);
+  };
+
+  const handleRegionMouseMove = (geo, event) => {
+    if (mapContainerRef.current && !popoverHotspot) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      setTooltip({
+        show: true,
+        text: geo.properties?.name || 'Unknown',
+        x: event.clientX - mapRect.left,
+        y: event.clientY - mapRect.top
+      });
+    }
+  };
+
+  const handleRegionMouseLeave = () => {
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
+  };
+
+  const handleHotspotMouseEnter = (hotspot, event) => {
+    if (mapContainerRef.current && !popoverHotspot) {
+      const mapRect = mapContainerRef.current.getBoundingClientRect();
+      const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
+      const text = isRecent ? `${hotspot.name} - Updated ${timeAgo(hotspot.lastUpdated)}` : hotspot.name;
+      setTooltip({
+        show: true,
+        text,
+        x: event.clientX - mapRect.left,
+        y: event.clientY - mapRect.top
+      });
+    }
+  };
+
+  const handleHotspotMouseLeave = () => {
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
+  };
+
+  const updatePopoverPosition = (newPosition) => {
+    setPopoverPosition(newPosition);
+  };
+
+  const getBreadcrumb = () => {
+    if (viewMode === 'world') {
+      return [{ label: 'World', active: true }];
+    } else if (viewMode === 'region') {
+      return [
+        { label: 'World', active: false, onClick: handleBackToWorld },
+        { label: selectedRegion?.name || 'Region', active: true },
+      ];
+    } else if (viewMode === 'hotspot') {
+      const hotspot = hotspots.find(h => h.id === selectedHotspotId);
+      return [
+        { label: 'World', active: false, onClick: handleBackToWorld },
+        { label: hotspot?.name || 'Hotspot', active: true },
+      ];
+    }
+    return [];
+  };
+
+  const breadcrumb = getBreadcrumb();
+
+  return (
+    <>
+    <div className="app">
+      <Navbar
+        title="Monitoring The Situation"
+        logoSrc="/earth.png"
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        collapsed={navCollapsed}
+        onToggleCollapse={handleToggleNav}
+      />
+
+      <div className="app-body">
+        {/* Sidebar */}
+        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-top-bar">
+
+              <button
+                className="sidebar-toggle"
+                onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              >
+                {sidebarExpanded ? '<' : '>'}
+              </button>
+            </div>
+            <div className="sidebar-breadcrumb">
+              {breadcrumb.map((item, idx) => (
+                <span key={idx}>
+                  <span
+                    className={`breadcrumb-item ${item.active ? 'active' : ''}`}
+                    onClick={item.onClick}
+                  >
+                    {item.label}
+                  </span>
+                  {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
+                </span>
+              ))}
+            </div>
+            {sidebarExpanded && (
+              <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+                <button
+                  type="button"
+                  className={`sidebar-tab ${sidebarTab === 'world' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('world')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'world'}
+                >
+                  World
+                </button>
+                <button
+                  type="button"
+                  className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('settings')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'settings'}
+                >
+                  Settings
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="sidebar-content">
+            {sidebarTab === 'world' && feedLoading && sidebarExpanded && (
+              <div className="notice" style={{ marginBottom: '12px' }}>
+                Loading live feed...
+              </div>
+            )}
+            {sidebarTab === 'world' && feedError && sidebarExpanded && (
+              <div className="notice" style={{ marginBottom: '12px' }}>
+                Feed unavailable: {feedError.message}
+              </div>
+            )}
+
+            {/* Source Toggles */}
+            {sidebarExpanded && sidebarTab === 'world' && (
+              <div className="source-toggles">
+                <div className="toggle-group-title">Layers & Sources</div>
+
+                <div className="source-group">
+                  <div className="source-group-title">News</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'news', label: 'Major News', tone: 'news', disabled: false },
+                      { id: 'reddit', label: 'Reddit', tone: 'reddit', disabled: false },
+                      { id: 'twitter', label: 'Twitter', tone: 'twitter', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Signals</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'rumors', label: 'Rumors', tone: 'rumors', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Live Data</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
+                      { id: 'flights', label: 'Flights', tone: 'flights', disabled: false },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                        <span className="switch-label">{layer.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={enabledLayers[layer.id]}
+                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
+                          disabled={layer.disabled}
+                        />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* News Feed */}
+            {sidebarExpanded && sidebarTab === 'world' && (
+              <NewsFeed
+                items={filteredDisplayFeed}
+                viewMode={viewMode}
+                selectedRegion={selectedRegion}
+                onBackToWorld={handleBackToWorld}
+              />
+            )}
+
+            {sidebarExpanded && sidebarTab === 'settings' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Appearance</div>
+                <div className="settings-group">
+                  <label className="switch switch-theme">
+                    <span className="switch-label">Light mode</span>
+                    <input
+                      type="checkbox"
+                      checked={isLightTheme}
+                      onChange={(event) => setTheme(event.target.checked ? 'light' : 'dark')}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="toggle-group-title">Map Overlays</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Timezones</span>
+                    <input
+                      type="checkbox"
+                      checked={showTimezones}
+                      onChange={() => setShowTimezones(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {!sidebarExpanded && (
+              <div className="sidebar-icon-stack">
+                <div className="sidebar-icon" title="Expand sidebar">
+                  map
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Map */}
+        <div className="map-container" ref={mapContainerRef}>
+        {!isCountryFocus && (
+          <button
+            className="map-recenter-btn"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleResetZoom();
+            }}
+            aria-label="Recenter world map"
+          >
+            Recenter World
+          </button>
+        )}
+        {/* Timezone Labels Top */}
+        {showTimezones && !isCountryFocus && (
+          <div className="timezone-labels timezone-labels-top">
+            {TIMEZONES.map(tz => (
+              <div key={`top-${tz.name}`} className="timezone-label">
+                <div className="timezone-name">{tz.name}</div>
+                <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Timezone Labels Bottom */}
+        {showTimezones && !isCountryFocus && (
+          <div className="timezone-labels timezone-labels-bottom">
+            {TIMEZONES.map(tz => (
+              <div key={`bottom-${tz.name}`} className="timezone-label">
+                <div className="timezone-time">{getCurrentTimeForOffset(tz.offset)}</div>
+                <div className="timezone-name">{tz.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {enabledLayers.flights && flightsLoading && (
+          <div className="notice map-notice">Loading flights...</div>
+        )}
+        {enabledLayers.flights && flightsError && (
+          <div className="notice map-notice">Flights unavailable: {flightsError.message}</div>
+        )}
+        {/* Hotspot Popover */}
+        {popoverHotspot && (
+          <HotspotPopover
+            hotspot={popoverHotspot}
+            position={popoverPosition}
+            onClose={handleClosePopover}
+            onOpenInPanel={handleOpenHotspotInPanel}
+            onPositionChange={updatePopoverPosition}
+          />
+        )}
+
+        {/* News Panel */}
+        {newsPanelHotspot && (
+          <NewsPanel
+            hotspot={newsPanelHotspot}
+            position={newsPanelPosition}
+            onClose={handleCloseNewsPanel}
+            onPositionChange={updateNewsPanelPosition}
+          />
+        )}
+
+        {/* Stocks Panel */}
+        <StocksPanel
+          visible={showStocksPanel}
+          stocks={stocks}
+          marketStatus={marketStatus}
+          loading={stocksLoading}
+          error={stocksError}
+          lastUpdated={stocksLastUpdated}
+          onClose={() => setShowStocksPanel(false)}
+          onRefresh={refreshStocks}
+        />
+
+        {/* Polymarket Panel */}
+        <PolymarketPanel
+          visible={showPolymarketPanel}
+          markets={polymarkets}
+          loading={polymarketsLoading}
+          error={polymarketsError}
+          lastUpdated={polymarketsLastUpdated}
+          country={polymarketCountry}
+          onClose={() => setShowPolymarketPanel(false)}
+          onRefresh={refreshPolymarkets}
+        />
+
+        {countryPanel.open && countryPanel.data && (
+          <CountryPanel
+            data={countryPanel.data}
+            position={countryPanel.pos}
+            bounds={
+              mapContainerRef.current
+                ? {
+                    width: mapContainerRef.current.getBoundingClientRect().width,
+                    height: mapContainerRef.current.getBoundingClientRect().height,
+                  }
+                : null
+            }
+            onPositionChange={updateCountryPanelPosition}
+            onClose={closeCountryPanel}
+          />
+        )}
+
+        <ComposableMap
+          projection={isCountryFocus ? 'geoMercator' : 'geoEqualEarth'}
+          width={mapSize.width}
+          height={mapSize.height}
+          projectionConfig={{ scale: baseMapScale }}
+          onDoubleClick={handleResetZoom}
+        >
+          <ZoomableGroup
+            center={mapPosition.coordinates}
+            zoom={mapPosition.zoom}
+            disablePanning={isCountryFocus}
+            disableZooming
+            onMoveEnd={handleGlobalMoveEnd}
+          >
+            {!isCountryFocus && (
+              <>
+                <Sphere stroke="rgba(var(--accent-alt-rgb), 0.16)" strokeWidth={1} fill="rgba(var(--accent-rgb), 0.05)" />
+                <Graticule stroke="rgba(var(--accent-alt-rgb), 0.12)" strokeWidth={0.5} />
+              </>
+            )}
+
+            {/* Timezone Lines */}
+            {!isCountryFocus && [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => (
+              <Line
+                key={`timezone-${lon}`}
+                from={[lon, -85]}
+                to={[lon, 85]}
+                stroke="rgba(var(--accent-alt-rgb), 0.2)"
+                strokeWidth={lon === 0 ? 1.5 : 0.8}
+                strokeDasharray={lon === 0 ? "none" : "3,3"}
+              />
+            ))}
+
+            {/* Cardinal Direction Indicators */}
+            <Marker coordinates={[0, 85]}>
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
+                N
+              </text>
+            </Marker>
+            <Marker coordinates={[0, -85]}>
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
+                S
+              </text>
+            </Marker>
+            <Marker coordinates={[175, 0]}>
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
+                E
+              </text>
+            </Marker>
+            <Marker coordinates={[-175, 0]}>
+              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
+                W
+              </text>
+            </Marker>
+
+            {/* Countries */}
+            <Geographies geography={focusedGeographies}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const isSelected = selectedRegion?.type === 'country' && selectedRegion.id === geo.id;
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      onClick={(event) => handleRegionClickDelayed(geo, 'country', event)}
+                      onDoubleClick={(event) => handleRegionDoubleClick(geo, event)}
+                      onMouseMove={(event) => handleRegionMouseMove(geo, event)}
+                      onMouseLeave={handleRegionMouseLeave}
+                      className={isSelected ? 'geography-selected' : 'geography-clickable'}
+                      style={{
+                        default: {
+                          fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : countryColor(geo.properties.name),
+                          outline: 'none',
+                          stroke: isSelected ? 'var(--color-accent)' : 'var(--color-map-border)',
+                          strokeWidth: isSelected ? 1.6 : 0.8,
+                          vectorEffect: 'non-scaling-stroke',
+                        },
+                        hover: {
+                          fill: 'var(--color-bg-hover)',
+                          outline: 'none',
+                          stroke: 'var(--color-map-border-strong)',
+                          strokeWidth: 0.9,
+                          vectorEffect: 'non-scaling-stroke',
+                        },
+                        pressed: {
+                          fill: 'var(--color-bg-hover)',
+                          outline: 'none',
+                          stroke: 'var(--color-map-border-strong)',
+                          strokeWidth: 0.9,
+                          vectorEffect: 'non-scaling-stroke',
+                        },
+                      }}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+
+            {/* US States */}
+            {!isCountryFocus && US_STATE_FEATURES.length > 0 && (
+              <Geographies geography={US_STATE_FEATURES}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const isSelected = selectedRegion?.type === 'state' && selectedRegion.id === geo.id;
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        onClick={(event) => handleRegionClick(geo, 'state', event)}
+                        onMouseMove={(event) => handleRegionMouseMove(geo, event)}
+                        onMouseLeave={handleRegionMouseLeave}
+                        className={isSelected ? 'geography-selected' : 'geography-clickable'}
+                        style={{
+                          default: {
+                            fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : 'transparent',
+                            stroke: isSelected ? 'var(--color-accent)' : 'rgba(var(--accent-rgb), 0.18)',
+                            strokeWidth: isSelected ? 1.5 : 0.6,
+                          },
+                          hover: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
+                          pressed: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            )}
+
+            {/* Capital Star - shown when country is selected */}
+            {selectedCapital && (
+              <Marker key={selectedCapital.id} coordinates={[selectedCapital.lon, selectedCapital.lat]}>
+                <g className="capital-marker" onMouseEnter={() => console.log('Capital star rendered at:', selectedCapital)}>
+                  <polygon
+                    className="capital-star"
+                    points="0,-4 1.2,-1.2 4,-1.2 1.8,0.6 2.4,3.6 0,1.8 -2.4,3.6 -1.8,0.6 -4,-1.2 -1.2,-1.2"
+                    fill="white"
+                    stroke="rgba(0, 0, 0, 0.3)"
+                    strokeWidth="0.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    className="capital-label"
+                    x={6}
+                    y={2}
+                    textAnchor="start"
+                    dominantBaseline="middle"
+                    fill="white"
+                    stroke="rgba(0, 0, 0, 0.6)"
+                    strokeWidth="0.3"
+                    paintOrder="stroke"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      textShadow: '0 0 3px rgba(0,0,0,0.8)'
+                    }}
+                  >
+                    {selectedCapital.name}
+                  </text>
+                </g>
+              </Marker>
+            )}
+
+            {/* Hotspots */}
+            {!isCountryFocus && hotspots.map((hotspot) => {
+              const maxCount = hotspots[0]?.count || 1;
+              const intensity = Math.max(0.2, hotspot.count / maxCount);
+              const size = 6 + intensity * 12;
+              const isActive = hotspot.id === selectedHotspotId;
+              const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
+              const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
+
+              return (
+                <Marker
+                  key={hotspot.id}
+                  coordinates={[hotspot.lon, hotspot.lat]}
+                  onMouseEnter={(event) => handleHotspotMouseEnter(hotspot, event)}
+                  onMouseLeave={handleHotspotMouseLeave}
+                >
+                  <g
+                    className={`hotspot-marker breathe ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
+                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                    onClick={(event) => handleHotspotClick(hotspot, event)}
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  >
+                    <circle
+                      r={size}
+                      fill={`rgba(var(--accent-rgb), ${0.15 + intensity * 0.35})`}
+                      stroke="rgba(var(--accent-rgb), 0.7)"
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    <circle r={size * 0.6} fill="rgba(var(--accent-rgb), 0.95)" />
+                    {isRecent && <circle r={size * 0.25} fill="rgb(var(--success-rgb))" />}
+                  </g>
+                  <text textAnchor="middle" y={-size - 4} className="hotspot-label" style={{ pointerEvents: 'none' }}>
+                    {hotspot.name}
+                  </text>
+                  {isRecent && (
+                    <text textAnchor="middle" y={-size - 14} className="hotspot-updated-badge" style={{ pointerEvents: 'none' }}>
+                      Updated {timeAgo(hotspot.lastUpdated)}
+                    </text>
+                  )}
+                </Marker>
+              );
+            })}
+
+            {/* Flight Lines */}
+            {!isCountryFocus && enabledLayers.flights &&
+              flightPaths.map((flight) => (
+                <Line
+                  key={flight.id}
+                  from={flight.from}
+                  to={flight.to}
+                  stroke="rgba(var(--accent-alt-rgb), 0.7)"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  className="flight-line"
+                />
+              ))}
+          </ZoomableGroup>
+        </ComposableMap>
+
+        {/* Tooltip */}
+        {tooltip.show && (
+          <div
+            className="map-tooltip"
+            style={{
+              position: 'absolute',
+              left: tooltip.x,
+              top: tooltip.y,
+              pointerEvents: 'none'
+            }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+      </div>
+    </div>
+    </div>
+    <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    </>
+  );
+}
+
+export default WorldPage;
+
