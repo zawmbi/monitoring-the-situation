@@ -655,6 +655,7 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
+    projection: { type: useGlobe ? 'globe' : 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -664,7 +665,7 @@ function App() {
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme]);
+  }), [isLightTheme, useGlobe]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -935,13 +936,6 @@ function App() {
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
   }, []);
-
-  // Switch projection via map ref (avoids full style reload)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
-  }, [useGlobe]);
 
   return (
     <>
@@ -1257,6 +1251,7 @@ function App() {
         )}
 
         <MapGL
+          key={useGlobe ? 'globe' : 'flat'}
           mapLib={maplibregl}
           mapStyle={mapStyle}
           onLoad={onMapLoad}
@@ -1271,6 +1266,7 @@ function App() {
           onMouseLeave={handleMapMouseLeave}
           onClick={handleMapClick}
           dragRotate={useGlobe}
+          pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
           maxZoom={8}
           minZoom={1}
