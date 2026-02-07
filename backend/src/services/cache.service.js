@@ -22,8 +22,16 @@ class CacheService {
         lazyConnect: true,
       });
 
-      this.subscriber = new Redis(config.redis.url, { lazyConnect: true });
-      this.publisher = new Redis(config.redis.url, { lazyConnect: true });
+      this.subscriber = new Redis(config.redis.url, {
+        retryStrategy: (times) => Math.min(times * 50, 2000),
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+      this.publisher = new Redis(config.redis.url, {
+        retryStrategy: (times) => Math.min(times * 50, 2000),
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
 
       // Suppress unhandled error event listeners
       this.client.on('error', () => {}); // Silently ignore connection errors
@@ -71,6 +79,7 @@ class CacheService {
   }
 
   async delete(key) {
+    if (!this.isConnected) return false;
     try {
       await this.client.del(key);
       return true;
@@ -81,6 +90,7 @@ class CacheService {
   }
 
   async publish(channel, message) {
+    if (!this.isConnected) return false;
     try {
       await this.publisher.publish(channel, JSON.stringify(message));
       return true;
@@ -91,6 +101,7 @@ class CacheService {
   }
 
   async subscribe(channel, callback) {
+    if (!this.isConnected) return false;
     try {
       await this.subscriber.subscribe(channel);
       this.subscriber.on('message', (ch, message) => {
