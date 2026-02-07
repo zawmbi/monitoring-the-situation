@@ -931,12 +931,9 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
-  // Store map ref on load and set constraints
+  // Store map ref on load
   const onMapLoad = useCallback((evt) => {
-    const map = evt.target;
-    mapRef.current = map;
-    map.setRenderWorldCopies(false);
-    map.setMaxBounds([[-180, -78], [180, 84]]);
+    mapRef.current = evt.target;
   }, []);
 
   // Switch projection via map ref (avoids full style reload)
@@ -944,11 +941,6 @@ function App() {
     const map = mapRef.current;
     if (!map) return;
     map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
-    if (useGlobe) {
-      map.setMaxBounds(null);
-    } else {
-      map.setMaxBounds([[-180, -78], [180, 84]]);
-    }
   }, [useGlobe]);
 
   return (
