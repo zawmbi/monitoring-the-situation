@@ -932,10 +932,25 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
-  // Store map ref on load
+  // Store map ref on load and set constraints
   const onMapLoad = useCallback((evt) => {
-    mapRef.current = evt.target;
+    const map = evt.target;
+    mapRef.current = map;
+    map.setRenderWorldCopies(false);
+    map.setMaxBounds([[-180, -85], [180, 85]]);
   }, []);
+
+  // Update map constraints when projection changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (useGlobe) {
+      map.setMaxBounds(null);
+    } else {
+      map.setMaxBounds([[-180, -85], [180, 85]]);
+    }
+    map.setRenderWorldCopies(false);
+  }, [useGlobe]);
 
   return (
     <>
@@ -1266,10 +1281,8 @@ function App() {
           onClick={handleMapClick}
           dragRotate={useGlobe}
           touchPitch={useGlobe}
-          renderWorldCopies={false}
-          maxBounds={useGlobe ? undefined : [[-180, -85], [180, 85]]}
           maxZoom={8}
-          minZoom={useGlobe ? 1 : 1.2}
+          minZoom={1}
         >
           {/* Graticule */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
