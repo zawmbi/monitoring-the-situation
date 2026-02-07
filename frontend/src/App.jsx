@@ -438,6 +438,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
   const [showCapitals, setShowCapitals] = useState(false);
+  const [useGlobe, setUseGlobe] = useState(false);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -654,7 +655,7 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
-    projection: { type: 'globe' },
+    projection: { type: useGlobe ? 'globe' : 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -664,7 +665,7 @@ function App() {
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme]);
+  }), [isLightTheme, useGlobe]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1108,6 +1109,19 @@ function App() {
                   </label>
                 </div>
 
+                <div className="toggle-group-title">Projection</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">3D Globe</span>
+                    <input
+                      type="checkbox"
+                      checked={useGlobe}
+                      onChange={() => setUseGlobe(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
                 <div className="toggle-group-title">Map Overlays</div>
                 <div className="settings-group">
                   <label className="switch switch-neutral">
@@ -1250,10 +1264,12 @@ function App() {
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
           onClick={handleMapClick}
-          dragRotate={false}
-          touchPitch={false}
+          dragRotate={useGlobe}
+          touchPitch={useGlobe}
+          renderWorldCopies={false}
+          maxBounds={useGlobe ? undefined : [[-180, -85], [180, 85]]}
           maxZoom={8}
-          minZoom={1}
+          minZoom={useGlobe ? 1 : 1.2}
         >
           {/* Graticule */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
