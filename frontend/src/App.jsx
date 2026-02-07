@@ -654,6 +654,7 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
+    projection: { type: 'globe' },
     sources: {},
     layers: [{
       id: 'background',
