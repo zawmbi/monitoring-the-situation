@@ -4,7 +4,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
 import { geoCentroid, geoGraticule10 } from 'd3-geo';
-import worldData from 'world-atlas/countries-110m.json';
+import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
 import { useFeed } from './hooks/useFeed';
@@ -19,10 +19,35 @@ import { useCountryPanel } from './features/country/useCountryPanel';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 
+// Fix polygons that cross the antimeridian (e.g. Russia)
+// Shifts negative longitudes by +360 in rings that wrap around ±180
+function fixAntimeridian(geojson) {
+  function fixRing(ring) {
+    let crosses = false;
+    for (let i = 1; i < ring.length; i++) {
+      if (Math.abs(ring[i][0] - ring[i - 1][0]) > 180) { crosses = true; break; }
+    }
+    if (!crosses) return ring;
+    return ring.map(([lon, lat]) => [lon < 0 ? lon + 360 : lon, lat]);
+  }
+  function fixGeometry(geom) {
+    if (geom.type === 'Polygon') {
+      return { ...geom, coordinates: geom.coordinates.map(fixRing) };
+    }
+    if (geom.type === 'MultiPolygon') {
+      return { ...geom, coordinates: geom.coordinates.map(poly => poly.map(fixRing)) };
+    }
+    return geom;
+  }
+  return geojson.map(f => ({ ...f, geometry: fixGeometry(f.geometry) }));
+}
+
 // Safe guard in case topojson fails to load
-const GEO_FEATURES = worldData?.objects?.countries
-  ? feature(worldData, worldData.objects.countries).features
-  : [];
+const GEO_FEATURES = fixAntimeridian(
+  worldData?.objects?.countries
+    ? feature(worldData, worldData.objects.countries).features
+    : []
+);
 const US_STATE_FEATURES = usData?.objects?.states
   ? feature(usData, usData.objects.states).features
   : [];
