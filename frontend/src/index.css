@@ -527,20 +527,11 @@ body {
   inset: 0;
   background-image:
     linear-gradient(var(--map-grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--map-grid-color) 1px, transparent 1px),
-    var(--map-vignette);
-  background-size: 80px 80px, 80px 80px, 100% 100%;
-  opacity: 0.5;
-  mix-blend-mode: screen;
-  animation: scanSweep 12s linear infinite;
-  z-index: 1;
+    linear-gradient(90deg, var(--map-grid-color) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px;
+  opacity: 0.15;
+  z-index: 3;
   pointer-events: none;
-}
-
-@keyframes scanSweep {
-  0% { transform: translateY(-4%); opacity: 0.35; }
-  50% { transform: translateY(2%); opacity: 0.55; }
-  100% { transform: translateY(-4%); opacity: 0.35; }
 }
 
 .header {

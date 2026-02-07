@@ -634,8 +634,7 @@ function App() {
       id: 'background',
       type: 'background',
       paint: {
-        'background-color': isLightTheme ? '#f0f4ff' : '#070a16',
-        'background-opacity': 0.6,
+        'background-color': isLightTheme ? '#f0f4ff' : '#0c1126',
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
