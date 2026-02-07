@@ -655,7 +655,6 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
-    projection: { type: useGlobe ? 'globe' : 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -665,7 +664,7 @@ function App() {
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, useGlobe]);
+  }), [isLightTheme]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -937,19 +936,19 @@ function App() {
     const map = evt.target;
     mapRef.current = map;
     map.setRenderWorldCopies(false);
-    map.setMaxBounds([[-180, -85], [180, 85]]);
+    map.setMaxBounds([[-180, -78], [180, 84]]);
   }, []);
 
-  // Update map constraints when projection changes
+  // Switch projection via map ref (avoids full style reload)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
     if (useGlobe) {
       map.setMaxBounds(null);
     } else {
-      map.setMaxBounds([[-180, -85], [180, 85]]);
+      map.setMaxBounds([[-180, -78], [180, 84]]);
     }
-    map.setRenderWorldCopies(false);
   }, [useGlobe]);
 
   return (
