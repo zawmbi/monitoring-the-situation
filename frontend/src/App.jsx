@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { ComposableMap, Geographies, Geography, Marker, Sphere, Graticule, ZoomableGroup, Line } from 'react-simple-maps';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import MapGL, { Source, Layer, Marker, NavigationControl } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
-import { geoCentroid } from 'd3-geo';
+import { geoCentroid, geoGraticule10 } from 'd3-geo';
 import worldData from 'world-atlas/countries-110m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
@@ -88,6 +89,25 @@ const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
 }).filter(Boolean);
 
 const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
+
+// Pre-generate static GeoJSON data for MapLibre layers
+const GRATICULE_GEOJSON = {
+  type: 'Feature',
+  properties: {},
+  geometry: geoGraticule10(),
+};
+
+const TIMEZONE_LINES_GEOJSON = {
+  type: 'FeatureCollection',
+  features: [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => ({
+    type: 'Feature',
+    properties: { lon, isPrimeMeridian: lon === 0 },
+    geometry: {
+      type: 'LineString',
+      coordinates: [[lon, -85], [lon, 85]],
+    },
+  })),
+};
 
 function deriveHotspots(items) {
   const buckets = GEO_MARKERS.map(marker => ({ ...marker, items: [] }));
@@ -397,6 +417,9 @@ function App() {
   const [popoverHotspot, setPopoverHotspot] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
   const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const hoveredCountryIdRef = useRef(null);
+  const hoveredStateIdRef = useRef(null);
 
   // News panel state
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
@@ -547,7 +570,9 @@ function App() {
     });
   }, [displayFeed, enabledLayers.twitter]);
 
-  const countryColor = (name) => {
+  // ---- MapLibre GeoJSON data ----
+
+  const countryColor = useCallback((name) => {
     if (!name) return isLightTheme ? '#dfe6ff' : '#111827';
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -557,49 +582,200 @@ function App() {
     const saturation = isLightTheme ? 34 : 36;
     const lightness = isLightTheme ? 78 : 18;
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  };
+  }, [isLightTheme]);
 
-  const handleRegionClick = (geo, scope, event) => {
-    const name = geo.properties?.name || 'Unknown';
-    setSelectedRegion({ type: scope, id: geo.id, name });
-    setViewMode('region');
-    if (scope === 'country') {
-      handleCountryClick(geo, event);
+  const countriesGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: GEO_FEATURES.map((f, i) => ({
+      type: 'Feature',
+      id: i,
+      geometry: f.geometry,
+      properties: {
+        name: f.properties?.name || `Country ${i}`,
+        originalId: String(f.id),
+        fillColor: countryColor(f.properties?.name),
+      },
+    })),
+  }), [countryColor]);
+
+  const usStatesGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: US_STATE_FEATURES.map((f, i) => ({
+      type: 'Feature',
+      id: i,
+      geometry: f.geometry,
+      properties: {
+        name: f.properties?.name || `State ${i}`,
+        originalId: String(f.id),
+      },
+    })),
+  }), []);
+
+  const flightPathsGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: flightPaths.map((flight, i) => ({
+      type: 'Feature',
+      id: i,
+      properties: { id: flight.id },
+      geometry: {
+        type: 'LineString',
+        coordinates: [flight.from, flight.to],
+      },
+    })),
+  }), [flightPaths]);
+
+  // MapLibre style (minimal, theme-aware background)
+  const mapStyle = useMemo(() => ({
+    version: 8,
+    name: 'monitoring',
+    sources: {},
+    layers: [{
+      id: 'background',
+      type: 'background',
+      paint: {
+        'background-color': isLightTheme ? '#f0f4ff' : '#070a16',
+        'background-opacity': 0.6,
+      },
+    }],
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+  }), [isLightTheme]);
+
+  // Selected region filters for MapLibre layers
+  const selectedCountryFilter = useMemo(() => {
+    if (selectedRegion?.type === 'country' && selectedRegion.id != null) {
+      return ['==', ['get', 'originalId'], String(selectedRegion.id)];
     }
-  };
+    return ['==', ['get', 'originalId'], '__none__'];
+  }, [selectedRegion]);
 
-  const handleCountryClick = (geo, event) => {
-    if (!mapContainerRef.current) return;
-    const name = geo.properties?.name || 'Unknown';
+  const selectedStateFilter = useMemo(() => {
+    if (selectedRegion?.type === 'state' && selectedRegion.id != null) {
+      return ['==', ['get', 'originalId'], String(selectedRegion.id)];
+    }
+    return ['==', ['get', 'originalId'], '__none__'];
+  }, [selectedRegion]);
 
-    const mapRect = mapContainerRef.current.getBoundingClientRect();
-    const clickX = event.clientX - mapRect.left;
-    const clickY = event.clientY - mapRect.top;
+  // ---- Map interaction handlers ----
 
-    const panelWidth = 300;
-    const panelHeight = 200;
-    const padding = 32;
+  const handleMapMouseMove = useCallback((event) => {
+    if (popoverHotspot) return;
+    const map = mapRef.current;
+    if (!map) return;
 
-    let x = clickX + 24;
-    let y = clickY + 24;
+    const features = event.features;
 
-    // Clamp to avoid edges
-    x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
-    y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+    // Clear previous hover states
+    if (hoveredCountryIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'countries', id: hoveredCountryIdRef.current },
+        { hover: false }
+      );
+      hoveredCountryIdRef.current = null;
+    }
+    if (hoveredStateIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'us-states', id: hoveredStateIdRef.current },
+        { hover: false }
+      );
+      hoveredStateIdRef.current = null;
+    }
 
-    // Open country panel with calculated position
-    openCountryPanel(name, { x, y });
+    if (features && features.length > 0) {
+      const feat = features[0];
+      const sourceId = feat.source;
 
-    // Open Polymarket panel for this country
-    setPolymarketCountry(name);
-    setShowPolymarketPanel(true);
-  };
+      if (sourceId === 'countries' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'countries', id: feat.id },
+          { hover: true }
+        );
+        hoveredCountryIdRef.current = feat.id;
+      } else if (sourceId === 'us-states' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'us-states', id: feat.id },
+          { hover: true }
+        );
+        hoveredStateIdRef.current = feat.id;
+      }
 
+      setTooltip({
+        show: true,
+        text: feat.properties?.name || 'Unknown',
+        x: event.point.x,
+        y: event.point.y,
+      });
+      map.getCanvas().style.cursor = 'pointer';
+    } else {
+      setTooltip({ show: false, text: '', x: 0, y: 0 });
+      map.getCanvas().style.cursor = '';
+    }
+  }, [popoverHotspot]);
+
+  const handleMapMouseLeave = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (hoveredCountryIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'countries', id: hoveredCountryIdRef.current },
+        { hover: false }
+      );
+      hoveredCountryIdRef.current = null;
+    }
+    if (hoveredStateIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'us-states', id: hoveredStateIdRef.current },
+        { hover: false }
+      );
+      hoveredStateIdRef.current = null;
+    }
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
+  }, []);
+
+  const handleMapClick = useCallback((event) => {
+    const features = event.features;
+    if (!features || features.length === 0) return;
+
+    const feat = features[0];
+    const sourceId = feat.source;
+    const name = feat.properties?.name || 'Unknown';
+    const originalId = feat.properties?.originalId;
+
+    if (sourceId === 'countries') {
+      setSelectedRegion({ type: 'country', id: originalId, name });
+      setViewMode('region');
+
+      // Calculate panel position
+      if (mapContainerRef.current) {
+        const mapRect = mapContainerRef.current.getBoundingClientRect();
+        const clickX = event.point.x;
+        const clickY = event.point.y;
+
+        const panelWidth = 300;
+        const panelHeight = 200;
+        const padding = 32;
+
+        let x = clickX + 24;
+        let y = clickY + 24;
+
+        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+
+        openCountryPanel(name, { x, y });
+        setPolymarketCountry(name);
+        setShowPolymarketPanel(true);
+      }
+    } else if (sourceId === 'us-states') {
+      setSelectedRegion({ type: 'state', id: originalId, name });
+      setViewMode('region');
+    }
+  }, [openCountryPanel]);
+
+  // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
     event.stopPropagation();
     event.preventDefault();
 
-    // Calculate screen position with smart placement to avoid borders
     if (mapContainerRef.current && event.currentTarget) {
       const mapRect = mapContainerRef.current.getBoundingClientRect();
       const markerRect = event.currentTarget.getBoundingClientRect();
@@ -613,47 +789,30 @@ function App() {
 
       let x = markerCenterX;
       let y = markerCenterY;
-      let placement = 'top'; // default placement
 
-      // Determine best placement based on available space
       const spaceTop = markerCenterY;
       const spaceBottom = mapRect.height - markerCenterY;
       const spaceLeft = markerCenterX;
       const spaceRight = mapRect.width - markerCenterX;
 
-      // Check if there's enough space above
       if (spaceTop >= popoverHeight + padding) {
-        placement = 'top';
         y = markerCenterY - 20;
-      }
-      // Check if there's enough space below
-      else if (spaceBottom >= popoverHeight + padding) {
-        placement = 'bottom';
+      } else if (spaceBottom >= popoverHeight + padding) {
         y = markerCenterY + 40;
-      }
-      // Check if there's enough space on the right
-      else if (spaceRight >= popoverWidth + padding) {
-        placement = 'right';
+      } else if (spaceRight >= popoverWidth + padding) {
         x = markerCenterX + popoverWidth / 2 + 20;
         y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
-      }
-      // Check if there's enough space on the left
-      else if (spaceLeft >= popoverWidth + padding) {
-        placement = 'left';
+      } else if (spaceLeft >= popoverWidth + padding) {
         x = markerCenterX - popoverWidth / 2 - 20;
         y = Math.max(popoverHeight / 2 + padding, Math.min(markerCenterY, mapRect.height - popoverHeight / 2 - padding));
-      }
-      // Fallback: place below and clamp
-      else {
-        placement = 'bottom';
+      } else {
         y = markerCenterY + 40;
       }
 
-      // Final clamping to ensure it stays within bounds
       x = Math.max(popoverWidth / 2 + padding, Math.min(x, mapRect.width - popoverWidth / 2 - padding));
       y = Math.max(padding + 60, Math.min(y, mapRect.height - padding - 60));
 
-      setPopoverPosition({ x, y, placement });
+      setPopoverPosition({ x, y });
       setPopoverHotspot(hotspot);
       setTooltip({ show: false, text: '', x: 0, y: 0 });
     }
@@ -662,11 +821,6 @@ function App() {
   const handleOpenHotspotInPanel = () => {
     if (popoverHotspot && mapContainerRef.current) {
       const mapRect = mapContainerRef.current.getBoundingClientRect();
-
-      // Open news panel in center of screen
-      const panelWidth = 480;
-      const panelHeight = 600;
-
       const x = mapRect.width / 2;
       const y = mapRect.height / 2;
 
@@ -707,22 +861,6 @@ function App() {
     setViewMode('world');
     setSelectedRegion(null);
     setSelectedHotspotId(null);
-  };
-
-  const handleRegionMouseMove = (geo, event) => {
-    if (mapContainerRef.current && !popoverHotspot) {
-      const mapRect = mapContainerRef.current.getBoundingClientRect();
-      setTooltip({
-        show: true,
-        text: geo.properties?.name || 'Unknown',
-        x: event.clientX - mapRect.left,
-        y: event.clientY - mapRect.top
-      });
-    }
-  };
-
-  const handleRegionMouseLeave = () => {
-    setTooltip({ show: false, text: '', x: 0, y: 0 });
   };
 
   const handleHotspotMouseEnter = (hotspot, event) => {
@@ -766,6 +904,11 @@ function App() {
   };
 
   const breadcrumb = getBreadcrumb();
+
+  // Store map ref on load
+  const onMapLoad = useCallback((evt) => {
+    mapRef.current = evt.target;
+  }, []);
 
   return (
     <>
@@ -1067,160 +1210,237 @@ function App() {
           />
         )}
 
-        <ComposableMap projection="geoEqualEarth">
-          <ZoomableGroup>
-            <Sphere stroke="rgba(var(--accent-alt-rgb), 0.16)" strokeWidth={1} fill="rgba(var(--accent-rgb), 0.05)" />
-            <Graticule stroke="rgba(var(--accent-alt-rgb), 0.12)" strokeWidth={0.5} />
+        <MapGL
+          mapStyle={mapStyle}
+          onLoad={onMapLoad}
+          initialViewState={{
+            longitude: 0,
+            latitude: 20,
+            zoom: 1.5,
+          }}
+          style={{ width: '100%', height: '100%' }}
+          interactiveLayerIds={['countries-fill', 'us-states-fill']}
+          onMouseMove={handleMapMouseMove}
+          onMouseLeave={handleMapMouseLeave}
+          onClick={handleMapClick}
+          dragRotate={false}
+          touchPitch={false}
+          maxZoom={8}
+          minZoom={1}
+        >
+          {/* Graticule */}
+          <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
+            <Layer
+              id="graticule-lines"
+              type="line"
+              paint={{
+                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.12)' : 'rgba(73, 198, 255, 0.12)',
+                'line-width': 0.5,
+              }}
+            />
+          </Source>
 
-            {/* Timezone Lines */}
-            {[-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => (
-              <Line
-                key={`timezone-${lon}`}
-                from={[lon, -85]}
-                to={[lon, 85]}
-                stroke="rgba(var(--accent-alt-rgb), 0.2)"
-                strokeWidth={lon === 0 ? 1.5 : 0.8}
-                strokeDasharray={lon === 0 ? "none" : "3,3"}
+          {/* Timezone Lines (dashed) */}
+          <Source id="timezone-lines" type="geojson" data={TIMEZONE_LINES_GEOJSON}>
+            <Layer
+              id="timezone-lines-dashed"
+              type="line"
+              filter={['!=', ['get', 'isPrimeMeridian'], true]}
+              paint={{
+                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-width': 0.8,
+                'line-dasharray': [3, 3],
+              }}
+            />
+            <Layer
+              id="timezone-lines-prime"
+              type="line"
+              filter={['==', ['get', 'isPrimeMeridian'], true]}
+              paint={{
+                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-width': 1.5,
+              }}
+            />
+          </Source>
+
+          {/* Countries */}
+          <Source id="countries" type="geojson" data={countriesGeoJSON}>
+            <Layer
+              id="countries-fill"
+              type="fill"
+              paint={{
+                'fill-color': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  isLightTheme ? '#e9edff' : '#1a2654',
+                  ['get', 'fillColor'],
+                ],
+                'fill-opacity': 1,
+              }}
+            />
+            <Layer
+              id="countries-line"
+              type="line"
+              paint={{
+                'line-color': isLightTheme
+                  ? 'rgba(148, 163, 184, 0.55)'
+                  : 'rgba(148, 163, 184, 0.55)',
+                'line-width': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  0.9,
+                  0.8,
+                ],
+              }}
+            />
+            {/* Selected country highlight */}
+            <Layer
+              id="countries-selected-fill"
+              type="fill"
+              filter={selectedCountryFilter}
+              paint={{
+                'fill-color': isLightTheme
+                  ? 'rgba(93, 77, 255, 0.35)'
+                  : 'rgba(123, 107, 255, 0.35)',
+              }}
+            />
+            <Layer
+              id="countries-selected-line"
+              type="line"
+              filter={selectedCountryFilter}
+              paint={{
+                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                'line-width': 1.6,
+              }}
+            />
+          </Source>
+
+          {/* US States */}
+          <Source id="us-states" type="geojson" data={usStatesGeoJSON}>
+            <Layer
+              id="us-states-fill"
+              type="fill"
+              paint={{
+                'fill-color': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  isLightTheme
+                    ? 'rgba(93, 77, 255, 0.08)'
+                    : 'rgba(123, 107, 255, 0.08)',
+                  'rgba(0, 0, 0, 0)',
+                ],
+                'fill-opacity': 1,
+              }}
+            />
+            <Layer
+              id="us-states-line"
+              type="line"
+              paint={{
+                'line-color': isLightTheme
+                  ? 'rgba(93, 77, 255, 0.18)'
+                  : 'rgba(123, 107, 255, 0.18)',
+                'line-width': 0.6,
+              }}
+            />
+            <Layer
+              id="us-states-selected-fill"
+              type="fill"
+              filter={selectedStateFilter}
+              paint={{
+                'fill-color': isLightTheme
+                  ? 'rgba(93, 77, 255, 0.35)'
+                  : 'rgba(123, 107, 255, 0.35)',
+              }}
+            />
+            <Layer
+              id="us-states-selected-line"
+              type="line"
+              filter={selectedStateFilter}
+              paint={{
+                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                'line-width': 1.5,
+              }}
+            />
+          </Source>
+
+          {/* Flight paths */}
+          {enabledLayers.flights && flightPaths.length > 0 && (
+            <Source id="flights" type="geojson" data={flightPathsGeoJSON}>
+              <Layer
+                id="flight-lines"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme
+                    ? 'rgba(59, 141, 255, 0.7)'
+                    : 'rgba(73, 198, 255, 0.7)',
+                  'line-width': 2,
+                  'line-dasharray': [6, 6],
+                }}
+                layout={{
+                  'line-cap': 'round',
+                }}
               />
-            ))}
+            </Source>
+          )}
 
-            {/* Cardinal Direction Indicators */}
-            <Marker coordinates={[0, 85]}>
-              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
-                N
-              </text>
-            </Marker>
-            <Marker coordinates={[0, -85]}>
-              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
-                S
-              </text>
-            </Marker>
-            <Marker coordinates={[175, 0]}>
-              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
-                E
-              </text>
-            </Marker>
-            <Marker coordinates={[-175, 0]}>
-              <text textAnchor="middle" className="cardinal-label" fill="var(--color-accent-2)" fontSize="13px" fontWeight="700">
-                W
-              </text>
-            </Marker>
+          {/* Cardinal Direction Indicators */}
+          <Marker longitude={0} latitude={78} anchor="center">
+            <span className="cardinal-label-dom">N</span>
+          </Marker>
+          <Marker longitude={0} latitude={-78} anchor="center">
+            <span className="cardinal-label-dom">S</span>
+          </Marker>
+          <Marker longitude={175} latitude={0} anchor="center">
+            <span className="cardinal-label-dom">E</span>
+          </Marker>
+          <Marker longitude={-175} latitude={0} anchor="center">
+            <span className="cardinal-label-dom">W</span>
+          </Marker>
 
-            {/* Countries */}
-            <Geographies geography={GEO_FEATURES}>
-              {({ geographies }) =>
-                geographies.map((geo) => {
-                  const isSelected = selectedRegion?.type === 'country' && selectedRegion.id === geo.id;
-                  return (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      onClick={(event) => handleRegionClick(geo, 'country', event)}
-                      onMouseMove={(event) => handleRegionMouseMove(geo, event)}
-                      onMouseLeave={handleRegionMouseLeave}
-                      className={isSelected ? 'geography-selected' : 'geography-clickable'}
-                      style={{
-                        default: {
-                          fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : countryColor(geo.properties.name),
-                          outline: 'none',
-                          stroke: isSelected ? 'var(--color-accent)' : 'var(--color-map-border)',
-                          strokeWidth: isSelected ? 1.6 : 0.8,
-                          vectorEffect: 'non-scaling-stroke',
-                        },
-                        hover: {
-                          fill: 'var(--color-bg-hover)',
-                          outline: 'none',
-                          stroke: 'var(--color-map-border-strong)',
-                          strokeWidth: 0.9,
-                          vectorEffect: 'non-scaling-stroke',
-                        },
-                        pressed: {
-                          fill: 'var(--color-bg-hover)',
-                          outline: 'none',
-                          stroke: 'var(--color-map-border-strong)',
-                          strokeWidth: 0.9,
-                          vectorEffect: 'non-scaling-stroke',
-                        },
-                      }}
-                    />
-                  );
-                })
-              }
-            </Geographies>
-
-            {/* US States */}
-            {US_STATE_FEATURES.length > 0 && (
-              <Geographies geography={US_STATE_FEATURES}>
-                {({ geographies }) =>
-                  geographies.map((geo) => {
-                    const isSelected = selectedRegion?.type === 'state' && selectedRegion.id === geo.id;
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        onClick={(event) => handleRegionClick(geo, 'state', event)}
-                        onMouseMove={(event) => handleRegionMouseMove(geo, event)}
-                        onMouseLeave={handleRegionMouseLeave}
-                        className={isSelected ? 'geography-selected' : 'geography-clickable'}
-                        style={{
-                          default: {
-                            fill: isSelected ? 'rgba(var(--accent-rgb), 0.35)' : 'transparent',
-                            stroke: isSelected ? 'var(--color-accent)' : 'rgba(var(--accent-rgb), 0.18)',
-                            strokeWidth: isSelected ? 1.5 : 0.6,
-                          },
-                          hover: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
-                          pressed: { fill: 'rgba(var(--accent-rgb), 0.08)', stroke: 'rgba(var(--accent-rgb), 0.25)', strokeWidth: 0.8 },
-                        }}
-                      />
-                    );
-                  })
-                }
-              </Geographies>
-            )}
-
-            {/* Capital Cities */}
-            {showCapitals && CAPITAL_MARKERS.map((capital) => (
-              <Marker key={capital.id} coordinates={[capital.lon, capital.lat]}>
-                <g className="capital-marker">
+          {/* Capital Cities */}
+          {showCapitals && CAPITAL_MARKERS.map((capital) => (
+            <Marker key={capital.id} longitude={capital.lon} latitude={capital.lat} anchor="center">
+              <div className="capital-marker-dom">
+                <svg width="10" height="10" viewBox="-5 -6 10 11">
                   <polygon
                     className="capital-star"
                     points="0,-5 1.6,-1.6 5,-1.6 2.2,1 3.2,4.6 0,2.6 -3.2,4.6 -2.2,1 -5,-1.6 -1.6,-1.6"
-                    vectorEffect="non-scaling-stroke"
                   />
-                  <text
-                    className="capital-label"
-                    x={7}
-                    y={1}
-                    textAnchor="start"
-                    dominantBaseline="middle"
-                  >
-                    {capital.name}
-                  </text>
-                </g>
-              </Marker>
-            ))}
+                </svg>
+                <span className="capital-label-text">{capital.name}</span>
+              </div>
+            </Marker>
+          ))}
 
-            {/* Hotspots */}
-            {hotspots.map((hotspot) => {
-              const maxCount = hotspots[0]?.count || 1;
-              const intensity = Math.max(0.2, hotspot.count / maxCount);
-              const size = 6 + intensity * 12;
-              const isActive = hotspot.id === selectedHotspotId;
-              const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
-              const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
+          {/* Hotspots */}
+          {hotspots.map((hotspot) => {
+            const maxCount = hotspots[0]?.count || 1;
+            const intensity = Math.max(0.2, hotspot.count / maxCount);
+            const size = 6 + intensity * 12;
+            const isActive = hotspot.id === selectedHotspotId;
+            const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
+            const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
 
-              return (
-                <Marker
-                  key={hotspot.id}
-                  coordinates={[hotspot.lon, hotspot.lat]}
-                  onMouseEnter={(event) => handleHotspotMouseEnter(hotspot, event)}
+            return (
+              <Marker
+                key={hotspot.id}
+                longitude={hotspot.lon}
+                latitude={hotspot.lat}
+                anchor="center"
+              >
+                <div
+                  className={`hotspot-marker-wrap ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
+                  onMouseEnter={(e) => handleHotspotMouseEnter(hotspot, e)}
                   onMouseLeave={handleHotspotMouseLeave}
+                  onClick={(e) => handleHotspotClick(hotspot, e)}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <g
-                    className={`hotspot-marker breathe ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
-                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                    onClick={(event) => handleHotspotClick(hotspot, event)}
-                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  <svg
+                    className="hotspot-marker breathe"
+                    width={size * 2 + 4}
+                    height={size * 2 + 4}
+                    viewBox={`${-size - 2} ${-size - 2} ${size * 2 + 4} ${size * 2 + 4}`}
+                    style={{ overflow: 'visible', display: 'block' }}
                   >
                     <circle
                       r={size}
@@ -1230,34 +1450,22 @@ function App() {
                     />
                     <circle r={size * 0.6} fill="rgba(var(--accent-rgb), 0.95)" />
                     {isRecent && <circle r={size * 0.25} fill="rgb(var(--success-rgb))" />}
-                  </g>
-                  <text textAnchor="middle" y={-size - 4} className="hotspot-label" style={{ pointerEvents: 'none' }}>
-                    {hotspot.name}
-                  </text>
-                  {isRecent && (
-                    <text textAnchor="middle" y={-size - 14} className="hotspot-updated-badge" style={{ pointerEvents: 'none' }}>
-                      Updated {timeAgo(hotspot.lastUpdated)}
-                    </text>
-                  )}
-                </Marker>
-              );
-            })}
+                  </svg>
+                  <div className="hotspot-label-wrap">
+                    <span className="hotspot-label-dom">{hotspot.name}</span>
+                    {isRecent && (
+                      <span className="hotspot-updated-badge-dom">
+                        Updated {timeAgo(hotspot.lastUpdated)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Marker>
+            );
+          })}
 
-            {/* Flight Lines */}
-            {enabledLayers.flights &&
-              flightPaths.map((flight) => (
-                <Line
-                  key={flight.id}
-                  from={flight.from}
-                  to={flight.to}
-                  stroke="rgba(var(--accent-alt-rgb), 0.7)"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  className="flight-line"
-                />
-              ))}
-          </ZoomableGroup>
-        </ComposableMap>
+          <NavigationControl position="bottom-right" showCompass={true} />
+        </MapGL>
 
         {/* Tooltip */}
         {tooltip.show && (
@@ -1282,4 +1490,3 @@ function App() {
 }
 
 export default App;
-

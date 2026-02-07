@@ -498,17 +498,13 @@ body {
   isolation: isolate;
 }
 
-.map-container svg {
-  width: 100%;
-  height: 100%;
-  cursor: grab;
+.map-container .maplibregl-map {
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 0 14px rgba(var(--accent-alt-rgb), 0.18));
 }
 
-.map-container svg:active {
-  cursor: grabbing;
+.map-container .maplibregl-canvas {
+  outline: none;
 }
 
 .map-container::before {
@@ -795,12 +791,14 @@ body {
   filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.35));
 }
 
-.hotspot-marker:hover circle:first-child {
+.hotspot-marker:hover circle:first-child,
+.hotspot-marker-wrap:hover .hotspot-marker circle:first-child {
   fill: rgba(var(--accent-alt-rgb), 0.35);
   stroke: rgba(var(--accent-alt-rgb), 0.9);
 }
 
-.hotspot-marker:hover circle:nth-child(2) {
+.hotspot-marker:hover circle:nth-child(2),
+.hotspot-marker-wrap:hover .hotspot-marker circle:nth-child(2) {
   fill: rgba(var(--accent-alt-rgb), 1);
   filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
 }
@@ -823,6 +821,20 @@ body {
 }
 
 .hotspot-active circle:last-child {
+  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
+}
+
+/* MapLibre marker wrapper stale/active state */
+.hotspot-marker-wrap.hotspot-stale {
+  opacity: 0.5;
+}
+
+.hotspot-marker-wrap.hotspot-stale circle {
+  fill: rgba(var(--accent-alt-rgb), 0.22);
+  stroke: rgba(var(--accent-alt-rgb), 0.28);
+}
+
+.hotspot-marker-wrap.hotspot-active circle:last-child {
   filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
 }
 
@@ -1534,11 +1546,78 @@ body {
   pointer-events: none;
 }
 
-/* Cardinal Direction Labels */
+/* Cardinal Direction Labels (SVG) */
 .cardinal-label {
   text-shadow: 0 0 8px rgba(var(--accent-alt-rgb), 0.8), 0 0 16px rgba(var(--accent-alt-rgb), 0.4);
   pointer-events: none;
   user-select: none;
+}
+
+/* Cardinal Direction Labels (DOM - MapLibre markers) */
+.cardinal-label-dom {
+  color: var(--color-accent-2);
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(var(--accent-alt-rgb), 0.8), 0 0 16px rgba(var(--accent-alt-rgb), 0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Capital Markers (DOM - MapLibre markers) */
+.capital-marker-dom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.capital-label-text {
+  color: var(--color-capital-text);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7), 0 0 6px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+/* Hotspot Marker (DOM - MapLibre markers) */
+.hotspot-marker-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.35));
+}
+
+.hotspot-label-wrap {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.hotspot-label-dom {
+  color: var(--color-text-secondary);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hotspot-updated-badge-dom {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--color-news);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .country-panel {
