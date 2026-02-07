@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['react-map-gl/maplibre', 'maplibre-gl'],
+      include: ['@vis.gl/react-maplibre', 'maplibre-gl'],
     },
     server: {
       host: '0.0.0.0',
