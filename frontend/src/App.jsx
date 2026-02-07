@@ -19,16 +19,19 @@ import { useCountryPanel } from './features/country/useCountryPanel';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 
-// Fix polygons that cross the antimeridian (e.g. Russia)
-// Shifts negative longitudes by +360 in rings that wrap around ±180
-function fixAntimeridian(geojson) {
+// Fix polygons for MapLibre rendering:
+// 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
+// 2. Shift negative longitudes by +360 in rings that cross the antimeridian
+function fixGeoJSON(geojson) {
   function fixRing(ring) {
     let crosses = false;
     for (let i = 1; i < ring.length; i++) {
       if (Math.abs(ring[i][0] - ring[i - 1][0]) > 180) { crosses = true; break; }
     }
-    if (!crosses) return ring;
-    return ring.map(([lon, lat]) => [lon < 0 ? lon + 360 : lon, lat]);
+    return ring.map(([lon, lat]) => [
+      crosses && lon < 0 ? lon + 360 : lon,
+      Math.max(-85, Math.min(85, lat)),
+    ]);
   }
   function fixGeometry(geom) {
     if (geom.type === 'Polygon') {
@@ -43,7 +46,7 @@ function fixAntimeridian(geojson) {
 }
 
 // Safe guard in case topojson fails to load
-const GEO_FEATURES = fixAntimeridian(
+const GEO_FEATURES = fixGeoJSON(
   worldData?.objects?.countries
     ? feature(worldData, worldData.objects.countries).features
     : []
@@ -1268,6 +1271,7 @@ function App() {
           dragRotate={useGlobe}
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
+          renderWorldCopies={false}
           maxZoom={8}
           minZoom={1}
         >
