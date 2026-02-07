@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Map as MapGL, Source, Layer, Marker, NavigationControl } from 'react-map-gl/maplibre';
+import { Map as MapGL, Source, Layer, Marker, NavigationControl } from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
 import { geoCentroid, geoGraticule10 } from 'd3-geo';
