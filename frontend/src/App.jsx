@@ -559,12 +559,33 @@ function App() {
   const [holoMode, setHoloMode] = useState(false);
   const [transparentGlobe, setTransparentGlobe] = useState(true);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
-  const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
 
   // Audio ref for background music
   const audioRef = useRef(null);
+
+  // Auto-play music on mount; if browser blocks autoplay, start on first interaction
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = musicVolume;
+    const tryPlay = () => {
+      audio.play().catch(() => {
+        // Browser blocked autoplay — listen for first user interaction
+        const startOnInteraction = () => {
+          audio.volume = musicVolume;
+          audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+          document.removeEventListener('click', startOnInteraction);
+          document.removeEventListener('keydown', startOnInteraction);
+        };
+        document.addEventListener('click', startOnInteraction, { once: true });
+        document.addEventListener('keydown', startOnInteraction, { once: true });
+      });
+    };
+    tryPlay();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);

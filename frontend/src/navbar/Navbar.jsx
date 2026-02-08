@@ -91,6 +91,10 @@ function Navbar({
             </button>
             {showVolumeSlider && (
               <div className="navbar-volume-popup">
+                <svg className="navbar-volume-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" />
+                  <path d="M15.54 8.46a5 5 0 010 7.07" />
+                </svg>
                 <input
                   type="range"
                   className="navbar-volume-slider"
@@ -101,6 +105,7 @@ function Navbar({
                   onChange={(e) => onVolumeChange?.(Number(e.target.value))}
                   aria-label="Music volume"
                 />
+                <span className="navbar-volume-label">{Math.round((musicVolume ?? 0.5) * 100)}%</span>
               </div>
             )}
           </div>
