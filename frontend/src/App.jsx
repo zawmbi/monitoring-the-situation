@@ -1734,18 +1734,17 @@ function App() {
               type="heatmap"
               layout={{ visibility: visualLayers.heatmap ? 'visible' : 'none' }}
               paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.15, 37, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 1.2, 4, 2, 8, 3],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 1, 25, 4, 40, 8, 60],
-                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.7, 8, 0.4],
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.08, 15, 0.5, 37, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 0.4, 3, 0.7, 6, 1],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 1, 8, 3, 14, 6, 25, 8, 40],
+                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.55, 6, 0.4, 8, 0.25],
                 'heatmap-color': [
                   'interpolate', ['linear'], ['heatmap-density'],
                   0, 'rgba(0,0,0,0)',
-                  0.1, isLightTheme ? 'rgb(190,210,240)' : 'rgb(20,40,80)',
-                  0.3, isLightTheme ? 'rgb(130,180,230)' : 'rgb(40,100,180)',
-                  0.5, isLightTheme ? 'rgb(80,180,180)' : 'rgb(80,60,200)',
-                  0.7, isLightTheme ? 'rgb(230,160,60)' : 'rgb(200,80,180)',
-                  1.0, isLightTheme ? 'rgb(210,70,50)' : 'rgb(255,90,90)',
+                  0.15, isLightTheme ? 'rgba(100,160,220,0.4)' : 'rgba(73,198,255,0.25)',
+                  0.4, isLightTheme ? 'rgba(60,190,170,0.55)' : 'rgba(100,80,220,0.5)',
+                  0.65, isLightTheme ? 'rgba(240,170,50,0.65)' : 'rgba(220,80,200,0.6)',
+                  1.0, isLightTheme ? 'rgba(220,60,40,0.75)' : 'rgba(255,85,85,0.7)',
                 ],
               }}
             />
