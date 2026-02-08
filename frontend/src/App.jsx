@@ -592,6 +592,7 @@ function App() {
   const [popoverPosition, setPopoverPosition] = useState(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const autoRotateRef = useRef(autoRotate);
   const rotateSpeedRef = useRef(rotateSpeed);
   const rotateCCWRef = useRef(rotateCCW);
@@ -1313,6 +1314,7 @@ function App() {
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
+    setMapLoaded(true);
     // Faster, smoother scroll zoom
     const sh = evt.target.scrollZoom;
     if (sh) {
@@ -1364,7 +1366,7 @@ function App() {
 
   // Auto-rotate globe
   useEffect(() => {
-    if (!useGlobe || !autoRotate) return;
+    if (!useGlobe || !autoRotate || !mapLoaded) return;
     const map = mapRef.current;
     if (!map) return;
 
@@ -1418,7 +1420,7 @@ function App() {
       map.off('dragend', onInteractionEnd);
       map.off('zoomend', onInteractionEnd);
     };
-  }, [useGlobe, autoRotate]);
+  }, [useGlobe, autoRotate, mapLoaded]);
 
   return (
     <>
