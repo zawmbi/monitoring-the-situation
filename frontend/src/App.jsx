@@ -995,13 +995,6 @@ function App() {
     mapRef.current = evt.target;
   }, []);
 
-  // Switch projection when useGlobe changes
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
-  }, [useGlobe]);
-
   return (
     <>
     <div className="app">
@@ -1309,6 +1302,7 @@ function App() {
         <MapGL
           mapLib={maplibregl}
           mapStyle={mapStyle}
+          projection={useGlobe ? 'globe' : 'mercator'}
           onLoad={onMapLoad}
           initialViewState={{
             longitude: 0,
