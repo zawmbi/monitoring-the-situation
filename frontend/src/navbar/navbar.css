@@ -261,6 +261,35 @@
   gap: 6px;
 }
 
+.navbar-music-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.navbar-volume-popup {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 6px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1500;
+}
+
+.navbar-volume-slider {
+  writing-mode: horizontal-tb;
+  width: 80px;
+  height: 4px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .navbar-links {
     display: none;

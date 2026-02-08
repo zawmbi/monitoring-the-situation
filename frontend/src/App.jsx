@@ -18,6 +18,7 @@ import { PolymarketPanel } from './features/polymarket/PolymarketPanel';
 import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
 import { useCountryPanel } from './features/country/useCountryPanel';
+import { useWeather } from './hooks/useWeather';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 
@@ -519,6 +520,10 @@ function App() {
     updateCountryPanelPosition,
   } = useCountryPanel();
 
+  // Weather for the currently open country panel (fetches by capital city)
+  const weatherCity = countryPanel.open ? countryPanel.data?.capital : null;
+  const { weather: panelWeather, loading: panelWeatherLoading } = useWeather(weatherCity);
+
   // Sidebar state
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('world');
@@ -530,6 +535,7 @@ function App() {
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
 
   // Audio ref for background music
@@ -1045,8 +1051,14 @@ function App() {
       audio.pause();
       setMusicPlaying(false);
     } else {
+      audio.volume = musicVolume;
       audio.play().then(() => setMusicPlaying(true)).catch(() => {});
     }
+  };
+
+  const handleVolumeChange = (vol) => {
+    setMusicVolume(vol);
+    if (audioRef.current) audioRef.current.volume = vol;
   };
 
   const handleNavigate = (pageId) => {
@@ -1176,7 +1188,7 @@ function App() {
     if (!map) return;
     map.easeTo({
       center: [0, 20],
-      zoom: 2.8,
+      zoom: 2.0,
       pitch: 0,
       bearing: 0,
       duration: 800,
@@ -1262,6 +1274,8 @@ function App() {
         onToggleGlobe={() => setUseGlobe(prev => !prev)}
         musicPlaying={musicPlaying}
         onToggleMusic={handleToggleMusic}
+        musicVolume={musicVolume}
+        onVolumeChange={handleVolumeChange}
         collapsed={navCollapsed}
         onToggleCollapse={handleToggleNav}
       />
@@ -1374,6 +1388,39 @@ function App() {
                           onChange={() => !layer.disabled && toggleLayer(layer.id)}
                           disabled={layer.disabled}
                         />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Politics & Economy</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'elections', label: 'Election News', tone: 'neutral', disabled: true },
+                      { id: 'tariffs', label: 'Tariffs & Trade', tone: 'neutral', disabled: true },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
+                        <span className="switch-label">{layer.label} (WIP)</span>
+                        <input type="checkbox" checked={false} disabled />
+                        <span className="slider" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Lifestyle & Indices</div>
+                  <div className="source-group-items">
+                    {[
+                      { id: 'sports', label: 'Major Sports', tone: 'neutral', disabled: true },
+                      { id: 'pizzaIndex', label: 'Pizza Index', tone: 'neutral', disabled: true },
+                      { id: 'weather', label: 'Weather Overlay', tone: 'neutral', disabled: true },
+                    ].map((layer) => (
+                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
+                        <span className="switch-label">{layer.label} (WIP)</span>
+                        <input type="checkbox" checked={false} disabled />
                         <span className="slider" />
                       </label>
                     ))}
@@ -1558,6 +1605,8 @@ function App() {
             }
             onPositionChange={updateCountryPanelPosition}
             onClose={closeCountryPanel}
+            weather={panelWeather}
+            weatherLoading={panelWeatherLoading}
           />
         )}
 
@@ -1569,7 +1618,7 @@ function App() {
           initialViewState={{
             longitude: 0,
             latitude: 20,
-            zoom: 2.8,
+            zoom: 2.0,
           }}
           style={{ width: '100%', height: '100%' }}
           interactiveLayerIds={['countries-fill', 'us-states-fill']}

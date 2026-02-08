@@ -1,6 +1,6 @@
 /**
  * CountryPanel Component
- * Displays country information when clicked
+ * Displays country information when clicked, with weather overlay
  */
 
 import { useRef, useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ function parseOffsetFromTimezone(tzString) {
   return Number.isFinite(val) ? val : 0;
 }
 
-export function CountryPanel({ data, position, onClose, onPositionChange, bounds }) {
+export function CountryPanel({ data, position, onClose, onPositionChange, bounds, weather, weatherLoading }) {
   const panelRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -69,6 +69,8 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
 
   if (!data || !position) return null;
 
+  const bgImage = weather?.image?.url;
+
   return (
     <div
       ref={panelRef}
@@ -76,6 +78,14 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
+      {/* Weather background image */}
+      {bgImage && (
+        <div
+          className="country-panel-weather-bg"
+          style={{ backgroundImage: `url(${bgImage})` }}
+        />
+      )}
+
       <div className="country-panel-header">
         <div>
           <div className="country-panel-title">{data.name}</div>
@@ -84,6 +94,32 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
         <button className="country-panel-close" onClick={onClose} aria-label="Close">x</button>
       </div>
       <div className="country-panel-body">
+        {/* Weather row */}
+        {weather && (
+          <div className="country-panel-weather-row">
+            <img
+              className="country-panel-weather-icon"
+              src={weather.iconUrl}
+              alt={weather.description}
+              width="36"
+              height="36"
+            />
+            <div className="country-panel-weather-info">
+              <span className="country-panel-weather-temp">{weather.temp}°C</span>
+              <span className="country-panel-weather-desc">{weather.description}</span>
+            </div>
+            <div className="country-panel-weather-details">
+              <span>Humidity {weather.humidity}%</span>
+              <span>Wind {weather.windSpeed} m/s</span>
+            </div>
+          </div>
+        )}
+        {weatherLoading && !weather && (
+          <div className="country-panel-weather-row">
+            <span className="country-panel-weather-loading">Loading weather...</span>
+          </div>
+        )}
+
         <div className="country-panel-row">
           <span>Population</span>
           <strong>{data.population}</strong>
@@ -112,6 +148,17 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
           <div className="country-panel-row">
             <span>Error</span>
             <strong>{data.error}</strong>
+          </div>
+        )}
+
+        {/* Unsplash credit */}
+        {weather?.image?.credit && (
+          <div className="country-panel-photo-credit">
+            Photo by{' '}
+            <a href={weather.image.creditLink} target="_blank" rel="noopener noreferrer">
+              {weather.image.credit}
+            </a>
+            {' '}on Unsplash
           </div>
         )}
         <div className="country-panel-note">Drag to move - Esc/x to close</div>

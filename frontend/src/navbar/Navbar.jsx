@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NAV_PAGES } from './navData';
 import './navbar.css';
 
@@ -17,9 +18,12 @@ function Navbar({
   onToggleGlobe,
   musicPlaying,
   onToggleMusic,
+  musicVolume,
+  onVolumeChange,
   collapsed,
   onToggleCollapse,
 }) {
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   return (
     <div className={`navbar-frame ${collapsed ? 'collapsed' : ''}`}>
       <header className="navbar" aria-label="Primary">
@@ -57,30 +61,49 @@ function Navbar({
             Login
           </button>
 
-          <button
-            type="button"
-            className="navbar-icon-btn"
-            onClick={onToggleMusic}
-            aria-label={musicPlaying ? 'Mute music' : 'Play music'}
-            title={musicPlaying ? 'Mute music' : 'Play music'}
+          <div className="navbar-music-wrap"
+            onMouseEnter={() => setShowVolumeSlider(true)}
+            onMouseLeave={() => setShowVolumeSlider(false)}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {musicPlaying ? (
-                <>
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" fill="currentColor" />
-                  <circle cx="18" cy="16" r="3" fill="currentColor" />
-                </>
-              ) : (
-                <>
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-              )}
-            </svg>
-          </button>
+            <button
+              type="button"
+              className="navbar-icon-btn"
+              onClick={onToggleMusic}
+              aria-label={musicPlaying ? 'Mute music' : 'Play music'}
+              title={musicPlaying ? 'Mute music' : 'Play music'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {musicPlaying ? (
+                  <>
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" fill="currentColor" />
+                    <circle cx="18" cy="16" r="3" fill="currentColor" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </>
+                )}
+              </svg>
+            </button>
+            {showVolumeSlider && (
+              <div className="navbar-volume-popup">
+                <input
+                  type="range"
+                  className="navbar-volume-slider"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={musicVolume ?? 0.5}
+                  onChange={(e) => onVolumeChange?.(Number(e.target.value))}
+                  aria-label="Music volume"
+                />
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
