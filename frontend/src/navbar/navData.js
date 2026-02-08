@@ -1,5 +1,30 @@
 export const NAV_PAGES = [
   {
+    id: 'features',
+    label: 'Features',
+    summary: 'Free and premium capabilities.',
+    sections: [
+      {
+        title: 'Free',
+        items: [
+          'Live global news feed with hotspot overlays',
+          'Interactive 2D and 3D globe visualization',
+          'Country and region drill-down',
+          'Light and dark mode themes',
+        ],
+      },
+      {
+        title: 'Premium (coming soon)',
+        items: [
+          'Custom alert rules and push notifications',
+          'Historical data and trend analysis',
+          'Private watchlists and saved views',
+          'API access and data exports',
+        ],
+      },
+    ],
+  },
+  {
     id: 'feedback',
     label: 'Feedback',
     summary: 'Help us tune signals and reduce noise.',

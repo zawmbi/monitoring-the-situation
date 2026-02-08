@@ -3,7 +3,7 @@ import { Map as MapGL, Source, Layer, Marker, NavigationControl } from '@vis.gl/
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
-import { geoCentroid, geoGraticule } from 'd3-geo';
+import { geoCentroid } from 'd3-geo';
 import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
@@ -123,18 +123,47 @@ const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
 const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
 
 // Pre-generate static GeoJSON data for MapLibre layers
-// Use individual line features instead of a single MultiLineString
-// to avoid rendering glitches on globe projection near the antimeridian
+// Build graticule manually — d3's geoGraticule generates latitude lines that
+// span the full -180→180 longitude as single LineStrings, which MapLibre clips
+// on globe projection. Splitting parallels into two halves fixes this.
 const GRATICULE_GEOJSON = {
   type: 'FeatureCollection',
-  features: geoGraticule()
-    .step([10, 10])
-    .lines()
-    .map((line) => ({
-      type: 'Feature',
-      properties: {},
-      geometry: line,
-    })),
+  features: [
+    // Meridians (vertical lines) every 10° — from -85 to 85 latitude
+    ...Array.from({ length: 36 }, (_, i) => {
+      const lon = -180 + i * 10;
+      return {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: Array.from({ length: 171 }, (_, j) => [lon, -85 + j]),
+        },
+      };
+    }),
+    // Parallels (horizontal lines) every 10° — split into western and eastern halves
+    ...Array.from({ length: 17 }, (_, i) => {
+      const lat = -80 + i * 10;
+      return [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: Array.from({ length: 181 }, (_, j) => [-180 + j, lat]),
+          },
+        },
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: Array.from({ length: 181 }, (_, j) => [j, lat]),
+          },
+        },
+      ];
+    }).flat(),
+  ],
 };
 
 const EQUATOR_GEOJSON = {
@@ -495,7 +524,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
-  const [useGlobe, setUseGlobe] = useState(false);
+  const [useGlobe, setUseGlobe] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [rotateSpeed, setRotateSpeed] = useState(0.03);
   const [rotateCCW, setRotateCCW] = useState(false);
@@ -1132,7 +1161,7 @@ function App() {
     if (!map) return;
     map.easeTo({
       center: [0, 20],
-      zoom: 2.2,
+      zoom: 2.8,
       pitch: 0,
       bearing: 0,
       duration: 800,
@@ -1522,7 +1551,7 @@ function App() {
           initialViewState={{
             longitude: 0,
             latitude: 20,
-            zoom: 2.2,
+            zoom: 2.8,
           }}
           style={{ width: '100%', height: '100%' }}
           interactiveLayerIds={['countries-fill', 'us-states-fill']}
@@ -1948,10 +1977,11 @@ function App() {
                   aria-label="Rotation speed"
                 />
               )}
+              {/* Play / Pause rotation */}
               <button
                 className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
                 onClick={() => setAutoRotate(prev => !prev)}
-                title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
+                title={autoRotate ? 'Stop rotation' : 'Start rotation'}
                 aria-label="Toggle auto-rotation"
               >
                 {autoRotate ? (
@@ -1960,12 +1990,12 @@ function App() {
                     <rect x="14" y="4" width="5" height="16" rx="1" />
                   </svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-                    <polyline points="21 3 21 9 15 9" />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="6,3 20,12 6,21" />
                   </svg>
                 )}
               </button>
+              {/* Direction toggle — left/right arrows */}
               {autoRotate && (
                 <button
                   className="map-autorotate-btn map-rotate-dir-btn active"
@@ -1973,9 +2003,18 @@ function App() {
                   title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
                   aria-label="Toggle rotation direction"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rotateCCW ? { transform: 'scaleX(-1)' } : undefined}>
-                    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-                    <polyline points="21 3 21 9 15 9" />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {rotateCCW ? (
+                      <>
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                      </>
+                    ) : (
+                      <>
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </>
+                    )}
                   </svg>
                 </button>
               )}
