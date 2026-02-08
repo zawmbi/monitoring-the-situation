@@ -1036,6 +1036,9 @@ function App() {
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   }, []);
 
+  // Debounce single click so it doesn't fire on double-click
+  const clickTimerRef = useRef(null);
+
   const handleMapClick = useCallback((event) => {
     // In globe mode, ignore clicks on "space" outside the globe
     if (useGlobeRef.current) {
@@ -1049,87 +1052,92 @@ function App() {
       }
     }
 
-    const features = event.features;
-    if (!features || features.length === 0) {
-      setSelectedCapital(null);
-      return;
-    }
+    // Capture values synchronously before the event object is recycled
+    const features = event.features ? [...event.features] : [];
+    const point = event.point ? { x: event.point.x, y: event.point.y } : null;
 
-    const feat = features[0];
-    const sourceId = feat.source;
-    const name = feat.properties?.name || 'Unknown';
-    const originalId = feat.properties?.originalId;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
 
-    if (sourceId === 'countries') {
-      setSelectedRegion({ type: 'country', id: originalId, name });
-      setViewMode('region');
+      if (!features || features.length === 0) {
+        setSelectedCapital(null);
+        return;
+      }
 
-      // Show capital star for selected country
-      const capital = CAPITAL_MARKERS.find(m => m.id === `capital-${originalId}`);
-      setSelectedCapital(capital || null);
+      const feat = features[0];
+      const sourceId = feat.source;
+      const name = feat.properties?.name || 'Unknown';
+      const originalId = feat.properties?.originalId;
 
-      // Calculate panel position
-      if (mapContainerRef.current) {
-        const mapRect = mapContainerRef.current.getBoundingClientRect();
-        const clickX = event.point.x;
-        const clickY = event.point.y;
+      if (sourceId === 'countries') {
+        setSelectedRegion({ type: 'country', id: originalId, name });
+        setViewMode('region');
 
-        const panelWidth = 300;
-        const panelHeight = 200;
-        const padding = 32;
+        const capital = CAPITAL_MARKERS.find(m => m.id === `capital-${originalId}`);
+        setSelectedCapital(capital || null);
 
-        let x = clickX + 24;
-        let y = clickY + 24;
+        if (mapContainerRef.current && point) {
+          const mapRect = mapContainerRef.current.getBoundingClientRect();
+          const clickX = point.x;
+          const clickY = point.y;
 
-        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
-        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+          const panelWidth = 300;
+          const panelHeight = 200;
+          const padding = 32;
 
-        // Show tariff panel when heatmap is active, otherwise normal country panel
-        if (showTariffHeatmap) {
-          setTariffPanel({ open: true, country: name, pos: { x, y } });
+          let x = clickX + 24;
+          let y = clickY + 24;
+
+          x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+          y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+
+          if (showTariffHeatmap) {
+            setTariffPanel({ open: true, country: name, pos: { x, y } });
+          }
+
+          openCountryPanel(name, { x, y });
+          setPolymarketCountry(name);
+          setShowPolymarketPanel(true);
         }
+      } else if (sourceId === 'us-states') {
+        setSelectedRegion({ type: 'state', id: originalId, name });
+        setViewMode('region');
+        setSelectedCapital(null);
 
-        openCountryPanel(name, { x, y });
-        setPolymarketCountry(name);
-        setShowPolymarketPanel(true);
-      }
-    } else if (sourceId === 'us-states') {
-      setSelectedRegion({ type: 'state', id: originalId, name });
-      setViewMode('region');
-      setSelectedCapital(null);
+        if (mapContainerRef.current && point) {
+          const mapRect = mapContainerRef.current.getBoundingClientRect();
+          const clickX = point.x;
+          const clickY = point.y;
+          const panelWidth = 300;
+          const panelHeight = 200;
+          const padding = 32;
+          let x = clickX + 24;
+          let y = clickY + 24;
+          x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+          y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+          openStatePanel(name, { x, y });
+        }
+      } else if (sourceId === 'ca-provinces') {
+        setSelectedRegion({ type: 'province', id: originalId, name });
+        setViewMode('region');
+        setSelectedCapital(null);
 
-      if (mapContainerRef.current) {
-        const mapRect = mapContainerRef.current.getBoundingClientRect();
-        const clickX = event.point.x;
-        const clickY = event.point.y;
-        const panelWidth = 300;
-        const panelHeight = 200;
-        const padding = 32;
-        let x = clickX + 24;
-        let y = clickY + 24;
-        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
-        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-        openStatePanel(name, { x, y });
+        if (mapContainerRef.current && point) {
+          const mapRect = mapContainerRef.current.getBoundingClientRect();
+          const clickX = point.x;
+          const clickY = point.y;
+          const panelWidth = 300;
+          const panelHeight = 200;
+          const padding = 32;
+          let x = clickX + 24;
+          let y = clickY + 24;
+          x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+          y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+          openProvincePanel(name, { x, y });
+        }
       }
-    } else if (sourceId === 'ca-provinces') {
-      setSelectedRegion({ type: 'province', id: originalId, name });
-      setViewMode('region');
-      setSelectedCapital(null);
-
-      if (mapContainerRef.current) {
-        const mapRect = mapContainerRef.current.getBoundingClientRect();
-        const clickX = event.point.x;
-        const clickY = event.point.y;
-        const panelWidth = 300;
-        const panelHeight = 200;
-        const padding = 32;
-        let x = clickX + 24;
-        let y = clickY + 24;
-        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
-        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-        openProvincePanel(name, { x, y });
-      }
-    }
+    }, 250);
   }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap]);
 
   // Hotspot interaction handlers (DOM-based markers)
@@ -1244,6 +1252,12 @@ function App() {
 
   // Double-click: zoom to fit the clicked country/state
   const handleMapDblClick = useCallback((event) => {
+    // Cancel pending single-click so it doesn't interfere
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+
     const map = mapRef.current;
     if (!map) return;
 
@@ -1290,9 +1304,13 @@ function App() {
       maxLat = Math.max(maxLat, lat);
     });
 
+    // Stop any in-progress animation so fitBounds takes effect immediately
+    map.stop();
+
     map.fitBounds([[minLon, minLat], [maxLon, maxLat]], {
-      padding: 60,
-      duration: 1400,
+      padding: 20,
+      maxZoom: 8,
+      duration: 1000,
       essential: true,
     });
   }, []);
