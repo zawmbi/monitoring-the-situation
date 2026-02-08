@@ -244,28 +244,26 @@ body {
 
 .sidebar-tab {
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   padding: 8px 14px;
   background: transparent;
   color: var(--color-text-muted);
   font-family: var(--font-nav);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .sidebar-tab.active {
-  background: var(--color-accent);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
+  color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .sidebar-tab:hover:not(.active) {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
 }
 
 .sidebar-top-bar {
@@ -1340,33 +1338,19 @@ body {
   stroke-dasharray: 6 6;
 }
 
-/* Sidebar collapsed state icons */
-.sidebar.collapsed .sidebar-icon-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 0;
-}
-
-.sidebar-icon {
-  width: 40px;
-  height: 40px;
+/* Sidebar collapsed expand area */
+.sidebar-expand-area {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--color-border);
   cursor: pointer;
-  transition: all 0.2s;
-  color: var(--color-text-primary);
-  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
 }
 
-.sidebar-icon:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--color-border-light);
+.sidebar-expand-area:hover {
+  color: var(--color-text-primary);
 }
 
 /* Compact news items */

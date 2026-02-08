@@ -1173,7 +1173,11 @@ function App() {
                 onClick={() => setSidebarExpanded(!sidebarExpanded)}
                 aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
               >
-                {sidebarExpanded ? '<' : '>'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {sidebarExpanded
+                    ? <polyline points="15 18 9 12 15 6" />
+                    : <polyline points="9 18 15 12 9 6" />}
+                </svg>
               </button>
             </div>
             {viewMode !== 'world' && (
@@ -1349,10 +1353,10 @@ function App() {
             )}
 
             {!sidebarExpanded && (
-              <div className="sidebar-icon-stack">
-                <div className="sidebar-icon" title="Expand sidebar" onClick={() => setSidebarExpanded(true)}>
-                  {'>'}
-                </div>
+              <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </div>
             )}
           </div>
