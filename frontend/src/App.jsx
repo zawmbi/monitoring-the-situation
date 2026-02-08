@@ -8,6 +8,7 @@ import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
 import CAPITAL_COORDS from './capitalCoords';
+import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
 import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
@@ -441,11 +442,10 @@ const getInitialNavCollapsed = () => {
 
 const VISUAL_LAYER_DEFAULTS = {
   grain: true,
-  atmosphere: true,
+  atmosphere: false,
   contours: true,
-  scanlines: true,
+  heatmap: false,
   countryFill: true,
-  oceanGlow: true,
 };
 
 const getInitialVisualLayers = () => {
@@ -481,7 +481,6 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
-  const [showEquator, setShowEquator] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
@@ -1200,15 +1199,6 @@ function App() {
                 </button>
                 <button
                   type="button"
-                  className={`sidebar-tab ${sidebarTab === 'visuals' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('visuals')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'visuals'}
-                >
-                  Visuals
-                </button>
-                <button
-                  type="button"
                   className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setSidebarTab('settings')}
                   role="tab"
@@ -1292,32 +1282,6 @@ function App() {
               />
             )}
 
-            {sidebarExpanded && sidebarTab === 'visuals' && (
-              <div className="settings-panel">
-                <div className="toggle-group-title">Visual Layers</div>
-                <div className="settings-group">
-                  {[
-                    { key: 'grain', label: 'Grain / Noise Overlay' },
-                    { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
-                    { key: 'contours', label: 'Micro Topographic Contours' },
-                    { key: 'scanlines', label: 'Scanline Overlay' },
-                    { key: 'countryFill', label: 'Country Fill Texture' },
-                    { key: 'oceanGlow', label: 'Ocean Glow / Energy Field' },
-                  ].map(({ key, label }) => (
-                    <label key={key} className="switch switch-neutral">
-                      <span className="switch-label">{label}</span>
-                      <input
-                        type="checkbox"
-                        checked={visualLayers[key]}
-                        onChange={() => toggleVisualLayer(key)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
                 <div className="toggle-group-title">Appearance</div>
@@ -1370,15 +1334,27 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Equator</span>
-                    <input
-                      type="checkbox"
-                      checked={showEquator}
-                      onChange={() => setShowEquator(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
+                </div>
+
+                <div className="toggle-group-title">Visual Layers</div>
+                <div className="settings-group">
+                  {[
+                    { key: 'grain', label: 'Grain / Noise Overlay' },
+                    { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
+                    { key: 'contours', label: 'Micro Topographic Contours' },
+                    { key: 'heatmap', label: 'Population Heatmap' },
+                    { key: 'countryFill', label: 'Country Fill Texture' },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="switch switch-neutral">
+                      <span className="switch-label">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={visualLayers[key]}
+                        onChange={() => toggleVisualLayer(key)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
@@ -1394,8 +1370,15 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${visualLayers.scanlines ? '' : ' hide-scanlines'}${visualLayers.grain ? '' : ' hide-grain'}`} ref={mapContainerRef}>
-        <div className="map-grain-overlay" aria-hidden="true" />
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${visualLayers.grain ? '' : ' hide-grain'}`} ref={mapContainerRef}>
+        <div className="map-grain-overlay" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <filter id="grain-noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" stitchTiles="stitch" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#grain-noise)" />
+          </svg>
+        </div>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -1513,15 +1496,15 @@ function App() {
           maxZoom={8}
           minZoom={1}
         >
-          {/* Graticule */}
+          {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
             <Layer
               id="graticule-lines"
               type="line"
               layout={{ visibility: visualLayers.contours ? 'visible' : 'none' }}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.12)' : 'rgba(73, 198, 255, 0.12)',
-                'line-width': 0.5,
+                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : 'rgba(73, 198, 255, 0.16)',
+                'line-width': 0.7,
               }}
             />
           </Source>
@@ -1532,7 +1515,6 @@ function App() {
             <Layer
               id="compass-lines-glow"
               type="line"
-              layout={{ visibility: visualLayers.oceanGlow ? 'visible' : 'none' }}
               paint={{
                 'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : 'rgba(73, 198, 255, 0.10)',
                 'line-width': useGlobe ? 4 : 2,
@@ -1543,7 +1525,6 @@ function App() {
             <Layer
               id="compass-lines-layer"
               type="line"
-              layout={{ visibility: visualLayers.oceanGlow ? 'visible' : 'none' }}
               paint={{
                 'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
@@ -1552,20 +1533,18 @@ function App() {
             />
           </Source>
 
-          {/* Equator line */}
-          {showEquator && (
-            <Source id="equator" type="geojson" data={EQUATOR_GEOJSON}>
-              <Layer
-                id="equator-line"
-                type="line"
-                paint={{
-                  'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
-                  'line-width': 1,
-                  'line-dasharray': [6, 4],
-                }}
-              />
-            </Source>
-          )}
+          {/* Equator line (always visible) */}
+          <Source id="equator" type="geojson" data={EQUATOR_GEOJSON}>
+            <Layer
+              id="equator-line"
+              type="line"
+              paint={{
+                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                'line-width': 1,
+                'line-dasharray': [6, 4],
+              }}
+            />
+          </Source>
 
           {/* Timezone Lines (dashed) */}
           <Source id="timezone-lines" type="geojson" data={TIMEZONE_LINES_GEOJSON}>
@@ -1739,6 +1718,30 @@ function App() {
               paint={{
                 'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
                 'line-width': 1.5,
+              }}
+            />
+          </Source>
+
+          {/* Population heatmap */}
+          <Source id="population-heat" type="geojson" data={POPULATION_POINTS}>
+            <Layer
+              id="population-heatmap"
+              type="heatmap"
+              layout={{ visibility: visualLayers.heatmap ? 'visible' : 'none' }}
+              paint={{
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.1, 37, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 6, 1.5],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 1, 18, 6, 40],
+                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 7, 0.3],
+                'heatmap-color': [
+                  'interpolate', ['linear'], ['heatmap-density'],
+                  0, 'rgba(0,0,0,0)',
+                  0.15, isLightTheme ? 'rgba(80,130,190,0.15)' : 'rgba(73,198,255,0.08)',
+                  0.35, isLightTheme ? 'rgba(60,140,200,0.3)' : 'rgba(73,198,255,0.2)',
+                  0.55, isLightTheme ? 'rgba(40,160,180,0.4)' : 'rgba(123,107,255,0.35)',
+                  0.75, isLightTheme ? 'rgba(220,140,60,0.5)' : 'rgba(255,123,222,0.45)',
+                  1, isLightTheme ? 'rgba(200,80,60,0.6)' : 'rgba(255,100,100,0.55)',
+                ],
               }}
             />
           </Source>
