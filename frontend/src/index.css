@@ -383,17 +383,6 @@ body {
   gap: 10px;
 }
 
-.switch.switch-neutral .slider {
-  background: rgba(123, 107, 255, 0.18);
-}
-
-.switch.switch-dev .slider {
-  background: rgba(255, 207, 112, 0.2);
-}
-
-.switch.switch-theme .slider {
-  background: rgba(73, 198, 255, 0.2);
-}
 
 .sidebar.collapsed .source-toggles {
   display: none;
@@ -1246,12 +1235,6 @@ body {
   flex: 1;
 }
 
-.switch-twitter input:checked + .slider { background: var(--color-twitter); }
-.switch-reddit input:checked + .slider { background: var(--color-reddit); }
-.switch-news input:checked + .slider { background: var(--color-news); }
-.switch-rumors input:checked + .slider { background: var(--color-rumors); }
-.switch-flights input:checked + .slider { background: var(--color-flights); }
-.switch-stocks input:checked + .slider { background: #f59e0b; }
 
 .flight-line {
   opacity: 0.8;
