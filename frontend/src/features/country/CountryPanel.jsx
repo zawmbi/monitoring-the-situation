@@ -6,7 +6,6 @@
 import { useRef, useEffect, useState } from 'react';
 import './country.css';
 
-// Get current time for a UTC offset
 function getCurrentTimeForOffset(offsetHours) {
   const now = new Date();
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -70,6 +69,7 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
   if (!data || !position) return null;
 
   const bgImage = weather?.image?.url;
+  const localTime = getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone));
 
   return (
     <div
@@ -86,6 +86,7 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
         />
       )}
 
+      {/* Header with country name + close */}
       <div className="country-panel-header">
         <div>
           <div className="country-panel-title">{data.name}</div>
@@ -93,33 +94,37 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
         </div>
         <button className="country-panel-close" onClick={onClose} aria-label="Close">x</button>
       </div>
-      <div className="country-panel-body">
-        {/* Weather row */}
-        {weather && (
-          <div className="country-panel-weather-row">
-            <img
-              className="country-panel-weather-icon"
-              src={weather.iconUrl}
-              alt={weather.description}
-              width="36"
-              height="36"
-            />
-            <div className="country-panel-weather-info">
-              <span className="country-panel-weather-temp">{weather.temp}°C</span>
-              <span className="country-panel-weather-desc">{weather.description}</span>
-            </div>
-            <div className="country-panel-weather-details">
-              <span>Humidity {weather.humidity}%</span>
-              <span>Wind {weather.windSpeed} m/s</span>
-            </div>
-          </div>
-        )}
-        {weatherLoading && !weather && (
-          <div className="country-panel-weather-row">
-            <span className="country-panel-weather-loading">Loading weather...</span>
-          </div>
-        )}
 
+      {/* Weather banner */}
+      {weather && (
+        <div className="country-panel-weather-banner">
+          <img
+            className="country-panel-weather-icon"
+            src={weather.iconUrl}
+            alt={weather.description}
+            width="48"
+            height="48"
+          />
+          <div className="country-panel-weather-main">
+            <span className="country-panel-weather-temp">{weather.temp}°C</span>
+            <span className="country-panel-weather-desc">{weather.description}</span>
+          </div>
+          <div className="country-panel-weather-meta">
+            <span>{weather.humidity}% humidity</span>
+            <span>{weather.windSpeed} m/s wind</span>
+            <span>Feels like {weather.feelsLike}°C</span>
+          </div>
+        </div>
+      )}
+      {weatherLoading && !weather && (
+        <div className="country-panel-weather-banner country-panel-weather-banner--loading">
+          <span className="country-panel-weather-loading-dot" />
+          <span>Fetching weather...</span>
+        </div>
+      )}
+
+      {/* Info rows */}
+      <div className="country-panel-body">
         <div className="country-panel-row">
           <span>Population</span>
           <strong>{data.population}</strong>
@@ -133,19 +138,15 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
         {data.region && (
           <div className="country-panel-row">
             <span>Region</span>
-            <strong>{data.region}{data.subregion ? ` - ${data.subregion}` : ''}</strong>
+            <strong>{data.region}{data.subregion ? ` — ${data.subregion}` : ''}</strong>
           </div>
         )}
         <div className="country-panel-row">
-          <span>Timezone</span>
-          <strong>{data.timezone}</strong>
-        </div>
-        <div className="country-panel-row">
           <span>Local Time</span>
-          <strong>{getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone))}</strong>
+          <strong>{localTime} ({data.timezone})</strong>
         </div>
         {data.error && (
-          <div className="country-panel-row">
+          <div className="country-panel-row country-panel-row--error">
             <span>Error</span>
             <strong>{data.error}</strong>
           </div>
@@ -158,10 +159,10 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
             <a href={weather.image.creditLink} target="_blank" rel="noopener noreferrer">
               {weather.image.credit}
             </a>
-            {' '}on Unsplash
+            {' / Unsplash'}
           </div>
         )}
-        <div className="country-panel-note">Drag to move - Esc/x to close</div>
+        <div className="country-panel-note">Drag to move</div>
       </div>
     </div>
   );
