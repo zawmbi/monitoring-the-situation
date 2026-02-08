@@ -510,6 +510,7 @@ function App() {
   const autoRotateRef = useRef(autoRotate);
   const rotateSpeedRef = useRef(rotateSpeed);
   const rotateCCWRef = useRef(rotateCCW);
+  const useGlobeRef = useRef(useGlobe);
   const userInteractingRef = useRef(false);
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
@@ -773,6 +774,30 @@ function App() {
     const map = mapRef.current;
     if (!map) return;
 
+    // In globe mode, ignore interactions on "space" outside the globe surface.
+    // Unproject the screen point to a coordinate and project it back — if the
+    // round-trip deviates significantly the cursor is off the visible globe.
+    if (useGlobeRef.current) {
+      const lngLat = map.unproject(event.point);
+      const reprojected = map.project(lngLat);
+      const dx = reprojected.x - event.point.x;
+      const dy = reprojected.y - event.point.y;
+      if (dx * dx + dy * dy > 100) {
+        // Off globe — clear any hover state
+        if (hoveredCountryIdRef.current !== null) {
+          map.setFeatureState({ source: 'countries', id: hoveredCountryIdRef.current }, { hover: false });
+          hoveredCountryIdRef.current = null;
+        }
+        if (hoveredStateIdRef.current !== null) {
+          map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
+          hoveredStateIdRef.current = null;
+        }
+        setTooltip({ show: false, text: '', x: 0, y: 0 });
+        map.getCanvas().style.cursor = '';
+        return;
+      }
+    }
+
     const features = event.features;
 
     // Clear previous hover states
@@ -844,6 +869,18 @@ function App() {
   }, []);
 
   const handleMapClick = useCallback((event) => {
+    // In globe mode, ignore clicks on "space" outside the globe
+    if (useGlobeRef.current) {
+      const map = mapRef.current;
+      if (map) {
+        const lngLat = map.unproject(event.point);
+        const reprojected = map.project(lngLat);
+        const dx = reprojected.x - event.point.x;
+        const dy = reprojected.y - event.point.y;
+        if (dx * dx + dy * dy > 100) return;
+      }
+    }
+
     const features = event.features;
     if (!features || features.length === 0) {
       setSelectedCapital(null);
@@ -988,6 +1025,15 @@ function App() {
     const map = mapRef.current;
     if (!map) return;
 
+    // In globe mode, ignore double-clicks on "space"
+    if (useGlobeRef.current) {
+      const lngLat = map.unproject(event.point);
+      const reprojected = map.project(lngLat);
+      const dx = reprojected.x - event.point.x;
+      const dy = reprojected.y - event.point.y;
+      if (dx * dx + dy * dy > 100) return;
+    }
+
     const features = event.features;
     if (!features || features.length === 0) return;
 
@@ -1097,6 +1143,7 @@ function App() {
   useEffect(() => { autoRotateRef.current = autoRotate; }, [autoRotate]);
   useEffect(() => { rotateSpeedRef.current = rotateSpeed; }, [rotateSpeed]);
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
+  useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
   // Auto-rotate globe
   useEffect(() => {
