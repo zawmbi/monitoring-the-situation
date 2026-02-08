@@ -625,22 +625,22 @@ function App() {
   // ---- MapLibre GeoJSON data ----
 
   const countryColor = useCallback((index) => {
-    // Futuristic palette — cyans, teals, blues, purples, magentas
+    // Futuristic palette — blues, purples, magentas, pinks
     const darkPalette = [
-      '#0d3b3b', '#1a1a4e', '#2d1445', '#0a3a52', '#14333d',
-      '#241450', '#0d4242', '#35104a', '#0f2d52', '#1a3838',
-      '#2a1a52', '#0d4a3a', '#3a1040', '#0f3545', '#1f1a4a',
-      '#103d3d', '#301450', '#0d3852', '#2d1a3d', '#143a45',
-      '#1a1250', '#0d4545', '#381042', '#12304d', '#1d3540',
-      '#261452', '#0f4040', '#33124a', '#0d3348', '#1a2d50',
+      '#1a1a4e', '#2d1445', '#3a1040', '#0f2d52', '#35104a',
+      '#42103a', '#1a1060', '#2a0f48', '#0d2858', '#381042',
+      '#1f1a5a', '#4a0d3a', '#2d1055', '#140f58', '#3d1045',
+      '#0f2460', '#30104e', '#451038', '#1a1855', '#2a1250',
+      '#0d3058', '#3a0d42', '#241460', '#401040', '#1a1450',
+      '#2d0f55', '#0f2855', '#35103e', '#1f1060', '#441035',
     ];
     const lightPalette = [
-      '#b0e8e8', '#b8b8f0', '#d4a8e0', '#a0d8ef', '#a8d5dd',
-      '#c4a8f0', '#a8e5e5', '#dea0d8', '#a8c8ef', '#b0d8d8',
-      '#c8b0f0', '#a8e8d0', '#dda0c8', '#a8d0e5', '#b8b0e8',
-      '#a0dede', '#d0a8f0', '#a8d8ef', '#d0b0d8', '#a8d8dd',
-      '#b8a8f0', '#a0e2e2', '#d8a0d0', '#a8c5e8', '#b0d5d8',
-      '#c0a8f0', '#a0e0de', '#d5a0d8', '#a8cce0', '#b0c8ef',
+      '#b8b8f0', '#d4a8e0', '#e8a0c8', '#a8c0f0', '#d0a0e8',
+      '#f0a8c0', '#b0b0f5', '#d8a0d8', '#a0b8f0', '#e0a0c8',
+      '#c0a8f5', '#f0a0b8', '#c8a8f0', '#b0a8f5', '#e0a0d0',
+      '#a0b0f5', '#d0a0e0', '#f0a0c0', '#b8a8f5', '#d4a0d8',
+      '#a8b8f0', '#e8a0c0', '#c0a0f5', '#eda0c0', '#b0b0f0',
+      '#d0a0e5', '#a0c0f0', '#e0a0c0', '#b8a0f5', '#f0a5b8',
     ];
     const palette = isLightTheme ? lightPalette : darkPalette;
     // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
