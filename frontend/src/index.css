@@ -1637,7 +1637,7 @@ body {
   width: 300px;
   padding: 12px;
   box-shadow: var(--glass-shadow-glow);
-  z-index: 1200;
+  z-index: 1100;
 }
 
 .country-panel-header {

@@ -2,20 +2,20 @@
 
 .polymarket-panel {
   position: fixed;
-  top: 0;
+  top: var(--nav-height, 64px);
   right: 0;
   width: 480px;
-  height: 100vh;
+  height: calc(100vh - var(--nav-height, 64px));
   background: var(--glass-bg);
   border-left: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  z-index: 99;
+  z-index: 1100;
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
   box-shadow: var(--glass-shadow-glow);
   transform: translateX(0);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, top 0.3s ease, height 0.3s ease;
 }
 
 .polymarket-panel-header {

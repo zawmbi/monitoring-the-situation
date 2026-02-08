@@ -1,14 +1,14 @@
 /* Stocks panel + modal */
 .stocks-panel {
   position: absolute;
-  top: 16px;
+  top: 12px;
   right: 16px;
   width: 520px;
   min-width: 320px;
   max-width: calc(100vw - 432px);
   height: 600px;
   min-height: 300px;
-  max-height: calc(100vh - 32px);
+  max-height: calc(100% - 24px);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
@@ -19,7 +19,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 1100;
   resize: both;
 }
 
