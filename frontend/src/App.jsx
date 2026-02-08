@@ -526,7 +526,7 @@ function App() {
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
-  const [rotateSpeed, setRotateSpeed] = useState(0.03);
+  const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
