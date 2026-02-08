@@ -463,6 +463,7 @@ function App() {
   const [showEquator, setShowEquator] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
+  const [autoRotate, setAutoRotate] = useState(true);
   const [holoMode, setHoloMode] = useState(false);
 
   // Popover state
@@ -470,6 +471,8 @@ function App() {
   const [popoverPosition, setPopoverPosition] = useState(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const autoRotateRef = useRef(autoRotate);
+  const userInteractingRef = useRef(false);
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
 
@@ -1040,6 +1043,54 @@ function App() {
     });
   }, []);
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    autoRotateRef.current = autoRotate;
+  }, [autoRotate]);
+
+  // Auto-rotate globe
+  useEffect(() => {
+    if (!useGlobe || !autoRotate) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    let animId;
+    const speed = 0.03; // degrees per frame (~1.8°/sec at 60fps)
+
+    function rotate() {
+      if (!autoRotateRef.current || userInteractingRef.current) {
+        animId = requestAnimationFrame(rotate);
+        return;
+      }
+      const center = map.getCenter();
+      map.setCenter([center.lng - speed, center.lat]);
+      animId = requestAnimationFrame(rotate);
+    }
+
+    // Pause rotation while user interacts
+    const onInteractionStart = () => { userInteractingRef.current = true; };
+    const onInteractionEnd = () => { userInteractingRef.current = false; };
+
+    map.on('mousedown', onInteractionStart);
+    map.on('touchstart', onInteractionStart);
+    map.on('dragstart', onInteractionStart);
+    map.on('mouseup', onInteractionEnd);
+    map.on('touchend', onInteractionEnd);
+    map.on('dragend', onInteractionEnd);
+
+    animId = requestAnimationFrame(rotate);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      map.off('mousedown', onInteractionStart);
+      map.off('touchstart', onInteractionStart);
+      map.off('dragstart', onInteractionStart);
+      map.off('mouseup', onInteractionEnd);
+      map.off('touchend', onInteractionEnd);
+      map.off('dragend', onInteractionEnd);
+    };
+  }, [useGlobe, autoRotate]);
+
   return (
     <>
     <div className="app">
@@ -1264,8 +1315,8 @@ function App() {
 
             {!sidebarExpanded && (
               <div className="sidebar-icon-stack">
-                <div className="sidebar-icon" title="Expand sidebar">
-                  map
+                <div className="sidebar-icon" title="Expand sidebar" onClick={() => setSidebarExpanded(true)}>
+                  {'>'}
                 </div>
               </div>
             )}
@@ -1712,19 +1763,34 @@ function App() {
           <NavigationControl position="bottom-right" showCompass={true} />
         </MapGL>
 
-        {/* Recenter globe button */}
-        <button
-          className="map-recenter-btn"
-          onClick={handleRecenter}
-          title="Recenter map"
-          aria-label="Recenter map to default view"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <ellipse cx="12" cy="12" rx="4" ry="10" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-          </svg>
-        </button>
+        {/* Map controls - bottom right */}
+        <div className="map-controls-br">
+          {useGlobe && (
+            <button
+              className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
+              onClick={() => setAutoRotate(prev => !prev)}
+              title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
+              aria-label="Toggle auto-rotation"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                <polyline points="21 3 21 9 15 9" />
+              </svg>
+            </button>
+          )}
+          <button
+            className="map-recenter-btn"
+            onClick={handleRecenter}
+            title="Recenter map"
+            aria-label="Recenter map to default view"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <ellipse cx="12" cy="12" rx="4" ry="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+            </svg>
+          </button>
+        </div>
 
         {/* Tooltip */}
         {tooltip.show && (

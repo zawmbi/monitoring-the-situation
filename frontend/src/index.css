@@ -69,7 +69,7 @@
   --switch-border: rgba(123, 107, 255, 0.25);
   --switch-border-hover: rgba(73, 198, 255, 0.45);
   --switch-bg-hover: rgba(73, 198, 255, 0.12);
-  --slider-bg: rgba(123, 107, 255, 0.2);
+  --slider-bg: linear-gradient(180deg, rgba(40, 40, 55, 0.8) 0%, rgba(20, 20, 35, 0.9) 100%);
   --slider-knob: #eef2ff;
 
   --notice-bg: rgba(123, 107, 255, 0.12);
@@ -148,7 +148,7 @@
   --switch-border: rgba(93, 77, 255, 0.2);
   --switch-border-hover: rgba(59, 141, 255, 0.4);
   --switch-bg-hover: rgba(59, 141, 255, 0.1);
-  --slider-bg: rgba(93, 77, 255, 0.2);
+  --slider-bg: linear-gradient(180deg, #d0d0d8 0%, #b8b8c4 100%);
   --slider-knob: #ffffff;
 
   --notice-bg: rgba(93, 77, 255, 0.1);
@@ -492,11 +492,19 @@ body {
   z-index: 2;
 }
 
-.map-recenter-btn {
+.map-controls-br {
   position: absolute;
-  top: 12px;
+  bottom: 100px;
   right: 12px;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-recenter-btn,
+.map-autorotate-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -513,14 +521,22 @@ body {
   padding: 0;
 }
 
-.map-recenter-btn:hover {
+.map-recenter-btn:hover,
+.map-autorotate-btn:hover {
   background: var(--toggle-bg-hover);
   color: var(--color-text-primary);
   transform: scale(1.05);
 }
 
-.map-recenter-btn:active {
+.map-recenter-btn:active,
+.map-autorotate-btn:active {
   transform: scale(0.95);
+}
+
+.map-autorotate-btn.active {
+  color: var(--color-accent-2);
+  border-color: rgba(var(--accent-alt-rgb), 0.4);
+  box-shadow: 0 0 8px rgba(var(--accent-alt-rgb), 0.25);
 }
 
 .map-container .maplibregl-canvas {
@@ -1202,8 +1218,9 @@ body {
   height: 22px;
   background: var(--slider-bg);
   border-radius: 999px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .slider::after {
@@ -1211,20 +1228,24 @@ body {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 18px;
-  height: 18px;
-  background: var(--slider-knob);
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(180deg, #e0e0e0 0%, #a0a0a0 100%);
   border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .switch input:checked + .slider {
-  background: linear-gradient(120deg, var(--color-accent), var(--color-accent-2));
+  background: linear-gradient(180deg, #3a3a4a 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 6px rgba(var(--accent-rgb), 0.15);
 }
 
 .switch input:checked + .slider::after {
   transform: translateX(18px);
+  background: linear-gradient(180deg, #ffffff 0%, #c8c8d0 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .switch-label {
