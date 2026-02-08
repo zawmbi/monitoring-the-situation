@@ -463,6 +463,7 @@ function App() {
   const [showEquator, setShowEquator] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
+  const [holoMode, setHoloMode] = useState(false);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -689,11 +690,13 @@ function App() {
       id: 'background',
       type: 'background',
       paint: {
-        'background-color': isLightTheme ? '#f0f4ff' : '#0c1126',
+        'background-color': holoMode
+          ? (isLightTheme ? '#eaecf5' : '#060a14')
+          : (isLightTheme ? '#f0f4ff' : '#0c1126'),
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme]);
+  }), [isLightTheme, holoMode]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1216,6 +1219,19 @@ function App() {
                   </label>
                 </div>
 
+                <div className="toggle-group-title">Style</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Holographic</span>
+                    <input
+                      type="checkbox"
+                      checked={holoMode}
+                      onChange={() => setHoloMode(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
                 <div className="toggle-group-title">Map Overlays</div>
                 <div className="settings-group">
                   <label className="switch switch-neutral">
@@ -1437,28 +1453,64 @@ function App() {
               id="countries-fill"
               type="fill"
               paint={{
-                'fill-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme ? '#e9edff' : '#1a2654',
-                  ['get', 'fillColor'],
-                ],
+                'fill-color': holoMode
+                  ? (isLightTheme ? '#e8ecf8' : '#0a0e1e')
+                  : [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme ? '#e9edff' : '#1a2654',
+                      ['get', 'fillColor'],
+                    ],
                 'fill-opacity': 1,
               }}
             />
+            {/* Holo glow layers: outer blur, mid glow, inner bright */}
+            {holoMode && (
+              <Layer
+                id="countries-glow-outer"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#7b6bff' : '#49c6ff',
+                  'line-width': 4,
+                  'line-blur': 6,
+                  'line-opacity': 0.2,
+                }}
+              />
+            )}
+            {holoMode && (
+              <Layer
+                id="countries-glow-mid"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-width': 2,
+                  'line-blur': 3,
+                  'line-opacity': 0.4,
+                }}
+              />
+            )}
             <Layer
               id="countries-line"
               type="line"
               paint={{
-                'line-color': isLightTheme
-                  ? 'rgba(148, 163, 184, 0.55)'
-                  : 'rgba(148, 163, 184, 0.55)',
-                'line-width': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  0.9,
-                  0.8,
-                ],
+                'line-color': holoMode
+                  ? (isLightTheme ? 'rgba(93, 77, 255, 0.7)' : 'rgba(73, 198, 255, 0.6)')
+                  : (isLightTheme
+                      ? 'rgba(148, 163, 184, 0.55)'
+                      : 'rgba(148, 163, 184, 0.55)'),
+                'line-width': holoMode
+                  ? [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      1.4,
+                      0.8,
+                    ]
+                  : [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      0.9,
+                      0.8,
+                    ],
               }}
             />
             {/* Selected country highlight */}
@@ -1467,18 +1519,35 @@ function App() {
               type="fill"
               filter={selectedCountryFilter}
               paint={{
-                'fill-color': isLightTheme
-                  ? 'rgba(93, 77, 255, 0.35)'
-                  : 'rgba(123, 107, 255, 0.35)',
+                'fill-color': holoMode
+                  ? (isLightTheme ? 'rgba(93, 77, 255, 0.12)' : 'rgba(73, 198, 255, 0.1)')
+                  : (isLightTheme
+                      ? 'rgba(93, 77, 255, 0.35)'
+                      : 'rgba(123, 107, 255, 0.35)'),
               }}
             />
+            {holoMode && (
+              <Layer
+                id="countries-selected-glow"
+                type="line"
+                filter={selectedCountryFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-width': 5,
+                  'line-blur': 6,
+                  'line-opacity': 0.5,
+                }}
+              />
+            )}
             <Layer
               id="countries-selected-line"
               type="line"
               filter={selectedCountryFilter}
               paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 1.6,
+                'line-color': holoMode
+                  ? (isLightTheme ? '#5d4dff' : '#49c6ff')
+                  : (isLightTheme ? '#5d4dff' : '#7b6bff'),
+                'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
           </Source>
