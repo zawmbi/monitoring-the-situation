@@ -19,6 +19,8 @@ import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
 import { useCountryPanel } from './features/country/useCountryPanel';
 import { useWeather } from './hooks/useWeather';
+import { useSevereWeather } from './hooks/useSevereWeather';
+import { SevereWeatherPanel } from './features/severeWeather/SevereWeatherPanel';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 
@@ -575,7 +577,9 @@ function App() {
     reddit: true,
     flights: false,
     stocks: false,
+    severeWeather: false,
   });
+  const [showSeverePanel, setShowSeverePanel] = useState(false);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const {
@@ -594,6 +598,11 @@ function App() {
     lastUpdated: polymarketsLastUpdated,
     refresh: refreshPolymarkets,
   } = usePolymarket(polymarketCountry, showPolymarketPanel);
+  const {
+    events: severeEvents,
+    loading: severeLoading,
+    refresh: refreshSevere,
+  } = useSevereWeather(enabledLayers.severeWeather);
 
   const isLightTheme = theme === 'light';
 
@@ -655,6 +664,12 @@ function App() {
         setShowStocksPanel(true);
       } else if (layer === 'stocks' && !newState.stocks) {
         setShowStocksPanel(false);
+      }
+      // Show severe weather panel when toggled on
+      if (layer === 'severeWeather' && newState.severeWeather) {
+        setShowSeverePanel(true);
+      } else if (layer === 'severeWeather' && !newState.severeWeather) {
+        setShowSeverePanel(false);
       }
       // Clear open overlays when turning layers off to avoid stale items
       if (!newState[layer]) {
@@ -1378,6 +1393,7 @@ function App() {
                   <div className="source-group-items">
                     {[
                       { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
+                      { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false },
                       { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
                     ].map((layer) => (
                       <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
@@ -1416,7 +1432,6 @@ function App() {
                     {[
                       { id: 'sports', label: 'Major Sports', tone: 'neutral', disabled: true },
                       { id: 'pizzaIndex', label: 'Pizza Index', tone: 'neutral', disabled: true },
-                      { id: 'weather', label: 'Weather Overlay', tone: 'neutral', disabled: true },
                     ].map((layer) => (
                       <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
                         <span className="switch-label">{layer.label} (WIP)</span>
@@ -1577,6 +1592,20 @@ function App() {
           lastUpdated={stocksLastUpdated}
           onClose={() => setShowStocksPanel(false)}
           onRefresh={refreshStocks}
+        />
+
+        {/* Severe Weather Panel */}
+        <SevereWeatherPanel
+          visible={showSeverePanel}
+          events={severeEvents}
+          loading={severeLoading}
+          onClose={() => { setShowSeverePanel(false); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+          onRefresh={refreshSevere}
+          onEventClick={(event) => {
+            if (event.lon && event.lat && mapRef.current) {
+              mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1200 });
+            }
+          }}
         />
 
         {/* Polymarket Panel */}
@@ -1926,6 +1955,48 @@ function App() {
               />
             </Source>
           )}
+
+          {/* Severe weather event markers */}
+          {enabledLayers.severeWeather && severeEvents.map((event) => {
+            const colors = {
+              earthquake: '#ff4444',
+              storm: '#6ee6ff',
+              wildfire: '#ff8c00',
+              volcano: '#ff5555',
+              flood: '#4488ff',
+              other: '#f5c542',
+            };
+            const color = colors[event.type] || colors.other;
+            const size = event.type === 'earthquake'
+              ? Math.max(8, Math.min(20, (event.magnitude || 5) * 2.5))
+              : 10;
+            return (
+              <Marker key={event.id} longitude={event.lon} latitude={event.lat} anchor="center">
+                <div
+                  className="severe-marker"
+                  title={event.title}
+                  onClick={() => {
+                    setShowSeverePanel(true);
+                  }}
+                  style={{ position: 'relative', width: size * 2, height: size * 2 }}
+                >
+                  <div
+                    className="severe-marker-dot"
+                    style={{
+                      width: size,
+                      height: size,
+                      background: color,
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  />
+                  <div className="severe-marker-pulse" style={{ borderColor: color }} />
+                </div>
+              </Marker>
+            );
+          })}
 
           {/* Cardinal Direction Indicators (on-surface for 2D) */}
           {!useGlobe && (
