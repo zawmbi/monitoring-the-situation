@@ -128,6 +128,15 @@ const GRATICULE_GEOJSON = {
   geometry: geoGraticule10(),
 };
 
+const EQUATOR_GEOJSON = {
+  type: 'Feature',
+  properties: {},
+  geometry: {
+    type: 'LineString',
+    coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, 0]),
+  },
+};
+
 const TIMEZONE_LINES_GEOJSON = {
   type: 'FeatureCollection',
   features: [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => ({
@@ -442,6 +451,7 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
+  const [showEquator, setShowEquator] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
 
@@ -1203,6 +1213,15 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Equator</span>
+                    <input
+                      type="checkbox"
+                      checked={showEquator}
+                      onChange={() => setShowEquator(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
                 </div>
               </div>
             )}
@@ -1346,6 +1365,21 @@ function App() {
               }}
             />
           </Source>
+
+          {/* Equator line */}
+          {showEquator && (
+            <Source id="equator" type="geojson" data={EQUATOR_GEOJSON}>
+              <Layer
+                id="equator-line"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                  'line-width': 1,
+                  'line-dasharray': [6, 4],
+                }}
+              />
+            </Source>
+          )}
 
           {/* Timezone Lines (dashed) */}
           <Source id="timezone-lines" type="geojson" data={TIMEZONE_LINES_GEOJSON}>
@@ -1497,10 +1531,10 @@ function App() {
           <Marker longitude={0} latitude={-52} anchor="center">
             <span className="cardinal-label-dom">S</span>
           </Marker>
-          <Marker longitude={175} latitude={0} anchor="center">
+          <Marker longitude={90} latitude={20} anchor="center">
             <span className="cardinal-label-dom">E</span>
           </Marker>
-          <Marker longitude={-175} latitude={0} anchor="center">
+          <Marker longitude={-90} latitude={20} anchor="center">
             <span className="cardinal-label-dom">W</span>
           </Marker>
 
