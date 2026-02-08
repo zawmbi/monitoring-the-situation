@@ -660,7 +660,6 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
-    projection: { type: useGlobe ? 'globe' : 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -670,7 +669,7 @@ function App() {
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, useGlobe]);
+  }), [isLightTheme]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -991,10 +990,13 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
-  // Store map ref on load
+  // Store map ref on load; apply globe projection via API
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
-  }, []);
+    if (useGlobe) {
+      evt.target.setProjection({ type: 'globe' });
+    }
+  }, [useGlobe]);
 
   return (
     <>
@@ -1304,7 +1306,6 @@ function App() {
           key={useGlobe ? 'globe' : 'flat'}
           mapLib={maplibregl}
           mapStyle={mapStyle}
-          projection={useGlobe ? 'globe' : 'mercator'}
           onLoad={onMapLoad}
           initialViewState={{
             longitude: 0,
@@ -1322,7 +1323,6 @@ function App() {
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
           renderWorldCopies={false}
-          maxBounds={useGlobe ? undefined : [[-180, -58], [180, 85]]}
           maxZoom={8}
           minZoom={1}
         >
