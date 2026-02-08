@@ -1613,6 +1613,42 @@ body {
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* Temperature unit toggle */
+.temp-unit-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.temp-unit-btns {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.temp-unit-btn {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.temp-unit-btn.active {
+  background: rgba(var(--accent-rgb), 0.25);
+  color: var(--color-text-primary);
+}
+
+.temp-unit-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 /* Map Tooltip */
 .map-tooltip {
   background: var(--glass-bg-dense);

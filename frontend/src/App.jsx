@@ -7,6 +7,7 @@ import { geoCentroid } from 'd3-geo';
 import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
+import canadaProvinces from './canadaProvinces.json';
 import CAPITAL_COORDS from './capitalCoords';
 import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
@@ -60,6 +61,8 @@ const GEO_FEATURES = fixGeoJSON(
 const US_STATE_FEATURES = usData?.objects?.states
   ? feature(usData, usData.objects.states).features
   : [];
+
+const CA_PROVINCE_FEATURES = canadaProvinces?.features || [];
 
 const COUNTRIES_DATA = Array.isArray(countries)
   ? countries
@@ -123,7 +126,20 @@ const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
   };
 }).filter(Boolean);
 
-const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
+const PROVINCE_MARKERS = CA_PROVINCE_FEATURES.map((geo, idx) => {
+  const [lon, lat] = geoCentroid(geo);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  return {
+    id: `ca-${geo.id || idx}`,
+    name: geo.properties?.name || `Province ${idx}`,
+    lon,
+    lat,
+    match: (geo.properties?.name || '').toLowerCase(),
+    scope: 'province',
+  };
+}).filter(Boolean);
+
+const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS, ...PROVINCE_MARKERS];
 
 // Pre-generate static GeoJSON data for MapLibre layers
 // Build graticule manually — d3's geoGraticule generates latitude lines that
@@ -518,9 +534,14 @@ function App() {
   const {
     countryPanel,
     openCountryPanel,
+    openStatePanel,
+    openProvincePanel,
     closeCountryPanel,
     updateCountryPanelPosition,
   } = useCountryPanel();
+
+  // Temperature unit: 'F' (default) or 'C'
+  const [tempUnit, setTempUnit] = useState('F');
 
   // Weather for the currently open country panel (fetches by capital city)
   const weatherCity = countryPanel.open ? countryPanel.data?.capital : null;
@@ -555,6 +576,7 @@ function App() {
   const userInteractingRef = useRef(false);
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
+  const hoveredProvinceIdRef = useRef(null);
 
   // News panel state
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
@@ -776,6 +798,19 @@ function App() {
     })),
   }), []);
 
+  const caProvincesGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: CA_PROVINCE_FEATURES.map((f, i) => ({
+      type: 'Feature',
+      id: i,
+      geometry: f.geometry,
+      properties: {
+        name: f.properties?.name || `Province ${i}`,
+        originalId: String(f.id ?? i),
+      },
+    })),
+  }), []);
+
   const flightPathsGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: flightPaths.map((flight, i) => ({
@@ -821,6 +856,13 @@ function App() {
     return ['==', ['get', 'originalId'], '__none__'];
   }, [selectedRegion]);
 
+  const selectedProvinceFilter = useMemo(() => {
+    if (selectedRegion?.type === 'province' && selectedRegion.id != null) {
+      return ['==', ['get', 'originalId'], String(selectedRegion.id)];
+    }
+    return ['==', ['get', 'originalId'], '__none__'];
+  }, [selectedRegion]);
+
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -846,6 +888,10 @@ function App() {
           map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
           hoveredStateIdRef.current = null;
         }
+        if (hoveredProvinceIdRef.current !== null) {
+          map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
+          hoveredProvinceIdRef.current = null;
+        }
         setTooltip({ show: false, text: '', x: 0, y: 0 });
         map.getCanvas().style.cursor = '';
         return;
@@ -869,6 +915,13 @@ function App() {
       );
       hoveredStateIdRef.current = null;
     }
+    if (hoveredProvinceIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
+        { hover: false }
+      );
+      hoveredProvinceIdRef.current = null;
+    }
 
     if (features && features.length > 0) {
       const feat = features[0];
@@ -886,6 +939,12 @@ function App() {
           { hover: true }
         );
         hoveredStateIdRef.current = feat.id;
+      } else if (sourceId === 'ca-provinces' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'ca-provinces', id: feat.id },
+          { hover: true }
+        );
+        hoveredProvinceIdRef.current = feat.id;
       }
 
       setTooltip({
@@ -918,6 +977,13 @@ function App() {
         { hover: false }
       );
       hoveredStateIdRef.current = null;
+    }
+    if (hoveredProvinceIdRef.current !== null) {
+      map.setFeatureState(
+        { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
+        { hover: false }
+      );
+      hoveredProvinceIdRef.current = null;
     }
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   }, []);
@@ -978,8 +1044,40 @@ function App() {
       setSelectedRegion({ type: 'state', id: originalId, name });
       setViewMode('region');
       setSelectedCapital(null);
+
+      if (mapContainerRef.current) {
+        const mapRect = mapContainerRef.current.getBoundingClientRect();
+        const clickX = event.point.x;
+        const clickY = event.point.y;
+        const panelWidth = 300;
+        const panelHeight = 200;
+        const padding = 32;
+        let x = clickX + 24;
+        let y = clickY + 24;
+        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+        openStatePanel(name, { x, y });
+      }
+    } else if (sourceId === 'ca-provinces') {
+      setSelectedRegion({ type: 'province', id: originalId, name });
+      setViewMode('region');
+      setSelectedCapital(null);
+
+      if (mapContainerRef.current) {
+        const mapRect = mapContainerRef.current.getBoundingClientRect();
+        const clickX = event.point.x;
+        const clickY = event.point.y;
+        const panelWidth = 300;
+        const panelHeight = 200;
+        const padding = 32;
+        let x = clickX + 24;
+        let y = clickY + 24;
+        x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
+        y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
+        openProvincePanel(name, { x, y });
+      }
     }
-  }, [openCountryPanel]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1367,6 +1465,25 @@ function App() {
                 <div className="toggle-group-title">Layers & Sources</div>
 
                 <div className="source-group">
+                  <div className="source-group-title">Units</div>
+                  <div className="source-group-items">
+                    <div className="temp-unit-toggle">
+                      <span className="switch-label">Temperature</span>
+                      <div className="temp-unit-btns">
+                        <button
+                          className={`temp-unit-btn${tempUnit === 'F' ? ' active' : ''}`}
+                          onClick={() => setTempUnit('F')}
+                        >°F</button>
+                        <button
+                          className={`temp-unit-btn${tempUnit === 'C' ? ' active' : ''}`}
+                          onClick={() => setTempUnit('C')}
+                        >°C</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="source-group">
                   <div className="source-group-title">News</div>
                   <div className="source-group-items">
                     {[
@@ -1636,6 +1753,7 @@ function App() {
             onClose={closeCountryPanel}
             weather={panelWeather}
             weatherLoading={panelWeatherLoading}
+            tempUnit={tempUnit}
           />
         )}
 
@@ -1650,7 +1768,7 @@ function App() {
             zoom: 2.0,
           }}
           style={{ width: '100%', height: '100%' }}
-          interactiveLayerIds={['countries-fill', 'us-states-fill']}
+          interactiveLayerIds={['countries-fill', 'us-states-fill', 'ca-provinces-fill']}
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
           onClick={handleMapClick}
@@ -1883,6 +2001,54 @@ function App() {
               id="us-states-selected-line"
               type="line"
               filter={selectedStateFilter}
+              paint={{
+                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                'line-width': 1.5,
+              }}
+            />
+          </Source>
+
+          {/* Canadian provinces */}
+          <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
+            <Layer
+              id="ca-provinces-fill"
+              type="fill"
+              paint={{
+                'fill-color': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  isLightTheme
+                    ? 'rgba(194, 120, 62, 0.15)'
+                    : 'rgba(123, 107, 255, 0.22)',
+                  'rgba(0, 0, 0, 0)',
+                ],
+                'fill-opacity': 1,
+              }}
+            />
+            <Layer
+              id="ca-provinces-line"
+              type="line"
+              paint={{
+                'line-color': isLightTheme
+                  ? 'rgba(166, 120, 80, 0.35)'
+                  : 'rgba(160, 145, 255, 0.35)',
+                'line-width': 1,
+              }}
+            />
+            <Layer
+              id="ca-provinces-selected-fill"
+              type="fill"
+              filter={selectedProvinceFilter}
+              paint={{
+                'fill-color': isLightTheme
+                  ? 'rgba(194, 120, 62, 0.25)'
+                  : 'rgba(123, 107, 255, 0.35)',
+              }}
+            />
+            <Layer
+              id="ca-provinces-selected-line"
+              type="line"
+              filter={selectedProvinceFilter}
               paint={{
                 'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
                 'line-width': 1.5,

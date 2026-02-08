@@ -24,7 +24,13 @@ function parseOffsetFromTimezone(tzString) {
   return Number.isFinite(val) ? val : 0;
 }
 
-export function CountryPanel({ data, position, onClose, onPositionChange, bounds, weather, weatherLoading }) {
+function displayTemp(celsius, unit) {
+  if (celsius == null) return '--';
+  if (unit === 'F') return `${Math.round(celsius * 9 / 5 + 32)}°F`;
+  return `${celsius}°C`;
+}
+
+export function CountryPanel({ data, position, onClose, onPositionChange, bounds, weather, weatherLoading, tempUnit = 'F' }) {
   const panelRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -106,13 +112,13 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
             height="48"
           />
           <div className="country-panel-weather-main">
-            <span className="country-panel-weather-temp">{weather.temp}°C</span>
+            <span className="country-panel-weather-temp">{displayTemp(weather.temp, tempUnit)}</span>
             <span className="country-panel-weather-desc">{weather.description}</span>
           </div>
           <div className="country-panel-weather-meta">
             <span>{weather.humidity}% humidity</span>
             <span>{weather.windSpeed} m/s wind</span>
-            <span>Feels like {weather.feelsLike}°C</span>
+            <span>Feels like {displayTemp(weather.feelsLike, tempUnit)}</span>
           </div>
         </div>
       )}

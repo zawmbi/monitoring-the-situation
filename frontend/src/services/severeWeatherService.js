@@ -2,13 +2,14 @@
  * Severe Weather & Natural Disaster Service
  *
  * Fetches real-time data from free public APIs:
- *   - USGS Earthquake Hazards Program (earthquakes M4.5+)
- *   - NASA EONET v3 (storms, wildfires, volcanoes, floods, etc.)
+ *   - USGS Earthquake Hazards Program (significant / M6+ earthquakes only)
+ *   - NASA EONET v3 (severe storms, wildfires, volcanoes, floods, etc.)
  *
  * No API keys required — both are open government APIs.
  */
 
-const USGS_SIGNIFICANT = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson';
+// "significant" feed is USGS-curated: only noteworthy quakes (typically M6+, felt reports, damage, etc.)
+const USGS_SIGNIFICANT = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson';
 const EONET_EVENTS = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50';
 
 const cache = new Map();
@@ -37,8 +38,8 @@ function eonetCategory(cat) {
 }
 
 /**
- * Fetch significant earthquakes (M4.5+) from the past 30 days.
- * Returns GeoJSON-compatible array of normalized event objects.
+ * Fetch significant earthquakes from the past 30 days (USGS-curated).
+ * Only includes major events — typically M6+, damaging, or widely felt.
  */
 export async function fetchEarthquakes() {
   if (isCacheValid('quakes')) return cache.get('quakes').data;
@@ -48,25 +49,26 @@ export async function fetchEarthquakes() {
     if (!res.ok) return [];
     const geo = await res.json();
 
-    const events = (geo.features || []).map((f) => {
-      const p = f.properties || {};
-      const [lon, lat, depth] = f.geometry?.coordinates || [0, 0, 0];
-      return {
-        id: f.id || `eq-${p.time}`,
-        type: 'earthquake',
-        title: p.title || `M${p.mag} Earthquake`,
-        magnitude: p.mag,
-        place: p.place || '',
-        time: p.time ? new Date(p.time).toISOString() : null,
-        timestamp: p.time || 0,
-        lon,
-        lat,
-        depth,
-        url: p.url || '',
-        tsunami: p.tsunami === 1,
-        severity: p.mag >= 7 ? 'extreme' : p.mag >= 6 ? 'severe' : p.mag >= 5 ? 'moderate' : 'minor',
-      };
-    });
+    const events = (geo.features || [])
+      .map((f) => {
+        const p = f.properties || {};
+        const [lon, lat, depth] = f.geometry?.coordinates || [0, 0, 0];
+        return {
+          id: f.id || `eq-${p.time}`,
+          type: 'earthquake',
+          title: p.title || `M${p.mag} Earthquake`,
+          magnitude: p.mag,
+          place: p.place || '',
+          time: p.time ? new Date(p.time).toISOString() : null,
+          timestamp: p.time || 0,
+          lon,
+          lat,
+          depth,
+          url: p.url || '',
+          tsunami: p.tsunami === 1,
+          severity: p.mag >= 8 ? 'extreme' : p.mag >= 7 ? 'severe' : 'major',
+        };
+      });
 
     events.sort((a, b) => b.timestamp - a.timestamp);
     cache.set('quakes', { data: events, ts: Date.now() });
