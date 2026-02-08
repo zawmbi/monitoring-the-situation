@@ -626,16 +626,16 @@ function App() {
 
   const countryColor = useCallback((index) => {
     const darkPalette = [
-      '#1a2744', '#1e3a2f', '#2d1f3d', '#33261a', '#1a3333',
-      '#2b2240', '#1f2e1a', '#3d1f2b', '#1a2b3d', '#2e331a',
-      '#331a2e', '#1a3326', '#2d2b1a', '#1f333d', '#3d2b1f',
-      '#1a2233', '#26331f', '#331f3a', '#1a332e', '#33291a',
+      '#243858', '#265045', '#3d2d54', '#4a3828', '#244a4a',
+      '#3b3058', '#2e4428', '#54283d', '#243d58', '#424a28',
+      '#4a2842', '#244a38', '#3d3c28', '#2d4858', '#582f28',
+      '#283050', '#384a2d', '#4a2d52', '#284a42', '#4a3c28',
     ];
     const lightPalette = [
-      '#c8d5ea', '#c2ddd2', '#d5c8e0', '#ddd4c2', '#c2d8d8',
-      '#cfc5de', '#cdd8c2', '#dec5cf', '#c2cede', '#d3d8c2',
-      '#d8c2d3', '#c2d8ca', '#d5d0c2', '#c5d3de', '#dec8c2',
-      '#c2c8d8', '#cad8c5', '#d8c5dc', '#c2d8d3', '#d8cfc2',
+      '#a8b8d5', '#9fc5b0', '#bda8cc', '#c5b89f', '#9fbfbf',
+      '#b4a3c8', '#afc59f', '#c8a3b4', '#9fb0c8', '#b8bf9f',
+      '#bf9fb8', '#9fc5a8', '#bfb59f', '#a3b8c8', '#c8a89f',
+      '#9fa8c5', '#a8c5a3', '#c5a3c0', '#9fc5b8', '#c5b89f',
     ];
     const palette = isLightTheme ? lightPalette : darkPalette;
     return palette[index % palette.length];
