@@ -15,6 +15,8 @@ function Navbar({
   onToggleTheme,
   useGlobe,
   onToggleGlobe,
+  musicPlaying,
+  onToggleMusic,
   collapsed,
   onToggleCollapse,
 }) {
@@ -53,6 +55,31 @@ function Navbar({
         <div className="navbar-actions">
           <button type="button" className="navbar-login" aria-disabled="true">
             Login
+          </button>
+
+          <button
+            type="button"
+            className="navbar-icon-btn"
+            onClick={onToggleMusic}
+            aria-label={musicPlaying ? 'Mute music' : 'Play music'}
+            title={musicPlaying ? 'Mute music' : 'Play music'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {musicPlaying ? (
+                <>
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" fill="currentColor" />
+                  <circle cx="18" cy="16" r="3" fill="currentColor" />
+                </>
+              ) : (
+                <>
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </>
+              )}
+            </svg>
           </button>
 
           <button

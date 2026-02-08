@@ -529,7 +529,11 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(false);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
+
+  // Audio ref for background music
+  const audioRef = useRef(null);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -1034,6 +1038,17 @@ function App() {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
+  const handleToggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (musicPlaying) {
+      audio.pause();
+      setMusicPlaying(false);
+    } else {
+      audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+    }
+  };
+
   const handleNavigate = (pageId) => {
     setActivePage(prev => (prev === pageId ? null : pageId));
   };
@@ -1235,6 +1250,7 @@ function App() {
   return (
     <>
     <div className="app">
+      <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
         title="Monitoring The Situation"
         logoSrc="/earth.png"
@@ -1244,6 +1260,8 @@ function App() {
         onToggleTheme={handleToggleTheme}
         useGlobe={useGlobe}
         onToggleGlobe={() => setUseGlobe(prev => !prev)}
+        musicPlaying={musicPlaying}
+        onToggleMusic={handleToggleMusic}
         collapsed={navCollapsed}
         onToggleCollapse={handleToggleNav}
       />
