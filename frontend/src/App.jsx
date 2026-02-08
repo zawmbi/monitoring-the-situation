@@ -1000,7 +1000,7 @@ function App() {
     if (!map) return;
     map.easeTo({
       center: [0, 20],
-      zoom: 1.5,
+      zoom: 2.2,
       pitch: 0,
       bearing: 0,
       duration: 800,
@@ -1319,7 +1319,7 @@ function App() {
           initialViewState={{
             longitude: 0,
             latitude: 20,
-            zoom: 1.5,
+            zoom: 2.2,
           }}
           style={{ width: '100%', height: '100%' }}
           interactiveLayerIds={['countries-fill', 'us-states-fill']}
