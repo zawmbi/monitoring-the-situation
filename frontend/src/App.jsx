@@ -557,6 +557,8 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
+  const [transparentGlobe, setTransparentGlobe] = useState(true);
+  const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
@@ -1296,6 +1298,28 @@ function App() {
     }
   }, []);
 
+  // Track map center for globe hemisphere visibility check
+  const handleMapMove = useCallback((evt) => {
+    const c = evt.viewState;
+    if (c) mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+  }, []);
+
+  /**
+   * Check if a lng/lat is on the visible hemisphere of the globe.
+   * Uses great-circle angular distance from map center — if > 90°, it's on the far side.
+   * Returns true (visible) when transparent mode is on, globe is off, or point is in front.
+   */
+  const isMarkerVisible = useCallback((lng, lat) => {
+    if (transparentGlobe || !useGlobe) return true;
+    const toRad = Math.PI / 180;
+    const c = mapCenterRef.current;
+    const lat1 = c.lat * toRad;
+    const lat2 = lat * toRad;
+    const dLng = (lng - c.lng) * toRad;
+    const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    return cosAngle > -0.05; // slight margin so edge markers don't flicker
+  }, [transparentGlobe, useGlobe]);
+
   const handleRecenter = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -1623,6 +1647,16 @@ function App() {
                 <div className="toggle-group-title" style={{ marginTop: '16px' }}>3D Globe Settings</div>
                 <div className="settings-group">
                   <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Transparent Globe</span>
+                    <input
+                      type="checkbox"
+                      checked={transparentGlobe}
+                      onChange={() => setTransparentGlobe(prev => !prev)}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
                     <span className="switch-label">Atmospheric Edge Glow</span>
                     <input
                       type="checkbox"
@@ -1769,6 +1803,7 @@ function App() {
           }}
           style={{ width: '100%', height: '100%' }}
           interactiveLayerIds={['countries-fill', 'us-states-fill', 'ca-provinces-fill']}
+          onMove={handleMapMove}
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
           onClick={handleMapClick}
@@ -2123,7 +2158,7 @@ function App() {
           )}
 
           {/* Severe weather event markers */}
-          {enabledLayers.severeWeather && severeEvents.map((event) => {
+          {enabledLayers.severeWeather && severeEvents.filter((e) => isMarkerVisible(e.lon, e.lat)).map((event) => {
             const colors = {
               earthquake: '#ff4444',
               storm: '#6ee6ff',
@@ -2183,7 +2218,7 @@ function App() {
           )}
 
           {/* Selected country capital */}
-          {selectedCapital && (
+          {selectedCapital && isMarkerVisible(selectedCapital.lon, selectedCapital.lat) && (
             <Marker longitude={selectedCapital.lon} latitude={selectedCapital.lat} anchor="center">
               <div className="selected-capital-marker">
                 <svg width="14" height="14" viewBox="-7 -7 14 14">
@@ -2200,7 +2235,7 @@ function App() {
           )}
 
           {/* Hotspots */}
-          {hotspots.map((hotspot) => {
+          {hotspots.filter((h) => isMarkerVisible(h.lon, h.lat)).map((hotspot) => {
             const maxCount = hotspots[0]?.count || 1;
             const intensity = Math.max(0.2, hotspot.count / maxCount);
             const size = 6 + intensity * 12;
