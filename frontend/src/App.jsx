@@ -439,6 +439,27 @@ const getInitialNavCollapsed = () => {
   return window.innerWidth < 1100;
 };
 
+const VISUAL_LAYER_DEFAULTS = {
+  grain: true,
+  atmosphere: true,
+  contours: true,
+  scanlines: true,
+  countryFill: true,
+  oceanGlow: true,
+};
+
+const getInitialVisualLayers = () => {
+  if (typeof window === 'undefined') return VISUAL_LAYER_DEFAULTS;
+  try {
+    const stored = window.localStorage.getItem('visualLayers');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...VISUAL_LAYER_DEFAULTS, ...parsed };
+    }
+  } catch {}
+  return VISUAL_LAYER_DEFAULTS;
+};
+
 function App() {
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
@@ -467,6 +488,7 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.03);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
+  const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -536,6 +558,14 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem('navCollapsed', String(navCollapsed));
   }, [navCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem('visualLayers', JSON.stringify(visualLayers));
+  }, [visualLayers]);
+
+  const toggleVisualLayer = useCallback((key) => {
+    setVisualLayers(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1170,6 +1200,15 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  className={`sidebar-tab ${sidebarTab === 'visuals' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('visuals')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'visuals'}
+                >
+                  Visuals
+                </button>
+                <button
+                  type="button"
                   className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setSidebarTab('settings')}
                   role="tab"
@@ -1253,6 +1292,32 @@ function App() {
               />
             )}
 
+            {sidebarExpanded && sidebarTab === 'visuals' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Visual Layers</div>
+                <div className="settings-group">
+                  {[
+                    { key: 'grain', label: 'Grain / Noise Overlay' },
+                    { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
+                    { key: 'contours', label: 'Micro Topographic Contours' },
+                    { key: 'scanlines', label: 'Scanline Overlay' },
+                    { key: 'countryFill', label: 'Country Fill Texture' },
+                    { key: 'oceanGlow', label: 'Ocean Glow / Energy Field' },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="switch switch-neutral">
+                      <span className="switch-label">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={visualLayers[key]}
+                        onChange={() => toggleVisualLayer(key)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
                 <div className="toggle-group-title">Appearance</div>
@@ -1329,7 +1394,8 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className="map-container" ref={mapContainerRef}>
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${visualLayers.scanlines ? '' : ' hide-scanlines'}${visualLayers.grain ? '' : ' hide-grain'}`} ref={mapContainerRef}>
+        <div className="map-grain-overlay" aria-hidden="true" />
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -1452,6 +1518,7 @@ function App() {
             <Layer
               id="graticule-lines"
               type="line"
+              layout={{ visibility: visualLayers.contours ? 'visible' : 'none' }}
               paint={{
                 'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.12)' : 'rgba(73, 198, 255, 0.12)',
                 'line-width': 0.5,
@@ -1465,6 +1532,7 @@ function App() {
             <Layer
               id="compass-lines-glow"
               type="line"
+              layout={{ visibility: visualLayers.oceanGlow ? 'visible' : 'none' }}
               paint={{
                 'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : 'rgba(73, 198, 255, 0.10)',
                 'line-width': useGlobe ? 4 : 2,
@@ -1475,6 +1543,7 @@ function App() {
             <Layer
               id="compass-lines-layer"
               type="line"
+              layout={{ visibility: visualLayers.oceanGlow ? 'visible' : 'none' }}
               paint={{
                 'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
@@ -1535,7 +1604,7 @@ function App() {
                       isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': 1,
+                'fill-opacity': visualLayers.countryFill ? 1 : 0,
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
