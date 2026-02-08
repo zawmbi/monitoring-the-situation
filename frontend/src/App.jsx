@@ -1768,9 +1768,9 @@ function App() {
               type="line"
               paint={{
                 'line-color': isLightTheme
-                  ? 'rgba(166, 120, 80, 0.18)'
-                  : 'rgba(123, 107, 255, 0.18)',
-                'line-width': 0.6,
+                  ? 'rgba(166, 120, 80, 0.35)'
+                  : 'rgba(160, 145, 255, 0.35)',
+                'line-width': 1,
               }}
             />
             <Layer
