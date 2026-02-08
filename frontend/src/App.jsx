@@ -992,9 +992,13 @@ function App() {
       }
 
       const tooltipName = feat.properties?.name || 'Unknown';
-      const tooltipText = showTariffHeatmap && feat.properties?.tariffRate != null
-        ? `${tooltipName} — ${feat.properties.tariffRate}% tariff`
-        : tooltipName;
+      const tariffRate = feat.properties?.tariffRate;
+      let tooltipText = tooltipName;
+      if (showTariffHeatmap && tariffRate != null) {
+        tooltipText = tariffRate === -1
+          ? `${tooltipName} — EMBARGO`
+          : `${tooltipName} — ${tariffRate}% tariff`;
+      }
       setTooltip({
         show: true,
         text: tooltipText,

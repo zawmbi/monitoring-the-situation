@@ -421,16 +421,6 @@ const TARIFF_DATA = {
     notes: 'Reciprocal tariff rate',
   },
 
-  Myanmar: {
-    universal: 44,
-    goods: {
-      'Textiles & Apparel': 44,
-      Agriculture: 44,
-      Gems: 44,
-    },
-    notes: 'Reciprocal tariff rate',
-  },
-
   'Sri Lanka': {
     universal: 44,
     goods: {
@@ -704,12 +694,15 @@ const TARIFF_DATA = {
     universal: 35,
     goods: {
       'Steel & Aluminum': 200,
-      Energy: 35,
+      Energy: 0,
       'Uranium': 35,
-      'Diamonds': 100,
+      'Diamonds': 0,
       Metals: 35,
+      'Seafood': 0,
+      'Gold': 0,
     },
-    notes: 'Sanctions-related elevated tariffs',
+    notes: 'Extensive sanctions + elevated tariffs. Oil, diamonds, gold, and seafood imports fully banned. Column 2 (non-MFN) tariff rates on remaining goods.',
+    sanctioned: true,
   },
 
   Serbia: {
@@ -795,8 +788,79 @@ const TARIFF_DATA = {
 
   Cuba: {
     universal: 0,
+    embargo: true,
     goods: {},
-    notes: 'US trade embargo in effect; minimal trade',
+    notes: 'Full US trade embargo since 1962 (OFAC). Nearly all imports and exports prohibited.',
+  },
+
+  // --- Sanctioned / Embargoed Nations ---
+
+  Iran: {
+    universal: 0,
+    embargo: true,
+    goods: {},
+    notes: 'Comprehensive US sanctions (OFAC). Nearly all trade prohibited including oil, petrochemicals, metals, and financial transactions.',
+  },
+
+  'North Korea': {
+    universal: 0,
+    embargo: true,
+    goods: {},
+    notes: 'Full US trade embargo and UN sanctions. All trade prohibited. Strictest sanctions regime in effect.',
+  },
+
+  Syria: {
+    universal: 0,
+    embargo: true,
+    goods: {},
+    notes: 'Comprehensive US sanctions (Caesar Act). Nearly all trade and investment prohibited.',
+  },
+
+  Belarus: {
+    universal: 0,
+    embargo: true,
+    goods: {},
+    notes: 'Extensive US sanctions aligned with Russia response. Most trade restricted, key sectors fully blocked.',
+  },
+
+  // --- Heavily Sanctioned (not full embargo but severe restrictions) ---
+
+  Myanmar: {
+    universal: 44,
+    goods: {
+      'Textiles & Apparel': 44,
+      Agriculture: 44,
+      Gems: 44,
+      'Jade & Rubies': 0,
+      'Timber & Lumber': 0,
+    },
+    notes: 'Reciprocal tariff + targeted sanctions. Jade, rubies, and timber imports banned under JADE Act.',
+    sanctioned: true,
+  },
+
+  Venezuela: {
+    universal: 0,
+    embargo: true,
+    goods: {},
+    notes: 'Comprehensive US sanctions on oil sector and state entities (OFAC). Most trade effectively blocked.',
+  },
+
+  Sudan: {
+    universal: 10,
+    goods: {
+      Agriculture: 10,
+      'Gum Arabic': 10,
+    },
+    notes: 'Some sanctions lifted in 2017; baseline tariff applies to limited trade.',
+  },
+
+  Libya: {
+    universal: 10,
+    goods: {
+      Energy: 10,
+    },
+    notes: 'Targeted sanctions on specific entities; limited trade permitted under baseline tariff.',
+    sanctioned: true,
   },
 };
 
@@ -829,7 +893,7 @@ export function getTariffByName(countryName) {
 
 /**
  * Get the universal tariff rate for a country.
- * Returns 0 for US, default rate for unknown countries.
+ * Returns 0 for US, -1 for embargoed nations, default rate for unknown.
  */
 export function getUniversalRate(countryName) {
   if (!countryName) return 0;
@@ -839,31 +903,42 @@ export function getUniversalRate(countryName) {
   )
     return 0;
   const data = getTariffByName(countryName);
+  if (data?.embargo) return -1;
   return data?.universal ?? 10;
 }
 
 /**
+ * Check if a country is under US embargo.
+ */
+export function isEmbargoed(countryName) {
+  const data = getTariffByName(countryName);
+  return data?.embargo === true;
+}
+
+/**
  * Get a color for the tariff heatmap based on rate.
- * Green (low) -> Yellow (medium) -> Orange -> Red (high)
+ * -1 = embargo (dark), 0 = US/self, Green (low) -> Red (high)
  */
 export function getTariffColor(rate) {
-  if (rate === 0) return 'rgba(100, 100, 120, 0.4)'; // Gray for no tariff / embargo
-  if (rate <= 10) return '#22c55e'; // Green
-  if (rate <= 15) return '#65d544'; // Light green
-  if (rate <= 20) return '#a3d930'; // Yellow-green
-  if (rate <= 25) return '#eab308'; // Yellow
-  if (rate <= 30) return '#f59e0b'; // Amber
-  if (rate <= 40) return '#f97316'; // Orange
-  if (rate <= 50) return '#ef4444'; // Red
-  if (rate <= 100) return '#dc2626'; // Dark red
-  return '#991b1b'; // Very dark red (100%+)
+  if (rate === -1) return '#1a1a2e'; // Dark purple-black for embargo
+  if (rate === 0) return 'rgba(100, 100, 120, 0.25)'; // Dim gray for US
+  if (rate <= 10) return '#22c55e';
+  if (rate <= 15) return '#65d544';
+  if (rate <= 20) return '#a3d930';
+  if (rate <= 25) return '#eab308';
+  if (rate <= 30) return '#f59e0b';
+  if (rate <= 40) return '#f97316';
+  if (rate <= 50) return '#ef4444';
+  if (rate <= 100) return '#dc2626';
+  return '#991b1b';
 }
 
 /**
  * Get a light-theme color for the tariff heatmap.
  */
 export function getTariffColorLight(rate) {
-  if (rate === 0) return 'rgba(140, 140, 155, 0.3)';
+  if (rate === -1) return '#2d1f3d'; // Dark purple for embargo
+  if (rate === 0) return 'rgba(140, 140, 155, 0.2)';
   if (rate <= 10) return '#86efac';
   if (rate <= 15) return '#a8e88c';
   if (rate <= 20) return '#d4e070';
@@ -876,7 +951,7 @@ export function getTariffColorLight(rate) {
 }
 
 export const TARIFF_LEGEND = [
-  { label: '0% (Embargo)', color: 'rgba(100, 100, 120, 0.4)', colorLight: 'rgba(140, 140, 155, 0.3)' },
+  { label: 'Embargo', color: '#1a1a2e', colorLight: '#2d1f3d' },
   { label: '1-10%', color: '#22c55e', colorLight: '#86efac' },
   { label: '11-20%', color: '#a3d930', colorLight: '#d4e070' },
   { label: '21-30%', color: '#f59e0b', colorLight: '#fbbf24' },
