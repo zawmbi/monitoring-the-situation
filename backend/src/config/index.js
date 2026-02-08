@@ -11,7 +11,7 @@ dotenvConfig({ path: path.resolve(process.cwd(), '..', '.env'), override: false 
 
 export const config = {
   // Server
-  port: parseInt(process.env.PORT || '4000', 10),
+  port: parseInt(process.env.PORT || process.env.BACKEND_PORT || '4100', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   isDev: process.env.NODE_ENV !== 'production',
 
