@@ -1378,7 +1378,7 @@ function App() {
                   <div className="source-group-items">
                     {[
                       { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
-                      { id: 'flights', label: 'Flights', tone: 'flights', disabled: false },
+                      { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
                     ].map((layer) => (
                       <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
                         <span className="switch-label">{layer.label}</span>

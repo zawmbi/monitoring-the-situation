@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { formatClock, timeAgo } from '../../utils/time';
 import './stocks.css';
 
@@ -216,6 +216,9 @@ export function StocksPanel({
   const [selectedStock, setSelectedStock] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [localClock, setLocalClock] = useState(() => new Date());
+  const [pos, setPos] = useState({ x: null, y: null });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const timer = setInterval(() => setLocalClock(new Date()), 1000);
@@ -233,12 +236,46 @@ export function StocksPanel({
     return marketStatus.find((m) => m.region === 'United States') || marketStatus[0];
   }, [marketStatus]);
 
+  const onMouseDown = (e) => {
+    if (e.target.closest('button, a, input, .stocks-list')) return;
+    setIsDragging(true);
+    const currentX = pos.x != null ? pos.x : e.currentTarget.getBoundingClientRect().left;
+    const currentY = pos.y != null ? pos.y : e.currentTarget.getBoundingClientRect().top;
+    if (pos.x == null) setPos({ x: currentX, y: currentY });
+    dragOffset.current = { x: e.clientX - currentX, y: e.clientY - currentY };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e) => {
+      const nextX = Math.max(0, e.clientX - dragOffset.current.x);
+      const nextY = Math.max(0, e.clientY - dragOffset.current.y);
+      setPos({ x: nextX, y: nextY });
+    };
+    const onUp = () => setIsDragging(false);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging]);
+
   if (!visible) return null;
+
+  const panelStyle = pos.x != null
+    ? { left: pos.x, top: pos.y, right: 'auto' }
+    : {};
 
   return (
     <>
-      <div className="stocks-panel">
+      <div
+        className={`stocks-panel${isDragging ? ' stocks-panel--dragging' : ''}`}
+        style={panelStyle}
+        onMouseDown={onMouseDown}
+      >
         <div className="stocks-panel-header">
+          <span className="stocks-panel-drag-hint">Drag to move</span>
           <button
             className="stocks-panel-close"
             onClick={onClose}
