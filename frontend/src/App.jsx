@@ -137,6 +137,15 @@ const EQUATOR_GEOJSON = {
   },
 };
 
+// Compass crosshair: vertical line (prime meridian) + horizontal line at map center
+const COMPASS_LINES_GEOJSON = {
+  type: 'FeatureCollection',
+  features: [
+    { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[0, -56], [0, 80]] } },
+    { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-180, 0], [180, 0]] } },
+  ],
+};
+
 const TIMEZONE_LINES_GEOJSON = {
   type: 'FeatureCollection',
   features: [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => ({
@@ -1371,6 +1380,19 @@ function App() {
             />
           </Source>
 
+          {/* Compass crosshair lines (N-S along prime meridian, E-W along equator) */}
+          <Source id="compass-lines" type="geojson" data={COMPASS_LINES_GEOJSON}>
+            <Layer
+              id="compass-lines-layer"
+              type="line"
+              paint={{
+                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.18)' : 'rgba(73, 198, 255, 0.18)',
+                'line-width': 0.8,
+                'line-dasharray': [8, 6],
+              }}
+            />
+          </Source>
+
           {/* Equator line */}
           {showEquator && (
             <Source id="equator" type="geojson" data={EQUATOR_GEOJSON}>
@@ -1536,10 +1558,10 @@ function App() {
           <Marker longitude={0} latitude={-52} anchor="center">
             <span className="cardinal-label-dom">S</span>
           </Marker>
-          <Marker longitude={90} latitude={20} anchor="center">
+          <Marker longitude={175} latitude={0} anchor="center">
             <span className="cardinal-label-dom">E</span>
           </Marker>
-          <Marker longitude={-90} latitude={20} anchor="center">
+          <Marker longitude={-175} latitude={0} anchor="center">
             <span className="cardinal-label-dom">W</span>
           </Marker>
 
