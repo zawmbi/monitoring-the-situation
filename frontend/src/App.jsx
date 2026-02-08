@@ -16,6 +16,7 @@ import { CountryPanel } from './features/country/CountryPanel';
 import { useCountryPanel } from './features/country/useCountryPanel';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
+import FrontlineOverlay from './features/frontline/FrontlineOverlay';
 
 // Safe guard in case topojson fails to load
 const GEO_FEATURES = worldData?.objects?.countries
@@ -392,6 +393,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
   const [showCapitals, setShowCapitals] = useState(false);
+  const [showFrontline, setShowFrontline] = useState(false);
 
   // Popover state
   const [popoverHotspot, setPopoverHotspot] = useState(null);
@@ -959,6 +961,15 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
+                  <label className="switch switch-frontline">
+                    <span className="switch-label">UA/RU Frontline</span>
+                    <input
+                      type="checkbox"
+                      checked={showFrontline}
+                      onChange={() => setShowFrontline(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
                 </div>
               </div>
             )}
@@ -1199,6 +1210,9 @@ function App() {
                 </g>
               </Marker>
             ))}
+
+            {/* Frontline Overlay */}
+            <FrontlineOverlay visible={showFrontline} />
 
             {/* Hotspots */}
             {hotspots.map((hotspot) => {

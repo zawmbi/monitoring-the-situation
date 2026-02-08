@@ -1735,3 +1735,35 @@ body {
   flex-direction: column;
   gap: 12px;
 }
+
+/* ===========================
+   FRONTLINE OVERLAY
+   =========================== */
+
+.switch-frontline input:checked + .slider {
+  background: linear-gradient(120deg, #005BBB, #FFD500);
+}
+
+.frontline-overlay {
+  pointer-events: none;
+}
+
+.frontline-line {
+  pointer-events: none;
+}
+
+.frontline-center {
+  filter: drop-shadow(0 0 3px rgba(255, 50, 50, 0.6));
+}
+
+.frontline-label {
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 2.5;
+  font-family: var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.frontline-legend rect:first-child {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
