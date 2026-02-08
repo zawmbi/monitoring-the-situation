@@ -1029,6 +1029,12 @@ function App() {
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
+    // Faster, smoother scroll zoom
+    const sh = evt.target.scrollZoom;
+    if (sh) {
+      sh.setWheelZoomRate(1 / 200);
+      sh.setZoomRate(1 / 50);
+    }
   }, []);
 
   const handleRecenter = useCallback(() => {
@@ -1055,6 +1061,7 @@ function App() {
     if (!map) return;
 
     let animId;
+    let resumeTimer = null;
     const speed = 0.03; // degrees per frame (~1.8°/sec at 60fps)
 
     function rotate() {
@@ -1067,27 +1074,41 @@ function App() {
       animId = requestAnimationFrame(rotate);
     }
 
-    // Pause rotation while user interacts
-    const onInteractionStart = () => { userInteractingRef.current = true; };
-    const onInteractionEnd = () => { userInteractingRef.current = false; };
+    // Pause rotation while user interacts (including zoom)
+    const onInteractionStart = () => {
+      clearTimeout(resumeTimer);
+      userInteractingRef.current = true;
+    };
+    const onInteractionEnd = () => {
+      // Small delay before resuming so zoom animations can finish
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { userInteractingRef.current = false; }, 800);
+    };
 
     map.on('mousedown', onInteractionStart);
     map.on('touchstart', onInteractionStart);
     map.on('dragstart', onInteractionStart);
+    map.on('zoomstart', onInteractionStart);
+    map.on('wheel', onInteractionStart);
     map.on('mouseup', onInteractionEnd);
     map.on('touchend', onInteractionEnd);
     map.on('dragend', onInteractionEnd);
+    map.on('zoomend', onInteractionEnd);
 
     animId = requestAnimationFrame(rotate);
 
     return () => {
       cancelAnimationFrame(animId);
+      clearTimeout(resumeTimer);
       map.off('mousedown', onInteractionStart);
       map.off('touchstart', onInteractionStart);
       map.off('dragstart', onInteractionStart);
+      map.off('zoomstart', onInteractionStart);
+      map.off('wheel', onInteractionStart);
       map.off('mouseup', onInteractionEnd);
       map.off('touchend', onInteractionEnd);
       map.off('dragend', onInteractionEnd);
+      map.off('zoomend', onInteractionEnd);
     };
   }, [useGlobe, autoRotate]);
 
