@@ -1576,29 +1576,6 @@ function App() {
             />
           </Source>
 
-          {/* Elevation / Hillshade from DEM terrain tiles */}
-          <Source
-            id="terrain-dem"
-            type="raster-dem"
-            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
-            encoding="terrarium"
-            tileSize={256}
-            maxzoom={15}
-          >
-            <Layer
-              id="hillshade-layer"
-              type="hillshade"
-              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
-              paint={{
-                'hillshade-exaggeration': 0.35,
-                'hillshade-shadow-color': isLightTheme ? '#3a3a50' : '#000000',
-                'hillshade-highlight-color': isLightTheme ? '#ffffff' : '#1a2040',
-                'hillshade-accent-color': isLightTheme ? '#5a5a70' : '#0a0a18',
-                'hillshade-illumination-direction': 315,
-              }}
-            />
-          </Source>
-
           {/* Countries */}
           <Source id="countries" type="geojson" data={countriesGeoJSON}>
             <Layer
@@ -1613,9 +1590,7 @@ function App() {
                       isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': visualLayers.countryFill
-                  ? (visualLayers.hillshade ? 0.7 : 1)
-                  : 0,
+                'fill-opacity': visualLayers.countryFill ? 1 : 0,
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
@@ -1750,6 +1725,29 @@ function App() {
               paint={{
                 'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
                 'line-width': 1.5,
+              }}
+            />
+          </Source>
+
+          {/* Elevation / Hillshade — on top of country fills so ocean bathymetry is hidden */}
+          <Source
+            id="terrain-dem"
+            type="raster-dem"
+            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
+            encoding="terrarium"
+            tileSize={256}
+            maxzoom={15}
+          >
+            <Layer
+              id="hillshade-layer"
+              type="hillshade"
+              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
+              paint={{
+                'hillshade-exaggeration': 0.3,
+                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,0,0.35)',
+                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.12)',
+                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
+                'hillshade-illumination-direction': 315,
               }}
             />
           </Source>
