@@ -262,7 +262,6 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 4px;
   padding: 10px 12px;
   display: flex;
   align-items: center;
@@ -275,6 +274,16 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   z-index: 1500;
   white-space: nowrap;
+}
+
+/* Invisible bridge so mouse can travel from button to popup */
+.navbar-volume-popup::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
 }
 
 .navbar-volume-icon {
