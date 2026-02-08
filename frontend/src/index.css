@@ -1554,22 +1554,23 @@ body {
   user-select: none;
 }
 
-/* Capital Markers (DOM - MapLibre markers) */
-.capital-marker-dom {
+/* Selected Capital Marker (shown on country click) */
+.selected-capital-marker {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
   pointer-events: none;
-  opacity: 0.9;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 
-.capital-label-text {
-  color: var(--color-capital-text);
-  font-size: 0.55rem;
+.selected-capital-name {
+  font-size: 10px;
+  color: white;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7), 0 0 6px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
+  margin-top: 2px;
 }
 
 /* Hotspot Marker (DOM - MapLibre markers) */

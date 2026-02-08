@@ -49,6 +49,7 @@ function fixGeoJSON(geojson) {
 const GEO_FEATURES = fixGeoJSON(
   worldData?.objects?.countries
     ? feature(worldData, worldData.objects.countries).features
+        .filter(f => String(f.id).padStart(3, '0') !== '010') // Remove Antarctica
     : []
 );
 const US_STATE_FEATURES = usData?.objects?.states
@@ -440,7 +441,7 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('world');
   const [showTimezones, setShowTimezones] = useState(false);
-  const [showCapitals, setShowCapitals] = useState(false);
+  const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
 
   // Popover state
@@ -764,7 +765,10 @@ function App() {
 
   const handleMapClick = useCallback((event) => {
     const features = event.features;
-    if (!features || features.length === 0) return;
+    if (!features || features.length === 0) {
+      setSelectedCapital(null);
+      return;
+    }
 
     const feat = features[0];
     const sourceId = feat.source;
@@ -774,6 +778,10 @@ function App() {
     if (sourceId === 'countries') {
       setSelectedRegion({ type: 'country', id: originalId, name });
       setViewMode('region');
+
+      // Show capital star for selected country
+      const capital = CAPITAL_MARKERS.find(m => m.id === `capital-${originalId}`);
+      setSelectedCapital(capital || null);
 
       // Calculate panel position
       if (mapContainerRef.current) {
@@ -798,6 +806,7 @@ function App() {
     } else if (sourceId === 'us-states') {
       setSelectedRegion({ type: 'state', id: originalId, name });
       setViewMode('region');
+      setSelectedCapital(null);
     }
   }, [openCountryPanel]);
 
@@ -891,7 +900,53 @@ function App() {
     setViewMode('world');
     setSelectedRegion(null);
     setSelectedHotspotId(null);
+    setSelectedCapital(null);
   };
+
+  // Double-click: zoom to fit the clicked country/state
+  const handleMapDblClick = useCallback((event) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const features = event.features;
+    if (!features || features.length === 0) return;
+
+    const feat = features[0];
+    const originalId = feat.properties?.originalId;
+    const sourceId = feat.source;
+
+    let geoFeature;
+    if (sourceId === 'countries') {
+      geoFeature = GEO_FEATURES.find(f => String(f.id) === String(originalId));
+    } else if (sourceId === 'us-states') {
+      geoFeature = US_STATE_FEATURES.find(f => String(f.id) === String(originalId));
+    }
+    if (!geoFeature) return;
+
+    // Compute bounding box from geometry
+    const coords = [];
+    const geom = geoFeature.geometry;
+    if (geom.type === 'Polygon') {
+      geom.coordinates.forEach(ring => ring.forEach(c => coords.push(c)));
+    } else if (geom.type === 'MultiPolygon') {
+      geom.coordinates.forEach(poly => poly.forEach(ring => ring.forEach(c => coords.push(c))));
+    }
+    if (coords.length === 0) return;
+
+    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    coords.forEach(([lon, lat]) => {
+      const normLon = lon > 180 ? lon - 360 : lon;
+      minLon = Math.min(minLon, normLon);
+      maxLon = Math.max(maxLon, normLon);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+    });
+
+    map.fitBounds([[minLon, minLat], [maxLon, maxLat]], {
+      padding: 60,
+      duration: 800,
+    });
+  }, []);
 
   const handleHotspotMouseEnter = (hotspot, event) => {
     if (mapContainerRef.current && !popoverHotspot) {
@@ -938,7 +993,11 @@ function App() {
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
-  }, []);
+    const map = evt.target;
+    if (useGlobe) {
+      map.setProjection({ type: 'globe' });
+    }
+  }, [useGlobe]);
 
   return (
     <>
@@ -1136,15 +1195,6 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                  <label className="switch switch-dev">
-                    <span className="switch-label">Capitals (dev)</span>
-                    <input
-                      type="checkbox"
-                      checked={showCapitals}
-                      onChange={() => setShowCapitals(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
                 </div>
               </div>
             )}
@@ -1268,10 +1318,13 @@ function App() {
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
           onClick={handleMapClick}
+          onDblClick={handleMapDblClick}
+          doubleClickZoom={false}
           dragRotate={useGlobe}
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
           renderWorldCopies={false}
+          {...(!useGlobe && { maxBounds: [[-360, -58], [360, 85]] })}
           maxZoom={8}
           minZoom={1}
         >
@@ -1434,7 +1487,7 @@ function App() {
           <Marker longitude={0} latitude={78} anchor="center">
             <span className="cardinal-label-dom">N</span>
           </Marker>
-          <Marker longitude={0} latitude={-78} anchor="center">
+          <Marker longitude={0} latitude={-52} anchor="center">
             <span className="cardinal-label-dom">S</span>
           </Marker>
           <Marker longitude={175} latitude={0} anchor="center">
@@ -1444,20 +1497,22 @@ function App() {
             <span className="cardinal-label-dom">W</span>
           </Marker>
 
-          {/* Capital Cities */}
-          {showCapitals && CAPITAL_MARKERS.map((capital) => (
-            <Marker key={capital.id} longitude={capital.lon} latitude={capital.lat} anchor="center">
-              <div className="capital-marker-dom">
-                <svg width="10" height="10" viewBox="-5 -6 10 11">
+          {/* Selected country capital */}
+          {selectedCapital && (
+            <Marker longitude={selectedCapital.lon} latitude={selectedCapital.lat} anchor="center">
+              <div className="selected-capital-marker">
+                <svg width="14" height="14" viewBox="-7 -7 14 14">
                   <polygon
-                    className="capital-star"
-                    points="0,-5 1.6,-1.6 5,-1.6 2.2,1 3.2,4.6 0,2.6 -3.2,4.6 -2.2,1 -5,-1.6 -1.6,-1.6"
+                    points="0,-6 1.9,-1.9 6,-1.9 2.6,1.2 3.8,5.5 0,3.1 -3.8,5.5 -2.6,1.2 -6,-1.9 -1.9,-1.9"
+                    fill="white"
+                    stroke="rgba(255,255,255,0.6)"
+                    strokeWidth="0.5"
                   />
                 </svg>
-                <span className="capital-label-text">{capital.name}</span>
+                <span className="selected-capital-name">{selectedCapital.name}</span>
               </div>
             </Marker>
-          ))}
+          )}
 
           {/* Hotspots */}
           {hotspots.map((hotspot) => {
