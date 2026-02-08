@@ -243,7 +243,7 @@ body {
 }
 
 .sidebar-tab {
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: 999px;
   padding: 8px 14px;
   background: transparent;
@@ -259,14 +259,12 @@ body {
 
 .sidebar-tab.active {
   background: var(--color-accent);
-  border-color: var(--color-accent);
   color: #fff;
   box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 
 .sidebar-tab:hover:not(.active) {
   background: var(--color-bg-hover);
-  border-color: var(--color-border-light);
   color: var(--color-text-primary);
 }
 
@@ -301,8 +299,8 @@ body {
 }
 
 .sidebar-toggle {
-  background: var(--toggle-bg);
-  border: 1px solid var(--toggle-border);
+  background: transparent;
+  border: none;
   border-radius: 6px;
   width: 32px;
   height: 32px;
@@ -312,13 +310,12 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
 }
 
 .sidebar-toggle:hover {
-  background: var(--toggle-bg-hover);
-  border-color: var(--toggle-border-hover);
-  box-shadow: var(--toggle-shadow-hover);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .sidebar-breadcrumb {
