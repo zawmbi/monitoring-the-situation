@@ -503,6 +503,37 @@ body {
   z-index: 2;
 }
 
+.map-recenter-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.map-recenter-btn:hover {
+  background: var(--toggle-bg-hover);
+  color: var(--color-text-primary);
+  transform: scale(1.05);
+}
+
+.map-recenter-btn:active {
+  transform: scale(0.95);
+}
+
 .map-container .maplibregl-canvas {
   outline: none;
 }

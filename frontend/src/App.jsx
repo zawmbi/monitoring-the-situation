@@ -995,6 +995,18 @@ function App() {
     mapRef.current = evt.target;
   }, []);
 
+  const handleRecenter = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({
+      center: [0, 20],
+      zoom: 1.5,
+      pitch: 0,
+      bearing: 0,
+      duration: 800,
+    });
+  }, []);
+
   return (
     <>
     <div className="app">
@@ -1563,6 +1575,20 @@ function App() {
 
           <NavigationControl position="bottom-right" showCompass={true} />
         </MapGL>
+
+        {/* Recenter globe button */}
+        <button
+          className="map-recenter-btn"
+          onClick={handleRecenter}
+          title="Recenter map"
+          aria-label="Recenter map to default view"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <ellipse cx="12" cy="12" rx="4" ry="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+          </svg>
+        </button>
 
         {/* Tooltip */}
         {tooltip.show && (
