@@ -913,6 +913,21 @@ function App() {
                     ))}
                   </div>
                 </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Overlays</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-frontline">
+                      <span className="switch-label">UA/RU Frontline</span>
+                      <input
+                        type="checkbox"
+                        checked={showFrontline}
+                        onChange={() => setShowFrontline(prev => !prev)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -958,15 +973,6 @@ function App() {
                       type="checkbox"
                       checked={showCapitals}
                       onChange={() => setShowCapitals(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-frontline">
-                    <span className="switch-label">UA/RU Frontline</span>
-                    <input
-                      type="checkbox"
-                      checked={showFrontline}
-                      onChange={() => setShowFrontline(prev => !prev)}
                     />
                     <span className="slider" />
                   </label>
