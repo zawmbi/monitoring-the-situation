@@ -25,11 +25,11 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:4100',
+          target: env.VITE_API_URL || 'http://localhost:4000',
           changeOrigin: true,
         },
         '/ws': {
-          target: env.VITE_WS_URL || 'ws://localhost:4100',
+          target: env.VITE_WS_URL || 'ws://localhost:4000',
           ws: true,
         },
       },
