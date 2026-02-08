@@ -444,6 +444,7 @@ const VISUAL_LAYER_DEFAULTS = {
   grain: true,
   atmosphere: false,
   contours: true,
+  hillshade: true,
   heatmap: false,
   countryFill: true,
 };
@@ -1344,6 +1345,7 @@ function App() {
                 <div className="toggle-group-title">Visual Layers</div>
                 <div className="settings-group">
                   {[
+                    { key: 'hillshade', label: 'Elevation / Hillshade' },
                     { key: 'grain', label: 'Grain / Noise Overlay' },
                     { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
                     { key: 'contours', label: 'Micro Topographic Contours' },
@@ -1574,6 +1576,29 @@ function App() {
             />
           </Source>
 
+          {/* Elevation / Hillshade from DEM terrain tiles */}
+          <Source
+            id="terrain-dem"
+            type="raster-dem"
+            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
+            encoding="terrarium"
+            tileSize={256}
+            maxzoom={15}
+          >
+            <Layer
+              id="hillshade-layer"
+              type="hillshade"
+              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
+              paint={{
+                'hillshade-exaggeration': 0.35,
+                'hillshade-shadow-color': isLightTheme ? '#3a3a50' : '#000000',
+                'hillshade-highlight-color': isLightTheme ? '#ffffff' : '#1a2040',
+                'hillshade-accent-color': isLightTheme ? '#5a5a70' : '#0a0a18',
+                'hillshade-illumination-direction': 315,
+              }}
+            />
+          </Source>
+
           {/* Countries */}
           <Source id="countries" type="geojson" data={countriesGeoJSON}>
             <Layer
@@ -1588,7 +1613,9 @@ function App() {
                       isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': visualLayers.countryFill ? 1 : 0,
+                'fill-opacity': visualLayers.countryFill
+                  ? (visualLayers.hillshade ? 0.7 : 1)
+                  : 0,
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
