@@ -625,18 +625,27 @@ function App() {
   // ---- MapLibre GeoJSON data ----
 
   const countryColor = useCallback((index) => {
-    // Rich earthy palette — same for both themes
-    const palette = [
-      '#4E3B31', '#D8B34C', '#8B4513', '#C2B280', '#A0522D',
-      '#F5DEB3', '#3B2A20', '#C48A3D', '#7C6A4D', '#E5C5A0',
-      '#6B4226', '#DAA520', '#5C4033', '#CD853F', '#705840',
-      '#DEB887', '#B5651D', '#C4A882', '#9B7653', '#E8D5B7',
-      '#D2691E', '#BFA07A', '#8B6914', '#B87333', '#4A3728',
-      '#D4A76A', '#6F4E37', '#C9B896', '#A67B5B', '#EED9C4',
+    // Futuristic palette — cyans, teals, blues, purples, magentas
+    const darkPalette = [
+      '#0d3b3b', '#1a1a4e', '#2d1445', '#0a3a52', '#14333d',
+      '#241450', '#0d4242', '#35104a', '#0f2d52', '#1a3838',
+      '#2a1a52', '#0d4a3a', '#3a1040', '#0f3545', '#1f1a4a',
+      '#103d3d', '#301450', '#0d3852', '#2d1a3d', '#143a45',
+      '#1a1250', '#0d4545', '#381042', '#12304d', '#1d3540',
+      '#261452', '#0f4040', '#33124a', '#0d3348', '#1a2d50',
     ];
+    const lightPalette = [
+      '#b0e8e8', '#b8b8f0', '#d4a8e0', '#a0d8ef', '#a8d5dd',
+      '#c4a8f0', '#a8e5e5', '#dea0d8', '#a8c8ef', '#b0d8d8',
+      '#c8b0f0', '#a8e8d0', '#dda0c8', '#a8d0e5', '#b8b0e8',
+      '#a0dede', '#d0a8f0', '#a8d8ef', '#d0b0d8', '#a8d8dd',
+      '#b8a8f0', '#a0e2e2', '#d8a0d0', '#a8c5e8', '#b0d5d8',
+      '#c0a8f0', '#a0e0de', '#d5a0d8', '#a8cce0', '#b0c8ef',
+    ];
+    const palette = isLightTheme ? lightPalette : darkPalette;
     // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
     return palette[(index * 11) % palette.length];
-  }, []);
+  }, [isLightTheme]);
 
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -1455,7 +1464,7 @@ function App() {
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#F5DEB3' : '#6B4226',
+                      isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
                 'fill-opacity': 1,
@@ -1493,20 +1502,20 @@ function App() {
                 'line-color': holoMode
                   ? (isLightTheme ? 'rgba(93, 77, 255, 0.7)' : 'rgba(73, 198, 255, 0.6)')
                   : (isLightTheme
-                      ? 'rgba(148, 163, 184, 0.55)'
-                      : 'rgba(148, 163, 184, 0.55)'),
+                      ? 'rgba(60, 60, 90, 0.55)'
+                      : 'rgba(20, 30, 50, 0.7)'),
                 'line-width': holoMode
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
+                      2.2,
                       1.4,
-                      0.8,
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      0.9,
-                      0.8,
+                      2.2,
+                      1.6,
                     ],
               }}
             />
