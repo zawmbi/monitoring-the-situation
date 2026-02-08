@@ -1347,7 +1347,7 @@ function App() {
                     { key: 'grain', label: 'Grain / Noise Overlay' },
                     { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
                     { key: 'contours', label: 'Micro Topographic Contours' },
-                    { key: 'heatmap', label: 'Population Heatmap' },
+                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                     { key: 'countryFill', label: 'Country Fill Texture' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
@@ -1732,7 +1732,7 @@ function App() {
             <Layer
               id="population-heatmap"
               type="heatmap"
-              layout={{ visibility: visualLayers.heatmap ? 'visible' : 'none' }}
+              layout={{ visibility: 'none' /* WIP — disabled until tuned */ }}
               paint={{
                 'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.08, 15, 0.5, 37, 1],
                 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 0.4, 3, 0.7, 6, 1],
