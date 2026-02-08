@@ -506,8 +506,8 @@ body {
 
 .map-recenter-btn,
 .map-autorotate-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -575,9 +575,49 @@ body {
   cursor: pointer;
 }
 
-.map-container .maplibregl-ctrl-bottom-right {
+.map-container .maplibregl-ctrl-bottom-left {
   bottom: 8px;
-  right: 8px;
+  left: 8px;
+}
+
+.map-container .maplibregl-ctrl-group {
+  background: var(--glass-bg-dense);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.map-container .maplibregl-ctrl-group button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--color-text-secondary);
+}
+
+.map-container .maplibregl-ctrl-group button:last-child {
+  border-bottom: none;
+}
+
+.map-container .maplibregl-ctrl-group button:hover {
+  background: var(--toggle-bg-hover);
+}
+
+.map-container .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.7) sepia(0.2) hue-rotate(200deg);
+}
+
+.map-container .maplibregl-ctrl-attrib {
+  background: transparent !important;
+  font-size: 9px;
+  opacity: 0.4;
+}
+
+.map-container .maplibregl-ctrl-attrib a {
+  color: var(--color-text-muted);
 }
 
 .map-container .maplibregl-canvas {
@@ -1623,7 +1663,7 @@ body {
   user-select: none;
 }
 
-/* Cardinal Direction Labels (DOM - MapLibre markers) */
+/* Cardinal Direction Labels (DOM - MapLibre markers, 2D) */
 .cardinal-label-dom {
   color: var(--color-accent-2);
   font-size: 13px;
@@ -1631,6 +1671,49 @@ body {
   text-shadow: 0 0 8px rgba(var(--accent-alt-rgb), 0.8), 0 0 16px rgba(var(--accent-alt-rgb), 0.4);
   pointer-events: none;
   user-select: none;
+}
+
+/* Fixed cardinal overlay for 3D globe */
+.cardinal-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.cardinal-fixed {
+  position: absolute;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-accent-2);
+  text-shadow: 0 0 10px rgba(var(--accent-alt-rgb), 0.7), 0 0 20px rgba(var(--accent-alt-rgb), 0.3);
+  user-select: none;
+}
+
+.cardinal-n {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.cardinal-s {
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.cardinal-e {
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.cardinal-w {
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Selected Capital Marker (shown on country click) */

@@ -700,8 +700,8 @@ function App() {
       type: 'background',
       paint: {
         'background-color': holoMode
-          ? (isLightTheme ? '#eaecf5' : '#060a14')
-          : (isLightTheme ? '#f0f4ff' : '#0c1126'),
+          ? (isLightTheme ? '#d6e2f5' : '#060a14')
+          : (isLightTheme ? '#c8d8f0' : '#0c1126'),
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -1677,19 +1677,23 @@ function App() {
             </Source>
           )}
 
-          {/* Cardinal Direction Indicators */}
-          <Marker longitude={0} latitude={78} anchor="center">
-            <span className="cardinal-label-dom">N</span>
-          </Marker>
-          <Marker longitude={0} latitude={-52} anchor="center">
-            <span className="cardinal-label-dom">S</span>
-          </Marker>
-          <Marker longitude={175} latitude={0} anchor="center">
-            <span className="cardinal-label-dom">E</span>
-          </Marker>
-          <Marker longitude={-175} latitude={0} anchor="center">
-            <span className="cardinal-label-dom">W</span>
-          </Marker>
+          {/* Cardinal Direction Indicators (on-surface for 2D) */}
+          {!useGlobe && (
+            <>
+              <Marker longitude={0} latitude={78} anchor="center">
+                <span className="cardinal-label-dom">N</span>
+              </Marker>
+              <Marker longitude={0} latitude={-52} anchor="center">
+                <span className="cardinal-label-dom">S</span>
+              </Marker>
+              <Marker longitude={175} latitude={0} anchor="center">
+                <span className="cardinal-label-dom">E</span>
+              </Marker>
+              <Marker longitude={-175} latitude={0} anchor="center">
+                <span className="cardinal-label-dom">W</span>
+              </Marker>
+            </>
+          )}
 
           {/* Selected country capital */}
           {selectedCapital && (
@@ -1760,8 +1764,18 @@ function App() {
             );
           })}
 
-          <NavigationControl position="bottom-right" showCompass={true} />
+          <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
+
+        {/* Fixed cardinal directions for 3D globe */}
+        {useGlobe && (
+          <div className="cardinal-overlay">
+            <span className="cardinal-fixed cardinal-n">N</span>
+            <span className="cardinal-fixed cardinal-s">S</span>
+            <span className="cardinal-fixed cardinal-e">E</span>
+            <span className="cardinal-fixed cardinal-w">W</span>
+          </div>
+        )}
 
         {/* Map controls - bottom right */}
         <div className="map-controls-br">
