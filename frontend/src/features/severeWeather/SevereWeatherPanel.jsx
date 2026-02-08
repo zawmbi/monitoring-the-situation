@@ -18,6 +18,7 @@ const TABS = [
 const SEVERITY_COLORS = {
   extreme: '#ff4444',
   severe: '#ff8c00',
+  major: '#e6a020',
   moderate: '#f5c542',
   minor: '#88cc88',
 };
@@ -53,11 +54,33 @@ export function SevereWeatherPanel({
   onClose,
   onRefresh,
   onEventClick,
+  selectedEventId,
 }) {
   const [activeTab, setActiveTab] = useState('all');
   const [pos, setPos] = useState({ x: null, y: null });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const listRef = useRef(null);
+  const selectedRef = useRef(null);
+
+  // Auto-scroll to selected event when it changes
+  useEffect(() => {
+    if (selectedEventId && selectedRef.current && listRef.current) {
+      selectedRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedEventId]);
+
+  // Switch to the correct tab when an event is selected from the map
+  useEffect(() => {
+    if (!selectedEventId) return;
+    const ev = events.find((e) => e.id === selectedEventId);
+    if (!ev) return;
+    // If the selected event isn't visible in the current tab, switch to 'all'
+    const inCurrentTab = activeTab === 'all' ||
+      (activeTab === 'other' && !['earthquake', 'storm', 'wildfire', 'volcano'].includes(ev.type)) ||
+      ev.type === activeTab;
+    if (!inCurrentTab) setActiveTab('all');
+  }, [selectedEventId, events]);
 
   const onMouseDown = (e) => {
     if (e.target.closest('button, a, .severe-event-list')) return;
@@ -136,7 +159,7 @@ export function SevereWeatherPanel({
         ))}
       </div>
 
-      <div className="severe-event-list">
+      <div className="severe-event-list" ref={listRef}>
         {loading && events.length === 0 && (
           <div className="severe-loading">
             <span className="severe-loading-dot" />
@@ -149,7 +172,8 @@ export function SevereWeatherPanel({
         {filtered.map((event) => (
           <button
             key={event.id}
-            className="severe-event-item"
+            ref={event.id === selectedEventId ? selectedRef : undefined}
+            className={`severe-event-item${event.id === selectedEventId ? ' severe-event-item--selected' : ''}`}
             onClick={() => onEventClick?.(event)}
             type="button"
           >

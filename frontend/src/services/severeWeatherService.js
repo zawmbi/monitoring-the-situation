@@ -90,15 +90,24 @@ export async function fetchEONETEvents() {
     if (!res.ok) return [];
     const data = await res.json();
 
+    // EONET tracks notable events globally. We classify severity based on type:
+    // Named storms/cyclones and volcanoes are always significant; wildfires vary.
+    function eonetSeverity(type) {
+      if (type === 'storm' || type === 'volcano') return 'severe';
+      if (type === 'flood' || type === 'landslide') return 'major';
+      return 'major'; // wildfires, ice, dust, etc.
+    }
+
     const events = (data.events || [])
       .filter((e) => e.geometry?.length > 0)
       .map((e) => {
         const geo = e.geometry[e.geometry.length - 1]; // most recent position
         const coords = geo.coordinates || [];
         const cat = e.categories?.[0]?.title || '';
+        const type = eonetCategory(cat);
         return {
           id: e.id || `eonet-${e.title}`,
-          type: eonetCategory(cat),
+          type,
           category: cat,
           title: e.title || 'Unknown Event',
           time: geo.date || null,
@@ -106,7 +115,7 @@ export async function fetchEONETEvents() {
           lon: coords[0] || 0,
           lat: coords[1] || 0,
           url: e.link || '',
-          severity: 'moderate',
+          severity: eonetSeverity(type),
           source: 'NASA EONET',
         };
       });

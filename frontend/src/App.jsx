@@ -62,7 +62,7 @@ const US_STATE_FEATURES = usData?.objects?.states
   ? feature(usData, usData.objects.states).features
   : [];
 
-const CA_PROVINCE_FEATURES = canadaProvinces?.features || [];
+const CA_PROVINCE_FEATURES = fixGeoJSON(canadaProvinces?.features || []);
 
 const COUNTRIES_DATA = Array.isArray(countries)
   ? countries
@@ -604,6 +604,7 @@ function App() {
     severeWeather: false,
   });
   const [showSeverePanel, setShowSeverePanel] = useState(false);
+  const [selectedSevereEventId, setSelectedSevereEventId] = useState(null);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const {
@@ -1489,25 +1490,6 @@ function App() {
                 <div className="toggle-group-title">Layers & Sources</div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Units</div>
-                  <div className="source-group-items">
-                    <div className="temp-unit-toggle">
-                      <span className="switch-label">Temperature</span>
-                      <div className="temp-unit-btns">
-                        <button
-                          className={`temp-unit-btn${tempUnit === 'F' ? ' active' : ''}`}
-                          onClick={() => setTempUnit('F')}
-                        >°F</button>
-                        <button
-                          className={`temp-unit-btn${tempUnit === 'C' ? ' active' : ''}`}
-                          onClick={() => setTempUnit('C')}
-                        >°C</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="source-group">
                   <div className="source-group-title">News</div>
                   <div className="source-group-items">
                     {[
@@ -1667,6 +1649,23 @@ function App() {
                     <span className="slider" />
                   </label>
                 </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units</div>
+                <div className="settings-group">
+                  <div className="temp-unit-toggle">
+                    <span className="switch-label">Temperature</span>
+                    <div className="temp-unit-btns">
+                      <button
+                        className={`temp-unit-btn${tempUnit === 'F' ? ' active' : ''}`}
+                        onClick={() => setTempUnit('F')}
+                      >°F</button>
+                      <button
+                        className={`temp-unit-btn${tempUnit === 'C' ? ' active' : ''}`}
+                        onClick={() => setTempUnit('C')}
+                      >°C</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1750,9 +1749,11 @@ function App() {
           visible={showSeverePanel}
           events={severeEvents}
           loading={severeLoading}
-          onClose={() => { setShowSeverePanel(false); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+          selectedEventId={selectedSevereEventId}
+          onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
           onRefresh={refreshSevere}
           onEventClick={(event) => {
+            setSelectedSevereEventId(event.id);
             if (event.lon && event.lat && mapRef.current) {
               mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1200 });
             }
@@ -2043,50 +2044,41 @@ function App() {
             />
           </Source>
 
-          {/* Canadian provinces */}
+          {/* Canadian provinces — borders only to avoid misalignment with world-atlas */}
           <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
+            {/* Invisible fill for click/hover interactivity */}
             <Layer
               id="ca-provinces-fill"
               type="fill"
-              paint={{
-                'fill-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme
-                    ? 'rgba(194, 120, 62, 0.15)'
-                    : 'rgba(123, 107, 255, 0.22)',
-                  'rgba(0, 0, 0, 0)',
-                ],
-                'fill-opacity': 1,
-              }}
+              paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
             />
+            {/* Province border lines */}
             <Layer
               id="ca-provinces-line"
               type="line"
               paint={{
-                'line-color': isLightTheme
-                  ? 'rgba(166, 120, 80, 0.35)'
-                  : 'rgba(160, 145, 255, 0.35)',
-                'line-width': 1,
+                'line-color': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
+                  isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                ],
+                'line-width': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  1.5,
+                  0.8,
+                ],
               }}
             />
-            <Layer
-              id="ca-provinces-selected-fill"
-              type="fill"
-              filter={selectedProvinceFilter}
-              paint={{
-                'fill-color': isLightTheme
-                  ? 'rgba(194, 120, 62, 0.25)'
-                  : 'rgba(123, 107, 255, 0.35)',
-              }}
-            />
+            {/* Selected province highlight — just a brighter border */}
             <Layer
               id="ca-provinces-selected-line"
               type="line"
               filter={selectedProvinceFilter}
               paint={{
                 'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 1.5,
+                'line-width': 2,
               }}
             />
           </Source>
@@ -2177,6 +2169,7 @@ function App() {
                   className="severe-marker"
                   title={event.title}
                   onClick={() => {
+                    setSelectedSevereEventId(event.id);
                     setShowSeverePanel(true);
                   }}
                   style={{ position: 'relative', width: size * 2, height: size * 2 }}

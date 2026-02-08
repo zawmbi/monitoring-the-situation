@@ -197,6 +197,11 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.severe-event-item--selected {
+  background: rgba(255, 140, 0, 0.12);
+  border-left: 3px solid #ff8c00;
+}
+
 .severe-event-icon {
   font-size: 1.3rem;
   flex-shrink: 0;

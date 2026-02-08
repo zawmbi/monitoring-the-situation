@@ -96,7 +96,7 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
       <div className="country-panel-header">
         <div>
           <div className="country-panel-title">{data.name}</div>
-          <div className="country-panel-subtitle">{data.leader || 'Unavailable'}</div>
+          {data.region && <div className="country-panel-subtitle">{data.region}{data.subregion ? ` — ${data.subregion}` : ''}</div>}
         </div>
         <button className="country-panel-close" onClick={onClose} aria-label="Close">x</button>
       </div>
@@ -131,20 +131,16 @@ export function CountryPanel({ data, position, onClose, onPositionChange, bounds
 
       {/* Info rows */}
       <div className="country-panel-body">
-        <div className="country-panel-row">
-          <span>Population</span>
-          <strong>{data.population}</strong>
-        </div>
+        {data.population && (
+          <div className="country-panel-row">
+            <span>Population</span>
+            <strong>{data.population}</strong>
+          </div>
+        )}
         {data.capital && (
           <div className="country-panel-row">
             <span>Capital</span>
             <strong>{data.capital}</strong>
-          </div>
-        )}
-        {data.region && (
-          <div className="country-panel-row">
-            <span>Region</span>
-            <strong>{data.region}{data.subregion ? ` — ${data.subregion}` : ''}</strong>
           </div>
         )}
         <div className="country-panel-row">
