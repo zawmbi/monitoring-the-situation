@@ -7,6 +7,7 @@ import { geoCentroid, geoGraticule10 } from 'd3-geo';
 import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
+import CAPITAL_COORDS from './capitalCoords';
 import { useFeed } from './hooks/useFeed';
 import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
@@ -67,16 +68,16 @@ const COUNTRY_BY_CCN3 = new Map(
 );
 
 const CAPITAL_MARKERS = GEO_FEATURES.map((geo, idx) => {
-  const country = COUNTRY_BY_CCN3.get(String(geo.id).padStart(3, '0'));
+  const ccn3 = String(geo.id).padStart(3, '0');
+  const country = COUNTRY_BY_CCN3.get(ccn3);
   const capitalName = Array.isArray(country?.capital) ? country.capital[0] : country?.capital;
   if (!capitalName) return null;
 
-  const capitalCoords = country?.capitalInfo?.latlng;
-  let lon;
-  let lat;
+  const coords = CAPITAL_COORDS[ccn3];
+  let lat, lon;
 
-  if (Array.isArray(capitalCoords) && capitalCoords.length === 2) {
-    [lat, lon] = capitalCoords;
+  if (coords) {
+    [lat, lon] = coords;
   } else {
     [lon, lat] = geoCentroid(geo);
   }
@@ -993,11 +994,7 @@ function App() {
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
-    const map = evt.target;
-    if (useGlobe) {
-      map.setProjection({ type: 'globe' });
-    }
-  }, [useGlobe]);
+  }, []);
 
   return (
     <>
@@ -1307,6 +1304,7 @@ function App() {
           key={useGlobe ? 'globe' : 'flat'}
           mapLib={maplibregl}
           mapStyle={mapStyle}
+          projection={useGlobe ? 'globe' : 'mercator'}
           onLoad={onMapLoad}
           initialViewState={{
             longitude: 0,
@@ -1324,7 +1322,7 @@ function App() {
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
           renderWorldCopies={false}
-          {...(!useGlobe && { maxBounds: [[-360, -58], [360, 85]] })}
+          maxBounds={useGlobe ? undefined : [[-180, -58], [180, 85]]}
           maxZoom={8}
           minZoom={1}
         >

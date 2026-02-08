@@ -49,7 +49,7 @@ export function NewsFeed({ items = [], viewMode, selectedRegion, onBackToWorld }
   return (
     <div className="news-feed">
       {items.map((item, idx) => (
-        <NewsItem key={item.id || `item-${idx}`} item={item} />
+        <NewsItem key={`${item.id || 'item'}-${idx}`} item={item} />
       ))}
     </div>
   );
