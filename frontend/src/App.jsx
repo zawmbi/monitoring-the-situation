@@ -1242,7 +1242,8 @@ function App() {
 
     map.fitBounds([[minLon, minLat], [maxLon, maxLat]], {
       padding: 60,
-      duration: 800,
+      duration: 1400,
+      essential: true,
     });
   }, []);
 
@@ -1324,12 +1325,13 @@ function App() {
   const handleRecenter = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.easeTo({
+    map.flyTo({
       center: [0, 20],
       zoom: 2.0,
       pitch: 0,
       bearing: 0,
-      duration: 800,
+      duration: 1400,
+      essential: true,
     });
   }, []);
 
@@ -1755,7 +1757,7 @@ function App() {
           onEventClick={(event) => {
             setSelectedSevereEventId(event.id);
             if (event.lon && event.lat && mapRef.current) {
-              mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1200 });
+              mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
             }
           }}
         />
@@ -2352,6 +2354,10 @@ function App() {
               )}
             </>
           )}
+        </div>
+
+        {/* Recenter button - bottom left, next to zoom controls */}
+        <div className="map-controls-bl">
           <button
             className="map-recenter-btn"
             onClick={handleRecenter}

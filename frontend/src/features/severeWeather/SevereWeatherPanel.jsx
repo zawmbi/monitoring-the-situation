@@ -10,7 +10,6 @@ const TABS = [
   { id: 'all', label: 'All' },
   { id: 'earthquake', label: 'Earthquakes' },
   { id: 'storm', label: 'Storms' },
-  { id: 'wildfire', label: 'Wildfires' },
   { id: 'volcano', label: 'Volcanoes' },
   { id: 'other', label: 'Other' },
 ];
@@ -77,7 +76,7 @@ export function SevereWeatherPanel({
     if (!ev) return;
     // If the selected event isn't visible in the current tab, switch to 'all'
     const inCurrentTab = activeTab === 'all' ||
-      (activeTab === 'other' && !['earthquake', 'storm', 'wildfire', 'volcano'].includes(ev.type)) ||
+      (activeTab === 'other' && !['earthquake', 'storm', 'volcano'].includes(ev.type)) ||
       ev.type === activeTab;
     if (!inCurrentTab) setActiveTab('all');
   }, [selectedEventId, events]);
@@ -113,16 +112,15 @@ export function SevereWeatherPanel({
   const filtered = activeTab === 'all'
     ? events
     : activeTab === 'other'
-      ? events.filter((e) => !['earthquake', 'storm', 'wildfire', 'volcano'].includes(e.type))
+      ? events.filter((e) => !['earthquake', 'storm', 'volcano'].includes(e.type))
       : events.filter((e) => e.type === activeTab);
 
   const counts = {
     all: events.length,
     earthquake: events.filter((e) => e.type === 'earthquake').length,
     storm: events.filter((e) => e.type === 'storm').length,
-    wildfire: events.filter((e) => e.type === 'wildfire').length,
     volcano: events.filter((e) => e.type === 'volcano').length,
-    other: events.filter((e) => !['earthquake', 'storm', 'wildfire', 'volcano'].includes(e.type)).length,
+    other: events.filter((e) => !['earthquake', 'storm', 'volcano'].includes(e.type)).length,
   };
 
   const panelStyle = pos.x != null ? { left: pos.x, top: pos.y, right: 'auto' } : {};

@@ -100,6 +100,12 @@ export async function fetchEONETEvents() {
 
     const events = (data.events || [])
       .filter((e) => e.geometry?.length > 0)
+      .filter((e) => {
+        // Exclude wildfires — most are routine; only catastrophic ones matter
+        // and those are rare enough to not be in the EONET feed reliably
+        const cat = (e.categories?.[0]?.title || '').toLowerCase();
+        return !cat.includes('wildfire') && !cat.includes('fire');
+      })
       .map((e) => {
         const geo = e.geometry[e.geometry.length - 1]; // most recent position
         const coords = geo.coordinates || [];
