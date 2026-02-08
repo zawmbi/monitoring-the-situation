@@ -1,0 +1,134 @@
+[
+  {
+    "id": "tweet-reuters-001",
+    "content": "BREAKING: UN Security Council holds emergency session on escalating tensions in Eastern Europe, calls for immediate ceasefire",
+    "author": "Reuters",
+    "authorHandle": "@Reuters",
+    "url": "https://twitter.com/Reuters",
+    "publishedAt": "2026-02-08T14:30:00Z",
+    "likesCount": 4521,
+    "retweetsCount": 2103,
+    "repliesCount": 876
+  },
+  {
+    "id": "tweet-ap-001",
+    "content": "Federal Reserve signals potential rate adjustment in March meeting minutes, markets react with cautious optimism",
+    "author": "The Associated Press",
+    "authorHandle": "@AP",
+    "url": "https://twitter.com/AP",
+    "publishedAt": "2026-02-08T13:15:00Z",
+    "likesCount": 3210,
+    "retweetsCount": 1567,
+    "repliesCount": 432
+  },
+  {
+    "id": "tweet-bbc-001",
+    "content": "Major earthquake strikes off the coast of Japan, tsunami warnings issued for Pacific coastal regions. Magnitude 7.2 reported by USGS",
+    "author": "BBC Breaking News",
+    "authorHandle": "@BBCBreaking",
+    "url": "https://twitter.com/BBCBreaking",
+    "publishedAt": "2026-02-08T12:00:00Z",
+    "likesCount": 8934,
+    "retweetsCount": 5621,
+    "repliesCount": 2340
+  },
+  {
+    "id": "tweet-cnn-001",
+    "content": "New satellite imagery reveals significant military buildup near contested border region, according to defense analysts",
+    "author": "CNN Breaking News",
+    "authorHandle": "@cnnbrk",
+    "url": "https://twitter.com/cnnbrk",
+    "publishedAt": "2026-02-08T11:45:00Z",
+    "likesCount": 5678,
+    "retweetsCount": 3201,
+    "repliesCount": 1543
+  },
+  {
+    "id": "tweet-nyt-001",
+    "content": "Global supply chain disruptions worsen as Red Sea shipping routes face continued threats, driving up consumer prices worldwide",
+    "author": "The New York Times",
+    "authorHandle": "@nytimes",
+    "url": "https://twitter.com/nytimes",
+    "publishedAt": "2026-02-08T10:30:00Z",
+    "likesCount": 2876,
+    "retweetsCount": 1432,
+    "repliesCount": 567
+  },
+  {
+    "id": "tweet-wsj-001",
+    "content": "Tech stocks rally as AI infrastructure spending surges: major cloud providers announce $200B+ combined investment plans for 2026",
+    "author": "The Wall Street Journal",
+    "authorHandle": "@WSJ",
+    "url": "https://twitter.com/WSJ",
+    "publishedAt": "2026-02-08T09:20:00Z",
+    "likesCount": 4102,
+    "retweetsCount": 2087,
+    "repliesCount": 891
+  },
+  {
+    "id": "tweet-reuters-002",
+    "content": "OPEC+ announces surprise production cut extension through Q2 2026, oil prices jump 4% in early trading",
+    "author": "Reuters",
+    "authorHandle": "@Reuters",
+    "url": "https://twitter.com/Reuters",
+    "publishedAt": "2026-02-08T08:10:00Z",
+    "likesCount": 3456,
+    "retweetsCount": 1789,
+    "repliesCount": 654
+  },
+  {
+    "id": "tweet-economist-001",
+    "content": "Analysis: How climate migration is reshaping global demographics — 50 million people expected to relocate by 2030",
+    "author": "The Economist",
+    "authorHandle": "@TheEconomist",
+    "url": "https://twitter.com/TheEconomist",
+    "publishedAt": "2026-02-08T07:00:00Z",
+    "likesCount": 6234,
+    "retweetsCount": 3456,
+    "repliesCount": 1203
+  },
+  {
+    "id": "tweet-ap-002",
+    "content": "Ceasefire negotiations resume in Geneva with cautious optimism from both sides, mediators report 'constructive' early discussions",
+    "author": "The Associated Press",
+    "authorHandle": "@AP",
+    "url": "https://twitter.com/AP",
+    "publishedAt": "2026-02-07T22:45:00Z",
+    "likesCount": 2134,
+    "retweetsCount": 987,
+    "repliesCount": 345
+  },
+  {
+    "id": "tweet-bbc-002",
+    "content": "Breakthrough in fusion energy: European research consortium achieves net energy gain sustained for 30 seconds",
+    "author": "BBC Breaking News",
+    "authorHandle": "@BBCBreaking",
+    "url": "https://twitter.com/BBCBreaking",
+    "publishedAt": "2026-02-07T20:15:00Z",
+    "likesCount": 12456,
+    "retweetsCount": 8901,
+    "repliesCount": 3456
+  },
+  {
+    "id": "tweet-cnn-002",
+    "content": "Massive cyberattack targets critical infrastructure across three European nations, authorities investigating state-sponsored origin",
+    "author": "CNN Breaking News",
+    "authorHandle": "@cnnbrk",
+    "url": "https://twitter.com/cnnbrk",
+    "publishedAt": "2026-02-07T18:30:00Z",
+    "likesCount": 7654,
+    "retweetsCount": 4321,
+    "repliesCount": 2109
+  },
+  {
+    "id": "tweet-reuters-003",
+    "content": "World Health Organization declares new disease outbreak in West Africa a public health emergency of international concern",
+    "author": "Reuters",
+    "authorHandle": "@Reuters",
+    "url": "https://twitter.com/Reuters",
+    "publishedAt": "2026-02-07T16:00:00Z",
+    "likesCount": 5432,
+    "retweetsCount": 3210,
+    "repliesCount": 1876
+  }
+]

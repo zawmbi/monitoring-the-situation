@@ -495,7 +495,6 @@ function App() {
     news: true,
     twitter: true,
     reddit: true,
-    rumors: false,
     flights: false,
     stocks: false,
   });
@@ -589,10 +588,9 @@ function App() {
   // Filter feed by enabled layers
   const layerFilteredFeed = useMemo(() => {
     return feed.filter(item => {
-      if (enabledLayers.news && item.contentType === 'article') return true;
+      if (enabledLayers.news && (item.contentType === 'article' || item.contentType === 'rumor')) return true;
       if (enabledLayers.twitter && item.contentType === 'tweet') return true;
       if (enabledLayers.reddit && item.contentType === 'reddit_post') return true;
-      if (enabledLayers.rumors && item.contentType === 'rumor') return true;
       if (enabledLayers.flights && item.contentType === 'flight') return true;
       if (enabledLayers.stocks && item.contentType === 'stock') return true;
       return false;
@@ -1217,26 +1215,6 @@ function App() {
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Signals</div>
-                  <div className="source-group-items">
-                    {[
-                      { id: 'rumors', label: 'Rumors', tone: 'rumors', disabled: false },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                        <span className="switch-label">{layer.label}</span>
-                        <input
-                          type="checkbox"
-                          checked={enabledLayers[layer.id]}
-                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
-                          disabled={layer.disabled}
-                        />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="source-group">
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
                     {[
@@ -1458,7 +1436,8 @@ function App() {
           dragRotate={useGlobe}
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
-          renderWorldCopies={false}
+          renderWorldCopies={!useGlobe}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
           maxZoom={8}
           minZoom={1}
         >
