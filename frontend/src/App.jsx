@@ -700,8 +700,8 @@ function App() {
       type: 'background',
       paint: {
         'background-color': holoMode
-          ? (isLightTheme ? '#d6e2f5' : '#060a14')
-          : (isLightTheme ? '#c8d8f0' : '#0c1126'),
+          ? (isLightTheme ? '#BFE0FF' : '#060a14')
+          : (isLightTheme ? '#BFE0FF' : '#0c1126'),
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
