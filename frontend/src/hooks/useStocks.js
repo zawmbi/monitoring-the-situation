@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-const STOCKS_API_URL =
-  import.meta.env.VITE_STOCKS_API_URL ||
-  (API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, '')}/api/stocks` : '/api/stocks');
+// In dev, use relative path so requests go through Vite proxy (avoids CORS/IPv6 issues)
+const STOCKS_API_URL = import.meta.env.DEV
+  ? '/api/stocks'
+  : (import.meta.env.VITE_STOCKS_API_URL ||
+     (import.meta.env.VITE_API_URL
+       ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/stocks`
+       : '/api/stocks'));
 
 async function fetchStocksFromApi() {
   if (!STOCKS_API_URL) throw new Error('Stocks API URL not configured');

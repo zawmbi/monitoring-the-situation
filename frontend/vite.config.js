@@ -6,10 +6,17 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  // Load env from repo root (parent of frontend/) so .env is found
+  const rootDir = path.resolve(__dirname, '..');
+  const env = loadEnv(mode, rootDir, '');
+
+  const backendPort = env.BACKEND_PORT || env.PORT || '4100';
+  // Use 127.0.0.1 instead of localhost to avoid IPv6 ECONNREFUSED on Windows
+  const backendUrl = `http://127.0.0.1:${backendPort}`;
 
   return {
     plugins: [react()],
+    envDir: rootDir,
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {
@@ -25,11 +32,11 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:4100',
+          target: backendUrl,
           changeOrigin: true,
         },
         '/ws': {
-          target: env.VITE_WS_URL || 'ws://localhost:4100',
+          target: `ws://127.0.0.1:${backendPort}`,
           ws: true,
         },
       },

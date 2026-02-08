@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const FLIGHTS_API_URL = import.meta.env.VITE_FLIGHTS_API_URL || '';
+// In dev, use relative path so requests go through Vite proxy
+const FLIGHTS_API_URL = import.meta.env.DEV
+  ? '/api/flights'
+  : (import.meta.env.VITE_FLIGHTS_API_URL || '/api/flights');
 
 async function fetchFlightsFromApi() {
-  if (!FLIGHTS_API_URL) throw new Error('VITE_FLIGHTS_API_URL not set');
   const response = await fetch(FLIGHTS_API_URL);
   if (!response.ok) throw new Error(`Flights API error: ${response.status}`);
   return response.json();

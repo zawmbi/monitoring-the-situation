@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:4000/ws`;
+// In dev, connect through Vite proxy using current host (includes correct port).
+// Fallback port was 4000 but backend defaults to 4100.
+const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}/ws`;
 
 export function useWebSocket(onMessage) {
   const [isConnected, setIsConnected] = useState(false);
