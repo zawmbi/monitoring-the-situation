@@ -441,7 +441,6 @@ const getInitialNavCollapsed = () => {
 };
 
 const VISUAL_LAYER_DEFAULTS = {
-  grain: true,
   atmosphere: false,
   contours: true,
   hillshade: true,
@@ -1290,7 +1289,7 @@ function App() {
 
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
-                <div className="toggle-group-title">Appearance</div>
+                <div className="toggle-group-title">Visuals & App Appearance</div>
                 <div className="settings-group">
                   <label className="switch switch-theme">
                     <span className="switch-label">Light mode</span>
@@ -1301,10 +1300,6 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                </div>
-
-                <div className="toggle-group-title">Projection</div>
-                <div className="settings-group">
                   <label className="switch switch-neutral">
                     <span className="switch-label">3D Globe</span>
                     <input
@@ -1314,10 +1309,6 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                </div>
-
-                <div className="toggle-group-title">Style</div>
-                <div className="settings-group">
                   <label className="switch switch-neutral">
                     <span className="switch-label">Holographic</span>
                     <input
@@ -1327,10 +1318,6 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                </div>
-
-                <div className="toggle-group-title">Map Overlays</div>
-                <div className="settings-group">
                   <label className="switch switch-neutral">
                     <span className="switch-label">Timezones</span>
                     <input
@@ -1340,17 +1327,12 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                </div>
-
-                <div className="toggle-group-title">Visual Layers</div>
-                <div className="settings-group">
                   {[
-                    { key: 'hillshade', label: 'Elevation / Hillshade' },
-                    { key: 'grain', label: 'Grain / Noise Overlay' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
                     { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'heatmap', label: 'Population Heatmap (WIP)' },
-                    { key: 'countryFill', label: 'Country Fill Texture' },
+                    { key: 'countryFill', label: 'Country Fill Color' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
                       <span className="switch-label">{label}</span>
@@ -1377,15 +1359,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${visualLayers.grain ? '' : ' hide-grain'}`} ref={mapContainerRef}>
-        <div className="map-grain-overlay" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-            <filter id="grain-noise">
-              <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" stitchTiles="stitch" />
-            </filter>
-            <rect width="100%" height="100%" filter="url(#grain-noise)" />
-          </svg>
-        </div>
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -1741,7 +1715,7 @@ function App() {
             <Layer
               id="hillshade-layer"
               type="hillshade"
-              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
+              layout={{ visibility: 'none' /* WIP — terrain tile alignment issues */ }}
               paint={{
                 'hillshade-exaggeration': 0.3,
                 'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,0,0.35)',
