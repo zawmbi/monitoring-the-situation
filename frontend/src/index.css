@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 /* ===========================================
    MONITORED - GLOBAL STYLES
@@ -29,6 +29,7 @@
   --font-sans: 'Space Grotesk', 'JetBrains Mono', monospace;
   --font-mono: 'JetBrains Mono', monospace;
   --font-nav: 'Inter', 'Space Grotesk', sans-serif;
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --radius-md: 8px;
   --radius-lg: 12px;
 
@@ -122,17 +123,17 @@
   --timezone-time-color: rgba(45, 36, 24, 0.95);
   --timezone-bg: rgba(245, 239, 230, 0.7);
 
-  --body-bg: radial-gradient(1000px 700px at 90% -10%, rgba(194, 120, 62, 0.08), transparent 60%),
-    radial-gradient(900px 600px at 0% 110%, rgba(212, 149, 106, 0.06), transparent 55%),
-    #f5efe6;
-  --map-bg: radial-gradient(900px 650px at 70% -5%, rgba(194, 120, 62, 0.06), transparent 60%),
-    radial-gradient(900px 650px at 0% 100%, rgba(212, 149, 106, 0.06), transparent 55%),
-    #f0e8dc;
-  --map-aura-1: radial-gradient(circle at 50% 50%, rgba(194, 120, 62, 0.04), transparent 55%);
-  --map-aura-2: linear-gradient(120deg, rgba(212, 149, 106, 0.04), transparent 55%);
-  --map-aura-3: linear-gradient(0deg, rgba(180, 100, 60, 0.03), transparent 45%);
-  --map-grid-color: rgba(166, 120, 80, 0.10);
-  --map-vignette: linear-gradient(180deg, rgba(245, 239, 230, 0.65) 0%, rgba(245, 239, 230, 0.2) 35%, rgba(245, 239, 230, 0.7) 100%);
+  --body-bg: radial-gradient(1000px 700px at 90% -10%, rgba(80, 130, 190, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 0% 110%, rgba(100, 160, 220, 0.08), transparent 55%),
+    #e8eef6;
+  --map-bg: radial-gradient(900px 650px at 70% -5%, rgba(80, 130, 190, 0.08), transparent 60%),
+    radial-gradient(900px 650px at 0% 100%, rgba(100, 160, 220, 0.08), transparent 55%),
+    #dfe7f2;
+  --map-aura-1: radial-gradient(circle at 50% 50%, rgba(80, 130, 190, 0.06), transparent 55%);
+  --map-aura-2: linear-gradient(120deg, rgba(100, 160, 220, 0.05), transparent 55%);
+  --map-aura-3: linear-gradient(0deg, rgba(70, 120, 180, 0.04), transparent 45%);
+  --map-grid-color: rgba(80, 120, 180, 0.10);
+  --map-vignette: linear-gradient(180deg, rgba(232, 238, 246, 0.65) 0%, rgba(232, 238, 246, 0.2) 35%, rgba(232, 238, 246, 0.7) 100%);
 
   --sidebar-bg: linear-gradient(180deg, rgba(250, 245, 237, 0.96), rgba(245, 239, 230, 0.92));
   --sidebar-border: rgba(166, 120, 80, 0.18);
@@ -538,6 +539,11 @@ body {
   color: var(--color-accent-2);
   border-color: rgba(var(--accent-alt-rgb), 0.4);
   box-shadow: 0 0 8px rgba(var(--accent-alt-rgb), 0.25);
+}
+
+.map-rotate-dir-btn {
+  width: 30px !important;
+  height: 30px !important;
 }
 
 .rotate-speed-slider {

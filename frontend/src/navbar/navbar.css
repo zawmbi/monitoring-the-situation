@@ -93,10 +93,10 @@
 }
 
 .navbar-title {
-  font-family: var(--font-nav);
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
   text-shadow: 0 0 18px rgba(var(--accent-alt-rgb), 0.35);

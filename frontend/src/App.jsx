@@ -465,6 +465,7 @@ function App() {
   const [useGlobe, setUseGlobe] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
   const [rotateSpeed, setRotateSpeed] = useState(0.03);
+  const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
 
   // Popover state
@@ -474,6 +475,7 @@ function App() {
   const mapRef = useRef(null);
   const autoRotateRef = useRef(autoRotate);
   const rotateSpeedRef = useRef(rotateSpeed);
+  const rotateCCWRef = useRef(rotateCCW);
   const userInteractingRef = useRef(false);
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
@@ -1052,6 +1054,7 @@ function App() {
   // Keep refs in sync with state
   useEffect(() => { autoRotateRef.current = autoRotate; }, [autoRotate]);
   useEffect(() => { rotateSpeedRef.current = rotateSpeed; }, [rotateSpeed]);
+  useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
 
   // Auto-rotate globe
   useEffect(() => {
@@ -1068,7 +1071,8 @@ function App() {
         return;
       }
       const center = map.getCenter();
-      map.setCenter([center.lng - rotateSpeedRef.current, center.lat]);
+      const delta = rotateCCWRef.current ? rotateSpeedRef.current : -rotateSpeedRef.current;
+      map.setCenter([center.lng + delta, center.lat]);
       animId = requestAnimationFrame(rotate);
     }
 
@@ -1818,6 +1822,19 @@ function App() {
                   <polyline points="21 3 21 9 15 9" />
                 </svg>
               </button>
+              {autoRotate && (
+                <button
+                  className="map-autorotate-btn map-rotate-dir-btn active"
+                  onClick={() => setRotateCCW(prev => !prev)}
+                  title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
+                  aria-label="Toggle rotation direction"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rotateCCW ? { transform: 'scaleX(-1)' } : undefined}>
+                    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                    <polyline points="21 3 21 9 15 9" />
+                  </svg>
+                </button>
+              )}
             </>
           )}
           <button
