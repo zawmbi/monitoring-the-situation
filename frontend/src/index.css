@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 /* ===========================================
    MONITORED - GLOBAL STYLES
@@ -28,7 +28,7 @@
   --color-flights: #6ee6ff;
   --font-sans: 'Space Grotesk', 'JetBrains Mono', monospace;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-nav: 'Rajdhani', 'Space Grotesk', sans-serif;
+  --font-nav: 'Inter', 'Space Grotesk', sans-serif;
   --radius-md: 8px;
   --radius-lg: 12px;
 
@@ -102,9 +102,9 @@
   --color-bg-hover: #ebe3d5;
   --color-border: rgba(166, 120, 80, 0.22);
   --color-border-light: rgba(194, 120, 62, 0.4);
-  --color-text-primary: #2d2418;
-  --color-text-secondary: #5c4b3a;
-  --color-text-muted: #8c7a66;
+  --color-text-primary: #1a1410;
+  --color-text-secondary: #3d3028;
+  --color-text-muted: #7a6b5a;
   --color-accent: #c2783e;
   --color-accent-2: #d4956a;
   --color-twitter: #3ba7ff;
