@@ -614,16 +614,21 @@ function App() {
 
   // ---- MapLibre GeoJSON data ----
 
-  const countryColor = useCallback((name) => {
-    if (!name) return isLightTheme ? '#dfe6ff' : '#111827';
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash) % 360;
-    const saturation = isLightTheme ? 34 : 36;
-    const lightness = isLightTheme ? 78 : 18;
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  const countryColor = useCallback((index) => {
+    const darkPalette = [
+      '#1a2744', '#1e3a2f', '#2d1f3d', '#33261a', '#1a3333',
+      '#2b2240', '#1f2e1a', '#3d1f2b', '#1a2b3d', '#2e331a',
+      '#331a2e', '#1a3326', '#2d2b1a', '#1f333d', '#3d2b1f',
+      '#1a2233', '#26331f', '#331f3a', '#1a332e', '#33291a',
+    ];
+    const lightPalette = [
+      '#c8d5ea', '#c2ddd2', '#d5c8e0', '#ddd4c2', '#c2d8d8',
+      '#cfc5de', '#cdd8c2', '#dec5cf', '#c2cede', '#d3d8c2',
+      '#d8c2d3', '#c2d8ca', '#d5d0c2', '#c5d3de', '#dec8c2',
+      '#c2c8d8', '#cad8c5', '#d8c5dc', '#c2d8d3', '#d8cfc2',
+    ];
+    const palette = isLightTheme ? lightPalette : darkPalette;
+    return palette[index % palette.length];
   }, [isLightTheme]);
 
   const countriesGeoJSON = useMemo(() => ({
@@ -635,7 +640,7 @@ function App() {
       properties: {
         name: f.properties?.name || `Country ${i}`,
         originalId: String(f.id),
-        fillColor: countryColor(f.properties?.name),
+        fillColor: countryColor(i),
       },
     })),
   }), [countryColor]);
