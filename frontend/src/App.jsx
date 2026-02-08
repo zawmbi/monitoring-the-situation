@@ -22,6 +22,8 @@ import { useCountryPanel } from './features/country/useCountryPanel';
 import { useWeather } from './hooks/useWeather';
 import { useSevereWeather } from './hooks/useSevereWeather';
 import { SevereWeatherPanel } from './features/severeWeather/SevereWeatherPanel';
+import { TariffPanel } from './features/tariffs/TariffPanel';
+import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } from './features/tariffs/tariffData';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 
@@ -562,6 +564,10 @@ function App() {
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
+  const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
+
+  // Tariff panel state
+  const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
 
   // Audio ref for background music
   const audioRef = useRef(null);
@@ -685,6 +691,13 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close tariff panel when heatmap is turned off
+  useEffect(() => {
+    if (!showTariffHeatmap) {
+      setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } });
+    }
+  }, [showTariffHeatmap]);
+
   const flightPaths = useMemo(() => {
     return (flights || [])
       .map((flight) => {
@@ -798,17 +811,23 @@ function App() {
 
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: GEO_FEATURES.map((f, i) => ({
-      type: 'Feature',
-      id: i,
-      geometry: f.geometry,
-      properties: {
-        name: f.properties?.name || `Country ${i}`,
-        originalId: String(f.id),
-        fillColor: countryColor(i),
-      },
-    })),
-  }), [countryColor]);
+    features: GEO_FEATURES.map((f, i) => {
+      const name = f.properties?.name || `Country ${i}`;
+      const tariffRate = getUniversalRate(name);
+      return {
+        type: 'Feature',
+        id: i,
+        geometry: f.geometry,
+        properties: {
+          name,
+          originalId: String(f.id),
+          fillColor: countryColor(i),
+          tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
+          tariffRate,
+        },
+      };
+    }),
+  }), [countryColor, isLightTheme]);
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -972,9 +991,13 @@ function App() {
         hoveredProvinceIdRef.current = feat.id;
       }
 
+      const tooltipName = feat.properties?.name || 'Unknown';
+      const tooltipText = showTariffHeatmap && feat.properties?.tariffRate != null
+        ? `${tooltipName} — ${feat.properties.tariffRate}% tariff`
+        : tooltipName;
       setTooltip({
         show: true,
-        text: feat.properties?.name || 'Unknown',
+        text: tooltipText,
         x: event.point.x,
         y: event.point.y,
       });
@@ -983,7 +1006,7 @@ function App() {
       setTooltip({ show: false, text: '', x: 0, y: 0 });
       map.getCanvas().style.cursor = '';
     }
-  }, [popoverHotspot]);
+  }, [popoverHotspot, showTariffHeatmap]);
 
   const handleMapMouseLeave = useCallback(() => {
     const map = mapRef.current;
@@ -1061,6 +1084,11 @@ function App() {
         x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
         y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
 
+        // Show tariff panel when heatmap is active, otherwise normal country panel
+        if (showTariffHeatmap) {
+          setTariffPanel({ open: true, country: name, pos: { x, y } });
+        }
+
         openCountryPanel(name, { x, y });
         setPolymarketCountry(name);
         setShowPolymarketPanel(true);
@@ -1102,7 +1130,7 @@ function App() {
         openProvincePanel(name, { x, y });
       }
     }
-  }, [openCountryPanel, openStatePanel, openProvincePanel]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1493,6 +1521,15 @@ function App() {
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
                 </button>
+                <button
+                  type="button"
+                  className={`sidebar-tab ${sidebarTab === 'tariffs' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('tariffs')}
+                  role="tab"
+                  aria-selected={sidebarTab === 'tariffs'}
+                >
+                  Tariffs & Trade
+                </button>
               </div>
             )}
           </div>
@@ -1694,6 +1731,50 @@ function App() {
               </div>
             )}
 
+            {sidebarExpanded && sidebarTab === 'tariffs' && (
+              <div className="settings-panel tariff-sidebar">
+                <div className="toggle-group-title">Tariff Heatmap</div>
+                <div className="settings-group tariff-heatmap-toggle">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Show Heatmap</span>
+                    <input
+                      type="checkbox"
+                      checked={showTariffHeatmap}
+                      onChange={() => setShowTariffHeatmap(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                {showTariffHeatmap && (
+                  <div className="tariff-heatmap-active-badge">
+                    <span className="tariff-heatmap-active-dot" />
+                    Heatmap active
+                  </div>
+                )}
+
+                <div className="tariff-legend">
+                  <div className="tariff-legend-title">Tariff Rate Legend</div>
+                  <div className="tariff-legend-items">
+                    {TARIFF_LEGEND.map((item) => (
+                      <div key={item.label} className="tariff-legend-item">
+                        <span
+                          className="tariff-legend-swatch"
+                          style={{ background: isLightTheme ? item.colorLight : item.color }}
+                        />
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="tariff-sidebar-info">
+                  <strong>US Import Tariffs</strong><br />
+                  Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
+                </div>
+              </div>
+            )}
+
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1796,6 +1877,24 @@ function App() {
           onClose={() => setShowPolymarketPanel(false)}
           onRefresh={refreshPolymarkets}
         />
+
+        {/* Tariff Panel */}
+        {tariffPanel.open && tariffPanel.country && (
+          <TariffPanel
+            countryName={tariffPanel.country}
+            position={tariffPanel.pos}
+            bounds={
+              mapContainerRef.current
+                ? {
+                    width: mapContainerRef.current.getBoundingClientRect().width,
+                    height: mapContainerRef.current.getBoundingClientRect().height,
+                  }
+                : null
+            }
+            onPositionChange={(pos) => setTariffPanel(prev => ({ ...prev, pos }))}
+            onClose={() => setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } })}
+          />
+        )}
 
         {countryPanel.open && countryPanel.data && (
           <CountryPanel
@@ -1922,15 +2021,20 @@ function App() {
               id="countries-fill"
               type="fill"
               paint={{
-                'fill-color': holoMode
-                  ? (isLightTheme ? '#e8ecf8' : '#0a0e1e')
+                'fill-color': showTariffHeatmap
+                  ? [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme ? '#d0e8f0' : '#1a3a52',
+                      ['get', 'tariffColor'],
+                    ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
                       isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': visualLayers.countryFill ? 1 : 0,
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
