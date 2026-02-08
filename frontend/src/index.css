@@ -235,11 +235,16 @@ body {
   background: var(--sidebar-header-bg);
 }
 
+.sidebar-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .sidebar-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
-  margin-top: 14px;
+  flex: 1;
 }
 
 .sidebar-tab {
@@ -266,12 +271,6 @@ body {
   color: var(--color-text-secondary);
 }
 
-.sidebar-top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
 
 .sidebar-toggle:focus-visible {
   outline: 2px solid var(--color-accent-2);

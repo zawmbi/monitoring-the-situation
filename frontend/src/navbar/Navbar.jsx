@@ -13,6 +13,8 @@ function Navbar({
   onNavigate,
   theme,
   onToggleTheme,
+  useGlobe,
+  onToggleGlobe,
   collapsed,
   onToggleCollapse,
 }) {
@@ -55,7 +57,17 @@ function Navbar({
 
           <button
             type="button"
-            className="theme-toggle"
+            className="navbar-icon-btn"
+            onClick={onToggleGlobe}
+            aria-label={useGlobe ? 'Switch to 2D map' : 'Switch to 3D globe'}
+            title={useGlobe ? 'Switch to 2D' : 'Switch to 3D'}
+          >
+            <span className="navbar-icon-btn-label">{useGlobe ? '3D' : '2D'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="navbar-icon-btn"
             onClick={onToggleTheme}
             aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           >

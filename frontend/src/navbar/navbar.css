@@ -80,8 +80,7 @@
   font-family: var(--font-serif);
   font-size: 1.15rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   text-shadow: 0 0 18px rgba(var(--accent-alt-rgb), 0.35);
 }
@@ -143,7 +142,7 @@
   padding-right: 28px;
 }
 
-.theme-toggle {
+.navbar-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -155,11 +154,18 @@
   transition: color 0.2s;
 }
 
-.theme-toggle:hover {
+.navbar-icon-btn:hover {
   color: var(--color-text-primary);
 }
 
-.theme-toggle:focus-visible,
+.navbar-icon-btn-label {
+  font-family: var(--font-nav);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.navbar-icon-btn:focus-visible,
 .navbar-handle:focus-visible,
 .navbar-link:focus-visible,
 .navbar-logo:focus-visible {

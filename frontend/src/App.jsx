@@ -3,7 +3,7 @@ import { Map as MapGL, Source, Layer, Marker, NavigationControl } from '@vis.gl/
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
-import { geoCentroid, geoGraticule10 } from 'd3-geo';
+import { geoCentroid, geoGraticule } from 'd3-geo';
 import worldData from 'world-atlas/countries-50m.json';
 import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
@@ -123,10 +123,18 @@ const STATE_MARKERS = US_STATE_FEATURES.map((geo, idx) => {
 const GEO_MARKERS = [...COUNTRY_MARKERS, ...STATE_MARKERS];
 
 // Pre-generate static GeoJSON data for MapLibre layers
+// Use individual line features instead of a single MultiLineString
+// to avoid rendering glitches on globe projection near the antimeridian
 const GRATICULE_GEOJSON = {
-  type: 'Feature',
-  properties: {},
-  geometry: geoGraticule10(),
+  type: 'FeatureCollection',
+  features: geoGraticule()
+    .step([10, 10])
+    .lines()
+    .map((line) => ({
+      type: 'Feature',
+      properties: {},
+      geometry: line,
+    })),
 };
 
 const EQUATOR_GEOJSON = {
@@ -1158,6 +1166,8 @@ function App() {
         onNavigate={handleNavigate}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        useGlobe={useGlobe}
+        onToggleGlobe={() => setUseGlobe(prev => !prev)}
         collapsed={navCollapsed}
         onToggleCollapse={handleToggleNav}
       />
@@ -1166,20 +1176,6 @@ function App() {
         {/* Sidebar */}
         <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
           <div className="sidebar-header">
-            <div className="sidebar-top-bar">
-
-              <button
-                className="sidebar-toggle"
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {sidebarExpanded
-                    ? <polyline points="15 18 9 12 15 6" />
-                    : <polyline points="9 18 15 12 9 6" />}
-                </svg>
-              </button>
-            </div>
             {viewMode !== 'world' && (
               <div className="sidebar-breadcrumb">
                 {breadcrumb.map((item, idx) => (
@@ -1196,24 +1192,35 @@ function App() {
               </div>
             )}
             {sidebarExpanded && (
-              <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+              <div className="sidebar-tabs-row">
+                <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+                  <button
+                    type="button"
+                    className={`sidebar-tab ${sidebarTab === 'world' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('world')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'world'}
+                  >
+                    World
+                  </button>
+                  <button
+                    type="button"
+                    className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('settings')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'settings'}
+                  >
+                    Settings
+                  </button>
+                </div>
                 <button
-                  type="button"
-                  className={`sidebar-tab ${sidebarTab === 'world' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('world')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'world'}
+                  className="sidebar-toggle"
+                  onClick={() => setSidebarExpanded(false)}
+                  aria-label="Collapse sidebar"
                 >
-                  World
-                </button>
-                <button
-                  type="button"
-                  className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('settings')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'settings'}
-                >
-                  Settings
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
                 </button>
               </div>
             )}
@@ -1305,15 +1312,6 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className="switch switch-neutral">
-                    <span className="switch-label">3D Globe</span>
-                    <input
-                      type="checkbox"
-                      checked={useGlobe}
-                      onChange={() => setUseGlobe(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
                     <span className="switch-label">Holographic</span>
                     <input
                       type="checkbox"
@@ -1322,21 +1320,20 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Timezones</span>
+                  <label className="switch switch-neutral switch-disabled">
+                    <span className="switch-label">Timezones (WIP)</span>
                     <input
                       type="checkbox"
-                      checked={showTimezones}
-                      onChange={() => setShowTimezones(prev => !prev)}
+                      checked={false}
+                      disabled
                     />
                     <span className="slider" />
                   </label>
                   {[
-                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
-                    { key: 'atmosphere', label: 'Atmospheric Edge Glow' },
                     { key: 'contours', label: 'Micro Topographic Contours' },
-                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                     { key: 'countryFill', label: 'Country Fill Color' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
                       <span className="switch-label">{label}</span>
@@ -1348,6 +1345,20 @@ function App() {
                       <span className="slider" />
                     </label>
                   ))}
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>3D Globe Settings</div>
+                <div className="settings-group">
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Atmospheric Edge Glow</span>
+                    <input
+                      type="checkbox"
+                      checked={visualLayers.atmosphere}
+                      onChange={() => toggleVisualLayer('atmosphere')}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
                 </div>
               </div>
             )}
