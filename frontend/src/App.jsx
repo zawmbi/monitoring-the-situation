@@ -464,6 +464,7 @@ function App() {
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [rotateSpeed, setRotateSpeed] = useState(0.03);
   const [holoMode, setHoloMode] = useState(false);
 
   // Popover state
@@ -472,6 +473,7 @@ function App() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const autoRotateRef = useRef(autoRotate);
+  const rotateSpeedRef = useRef(rotateSpeed);
   const userInteractingRef = useRef(false);
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
@@ -1047,10 +1049,9 @@ function App() {
     });
   }, []);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    autoRotateRef.current = autoRotate;
-  }, [autoRotate]);
+  // Keep refs in sync with state
+  useEffect(() => { autoRotateRef.current = autoRotate; }, [autoRotate]);
+  useEffect(() => { rotateSpeedRef.current = rotateSpeed; }, [rotateSpeed]);
 
   // Auto-rotate globe
   useEffect(() => {
@@ -1060,7 +1061,6 @@ function App() {
 
     let animId;
     let resumeTimer = null;
-    const speed = 0.03; // degrees per frame (~1.8°/sec at 60fps)
 
     function rotate() {
       if (!autoRotateRef.current || userInteractingRef.current) {
@@ -1068,7 +1068,7 @@ function App() {
         return;
       }
       const center = map.getCenter();
-      map.setCenter([center.lng - speed, center.lat]);
+      map.setCenter([center.lng - rotateSpeedRef.current, center.lat]);
       animId = requestAnimationFrame(rotate);
     }
 
@@ -1766,17 +1766,32 @@ function App() {
         {/* Map controls - bottom right */}
         <div className="map-controls-br">
           {useGlobe && (
-            <button
-              className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
-              onClick={() => setAutoRotate(prev => !prev)}
-              title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
-              aria-label="Toggle auto-rotation"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-                <polyline points="21 3 21 9 15 9" />
-              </svg>
-            </button>
+            <>
+              {autoRotate && (
+                <input
+                  type="range"
+                  className="rotate-speed-slider"
+                  min="0.005"
+                  max="0.12"
+                  step="0.005"
+                  value={rotateSpeed}
+                  onChange={(e) => setRotateSpeed(Number(e.target.value))}
+                  title={`Rotation speed: ${Math.round(rotateSpeed * 60)}°/s`}
+                  aria-label="Rotation speed"
+                />
+              )}
+              <button
+                className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
+                onClick={() => setAutoRotate(prev => !prev)}
+                title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
+                aria-label="Toggle auto-rotation"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                  <polyline points="21 3 21 9 15 9" />
+                </svg>
+              </button>
+            </>
           )}
           <button
             className="map-recenter-btn"
