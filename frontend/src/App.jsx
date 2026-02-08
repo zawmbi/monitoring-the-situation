@@ -990,12 +990,16 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
-  // Store map ref on load; apply globe projection via API
+  // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
-    if (useGlobe) {
-      evt.target.setProjection({ type: 'globe' });
-    }
+  }, []);
+
+  // Switch projection when useGlobe changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
   }, [useGlobe]);
 
   return (
@@ -1303,7 +1307,6 @@ function App() {
         )}
 
         <MapGL
-          key={useGlobe ? 'globe' : 'flat'}
           mapLib={maplibregl}
           mapStyle={mapStyle}
           onLoad={onMapLoad}
