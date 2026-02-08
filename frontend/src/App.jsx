@@ -137,12 +137,12 @@ const EQUATOR_GEOJSON = {
   },
 };
 
-// Compass crosshair: vertical line (prime meridian) + horizontal line at map center
+// Compass crosshair: vertical line (prime meridian) + horizontal line (equator)
 const COMPASS_LINES_GEOJSON = {
   type: 'FeatureCollection',
   features: [
-    { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[0, -56], [0, 80]] } },
-    { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[-180, 0], [180, 0]] } },
+    { type: 'Feature', properties: { axis: 'ns' }, geometry: { type: 'LineString', coordinates: [[0, -85], [0, 85]] } },
+    { type: 'Feature', properties: { axis: 'ew' }, geometry: { type: 'LineString', coordinates: [[-180, 0], [180, 0]] } },
   ],
 };
 
@@ -1138,19 +1138,21 @@ function App() {
                 {sidebarExpanded ? '<' : '>'}
               </button>
             </div>
-            <div className="sidebar-breadcrumb">
-              {breadcrumb.map((item, idx) => (
-                <span key={idx}>
-                  <span
-                    className={`breadcrumb-item ${item.active ? 'active' : ''}`}
-                    onClick={item.onClick}
-                  >
-                    {item.label}
+            {viewMode !== 'world' && (
+              <div className="sidebar-breadcrumb">
+                {breadcrumb.map((item, idx) => (
+                  <span key={idx}>
+                    <span
+                      className={`breadcrumb-item ${item.active ? 'active' : ''}`}
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </span>
+                    {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
                   </span>
-                  {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
-                </span>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             {sidebarExpanded && (
               <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
                 <button
@@ -1447,20 +1449,31 @@ function App() {
               id="graticule-lines"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.12)' : 'rgba(73, 198, 255, 0.12)',
+                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.12)' : 'rgba(73, 198, 255, 0.12)',
                 'line-width': 0.5,
               }}
             />
           </Source>
 
-          {/* Compass crosshair lines (N-S along prime meridian, E-W along equator) */}
+          {/* Compass crosshair lines — holographic glow through globe */}
           <Source id="compass-lines" type="geojson" data={COMPASS_LINES_GEOJSON}>
+            {/* Outer glow layer */}
+            <Layer
+              id="compass-lines-glow"
+              type="line"
+              paint={{
+                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : 'rgba(73, 198, 255, 0.10)',
+                'line-width': useGlobe ? 4 : 2,
+                'line-blur': 4,
+              }}
+            />
+            {/* Core line */}
             <Layer
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.18)' : 'rgba(73, 198, 255, 0.18)',
-                'line-width': 0.8,
+                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
+                'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
             />
@@ -1473,7 +1486,7 @@ function App() {
                 id="equator-line"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                  'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
                   'line-width': 1,
                   'line-dasharray': [6, 4],
                 }}
@@ -1488,7 +1501,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -1498,7 +1511,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(93, 77, 255, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -1551,7 +1564,7 @@ function App() {
               type="line"
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? 'rgba(93, 77, 255, 0.7)' : 'rgba(73, 198, 255, 0.6)')
+                  ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
                   : (isLightTheme
                       ? 'rgba(50, 40, 80, 0.5)'
                       : 'rgba(140, 160, 200, 0.4)'),
@@ -1577,9 +1590,9 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(93, 77, 255, 0.12)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
-                      ? 'rgba(93, 77, 255, 0.35)'
+                      ? 'rgba(194, 120, 62, 0.25)'
                       : 'rgba(123, 107, 255, 0.35)'),
               }}
             />
@@ -1619,7 +1632,7 @@ function App() {
                   'case',
                   ['boolean', ['feature-state', 'hover'], false],
                   isLightTheme
-                    ? 'rgba(93, 77, 255, 0.18)'
+                    ? 'rgba(194, 120, 62, 0.15)'
                     : 'rgba(123, 107, 255, 0.22)',
                   'rgba(0, 0, 0, 0)',
                 ],
@@ -1631,7 +1644,7 @@ function App() {
               type="line"
               paint={{
                 'line-color': isLightTheme
-                  ? 'rgba(93, 77, 255, 0.18)'
+                  ? 'rgba(166, 120, 80, 0.18)'
                   : 'rgba(123, 107, 255, 0.18)',
                 'line-width': 0.6,
               }}
@@ -1642,7 +1655,7 @@ function App() {
               filter={selectedStateFilter}
               paint={{
                 'fill-color': isLightTheme
-                  ? 'rgba(93, 77, 255, 0.35)'
+                  ? 'rgba(194, 120, 62, 0.25)'
                   : 'rgba(123, 107, 255, 0.35)',
               }}
             />
