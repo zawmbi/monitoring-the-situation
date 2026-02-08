@@ -454,7 +454,12 @@ const getInitialVisualLayers = () => {
     const stored = window.localStorage.getItem('visualLayers');
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { ...VISUAL_LAYER_DEFAULTS, ...parsed };
+      // Only restore known keys to avoid stale data from old schema
+      const result = { ...VISUAL_LAYER_DEFAULTS };
+      for (const key of Object.keys(VISUAL_LAYER_DEFAULTS)) {
+        if (typeof parsed[key] === 'boolean') result[key] = parsed[key];
+      }
+      return result;
     }
   } catch {}
   return VISUAL_LAYER_DEFAULTS;
@@ -1729,18 +1734,18 @@ function App() {
               type="heatmap"
               layout={{ visibility: visualLayers.heatmap ? 'visible' : 'none' }}
               paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.1, 37, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 6, 1.5],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 1, 18, 6, 40],
-                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 7, 0.3],
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'pop'], 1, 0.15, 37, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 1, 1.2, 4, 2, 8, 3],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 1, 25, 4, 40, 8, 60],
+                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.7, 8, 0.4],
                 'heatmap-color': [
                   'interpolate', ['linear'], ['heatmap-density'],
                   0, 'rgba(0,0,0,0)',
-                  0.15, isLightTheme ? 'rgba(80,130,190,0.15)' : 'rgba(73,198,255,0.08)',
-                  0.35, isLightTheme ? 'rgba(60,140,200,0.3)' : 'rgba(73,198,255,0.2)',
-                  0.55, isLightTheme ? 'rgba(40,160,180,0.4)' : 'rgba(123,107,255,0.35)',
-                  0.75, isLightTheme ? 'rgba(220,140,60,0.5)' : 'rgba(255,123,222,0.45)',
-                  1, isLightTheme ? 'rgba(200,80,60,0.6)' : 'rgba(255,100,100,0.55)',
+                  0.1, isLightTheme ? 'rgb(190,210,240)' : 'rgb(20,40,80)',
+                  0.3, isLightTheme ? 'rgb(130,180,230)' : 'rgb(40,100,180)',
+                  0.5, isLightTheme ? 'rgb(80,180,180)' : 'rgb(80,60,200)',
+                  0.7, isLightTheme ? 'rgb(230,160,60)' : 'rgb(200,80,180)',
+                  1.0, isLightTheme ? 'rgb(210,70,50)' : 'rgb(255,90,90)',
                 ],
               }}
             />

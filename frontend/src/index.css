@@ -657,8 +657,8 @@ body {
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  opacity: 0.18;
-  mix-blend-mode: overlay;
+  opacity: 0.35;
+  mix-blend-mode: soft-light;
   transition: opacity 0.35s ease;
 }
 
