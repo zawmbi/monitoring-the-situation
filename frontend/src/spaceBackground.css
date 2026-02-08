@@ -1,0 +1,104 @@
+/* ===========================================
+   3D SPACE BACKGROUND - Parallax Star Field
+   Pure CSS, no images — lightweight & performant
+   =========================================== */
+
+.space-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ---- Nebula / depth gradient layer ---- */
+.space-bg__nebula {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 900px 600px at 20% 80%, rgba(123, 107, 255, 0.10), transparent 70%),
+    radial-gradient(ellipse 700px 500px at 80% 15%, rgba(73, 198, 255, 0.08), transparent 65%),
+    radial-gradient(ellipse 500px 400px at 55% 50%, rgba(255, 123, 222, 0.05), transparent 60%);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* ---- Star layers ---- */
+.space-bg__stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* Small / distant stars — fastest drift, subtle */
+.space-bg__stars--small {
+  width: 1px;
+  height: 1px;
+  color: rgba(200, 210, 255, 0.5);
+  animation: starDrift 120s linear infinite;
+}
+
+/* Medium stars — mid-layer depth */
+.space-bg__stars--medium {
+  width: 2px;
+  height: 2px;
+  color: rgba(180, 200, 255, 0.6);
+  animation: starDrift 90s linear infinite;
+}
+
+/* Large / close stars — slowest, most prominent */
+.space-bg__stars--large {
+  width: 3px;
+  height: 3px;
+  color: rgba(220, 230, 255, 0.7);
+  animation: starDrift 60s linear infinite, starTwinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes starDrift {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-2000px); }
+}
+
+@keyframes starTwinkle {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* =====================
+   LIGHT MODE overrides
+   ===================== */
+[data-theme="light"] .space-bg__nebula {
+  background:
+    radial-gradient(ellipse 900px 600px at 20% 80%, rgba(194, 120, 62, 0.06), transparent 70%),
+    radial-gradient(ellipse 700px 500px at 80% 15%, rgba(80, 130, 190, 0.05), transparent 65%),
+    radial-gradient(ellipse 500px 400px at 55% 50%, rgba(160, 140, 100, 0.03), transparent 60%);
+}
+
+[data-theme="light"] .space-bg__stars--small {
+  color: rgba(120, 100, 70, 0.15);
+}
+
+[data-theme="light"] .space-bg__stars--medium {
+  color: rgba(140, 115, 80, 0.18);
+}
+
+[data-theme="light"] .space-bg__stars--large {
+  color: rgba(166, 120, 80, 0.22);
+  animation: starDrift 60s linear infinite, starTwinkle 5s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .space-bg__stars--large {
+  width: 2px;
+  height: 2px;
+}
+
+/* =====================
+   Reduced motion
+   ===================== */
+@media (prefers-reduced-motion: reduce) {
+  .space-bg__stars {
+    animation: none !important;
+  }
+}

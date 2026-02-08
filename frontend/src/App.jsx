@@ -27,6 +27,7 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import SpaceBackground from './SpaceBackground';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -1446,6 +1447,7 @@ function App() {
 
   return (
     <>
+    <SpaceBackground />
     <div className="app">
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
