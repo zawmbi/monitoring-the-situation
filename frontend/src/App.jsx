@@ -1954,10 +1954,17 @@ function App() {
                 title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
                 aria-label="Toggle auto-rotation"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-                  <polyline points="21 3 21 9 15 9" />
-                </svg>
+                {autoRotate ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <rect x="5" y="4" width="5" height="16" rx="1" />
+                    <rect x="14" y="4" width="5" height="16" rx="1" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                    <polyline points="21 3 21 9 15 9" />
+                  </svg>
+                )}
               </button>
               {autoRotate && (
                 <button
