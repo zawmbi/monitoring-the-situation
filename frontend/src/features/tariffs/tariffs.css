@@ -1,0 +1,402 @@
+/* Tariff Panel & Heatmap Styles */
+
+:root {
+  --tariff-low: #22c55e;
+  --tariff-mid: #eab308;
+  --tariff-high: #f97316;
+  --tariff-extreme: #ef4444;
+  --tariff-banned: #a855f7;
+  --tariff-embargo: #1a1a2e;
+}
+
+[data-theme="light"] {
+  --tariff-low: #16a34a;
+  --tariff-mid: #ca8a04;
+  --tariff-high: #ea580c;
+  --tariff-extreme: #dc2626;
+  --tariff-banned: #7c3aed;
+  --tariff-embargo: #2d1f3d;
+}
+
+/* === Tariff Panel Popup === */
+
+.tariff-panel {
+  position: absolute;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-border-accent);
+  border-radius: var(--radius-lg);
+  width: 360px;
+  max-height: 520px;
+  box-shadow: var(--glass-shadow-glow);
+  z-index: 1003;
+  cursor: move;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tariff-panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tariff-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+
+.tariff-panel-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tariff-panel-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tariff-panel-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text-primary);
+}
+
+.tariff-panel-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* === Universal Rate Hero === */
+
+.tariff-universal {
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.tariff-universal-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+
+.tariff-universal-rate {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.tariff-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(128, 128, 128, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.tariff-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--bar-pct, 0%);
+  background: var(--bar-color, var(--tariff-mid));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* === Goods List === */
+
+.tariff-goods {
+  margin-bottom: 12px;
+}
+
+.tariff-goods-title {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tariff-goods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tariff-good-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--panel-card-bg);
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.tariff-good-row:hover {
+  border-color: var(--panel-card-border);
+}
+
+.tariff-good-name {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.tariff-good-rate-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 110px;
+}
+
+.tariff-good-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(128, 128, 128, 0.12);
+  position: relative;
+  overflow: hidden;
+  min-width: 50px;
+}
+
+.tariff-good-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--bar-pct, 0%);
+  background: var(--bar-color, var(--tariff-mid));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.tariff-good-rate {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* === Notes === */
+
+.tariff-notes {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 8px 10px;
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.tariff-panel-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* === Sidebar Tariff Content === */
+
+.tariff-sidebar {
+  padding: 0 4px;
+}
+
+.tariff-heatmap-toggle {
+  margin-bottom: 16px;
+}
+
+.tariff-legend {
+  margin-top: 12px;
+}
+
+.tariff-legend-title {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+.tariff-legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tariff-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.tariff-legend-swatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.tariff-sidebar-info {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--notice-text);
+  line-height: 1.6;
+}
+
+.tariff-sidebar-info strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* === Heatmap Active Indicator === */
+
+.tariff-heatmap-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--color-accent);
+  margin-bottom: 12px;
+}
+
+.tariff-heatmap-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tariff-mid);
+  animation: tariff-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tariff-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* === Embargo & Sanctions Styles === */
+
+.tariff-panel--embargo {
+  border-color: rgba(168, 85, 247, 0.3);
+  border-top-color: rgba(168, 85, 247, 0.5);
+}
+
+.tariff-universal--embargo {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+.tariff-embargo-badge {
+  font-size: 28px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--tariff-banned);
+  letter-spacing: 0.15em;
+  line-height: 1.1;
+  margin: 8px 0;
+}
+
+.tariff-embargo-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.tariff-notes--embargo {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.tariff-universal--sanctioned {
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.tariff-sanctioned-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--tariff-banned);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 3px;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+}
+
+.tariff-goods-title--banned {
+  color: var(--tariff-banned);
+}
+
+.tariff-good-row--banned {
+  background: rgba(168, 85, 247, 0.06);
+  border-color: rgba(168, 85, 247, 0.15);
+}
+
+.tariff-banned-label {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--tariff-banned);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
