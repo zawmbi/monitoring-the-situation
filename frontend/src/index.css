@@ -243,23 +243,26 @@ body {
 
 .sidebar-tabs {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex: 1;
 }
 
 .sidebar-tab {
   border: none;
   border-radius: 0;
-  padding: 8px 14px;
+  padding: 8px 10px;
   background: transparent;
   color: var(--color-text-muted);
   font-family: var(--font-nav);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-tab.active {

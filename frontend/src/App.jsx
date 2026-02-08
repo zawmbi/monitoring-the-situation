@@ -1250,7 +1250,7 @@ function App() {
     setSelectedCapital(null);
   };
 
-  // Double-click: zoom to fit the clicked country/state
+  // Double-click: zoom into the clicked country/state centered on click point
   const handleMapDblClick = useCallback((event) => {
     // Cancel pending single-click so it doesn't interfere
     if (clickTimerRef.current) {
@@ -1273,43 +1273,13 @@ function App() {
     const features = event.features;
     if (!features || features.length === 0) return;
 
-    const feat = features[0];
-    const originalId = feat.properties?.originalId;
-    const sourceId = feat.source;
-
-    let geoFeature;
-    if (sourceId === 'countries') {
-      geoFeature = GEO_FEATURES.find(f => String(f.id) === String(originalId));
-    } else if (sourceId === 'us-states') {
-      geoFeature = US_STATE_FEATURES.find(f => String(f.id) === String(originalId));
-    }
-    if (!geoFeature) return;
-
-    // Compute bounding box from geometry
-    const coords = [];
-    const geom = geoFeature.geometry;
-    if (geom.type === 'Polygon') {
-      geom.coordinates.forEach(ring => ring.forEach(c => coords.push(c)));
-    } else if (geom.type === 'MultiPolygon') {
-      geom.coordinates.forEach(poly => poly.forEach(ring => ring.forEach(c => coords.push(c))));
-    }
-    if (coords.length === 0) return;
-
-    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-    coords.forEach(([lon, lat]) => {
-      const normLon = lon > 180 ? lon - 360 : lon;
-      minLon = Math.min(minLon, normLon);
-      maxLon = Math.max(maxLon, normLon);
-      minLat = Math.min(minLat, lat);
-      maxLat = Math.max(maxLat, lat);
-    });
-
-    // Stop any in-progress animation so fitBounds takes effect immediately
+    // Stop any in-progress animation so flyTo takes effect immediately
     map.stop();
 
-    map.fitBounds([[minLon, minLat], [maxLon, maxLat]], {
-      padding: 20,
-      maxZoom: 8,
+    // Zoom to click location at a country-detail level
+    map.flyTo({
+      center: [event.lngLat.lng, event.lngLat.lat],
+      zoom: 6,
       duration: 1000,
       essential: true,
     });
