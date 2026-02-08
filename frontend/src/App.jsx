@@ -1493,8 +1493,8 @@ function App() {
                   'case',
                   ['boolean', ['feature-state', 'hover'], false],
                   isLightTheme
-                    ? 'rgba(93, 77, 255, 0.08)'
-                    : 'rgba(123, 107, 255, 0.08)',
+                    ? 'rgba(93, 77, 255, 0.18)'
+                    : 'rgba(123, 107, 255, 0.22)',
                   'rgba(0, 0, 0, 0)',
                 ],
                 'fill-opacity': 1,
