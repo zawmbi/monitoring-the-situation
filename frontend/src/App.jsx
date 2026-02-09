@@ -1360,6 +1360,14 @@ function App() {
     if (useGlobeRef.current && rawMap.setProjection) {
       rawMap.setProjection({ type: 'globe' });
     }
+    // Re-apply projection after any style reload (theme/holo changes)
+    if (rawMap.on) {
+      rawMap.on('style.load', () => {
+        if (useGlobeRef.current && rawMap.setProjection) {
+          rawMap.setProjection({ type: 'globe' });
+        }
+      });
+    }
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1957,7 +1965,6 @@ function App() {
         <MapGL
           mapLib={maplibregl}
           mapStyle={mapStyle}
-          projection={useGlobe ? 'globe' : 'mercator'}
           onLoad={onMapLoad}
           initialViewState={{
             longitude: 0,
