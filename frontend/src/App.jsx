@@ -1354,6 +1354,10 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
+    // Directly set globe projection on the MapLibre instance
+    if (useGlobeRef.current) {
+      evt.target.setProjection({ type: 'globe' });
+    }
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1396,6 +1400,13 @@ function App() {
   useEffect(() => { rotateSpeedRef.current = rotateSpeed; }, [rotateSpeed]);
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
+
+  // Directly apply projection on the MapLibre instance when useGlobe changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
+  }, [useGlobe, mapLoaded]);
 
   // Auto-rotate globe
   useEffect(() => {
