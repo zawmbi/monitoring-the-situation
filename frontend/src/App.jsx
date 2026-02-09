@@ -1354,9 +1354,11 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // Directly set globe projection on the MapLibre instance
-    if (useGlobeRef.current) {
-      evt.target.setProjection({ type: 'globe' });
+    // Directly set globe projection on the raw MapLibre instance
+    // react-maplibre wrapper blocks setProjection, so use getMap()
+    const rawMap = evt.target.getMap ? evt.target.getMap() : evt.target;
+    if (useGlobeRef.current && rawMap.setProjection) {
+      rawMap.setProjection({ type: 'globe' });
     }
   }, []);
 
@@ -1401,11 +1403,15 @@ function App() {
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
-  // Directly apply projection on the MapLibre instance when useGlobe changes
+  // Directly apply projection on the raw MapLibre instance when useGlobe changes
+  // react-maplibre wrapper blocks setProjection, so use getMap()
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
+    const wrapper = mapRef.current;
+    if (!wrapper || !mapLoaded) return;
+    const rawMap = wrapper.getMap ? wrapper.getMap() : wrapper;
+    if (rawMap.setProjection) {
+      rawMap.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
+    }
   }, [useGlobe, mapLoaded]);
 
   // Auto-rotate globe
