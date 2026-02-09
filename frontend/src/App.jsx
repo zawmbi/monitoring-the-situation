@@ -875,6 +875,7 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
+    projection: useGlobe ? { type: 'globe' } : { type: 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -885,8 +886,17 @@ function App() {
           : (isLightTheme ? '#BFE0FF' : '#0c1126'),
       },
     }],
+    sky: useGlobe ? {
+      'sky-color': isLightTheme ? '#d4e6f1' : '#040810',
+      'horizon-color': isLightTheme ? '#b0cfe0' : '#0a1628',
+      'fog-color': isLightTheme ? '#c8dce8' : '#060e1c',
+      'sky-horizon-blend': 0.5,
+      'horizon-fog-blend': 0.5,
+      'fog-ground-blend': 0.5,
+      'atmosphere-blend': isLightTheme ? 0.6 : 0.85,
+    } : undefined,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, holoMode]);
+  }), [isLightTheme, holoMode, useGlobe]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -2039,12 +2049,14 @@ function App() {
                       isLightTheme ? '#d0e8f0' : '#1a3a52',
                       ['get', 'tariffColor'],
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#d0e8f0' : '#1a3a52',
-                      ['get', 'fillColor'],
-                    ],
+                  : holoMode
+                    ? (isLightTheme ? '#e8ecf8' : '#0a0e1e')
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme ? '#d0e8f0' : '#1a3a52',
+                        ['get', 'fillColor'],
+                      ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
               }}
             />
