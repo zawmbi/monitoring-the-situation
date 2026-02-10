@@ -126,9 +126,9 @@
   --body-bg: radial-gradient(1000px 700px at 90% -10%, rgba(80, 130, 190, 0.10), transparent 60%),
     radial-gradient(900px 600px at 0% 110%, rgba(100, 160, 220, 0.08), transparent 55%),
     #e8eef6;
-  --map-bg: radial-gradient(900px 650px at 70% -5%, rgba(80, 130, 190, 0.08), transparent 60%),
-    radial-gradient(900px 650px at 0% 100%, rgba(100, 160, 220, 0.08), transparent 55%),
-    #dfe7f2;
+  --map-bg: radial-gradient(900px 650px at 70% -5%, rgba(40, 80, 150, 0.12), transparent 60%),
+    radial-gradient(900px 650px at 0% 100%, rgba(50, 100, 170, 0.10), transparent 55%),
+    #b0c4d8;
   --map-aura-1: radial-gradient(circle at 50% 50%, rgba(80, 130, 190, 0.06), transparent 55%);
   --map-aura-2: linear-gradient(120deg, rgba(100, 160, 220, 0.05), transparent 55%);
   --map-aura-3: linear-gradient(0deg, rgba(70, 120, 180, 0.04), transparent 45%);

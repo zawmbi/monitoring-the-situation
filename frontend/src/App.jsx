@@ -799,12 +799,12 @@ function App() {
       '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
     ];
     const lightPalette = [
-      '#a8d5a2', '#7bc47f', '#c2e6b0', '#5db85e', '#d4edcf',
-      '#8fcc8c', '#b0dba8', '#6ac06a', '#c8e4b8', '#4aad4e',
-      '#9fd8a0', '#78c480', '#bce0ac', '#58b460', '#d0e8c4',
-      '#84c888', '#a4d4a0', '#6ebc70', '#c4e2b4', '#50b058',
-      '#98d098', '#72c078', '#b8dea8', '#5cb860', '#cce6c0',
-      '#80c884', '#acd8a4', '#64bc68', '#c0e0b0', '#48ac50',
+      '#4a7a3e', '#6b8f42', '#8a6e3a', '#3d6b35', '#7a8548',
+      '#5c7040', '#9b7a3c', '#4e7e44', '#6e6838', '#3a6030',
+      '#87764a', '#527238', '#7c8a4e', '#48703a', '#a0823e',
+      '#5a6e3c', '#6a7a40', '#8b7044', '#3e6832', '#74804a',
+      '#4c6a36', '#96783e', '#5e7c42', '#7e6c3a', '#447034',
+      '#6c8648', '#8e7a40', '#3c6530', '#78724c', '#568038',
     ];
     const palette = isLightTheme ? lightPalette : darkPalette;
     // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
@@ -880,8 +880,8 @@ function App() {
       type: 'background',
       paint: {
         'background-color': holoMode
-          ? (isLightTheme ? '#BFE0FF' : '#060a14')
-          : (isLightTheme ? '#BFE0FF' : '#0c1126'),
+          ? (isLightTheme ? '#8ab4d8' : '#060a14')
+          : (isLightTheme ? '#8ab4d8' : '#0c1126'),
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -2034,13 +2034,13 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#d0f0d4' : '#1a3a52',
+                      isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'tariffColor'],
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#d0f0d4' : '#1a3a52',
+                      isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
