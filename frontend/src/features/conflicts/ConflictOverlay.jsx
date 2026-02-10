@@ -16,7 +16,6 @@ import {
   BATTLE_SITES,
   FORTIFICATION_LINES,
   NUCLEAR_PLANTS,
-  MAJOR_ROADS,
   UA_BLUE,
   UA_YELLOW,
   RU_RED,
@@ -27,7 +26,6 @@ import {
    Zoom thresholds — markers hidden when zoomed out
    ─────────────────────────────────────────── */
 const ZOOM_SHOW_DETAIL = 4;     // cities, infra, naval, battles, troops, sector labels
-const ZOOM_SHOW_ROADS = 3.5;    // roads/rail
 const ZOOM_SHOW_LABELS = 5;     // city name labels on infra markers
 
 /* ───────────────────────────────────────────
@@ -275,17 +273,6 @@ function MapLegend({ open, onToggle }) {
             </div>
           </div>
           <div className="conflict-map-legend-section">
-            <div className="conflict-map-legend-heading">Roads & Rail</div>
-            <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-line" style={{ background: 'rgba(255,200,50,0.5)' }} />
-              <span>Major highway</span>
-            </div>
-            <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: 'rgba(180,180,220,0.5)' }} />
-              <span>Railway</span>
-            </div>
-          </div>
-          <div className="conflict-map-legend-section">
             <div className="conflict-map-legend-heading">Coat of Arms</div>
             <div className="conflict-map-legend-row">
               <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
@@ -311,7 +298,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
   const [legendOpen, setLegendOpen] = useState(false);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
-  const showRoads = zoom >= ZOOM_SHOW_ROADS;
   const showLabels = zoom >= ZOOM_SHOW_LABELS;
 
   const frontlineGeoJSON = useMemo(() => ({
@@ -335,19 +321,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
     })),
   }), []);
 
-  const roadsGeoJSON = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: MAJOR_ROADS.map((road) => ({
-      type: 'Feature',
-      properties: {
-        id: road.id,
-        name: road.name,
-        isRail: road.id.includes('rail'),
-      },
-      geometry: { type: 'LineString', coordinates: road.points },
-    })),
-  }), []);
-
   const sectorLabels = useMemo(() =>
     FRONTLINE_SEGMENTS.map((seg) => {
       const mid = seg.points[Math.floor(seg.points.length / 2)];
@@ -356,35 +329,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
 
   return (
     <>
-      {/* ══════════ Major roads & railways ══════════ */}
-      <Source id="conflict-roads" type="geojson" data={roadsGeoJSON}>
-        {/* Highways — solid yellow-ish */}
-        <Layer
-          id="conflict-roads-highway"
-          type="line"
-          filter={['==', ['get', 'isRail'], false]}
-          layout={{ visibility: visible && showRoads ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{
-            'line-color': 'rgba(255,200,50,0.35)',
-            'line-width': 1.5,
-            'line-opacity': 0.7,
-          }}
-        />
-        {/* Railways — dashed gray */}
-        <Layer
-          id="conflict-roads-rail"
-          type="line"
-          filter={['==', ['get', 'isRail'], true]}
-          layout={{ visibility: visible && showRoads ? 'visible' : 'none', 'line-cap': 'butt', 'line-join': 'round' }}
-          paint={{
-            'line-color': 'rgba(180,180,220,0.35)',
-            'line-width': 1.5,
-            'line-dasharray': [4, 3],
-            'line-opacity': 0.6,
-          }}
-        />
-      </Source>
-
       {/* ══════════ Fortification lines & zones ══════════ */}
       <Source id="conflict-fortifications" type="geojson" data={fortificationGeoJSON}>
         {/* Surovikin line — dashed orange */}
