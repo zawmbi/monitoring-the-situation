@@ -601,7 +601,6 @@ function App() {
   const [popoverPosition, setPopoverPosition] = useState(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
-  const rawMapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const autoRotateRef = useRef(autoRotate);
   const rotateSpeedRef = useRef(rotateSpeed);
@@ -876,6 +875,7 @@ function App() {
   const mapStyle = useMemo(() => ({
     version: 8,
     name: 'monitoring',
+    projection: useGlobe ? { type: 'globe' } : { type: 'mercator' },
     sources: {},
     layers: [{
       id: 'background',
@@ -1347,9 +1347,6 @@ function App() {
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
-    // Get the raw MapLibre map (bypassing react-maplibre wrapper that blocks setProjection)
-    const rawMap = evt.target.getMap ? evt.target.getMap() : evt.target;
-    rawMapRef.current = rawMap;
     setMapLoaded(true);
     // Faster, smoother scroll zoom
     const sh = evt.target.scrollZoom;
@@ -1357,27 +1354,6 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // Apply globe projection directly on the raw map instance
-    const applyProjection = () => {
-      if (useGlobeRef.current && rawMap.setProjection) {
-        rawMap.setProjection({ type: 'vertical-perspective' });
-      }
-    };
-    applyProjection();
-    // Re-apply after any style reload (theme/holo changes trigger setStyle internally)
-    rawMap.on('style.load', () => {
-      applyProjection();
-      // Also re-apply after a brief delay to beat any post-style-load overrides
-      setTimeout(applyProjection, 50);
-    });
-    // Re-apply on idle to catch any deferred overrides
-    rawMap.on('idle', () => {
-      if (!useGlobeRef.current) return;
-      const cur = rawMap.getProjection?.();
-      if (cur && cur.type !== 'vertical-perspective') {
-        rawMap.setProjection({ type: 'vertical-perspective' });
-      }
-    });
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1421,20 +1397,6 @@ function App() {
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
-  // Apply projection on the raw MapLibre instance when useGlobe changes
-  useEffect(() => {
-    const rawMap = rawMapRef.current;
-    if (!rawMap || !mapLoaded || !rawMap.setProjection) return;
-    const type = useGlobe ? 'vertical-perspective' : 'mercator';
-    rawMap.setProjection({ type });
-    // Re-apply after a short delay to beat any react-maplibre overrides
-    const t = setTimeout(() => {
-      if (rawMapRef.current?.setProjection) {
-        rawMapRef.current.setProjection({ type });
-      }
-    }, 100);
-    return () => clearTimeout(t);
-  }, [useGlobe, mapLoaded]);
 
   // Auto-rotate globe
   useEffect(() => {
@@ -1998,6 +1960,7 @@ function App() {
           touchPitch={useGlobe}
           renderWorldCopies={!useGlobe}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
+          projection={useGlobe ? 'globe' : 'mercator'}
           maxZoom={8}
           minZoom={1}
         >
