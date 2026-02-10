@@ -1350,10 +1350,32 @@ function App() {
     const map = evt.target;
     mapRef.current = map;
     setMapLoaded(true);
+
+    // Debug: check if prototype methods exist after CSP build fix
+    console.log('[Globe Debug] map.setProjection:', typeof map.setProjection);
+    console.log('[Globe Debug] map.getProjection:', typeof map.getProjection);
+    console.log('[Globe Debug] map.addLayer:', typeof map.addLayer);
+    console.log('[Globe Debug] useGlobe:', useGlobeRef.current);
+
+    // Try to get raw map if this is a wrapper
+    const rawMap = map.getMap ? map.getMap() : map;
+    console.log('[Globe Debug] rawMap.setProjection:', typeof rawMap.setProjection);
+    console.log('[Globe Debug] rawMap === map:', rawMap === map);
+
     // Explicitly set globe projection on the raw map after load
-    if (map.setProjection && useGlobeRef.current) {
-      map.setProjection({ type: 'globe' });
+    if (rawMap.setProjection && useGlobeRef.current) {
+      try {
+        rawMap.setProjection({ type: 'globe' });
+        console.log('[Globe Debug] setProjection called successfully');
+        const proj = rawMap.getProjection ? rawMap.getProjection() : 'getProjection N/A';
+        console.log('[Globe Debug] current projection:', JSON.stringify(proj));
+      } catch (e) {
+        console.error('[Globe Debug] setProjection error:', e);
+      }
+    } else {
+      console.log('[Globe Debug] skipped setProjection - setProjection:', !!rawMap.setProjection, 'useGlobe:', useGlobeRef.current);
     }
+
     // Faster, smoother scroll zoom
     const sh = map.scrollZoom;
     if (sh) {
