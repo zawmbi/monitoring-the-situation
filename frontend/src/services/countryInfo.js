@@ -27,16 +27,58 @@ export async function fetchCountryProfile(name) {
     country.headOfGovernment ||
     'Unavailable';
 
+  // Extract currencies: { code, name, symbol }
+  let currency = null;
+  if (country.currencies) {
+    const code = Object.keys(country.currencies)[0];
+    if (code) {
+      currency = {
+        code,
+        name: country.currencies[code].name,
+        symbol: country.currencies[code].symbol,
+      };
+    }
+  }
+
+  // Extract languages as array
+  const languages = country.languages
+    ? Object.values(country.languages)
+    : [];
+
+  // Area in km²
+  const area = Number.isFinite(country.area) ? country.area : null;
+
+  // Flag URLs
+  const flagUrl = country.flags?.svg || country.flags?.png || null;
+
+  // Continent
+  const continent = Array.isArray(country.continents)
+    ? country.continents[0]
+    : null;
+
+  // cca2 code (for flag CDN etc.)
+  const cca2 = country.cca2 || null;
+
   return {
     name: country.name?.common || name,
     officialName: country.name?.official || name,
     population,
+    populationRaw: country.population,
     timezone,
     capital,
     leader,
     region: country.region,
     subregion: country.subregion,
     flag: country.flag,
+    flagUrl,
+    currency,
+    languages,
+    area,
+    continent,
+    cca2,
+    independent: country.independent,
+    unMember: country.unMember,
+    borders: country.borders || [],
     raw: country,
   };
 }

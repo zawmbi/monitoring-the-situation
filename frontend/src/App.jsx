@@ -538,11 +538,12 @@ function App() {
   // Country panel hook
   const {
     countryPanel,
+    currencyData,
+    currencyLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
     closeCountryPanel,
-    updateCountryPanelPosition,
   } = useCountryPanel();
 
   // Temperature unit: 'F' (default) or 'C'
@@ -1118,7 +1119,7 @@ function App() {
             setTariffPanel({ open: true, country: name, pos: { x, y } });
           }
 
-          openCountryPanel(name, { x, y });
+          openCountryPanel(name);
           setPolymarketCountry(name);
         }
       } else if (sourceId === 'us-states') {
@@ -1141,7 +1142,7 @@ function App() {
           if (electionMode && hasElectionRaces(name)) {
             setElectionPanel({ open: true, state: name, pos: { x, y } });
           } else {
-            openStatePanel(name, { x, y });
+            openStatePanel(name);
           }
         }
       } else if (sourceId === 'ca-provinces') {
@@ -1160,7 +1161,7 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openProvincePanel(name, { x, y });
+          openProvincePanel(name);
         }
       }
     }, 250);
@@ -1975,20 +1976,12 @@ function App() {
         {countryPanel.open && countryPanel.data && (
           <CountryPanel
             data={countryPanel.data}
-            position={countryPanel.pos}
-            bounds={
-              mapContainerRef.current
-                ? {
-                    width: mapContainerRef.current.getBoundingClientRect().width,
-                    height: mapContainerRef.current.getBoundingClientRect().height,
-                  }
-                : null
-            }
-            onPositionChange={updateCountryPanelPosition}
             onClose={closeCountryPanel}
             weather={panelWeather}
             weatherLoading={panelWeatherLoading}
             tempUnit={tempUnit}
+            currencyData={currencyData}
+            currencyLoading={currencyLoading}
           />
         )}
 
