@@ -217,6 +217,123 @@ export const COAT_OF_ARMS = {
   russia: { lat: 61.5, lon: 50.0, name: 'Russia' },
 };
 
+// ─── Capitals & major cities ───
+export const CAPITALS = [
+  { id: 'kyiv', name: 'Kyiv', country: 'ukraine', lat: 50.4501, lon: 30.5234, population: '2.9M' },
+  { id: 'moscow', name: 'Moscow', country: 'russia', lat: 55.7558, lon: 37.6173, population: '13M' },
+];
+
+export const MAJOR_CITIES = [
+  // Ukrainian cities
+  { id: 'kharkiv-city', name: 'Kharkiv', country: 'ukraine', lat: 49.9935, lon: 36.2304, population: '1.4M', note: 'Under frequent bombardment' },
+  { id: 'odesa', name: 'Odesa', country: 'ukraine', lat: 46.4825, lon: 30.7233, population: '1.0M', note: 'Major Black Sea port' },
+  { id: 'dnipro', name: 'Dnipro', country: 'ukraine', lat: 48.4647, lon: 35.0462, population: '980K', note: 'Logistics hub' },
+  { id: 'zaporizhzhia-city', name: 'Zaporizhzhia', country: 'ukraine', lat: 47.8388, lon: 35.1396, population: '710K', note: 'Nuclear power plant nearby' },
+  { id: 'lviv', name: 'Lviv', country: 'ukraine', lat: 49.8397, lon: 24.0297, population: '720K', note: 'Western logistics hub' },
+  { id: 'mykolaiv', name: 'Mykolaiv', country: 'ukraine', lat: 46.9750, lon: 31.9946, population: '480K' },
+  { id: 'kherson-city', name: 'Kherson', country: 'ukraine', lat: 46.6354, lon: 32.6169, population: '280K', note: 'Liberated Nov 2022' },
+  { id: 'sumy', name: 'Sumy', country: 'ukraine', lat: 50.9077, lon: 34.7981, population: '260K' },
+  { id: 'kramatorsk', name: 'Kramatorsk', country: 'ukraine', lat: 48.7380, lon: 37.5886, population: '150K', note: 'UA eastern HQ' },
+  { id: 'pokrovsk', name: 'Pokrovsk', country: 'ukraine', lat: 48.2843, lon: 36.2093, population: '60K', note: 'Key logistics node' },
+  // Russian-occupied cities
+  { id: 'donetsk-city', name: 'Donetsk', country: 'occupied', lat: 48.0159, lon: 37.8029, population: '900K', note: 'Russian-occupied since 2014' },
+  { id: 'luhansk-city', name: 'Luhansk', country: 'occupied', lat: 48.5740, lon: 39.3078, population: '400K', note: 'Russian-occupied since 2014' },
+  { id: 'mariupol', name: 'Mariupol', country: 'occupied', lat: 47.0958, lon: 37.5433, population: '430K', note: 'Fell May 2022' },
+  { id: 'melitopol', name: 'Melitopol', country: 'occupied', lat: 46.8489, lon: 35.3675, population: '150K', note: 'Occupied Feb 2022' },
+  { id: 'sevastopol', name: 'Sevastopol', country: 'occupied', lat: 44.6166, lon: 33.5254, population: '510K', note: 'RU Black Sea Fleet base' },
+  { id: 'simferopol', name: 'Simferopol', country: 'occupied', lat: 44.9521, lon: 34.1024, population: '340K', note: 'Crimea capital, occupied 2014' },
+  // Key Russian cities near conflict
+  { id: 'rostov', name: 'Rostov-on-Don', country: 'russia', lat: 47.2357, lon: 39.7015, population: '1.1M', note: 'Southern Military District HQ' },
+  { id: 'belgorod', name: 'Belgorod', country: 'russia', lat: 50.5997, lon: 36.5882, population: '390K', note: 'Border staging area' },
+  { id: 'kursk', name: 'Kursk', country: 'russia', lat: 51.7304, lon: 36.1926, population: '450K', note: 'UA cross-border incursion 2024' },
+  { id: 'voronezh', name: 'Voronezh', country: 'russia', lat: 51.6720, lon: 39.1843, population: '1.0M' },
+  { id: 'krasnodar', name: 'Krasnodar', country: 'russia', lat: 45.0355, lon: 38.9753, population: '950K' },
+];
+
+// ─── Military infrastructure ───
+export const MILITARY_INFRASTRUCTURE = [
+  // Ukrainian airbases
+  { id: 'ab-starokonstantiniv', type: 'airbase', side: 'ukraine', name: 'Starokostiantyniv AB', lat: 49.3929, lon: 27.1008, note: 'F-16 ops rumored' },
+  { id: 'ab-myrhorod', type: 'airbase', side: 'ukraine', name: 'Myrhorod AB', lat: 49.9722, lon: 33.6000, note: 'Fighter base' },
+  { id: 'ab-kulbakino', type: 'airbase', side: 'ukraine', name: 'Kulbakino AB', lat: 46.9750, lon: 32.0500, note: 'Near Mykolaiv' },
+  { id: 'ab-ozerne', type: 'airbase', side: 'ukraine', name: 'Ozerne AB', lat: 49.8333, lon: 28.7500, note: 'Zhytomyr region' },
+  // Russian / occupied airbases
+  { id: 'ab-belbek', type: 'airbase', side: 'russia', name: 'Belbek AB', lat: 44.6900, lon: 33.5700, note: 'Crimea — damaged by strikes' },
+  { id: 'ab-saky', type: 'airbase', side: 'russia', name: 'Saky / Novofedorivka AB', lat: 45.0928, lon: 33.5811, note: 'Crimea — hit Aug 2022' },
+  { id: 'ab-morozovsk', type: 'airbase', side: 'russia', name: 'Morozovsk AB', lat: 48.3167, lon: 41.7833, note: 'Rostov Oblast — bomber ops' },
+  { id: 'ab-millerovo', type: 'airbase', side: 'russia', name: 'Millerovo AB', lat: 48.9333, lon: 40.3500, note: 'Rostov Oblast' },
+  { id: 'ab-mariupol', type: 'airbase', side: 'russia', name: 'Mariupol AB', lat: 47.0761, lon: 37.4497, note: 'Occupied — rotary wing ops' },
+  // Ukrainian ports
+  { id: 'port-odesa', type: 'port', side: 'ukraine', name: 'Port of Odesa', lat: 46.4886, lon: 30.7400, note: 'Grain corridor hub' },
+  { id: 'port-pivdennyi', type: 'port', side: 'ukraine', name: 'Pivdennyi Port', lat: 46.3750, lon: 30.7500, note: 'Major bulk cargo terminal' },
+  { id: 'port-chornomorsk', type: 'port', side: 'ukraine', name: 'Chornomorsk Port', lat: 46.3000, lon: 30.6528, note: 'Grain export terminal' },
+  { id: 'port-mykolaiv', type: 'port', side: 'ukraine', name: 'Mykolaiv Shipyard', lat: 46.9650, lon: 32.0100, note: 'Restricted due to proximity' },
+  // Russian / occupied ports
+  { id: 'port-sevastopol', type: 'port', side: 'russia', name: 'Sevastopol Naval Base', lat: 44.6100, lon: 33.5100, note: 'Black Sea Fleet HQ — damaged' },
+  { id: 'port-novorossiysk', type: 'port', side: 'russia', name: 'Novorossiysk Naval Base', lat: 44.7239, lon: 37.7676, note: 'Fleet relocated here' },
+  { id: 'port-kerch', type: 'port', side: 'russia', name: 'Kerch Port / Strait', lat: 45.3531, lon: 36.4761, note: 'Crimean Bridge nearby' },
+  { id: 'port-mariupol-occ', type: 'port', side: 'russia', name: 'Mariupol Port', lat: 47.0800, lon: 37.5600, note: 'Occupied — limited ops' },
+  { id: 'port-berdyansk', type: 'port', side: 'russia', name: 'Berdyansk Port', lat: 46.7558, lon: 36.7939, note: 'Occupied — struck Mar 2022' },
+  // Key logistics / supply depots
+  { id: 'depot-khmelnitsky', type: 'depot', side: 'ukraine', name: 'Khmelnytskyi Depot', lat: 49.4230, lon: 26.9871, note: 'Western arms supply hub' },
+  { id: 'depot-pavlohrad', type: 'depot', side: 'ukraine', name: 'Pavlohrad Ammo Depot', lat: 48.5337, lon: 35.8705, note: 'Major munitions storage' },
+  { id: 'bridge-crimea', type: 'bridge', side: 'russia', name: 'Crimean Bridge', lat: 45.3050, lon: 36.5150, note: 'Kerch Strait — damaged, partially operational' },
+  // Air defense sites
+  { id: 'ad-kyiv', type: 'airdefense', side: 'ukraine', name: 'Kyiv Air Defense Ring', lat: 50.40, lon: 30.40, note: 'Patriot / NASAMS umbrella' },
+  { id: 'ad-odesa', type: 'airdefense', side: 'ukraine', name: 'Odesa AD Coverage', lat: 46.50, lon: 30.60, note: 'IRIS-T / NASAMS' },
+];
+
+// ─── Black Sea naval positions (approximate patrol/presence areas) ───
+export const NAVAL_POSITIONS = [
+  // Russian Navy — Black Sea Fleet
+  { id: 'ru-nav-patrol-west', side: 'russia', type: 'patrol', name: 'BSF Western Patrol', lat: 43.80, lon: 32.50, vessels: '2–3 frigates', note: 'Kalibr launch zone', status: 'active' },
+  { id: 'ru-nav-patrol-south', side: 'russia', type: 'patrol', name: 'BSF Southern Patrol', lat: 43.20, lon: 35.00, vessels: '1–2 corvettes', note: 'Defensive screen', status: 'active' },
+  { id: 'ru-nav-novorossiysk', side: 'russia', type: 'anchorage', name: 'Novorossiysk Anchorage', lat: 44.60, lon: 37.80, vessels: 'Fleet main body', note: 'Relocated from Sevastopol', status: 'active' },
+  { id: 'ru-nav-azov', side: 'russia', type: 'patrol', name: 'Sea of Azov Patrol', lat: 46.30, lon: 37.00, vessels: '1–2 patrol boats', note: 'Coastal defense', status: 'active' },
+  { id: 'ru-sub-area', side: 'russia', type: 'submarine', name: 'Kilo-class Submarine Area', lat: 43.50, lon: 34.00, vessels: '1–3 Kilo-class SSK', note: 'Kalibr-armed', status: 'active' },
+  // Ukrainian Navy — limited surface but active with USVs
+  { id: 'ua-nav-odesa', side: 'ukraine', type: 'coastal', name: 'Odesa Coastal Defense', lat: 46.40, lon: 30.90, vessels: 'Coastal batteries + USVs', note: 'Neptune AShM', status: 'active' },
+  { id: 'ua-usv-ops', side: 'ukraine', type: 'usv', name: 'USV Operations Zone', lat: 44.80, lon: 32.80, vessels: 'Unmanned surface vehicles', note: 'Sea Baby / MAGURA V5 drones', status: 'active' },
+  { id: 'ua-nav-grain', side: 'ukraine', type: 'corridor', name: 'Grain Corridor', lat: 45.50, lon: 30.80, vessels: 'Merchant traffic', note: 'UA-enforced humanitarian corridor', status: 'active' },
+  // Notable sunk/damaged
+  { id: 'ru-moskva-sunk', side: 'russia', type: 'wreck', name: 'Moskva (sunk)', lat: 45.17, lon: 31.00, vessels: 'Slava-class cruiser', note: 'Sunk 14 Apr 2022 — Neptune strike', status: 'destroyed' },
+];
+
+// ─── Ukraine–Russia international border (pre-2014 recognized) ───
+// Approximate traced border from west (Sumy/Chernihiv oblasts) to Sea of Azov
+export const INTERNATIONAL_BORDER = {
+  type: 'Feature',
+  properties: { label: 'Ukraine–Russia Border' },
+  geometry: {
+    type: 'LineString',
+    coordinates: [
+      // Far NW — Chernihiv / Bryansk border area
+      [31.80, 52.30], [32.00, 52.25], [32.20, 52.18], [32.40, 52.10],
+      [32.60, 52.05], [32.80, 52.00], [33.00, 51.95], [33.20, 51.92],
+      [33.40, 51.88], [33.60, 51.85], [33.80, 51.82], [34.00, 51.80],
+      // Sumy oblast border
+      [34.20, 51.78], [34.40, 51.75], [34.60, 51.68], [34.80, 51.60],
+      [35.00, 51.55], [35.20, 51.48], [35.40, 51.40], [35.60, 51.32],
+      [35.80, 51.22], [36.00, 51.12], [36.10, 51.05],
+      // Kharkiv oblast border — curves SE
+      [36.20, 50.98], [36.30, 50.90], [36.35, 50.80], [36.30, 50.70],
+      [36.25, 50.60], [36.22, 50.50], [36.25, 50.40], [36.30, 50.34],
+      // East into Luhansk — the border veers east
+      [36.60, 50.32], [36.90, 50.30], [37.20, 50.30], [37.50, 50.28],
+      [37.80, 50.25], [38.10, 50.18], [38.40, 50.10], [38.70, 50.00],
+      [39.00, 49.90], [39.20, 49.80], [39.40, 49.70],
+      // Luhansk oblast eastern border
+      [39.60, 49.55], [39.70, 49.40], [39.80, 49.20], [39.85, 49.00],
+      [39.90, 48.80], [39.95, 48.60], [40.00, 48.40], [40.05, 48.20],
+      // Donetsk oblast — border turns SW toward Sea of Azov
+      [40.00, 48.00], [39.90, 47.80], [39.75, 47.60], [39.60, 47.40],
+      [39.40, 47.25], [39.20, 47.10],
+      // Sea of Azov coast
+      [38.90, 47.05], [38.50, 47.08], [38.20, 47.10],
+    ],
+  },
+};
+
 // ─── Casualties data (estimates compiled from multiple OSINT sources) ───
 export const CASUALTIES = {
   ukraine: {

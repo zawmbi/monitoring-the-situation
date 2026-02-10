@@ -1,48 +1,43 @@
 /**
  * ConflictOverlay — Russia-Ukraine conflict map layers
- * Renders frontlines with recency colors, occupied territory,
- * coat of arms markers, and NATO division symbols.
- *
- * Styling approach: clean military-map aesthetic
- *  - Subtle red fill for occupied territory
- *  - Firm center line colored by recency
- *  - Thin UA/RU national-color side indicators (not thick dashed stripes)
- *  - Professional sector labels with status badges
+ * Renders frontlines, international border, capitals, cities,
+ * military infrastructure, naval positions, coat of arms, and troop symbols.
  */
 import { useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 import {
   FRONTLINE_SEGMENTS,
-  OCCUPIED_TERRITORY,
   TROOP_POSITIONS,
   COAT_OF_ARMS,
+  CAPITALS,
+  MAJOR_CITIES,
+  MILITARY_INFRASTRUCTURE,
+  NAVAL_POSITIONS,
+  INTERNATIONAL_BORDER,
   UA_BLUE,
   UA_YELLOW,
   RU_RED,
-  RU_BLUE,
   getFrontlineColor,
 } from './conflictData';
 
-// ─── NATO APP-6 style unit symbol renderer ───
+/* ───────────────────────────────────────────
+   Marker sub-components
+   ─────────────────────────────────────────── */
+
+// NATO APP-6 style unit symbol
 function NatoSymbol({ unit, onClick }) {
   const isUA = unit.side === 'ukraine';
   const bgColor = isUA ? UA_BLUE : RU_RED;
   const borderColor = isUA ? UA_YELLOW : '#fff';
 
   const typeIcon = {
-    infantry: '╳',
-    mechanized: '╳⊙',
-    armor: '⊙',
-    artillery: '●',
-    marines: '⚓',
+    infantry: '╳', mechanized: '╳⊙', armor: '⊙',
+    artillery: '●', marines: '⚓',
   }[unit.unitType] || '╳';
 
   const sizePips = {
-    battalion: 'II',
-    regiment: 'III',
-    brigade: '╳',
-    division: '╳╳',
-    corps: '╳╳╳',
+    battalion: 'II', regiment: 'III', brigade: '╳',
+    division: '╳╳', corps: '╳╳╳',
   }[unit.unitSize] || '╳';
 
   return (
@@ -60,7 +55,7 @@ function NatoSymbol({ unit, onClick }) {
   );
 }
 
-// ─── Coat of Arms SVG markers ───
+// Coat of Arms SVG
 function CoatOfArms({ country }) {
   if (country === 'ukraine') {
     return (
@@ -100,32 +95,107 @@ function CoatOfArms({ country }) {
   );
 }
 
+// Capital city marker (star)
+function CapitalMarker({ city }) {
+  const isUA = city.country === 'ukraine';
+  return (
+    <div className={`conflict-capital conflict-capital--${city.country}`} title={`${city.name} — Capital`}>
+      <svg viewBox="0 0 24 24" width="22" height="22">
+        <polygon
+          points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"
+          fill={isUA ? UA_BLUE : RU_RED}
+          stroke={isUA ? UA_YELLOW : '#FFD700'}
+          strokeWidth="1.5"
+        />
+      </svg>
+      <span className="conflict-capital-label">{city.name}</span>
+    </div>
+  );
+}
+
+// City dot marker
+function CityMarker({ city }) {
+  const colorClass = city.country === 'ukraine' ? 'ua'
+    : city.country === 'russia' ? 'ru' : 'occ';
+  return (
+    <div className={`conflict-city conflict-city--${colorClass}`} title={city.note || city.name}>
+      <span className="conflict-city-dot" />
+      <span className="conflict-city-label">{city.name}</span>
+    </div>
+  );
+}
+
+// Infrastructure icon
+const INFRA_ICONS = {
+  airbase: '✈',
+  port: '⚓',
+  depot: '◆',
+  bridge: '⌇',
+  airdefense: '⊕',
+};
+
+function InfraMarker({ item }) {
+  const isUA = item.side === 'ukraine';
+  return (
+    <div
+      className={`conflict-infra conflict-infra--${item.type} conflict-infra--${isUA ? 'ua' : 'ru'}`}
+      title={`${item.name}${item.note ? ` — ${item.note}` : ''}`}
+    >
+      <span className="conflict-infra-icon">{INFRA_ICONS[item.type] || '●'}</span>
+      <span className="conflict-infra-label">{item.name.split(' ')[0]}</span>
+    </div>
+  );
+}
+
+// Naval position marker
+const NAVAL_ICONS = {
+  patrol: '⛵',
+  anchorage: '⚓',
+  submarine: '▼',
+  coastal: '⛳',
+  usv: '◈',
+  corridor: '⇢',
+  wreck: '✕',
+};
+
+function NavalMarker({ pos }) {
+  const isUA = pos.side === 'ukraine';
+  const isWreck = pos.status === 'destroyed';
+  return (
+    <div
+      className={`conflict-naval conflict-naval--${isUA ? 'ua' : 'ru'} ${isWreck ? 'conflict-naval--wreck' : ''}`}
+      title={`${pos.name}\n${pos.vessels}\n${pos.note || ''}`}
+    >
+      <span className="conflict-naval-icon">{NAVAL_ICONS[pos.type] || '●'}</span>
+      <span className="conflict-naval-label">{pos.name.replace(/^(BSF |UA )/, '')}</span>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────
+   Main overlay
+   ─────────────────────────────────────────── */
+
 export default function ConflictOverlay({ visible, onTroopClick, showTroops = true }) {
   const visibility = visible ? 'visible' : 'none';
 
-  // Build frontline GeoJSON with per-segment colors
+  // Frontline GeoJSON
   const frontlineGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: FRONTLINE_SEGMENTS.map((seg) => ({
       type: 'Feature',
       properties: {
-        id: seg.id,
-        label: seg.label,
-        status: seg.status,
+        id: seg.id, label: seg.label, status: seg.status,
         color: getFrontlineColor(seg.asOf),
-        asOf: seg.asOf,
       },
-      geometry: {
-        type: 'LineString',
-        coordinates: seg.points,
-      },
+      geometry: { type: 'LineString', coordinates: seg.points },
     })),
   }), []);
 
-  // Occupied territory GeoJSON
-  const occupiedGeoJSON = useMemo(() => ({
+  // International border GeoJSON
+  const borderGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: [OCCUPIED_TERRITORY],
+    features: [INTERNATIONAL_BORDER],
   }), []);
 
   // Sector label midpoints
@@ -137,36 +207,48 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
 
   return (
     <>
-      {/* ── Occupied territory ── */}
-      <Source id="conflict-occupied" type="geojson" data={occupiedGeoJSON}>
-        {/* Translucent red fill */}
+      {/* ══════════ International border ══════════ */}
+      <Source id="conflict-border" type="geojson" data={borderGeoJSON}>
+        {/* Glow */}
         <Layer
-          id="conflict-occupied-fill"
-          type="fill"
-          layout={{ visibility }}
+          id="conflict-border-glow"
+          type="line"
+          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
-            'fill-color': RU_RED,
-            'fill-opacity': 0.07,
+            'line-color': '#ffffff',
+            'line-width': 8,
+            'line-opacity': 0.06,
+            'line-blur': 3,
           }}
         />
-        {/* Subtle hatched border */}
+        {/* Primary solid line */}
         <Layer
-          id="conflict-occupied-line"
+          id="conflict-border-main"
           type="line"
-          layout={{ visibility }}
+          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
-            'line-color': RU_RED,
-            'line-opacity': 0.18,
-            'line-width': 1,
+            'line-color': '#e0e0e0',
+            'line-width': 2.5,
+            'line-opacity': 0.7,
+          }}
+        />
+        {/* Dashed overlay for international-border look */}
+        <Layer
+          id="conflict-border-dash"
+          type="line"
+          layout={{ visibility, 'line-cap': 'butt' }}
+          paint={{
+            'line-color': '#ffffff',
+            'line-width': 1.5,
             'line-dasharray': [6, 4],
+            'line-opacity': 0.5,
           }}
         />
       </Source>
 
-      {/* ── Frontline ── */}
+      {/* ══════════ Frontline ══════════ */}
       <Source id="conflict-frontline" type="geojson" data={frontlineGeoJSON}>
-
-        {/* Outer glow — soft, wide, recency-colored */}
+        {/* Outer glow */}
         <Layer
           id="conflict-fl-glow"
           type="line"
@@ -178,8 +260,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
             'line-blur': 4,
           }}
         />
-
-        {/* Ukraine side — thin blue line */}
+        {/* UA side */}
         <Layer
           id="conflict-fl-ua"
           type="line"
@@ -191,8 +272,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
             'line-opacity': 0.8,
           }}
         />
-
-        {/* Center frontline — the main line, recency-colored */}
+        {/* Center line */}
         <Layer
           id="conflict-fl-center"
           type="line"
@@ -202,8 +282,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
             'line-width': 2.5,
           }}
         />
-
-        {/* Russia side — thin red line */}
+        {/* RU side */}
         <Layer
           id="conflict-fl-ru"
           type="line"
@@ -217,7 +296,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         />
       </Source>
 
-      {/* ── Sector labels ── */}
+      {/* ══════════ Sector labels ══════════ */}
       {visible && sectorLabels.map((s) => (
         <Marker key={`cfl-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="right">
           <div className="conflict-sector-label" style={{ marginRight: 18 }}>
@@ -229,7 +308,35 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         </Marker>
       ))}
 
-      {/* ── Coat of Arms ── */}
+      {/* ══════════ Capitals ══════════ */}
+      {visible && CAPITALS.map((c) => (
+        <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="center">
+          <CapitalMarker city={c} />
+        </Marker>
+      ))}
+
+      {/* ══════════ Major cities ══════════ */}
+      {visible && MAJOR_CITIES.map((c) => (
+        <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="left">
+          <CityMarker city={c} />
+        </Marker>
+      ))}
+
+      {/* ══════════ Military infrastructure ══════════ */}
+      {visible && MILITARY_INFRASTRUCTURE.map((item) => (
+        <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
+          <InfraMarker item={item} />
+        </Marker>
+      ))}
+
+      {/* ══════════ Black Sea naval positions ══════════ */}
+      {visible && NAVAL_POSITIONS.map((pos) => (
+        <Marker key={pos.id} longitude={pos.lon} latitude={pos.lat} anchor="center">
+          <NavalMarker pos={pos} />
+        </Marker>
+      ))}
+
+      {/* ══════════ Coat of Arms ══════════ */}
       {visible && (
         <>
           <Marker longitude={COAT_OF_ARMS.ukraine.lon} latitude={COAT_OF_ARMS.ukraine.lat} anchor="center">
@@ -241,7 +348,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         </>
       )}
 
-      {/* ── NATO Division Symbols ── */}
+      {/* ══════════ NATO troop symbols ══════════ */}
       {visible && showTroops && TROOP_POSITIONS.map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
           <NatoSymbol unit={unit} onClick={onTroopClick} />
