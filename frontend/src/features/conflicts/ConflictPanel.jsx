@@ -8,6 +8,7 @@ import {
   CASUALTIES,
   EQUIPMENT,
   COMMAND,
+  DECEASED_COMMANDERS,
   CONFLICT_SUMMARY,
   RECENCY_LEGEND,
   TERRITORIAL_CONTROL,
@@ -399,6 +400,7 @@ function SanctionsTab() {
 
 /* ─── Command Tab ─── */
 function CommandTab() {
+  const [showDeceased, setShowDeceased] = useState(false);
   return (
     <div className="conflict-tab-body">
       <div className="conflict-cmd-section">
@@ -433,6 +435,56 @@ function CommandTab() {
           <span className="conflict-cmd-name">Russia</span>
           <span className="conflict-cmd-role">{CONFLICT_SUMMARY.internationalSupport.russia}</span>
         </div>
+      </div>
+
+      <div className="conflict-cmd-section">
+        <button className="conflict-deceased-toggle" onClick={() => setShowDeceased(!showDeceased)}>
+          {showDeceased ? 'Hide' : 'Show'} Fallen Commanders
+        </button>
+
+        {showDeceased && (
+          <div className="conflict-deceased-section">
+            <div className="conflict-deceased-header">
+              <span className="conflict-side-dot" style={{ background: RU_RED }} /> Russian Fallen Officers
+            </div>
+            <div className="conflict-cmd-list">
+              {DECEASED_COMMANDERS.russia.map((cmd) => (
+                <div key={cmd.name} className="conflict-cmd-item conflict-deceased-item">
+                  <div className="conflict-deceased-name-row">
+                    <span className="conflict-deceased-cross">☦</span>
+                    <span className="conflict-cmd-name">{cmd.rank} {cmd.name}</span>
+                  </div>
+                  <div className="conflict-deceased-details">
+                    <span className="conflict-cmd-role">{cmd.role}</span>
+                    <span className="conflict-deceased-date">{cmd.date}</span>
+                  </div>
+                  <div className="conflict-deceased-cause">{cmd.cause}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="conflict-deceased-header" style={{ marginTop: 14 }}>
+              <span className="conflict-side-dot" style={{ background: UA_BLUE }} /> Ukrainian Fallen Officers
+            </div>
+            <div className="conflict-cmd-list">
+              {DECEASED_COMMANDERS.ukraine.map((cmd) => (
+                <div key={cmd.name} className="conflict-cmd-item conflict-deceased-item">
+                  <div className="conflict-deceased-name-row">
+                    <span className="conflict-deceased-cross">☦</span>
+                    <span className="conflict-cmd-name">{cmd.rank} {cmd.name}</span>
+                  </div>
+                  <div className="conflict-deceased-details">
+                    <span className="conflict-cmd-role">{cmd.role}</span>
+                    <span className="conflict-deceased-date">{cmd.date}</span>
+                  </div>
+                  <div className="conflict-deceased-cause">{cmd.cause}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="conflict-sources">{DECEASED_COMMANDERS.source}</div>
+          </div>
+        )}
       </div>
     </div>
   );

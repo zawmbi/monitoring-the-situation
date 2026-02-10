@@ -105,7 +105,7 @@ function CapitalMarker({ city }) {
   const isUA = city.country === 'ukraine';
   return (
     <div className={`conflict-capital conflict-capital--${city.country}`} title={`${city.name} — Capital`}>
-      <svg viewBox="0 0 24 24" width="22" height="22">
+      <svg viewBox="0 0 24 24" width="26" height="26">
         <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"
           fill={isUA ? UA_BLUE : RU_RED} stroke={isUA ? UA_YELLOW : '#FFD700'} strokeWidth="1.5" />
       </svg>
@@ -149,13 +149,58 @@ function NavalMarker({ pos }) {
   );
 }
 
-function BattleSiteMarker({ site }) {
+function BattleSiteMarker({ site, onClick }) {
   const resultClass = site.result.startsWith('RU') ? 'ru' : site.result.startsWith('UA') ? 'ua' : 'contested';
   return (
     <div className={`conflict-battle conflict-battle--${resultClass}`}
-      title={`${site.name}\n${site.date}\nResult: ${site.result}\n${site.note}`}>
+      onClick={(e) => { e.stopPropagation(); onClick?.(site); }}
+      title={`${site.name} — Click for details`}>
       <span className="conflict-battle-icon">⚔</span>
       <span className="conflict-battle-label">{site.name.replace(/^(Battle of |Siege of )/, '')}</span>
+    </div>
+  );
+}
+
+function BattlePopup({ site, onClose }) {
+  if (!site) return null;
+  const resultClass = site.result.startsWith('RU') ? 'ru' : site.result.startsWith('UA') ? 'ua' : 'contested';
+  return (
+    <div className="conflict-battle-popup" onClick={(e) => e.stopPropagation()}>
+      <div className="conflict-battle-popup-header">
+        <div className="conflict-battle-popup-title">{site.name}</div>
+        <button className="conflict-battle-popup-close" onClick={onClose}>✕</button>
+      </div>
+      <div className={`conflict-battle-popup-result conflict-battle-popup-result--${resultClass}`}>
+        {site.result}
+      </div>
+      <div className="conflict-battle-popup-date">{site.date}</div>
+
+      <div className="conflict-battle-popup-sides">
+        <div className="conflict-battle-popup-side conflict-battle-popup-side--ru">
+          <div className="conflict-battle-popup-side-label">
+            <span className="conflict-side-dot" style={{ background: RU_RED }} /> Russia
+          </div>
+          <div className="conflict-battle-popup-row"><span>Commander</span><span>{site.ruCommander}</span></div>
+          <div className="conflict-battle-popup-row"><span>Troops</span><span>{site.ruTroops}</span></div>
+          <div className="conflict-battle-popup-row"><span>Equipment</span><span>{site.ruEquipment}</span></div>
+          <div className="conflict-battle-popup-row"><span>Casualties</span><span>{site.ruCasualties}</span></div>
+        </div>
+        <div className="conflict-battle-popup-side conflict-battle-popup-side--ua">
+          <div className="conflict-battle-popup-side-label">
+            <span className="conflict-side-dot" style={{ background: UA_BLUE }} /> Ukraine
+          </div>
+          <div className="conflict-battle-popup-row"><span>Commander</span><span>{site.uaCommander}</span></div>
+          <div className="conflict-battle-popup-row"><span>Troops</span><span>{site.uaTroops}</span></div>
+          <div className="conflict-battle-popup-row"><span>Equipment</span><span>{site.uaEquipment}</span></div>
+          <div className="conflict-battle-popup-row"><span>Casualties</span><span>{site.uaCasualties}</span></div>
+        </div>
+      </div>
+
+      <div className="conflict-battle-popup-significance">
+        <div className="conflict-battle-popup-sig-title">Significance</div>
+        <div className="conflict-battle-popup-sig-text">{site.significance}</div>
+      </div>
+      <div className="conflict-battle-popup-note">{site.note}</div>
     </div>
   );
 }
@@ -254,22 +299,60 @@ function MapLegend({ open, onToggle }) {
             </div>
           </div>
           <div className="conflict-map-legend-section">
-            <div className="conflict-map-legend-heading">NATO Unit Symbols</div>
+            <div className="conflict-map-legend-heading">NATO Unit Symbols — Affiliation</div>
             <div className="conflict-map-legend-row">
               <span className="conflict-map-legend-nato" style={{ background: UA_BLUE, borderColor: UA_YELLOW }}>╳</span>
-              <span>Ukrainian unit (infantry)</span>
+              <span>Ukrainian unit</span>
             </div>
             <div className="conflict-map-legend-row">
               <span className="conflict-map-legend-nato" style={{ background: RU_RED, borderColor: '#fff' }}>╳</span>
-              <span>Russian unit (infantry)</span>
+              <span>Russian unit</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Unit Type (symbol inside box)</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳</span>
+              <span>Infantry</span>
             </div>
             <div className="conflict-map-legend-row">
               <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⊙</span>
-              <span>Armor</span>
+              <span>Armor / Tanks</span>
             </div>
             <div className="conflict-map-legend-row">
               <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳⊙</span>
-              <span>Mechanized</span>
+              <span>Mechanized Infantry</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>●</span>
+              <span>Artillery</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⚓</span>
+              <span>Marines</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Unit Size (pips above box)</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-pips">II</span>
+              <span>Battalion (~300–1,000)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-pips">III</span>
+              <span>Regiment (~1,000–3,000)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-pips">╳</span>
+              <span>Brigade (~3,000–5,000)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-pips">╳╳</span>
+              <span>Division (~10,000–20,000)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-pips">╳╳╳</span>
+              <span>Corps (~20,000–40,000)</span>
             </div>
           </div>
           <div className="conflict-map-legend-section">
@@ -296,6 +379,7 @@ function MapLegend({ open, onToggle }) {
 export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2 }) {
   const visibility = visible ? 'visible' : 'none';
   const [legendOpen, setLegendOpen] = useState(false);
+  const [selectedBattle, setSelectedBattle] = useState(null);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
   const showLabels = zoom >= ZOOM_SHOW_LABELS;
@@ -400,9 +484,16 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       {/* ══════════ Battle sites (zoom-gated) ══════════ */}
       {visible && showDetail && BATTLE_SITES.map((site) => (
         <Marker key={site.id} longitude={site.lon} latitude={site.lat} anchor="center">
-          <BattleSiteMarker site={site} />
+          <BattleSiteMarker site={site} onClick={setSelectedBattle} />
         </Marker>
       ))}
+
+      {/* ══════════ Battle popup ══════════ */}
+      {visible && selectedBattle && (
+        <Marker longitude={selectedBattle.lon} latitude={selectedBattle.lat} anchor="bottom">
+          <BattlePopup site={selectedBattle} onClose={() => setSelectedBattle(null)} />
+        </Marker>
+      )}
 
       {/* ══════════ Nuclear power plants (zoom-gated) ══════════ */}
       {visible && showDetail && NUCLEAR_PLANTS.map((plant) => (
