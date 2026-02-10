@@ -19,15 +19,17 @@ export default defineConfig(({ mode }) => {
     envDir: rootDir,
     resolve: {
       dedupe: ['react', 'react-dom', 'maplibre-gl'],
-      alias: {
-        'react': path.resolve(__dirname, '../node_modules/react'),
-        'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
-        'maplibre-gl': path.resolve(__dirname, '../node_modules/maplibre-gl'),
-      },
+      alias: [
+        { find: 'react', replacement: path.resolve(__dirname, '../node_modules/react') },
+        { find: 'react-dom', replacement: path.resolve(__dirname, '../node_modules/react-dom') },
+        // Exact-match only: use the dev (non-minified) build so esbuild pre-bundling
+        // doesn't break class prototype chains on the mega-long single-line minified code.
+        // Regex ensures sub-path imports like 'maplibre-gl/dist/maplibre-gl.css' still resolve normally.
+        { find: /^maplibre-gl$/, replacement: path.resolve(__dirname, '../node_modules/maplibre-gl/dist/maplibre-gl-dev.js') },
+      ],
     },
     optimizeDeps: {
       include: ['react', 'react-dom', '@vis.gl/react-maplibre', 'maplibre-gl'],
-      force: true,
     },
     server: {
       host: '0.0.0.0',

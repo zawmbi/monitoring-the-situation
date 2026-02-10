@@ -1347,10 +1347,15 @@ function App() {
 
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
-    mapRef.current = evt.target;
+    const map = evt.target;
+    mapRef.current = map;
     setMapLoaded(true);
+    // Explicitly set globe projection on the raw map after load
+    if (map.setProjection && useGlobeRef.current) {
+      map.setProjection({ type: 'globe' });
+    }
     // Faster, smoother scroll zoom
-    const sh = evt.target.scrollZoom;
+    const sh = map.scrollZoom;
     if (sh) {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
@@ -1948,6 +1953,7 @@ function App() {
         <MapGL
           mapLib={maplibregl}
           mapStyle={mapStyle}
+          projection={useGlobe ? { type: 'globe' } : { type: 'mercator' }}
           onLoad={onMapLoad}
           initialViewState={{
             longitude: 0,
