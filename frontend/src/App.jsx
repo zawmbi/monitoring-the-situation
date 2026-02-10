@@ -1344,8 +1344,6 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
-  // React ref to access the map via react-maplibre's useImperativeHandle
-  const mapGLRef = useRef(null);
 
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
@@ -1357,29 +1355,6 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // Vite pre-bundling breaks the Map prototype chain — setProjection is missing
-    // from both the instance and Map.prototype. Bypass entirely via Style internals.
-    const map = evt.target;
-    const applyGlobeProjection = () => {
-      if (!useGlobeRef.current) return;
-      const style = map.style;
-      if (style && style.setProjection) {
-        style.setProjection({ type: 'globe' });
-        map._update(true);
-        console.log('[Globe] Set via style.setProjection');
-      } else if (style && style._setProjectionInternal) {
-        style._setProjectionInternal('globe');
-        map._update(true);
-        console.log('[Globe] Set via style._setProjectionInternal');
-      } else {
-        console.log('[Globe] style:', !!style,
-          'style.setProjection:', typeof style?.setProjection,
-          'style._setProjectionInternal:', typeof style?._setProjectionInternal);
-      }
-    };
-    applyGlobeProjection();
-    // Re-apply after style reloads (theme/holo changes)
-    map.on('style.load', () => applyGlobeProjection());
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1423,19 +1398,11 @@ function App() {
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
-  // Apply projection when useGlobe toggles via Style internals
+  // Apply projection when useGlobe toggles
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-    const style = map.style;
-    const type = useGlobe ? 'globe' : 'mercator';
-    if (style && style.setProjection) {
-      style.setProjection({ type });
-      map._update(true);
-    } else if (style && style._setProjectionInternal) {
-      style._setProjectionInternal(type);
-      map._update(true);
-    }
+    if (!map || !mapLoaded || !map.setProjection) return;
+    map.setProjection({ type: useGlobe ? 'globe' : 'mercator' });
   }, [useGlobe, mapLoaded]);
 
   // Auto-rotate globe
@@ -1979,7 +1946,6 @@ function App() {
         )}
 
         <MapGL
-          ref={mapGLRef}
           mapLib={maplibregl}
           mapStyle={mapStyle}
           onLoad={onMapLoad}

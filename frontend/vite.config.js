@@ -18,14 +18,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     envDir: rootDir,
     resolve: {
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'maplibre-gl'],
       alias: {
         'react': path.resolve(__dirname, '../node_modules/react'),
         'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
+        'maplibre-gl': path.resolve(__dirname, '../node_modules/maplibre-gl'),
       },
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', '@vis.gl/react-maplibre', 'maplibre-gl'],
+      include: ['react', 'react-dom', '@vis.gl/react-maplibre'],
+      exclude: ['maplibre-gl'],
     },
     server: {
       host: '0.0.0.0',
