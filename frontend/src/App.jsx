@@ -1960,7 +1960,7 @@ function App() {
           touchPitch={useGlobe}
           renderWorldCopies={!useGlobe}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
-          projection={useGlobe ? 'globe' : 'mercator'}
+          projection={useGlobe ? { type: 'globe' } : { type: 'mercator' }}
           maxZoom={8}
           minZoom={1}
         >
