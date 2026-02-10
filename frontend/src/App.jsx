@@ -27,6 +27,9 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import ConflictOverlay from './features/conflicts/ConflictOverlay';
+import ConflictPanel from './features/conflicts/ConflictPanel';
+import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 
@@ -569,6 +572,9 @@ function App() {
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
+  const [conflictMode, setConflictMode] = useState(false);
+  const [conflictPanel, setConflictPanel] = useState({ open: false, pos: { x: 60, y: 80 } });
+  const [conflictShowTroops, setConflictShowTroops] = useState(true);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
   const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
@@ -1676,18 +1682,67 @@ function App() {
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Overlays</div>
+                  <div className="source-group-title">Conflicts</div>
                   <div className="source-group-items">
                     <label className="switch switch-frontline">
-                      <span className="switch-label">UA/RU Frontline</span>
+                      <span className="switch-label">Russia–Ukraine War</span>
                       <input
                         type="checkbox"
-                        checked={showFrontline}
-                        onChange={() => setShowFrontline(prev => !prev)}
+                        checked={conflictMode}
+                        onChange={() => {
+                          setConflictMode(prev => {
+                            if (prev) {
+                              setConflictPanel(p => ({ ...p, open: false }));
+                              setShowFrontline(false);
+                            } else {
+                              setShowFrontline(true);
+                            }
+                            return !prev;
+                          });
+                        }}
                       />
                       <span className="slider" />
                     </label>
                   </div>
+
+                  {conflictMode && (
+                    <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
+                      <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
+                      <strong>Russia–Ukraine War</strong>
+                      <p>
+                        Frontlines, estimated troop positions, and occupied territory are shown on the map. Click for detailed statistics.
+                      </p>
+                      <div className="conflict-sidebar-toggles">
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Show Troop Positions</span>
+                          <input
+                            type="checkbox"
+                            checked={conflictShowTroops}
+                            onChange={() => setConflictShowTroops(prev => !prev)}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                      <button
+                        className="conflict-sidebar-open-btn"
+                        style={{
+                          marginTop: '8px',
+                          width: '100%',
+                          padding: '7px 10px',
+                          background: 'rgba(255, 50, 50, 0.12)',
+                          border: '1px solid rgba(255, 50, 50, 0.25)',
+                          borderRadius: '6px',
+                          color: '#ff6b6b',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setConflictPanel(prev => ({ ...prev, open: !prev.open }))}
+                      >
+                        {conflictPanel.open ? 'Close' : 'Open'} War Statistics Panel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="source-group">
@@ -1947,6 +2002,16 @@ function App() {
             }
             onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
             onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+          />
+        )}
+
+        {/* Conflict panel */}
+        {conflictMode && conflictPanel.open && (
+          <ConflictPanel
+            open={conflictPanel.open}
+            position={conflictPanel.pos}
+            onPositionChange={(pos) => setConflictPanel(prev => ({ ...prev, pos }))}
+            onClose={() => setConflictPanel(prev => ({ ...prev, open: false }))}
           />
         )}
 
@@ -2288,8 +2353,19 @@ function App() {
             />
           </Source>
 
-          {/* UA/RU Frontline Overlay */}
-          <FrontlineOverlay visible={showFrontline} />
+          {/* UA/RU Frontline Overlay (legacy — hidden when conflict mode is on) */}
+          <FrontlineOverlay visible={showFrontline && !conflictMode} />
+
+          {/* Conflict Overlay — frontlines, occupied territory, coat of arms, NATO symbols */}
+          <ConflictOverlay
+            visible={conflictMode}
+            showTroops={conflictShowTroops}
+            onTroopClick={(unit) => {
+              if (!conflictPanel.open) {
+                setConflictPanel(prev => ({ ...prev, open: true }));
+              }
+            }}
+          />
 
           {/* Elevation / Hillshade — on top of country fills so ocean bathymetry is hidden */}
           <Source
