@@ -1,9 +1,9 @@
 /**
- * ConflictPanel — Comprehensive war statistics popup
+ * ConflictPanel — Comprehensive war statistics side panel
  * Casualties, equipment, command, drone/missile warfare,
  * humanitarian, sanctions/economic, territorial control, timeline
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import {
   CASUALTIES,
   EQUIPMENT,
@@ -20,36 +20,8 @@ import {
 } from './conflictData';
 import './conflicts.css';
 
-export default function ConflictPanel({ open, onClose, position, onPositionChange }) {
+export default function ConflictPanel({ open, onClose }) {
   const [tab, setTab] = useState('overview');
-  const dragRef = useRef(null);
-
-  const handleDrag = useCallback((e) => {
-    if (!dragRef.current || !e.clientX) return;
-    onPositionChange?.({ x: e.clientX - dragRef.current.x, y: e.clientY - dragRef.current.y });
-  }, [onPositionChange]);
-
-  const handleDragEnd = useCallback(() => {
-    dragRef.current = null;
-    document.removeEventListener('mousemove', handleDrag);
-    document.removeEventListener('mouseup', handleDragEnd);
-  }, [handleDrag]);
-
-  const handleDragStart = useCallback((e) => {
-    if (e.target.closest('button, a, input, select')) return;
-    dragRef.current = { x: e.clientX - (position?.x || 0), y: e.clientY - (position?.y || 0) };
-    document.addEventListener('mousemove', handleDrag);
-    document.addEventListener('mouseup', handleDragEnd);
-  }, [position, handleDrag, handleDragEnd]);
-
-  useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleDrag);
-      document.removeEventListener('mouseup', handleDragEnd);
-    };
-  }, [handleDrag, handleDragEnd]);
-
-  if (!open) return null;
 
   const days = CONFLICT_SUMMARY.daysSince();
 
@@ -64,10 +36,9 @@ export default function ConflictPanel({ open, onClose, position, onPositionChang
   ];
 
   return (
-    <div className="conflict-panel"
-      style={{ left: position?.x ?? 60, top: position?.y ?? 60 }}>
+    <div className={`conflict-panel ${open ? 'conflict-panel--open' : ''}`}>
 
-      <div className="conflict-panel-header" onMouseDown={handleDragStart}>
+      <div className="conflict-panel-header">
         <div className="conflict-panel-header-left">
           <div className="conflict-panel-flags">
             <span className="conflict-panel-flag" title="Russia">🇷🇺</span>
@@ -80,7 +51,7 @@ export default function ConflictPanel({ open, onClose, position, onPositionChang
           </div>
         </div>
         <button className="conflict-panel-close" onClick={onClose} aria-label="Close">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
