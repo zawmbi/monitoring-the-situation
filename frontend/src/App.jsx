@@ -1424,11 +1424,15 @@ function App() {
   // Apply projection on the raw MapLibre instance when useGlobe changes
   useEffect(() => {
     const rawMap = rawMapRef.current;
-    if (!rawMap || !mapLoaded) return;
+    if (!rawMap || !mapLoaded || !rawMap.setProjection) return;
     const type = useGlobe ? 'vertical-perspective' : 'mercator';
     rawMap.setProjection({ type });
     // Re-apply after a short delay to beat any react-maplibre overrides
-    const t = setTimeout(() => rawMap.setProjection({ type }), 100);
+    const t = setTimeout(() => {
+      if (rawMapRef.current?.setProjection) {
+        rawMapRef.current.setProjection({ type });
+      }
+    }, 100);
     return () => clearTimeout(t);
   }, [useGlobe, mapLoaded]);
 
