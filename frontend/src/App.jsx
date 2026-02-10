@@ -1104,7 +1104,6 @@ function App() {
 
           openCountryPanel(name, { x, y });
           setPolymarketCountry(name);
-          setShowPolymarketPanel(true);
         }
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
@@ -1586,6 +1585,20 @@ function App() {
                         <span className="slider" />
                       </label>
                     ))}
+                    <label className="switch switch-stocks">
+                      <span className="switch-label">Betting Markets</span>
+                      <input
+                        type="checkbox"
+                        checked={showPolymarketPanel}
+                        onChange={() => {
+                          setShowPolymarketPanel(prev => {
+                            if (!prev) setPolymarketCountry(null);
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
                   </div>
                 </div>
 
@@ -1883,7 +1896,7 @@ function App() {
           error={polymarketsError}
           lastUpdated={polymarketsLastUpdated}
           country={polymarketCountry}
-          onClose={() => setShowPolymarketPanel(false)}
+          onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
           onRefresh={refreshPolymarkets}
         />
 
