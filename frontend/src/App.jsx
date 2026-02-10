@@ -1642,9 +1642,13 @@ function App() {
                       />
                       <span className="slider" />
                     </label>
-                    <label className="switch switch-neutral switch-disabled">
-                      <span className="switch-label">Tariffs & Trade (WIP)</span>
-                      <input type="checkbox" checked={false} disabled />
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Tariffs & Trade</span>
+                      <input
+                        type="checkbox"
+                        checked={showTariffHeatmap}
+                        onChange={() => setShowTariffHeatmap(prev => !prev)}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
