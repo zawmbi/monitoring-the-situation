@@ -33,6 +33,7 @@ export default function ConflictPanel({ open, onClose }) {
     { id: 'sanctions', label: 'Sanctions' },
     { id: 'command', label: 'Command' },
     { id: 'timeline', label: 'Timeline' },
+    { id: 'donate', label: 'Donate' },
   ];
 
   return (
@@ -72,6 +73,7 @@ export default function ConflictPanel({ open, onClose }) {
         {tab === 'sanctions' && <SanctionsTab />}
         {tab === 'command' && <CommandTab />}
         {tab === 'timeline' && <TimelineTab />}
+        {tab === 'donate' && <DonateTab />}
       </div>
 
       <div className="conflict-panel-footer">
@@ -453,6 +455,101 @@ function TimelineTab() {
             <div className="conflict-timeline-event">{evt.event}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Donate Tab ─── */
+const CHARITIES = [
+  {
+    name: 'United24',
+    icon: '🇺🇦',
+    url: 'https://u24.gov.ua',
+    desc: 'Official fundraising platform of Ukraine — defense, medical, reconstruction',
+  },
+  {
+    name: 'Come Back Alive',
+    icon: '🛡',
+    url: 'https://savelife.in.ua/en/donate-en/',
+    desc: 'Largest UA volunteer org — equipment, training, tech for military',
+  },
+  {
+    name: 'Razom for Ukraine',
+    icon: '💙',
+    url: 'https://www.razomforukraine.org',
+    desc: 'US-based 501(c)(3) — medical supplies, tech, humanitarian aid',
+  },
+  {
+    name: 'UNHCR Ukraine',
+    icon: '🏠',
+    url: 'https://www.unhcr.org/countries/ukraine',
+    desc: 'UN Refugee Agency — shelter, cash assistance, protection for displaced',
+  },
+  {
+    name: 'UNICEF Ukraine',
+    icon: '👶',
+    url: 'https://www.unicef.org/ukraine/',
+    desc: 'Children & families — healthcare, education, clean water, psychosocial support',
+  },
+  {
+    name: 'Hospitallers Medical Battalion',
+    icon: '🏥',
+    url: 'https://www.hospitallers.life/needs-of-hospitallers',
+    desc: 'Volunteer paramedic unit — frontline medical evacuation & trauma care',
+  },
+  {
+    name: 'World Central Kitchen',
+    icon: '🍲',
+    url: 'https://wck.org',
+    desc: 'Hot meals for communities near the frontline and displaced families',
+  },
+  {
+    name: 'Serhiy Prytula Foundation',
+    icon: '🎯',
+    url: 'https://prytulafoundation.org/en',
+    desc: 'Drones, vehicles, equipment for UA military; humanitarian programs',
+  },
+  {
+    name: 'Nova Ukraine',
+    icon: '💛',
+    url: 'https://novaukraine.org',
+    desc: 'US-based nonprofit — humanitarian aid, refugee assistance, education',
+  },
+  {
+    name: 'International Committee of the Red Cross',
+    icon: '🔴',
+    url: 'https://www.icrc.org/en/where-we-work/europe-central-asia/ukraine',
+    desc: 'POW visits, family reunification, medical care, mine clearance',
+  },
+];
+
+function DonateTab() {
+  return (
+    <div className="conflict-tab-body">
+      <div className="conflict-donate-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+        <div className="conflict-donate-title">
+          Support Ukraine
+        </div>
+        <div className="conflict-donate-subtitle">
+          Verified organizations providing humanitarian, medical, and defense support to Ukraine and its people.
+        </div>
+        <div className="conflict-donate-list">
+          {CHARITIES.map((c) => (
+            <a key={c.name} className="conflict-donate-item"
+              href={c.url} target="_blank" rel="noopener noreferrer">
+              <span className="conflict-donate-item-icon">{c.icon}</span>
+              <div className="conflict-donate-item-info">
+                <div className="conflict-donate-item-name">{c.name}</div>
+                <div className="conflict-donate-item-desc">{c.desc}</div>
+              </div>
+              <span className="conflict-donate-item-arrow">&rsaquo;</span>
+            </a>
+          ))}
+        </div>
+        <div className="conflict-donate-disclaimer">
+          Links go directly to official charity websites. We are not affiliated with and do not receive funds from any of these organizations.
+        </div>
       </div>
     </div>
   );
