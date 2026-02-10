@@ -45,6 +45,195 @@
   text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
 }
 
+/* ── Capital city markers ── */
+
+.conflict-capital {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+  cursor: default;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+
+.conflict-capital svg {
+  display: block;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+}
+
+.conflict-capital-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.conflict-capital--ukraine .conflict-capital-label {
+  color: #FFD500;
+}
+
+.conflict-capital--russia .conflict-capital-label {
+  color: #ff8a80;
+}
+
+/* ── City dot markers ── */
+
+.conflict-city {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.conflict-city-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.conflict-city--ua .conflict-city-dot {
+  background: #5baaff;
+  box-shadow: 0 0 4px rgba(91, 170, 255, 0.5);
+}
+
+.conflict-city--ru .conflict-city-dot {
+  background: #ff8a80;
+  box-shadow: 0 0 4px rgba(255, 100, 80, 0.4);
+}
+
+.conflict-city--occ .conflict-city-dot {
+  background: #ff6b6b;
+  box-shadow: 0 0 4px rgba(255, 107, 107, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.conflict-city-label {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.conflict-city--ua .conflict-city-label {
+  color: rgba(200, 220, 255, 0.9);
+}
+
+.conflict-city--ru .conflict-city-label {
+  color: rgba(255, 200, 190, 0.85);
+}
+
+.conflict-city--occ .conflict-city-label {
+  color: rgba(255, 170, 160, 0.85);
+  font-style: italic;
+}
+
+/* ── Military infrastructure markers ── */
+
+.conflict-infra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: auto;
+  cursor: default;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.conflict-infra:hover {
+  opacity: 1;
+}
+
+.conflict-infra-icon {
+  font-size: 14px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}
+
+.conflict-infra--ua .conflict-infra-icon {
+  color: #82b1ff;
+}
+
+.conflict-infra--ru .conflict-infra-icon {
+  color: #ff8a80;
+}
+
+.conflict-infra--airbase .conflict-infra-icon {
+  font-size: 16px;
+}
+
+.conflict-infra-label {
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--color-text-muted, #888);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Naval position markers ── */
+
+.conflict-naval {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: auto;
+  cursor: default;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.conflict-naval:hover {
+  opacity: 1;
+}
+
+.conflict-naval-icon {
+  font-size: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+}
+
+.conflict-naval--ru .conflict-naval-icon {
+  color: #ff8a80;
+}
+
+.conflict-naval--ua .conflict-naval-icon {
+  color: #82b1ff;
+}
+
+.conflict-naval--wreck .conflict-naval-icon {
+  color: #888;
+  opacity: 0.6;
+}
+
+.conflict-naval-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(180, 210, 255, 0.7);
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conflict-naval--ru .conflict-naval-label {
+  color: rgba(255, 180, 170, 0.7);
+}
+
+.conflict-naval--wreck .conflict-naval-label {
+  color: rgba(150, 150, 150, 0.6);
+  text-decoration: line-through;
+}
+
 /* ── Coat of Arms ── */
 
 .conflict-coa {
