@@ -1,0 +1,629 @@
+/* ═══════════════════════════════════════════
+   Conflicts — Map overlay & panel styles
+   ═══════════════════════════════════════════ */
+
+/* ── NATO unit symbols ── */
+
+.conflict-nato-symbol {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.15s;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.conflict-nato-symbol:hover {
+  transform: scale(1.25);
+  z-index: 10;
+}
+
+.conflict-nato-box {
+  width: 26px;
+  height: 18px;
+  background: var(--nato-bg);
+  border: 2px solid var(--nato-border);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-nato-icon {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.conflict-nato-size {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--nato-border);
+  line-height: 1;
+  margin-bottom: 1px;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Coat of Arms ── */
+
+.conflict-coa {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  transition: opacity 0.3s;
+}
+
+.conflict-coa svg {
+  display: block;
+}
+
+/* ── Sector labels ── */
+
+.conflict-sector-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+  gap: 2px;
+}
+
+.conflict-sector-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #aaa);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.conflict-sector-status {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conflict-sector-status--active {
+  background: rgba(255, 50, 50, 0.25);
+  color: #ff5555;
+  border: 1px solid rgba(255, 50, 50, 0.4);
+}
+
+.conflict-sector-status--contested {
+  background: rgba(255, 165, 0, 0.2);
+  color: #ffa500;
+  border: 1px solid rgba(255, 165, 0, 0.35);
+}
+
+.conflict-sector-status--stable {
+  background: rgba(100, 100, 100, 0.2);
+  color: #999;
+  border: 1px solid rgba(100, 100, 100, 0.35);
+}
+
+/* ═══════════════════════════════════════════
+   Conflict Panel (popup)
+   ═══════════════════════════════════════════ */
+
+.conflict-panel {
+  position: fixed;
+  z-index: 900;
+  width: 480px;
+  max-height: 80vh;
+  background: var(--color-bg-primary, #0e0e12);
+  border: 1px solid var(--color-border, #1e1e28);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conflict-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--color-bg-secondary, #141418);
+  border-bottom: 1px solid var(--color-border, #1e1e28);
+  cursor: grab;
+  user-select: none;
+}
+
+.conflict-panel-header:active {
+  cursor: grabbing;
+}
+
+.conflict-panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.conflict-panel-flags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 22px;
+}
+
+.conflict-panel-vs {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted, #555);
+  text-transform: uppercase;
+}
+
+.conflict-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+.conflict-panel-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted, #666);
+  margin-top: 2px;
+}
+
+.conflict-panel-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #666);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-panel-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+/* ── Tabs ── */
+
+.conflict-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border, #1e1e28);
+  background: var(--color-bg-secondary, #141418);
+  padding: 0 12px;
+}
+
+.conflict-panel-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted, #666);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.conflict-panel-tab:hover {
+  color: var(--color-text-secondary, #aaa);
+}
+
+.conflict-panel-tab.active {
+  color: var(--color-text-primary, #e8e8f0);
+  border-bottom-color: #ff5555;
+}
+
+/* ── Content ── */
+
+.conflict-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: calc(80vh - 180px);
+}
+
+.conflict-tab-body {
+  padding: 14px 16px;
+}
+
+.conflict-section-note {
+  font-size: 10px;
+  color: var(--color-text-muted, #555);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* ── Sides header ── */
+
+.conflict-sides-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.conflict-side-label {
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conflict-side-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.conflict-side-label--ru {
+  color: #ff6b6b;
+}
+
+.conflict-side-label--ua {
+  color: #5baaff;
+}
+
+/* ── Stat groups ── */
+
+.conflict-stat-group {
+  margin-bottom: 14px;
+}
+
+.conflict-stat-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #aaa);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conflict-stat-compare {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.conflict-stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.conflict-stat-value--ru {
+  color: #ff6b6b;
+}
+
+.conflict-stat-value--ua {
+  color: #5baaff;
+}
+
+.conflict-stat-single {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #aaa);
+}
+
+/* ── Comparison bars ── */
+
+.conflict-compare-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.conflict-compare-bar-ru {
+  background: rgba(213, 43, 30, 0.35);
+  border-radius: 3px 0 0 3px;
+  min-width: 4px;
+}
+
+.conflict-compare-bar-ua {
+  background: rgba(0, 91, 187, 0.35);
+  border-radius: 0 3px 3px 0;
+  min-width: 4px;
+}
+
+/* ── Equipment ── */
+
+.conflict-equip-section {
+  margin-bottom: 16px;
+}
+
+.conflict-equip-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.conflict-equip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.conflict-equip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+}
+
+.conflict-equip-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  font-variant-numeric: tabular-nums;
+}
+
+.conflict-equip-type {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+
+/* ── Production/Aid lists ── */
+
+.conflict-prod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conflict-prod-item {
+  display: grid;
+  grid-template-columns: 90px 80px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.conflict-prod-type {
+  font-weight: 600;
+  color: var(--color-text-secondary, #aaa);
+}
+
+.conflict-prod-count {
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  font-variant-numeric: tabular-nums;
+}
+
+.conflict-prod-note {
+  color: var(--color-text-muted, #666);
+  font-size: 10px;
+}
+
+/* ── Command ── */
+
+.conflict-cmd-section {
+  margin-bottom: 16px;
+}
+
+.conflict-cmd-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  display: flex;
+  align-items: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+
+.conflict-cmd-personnel {
+  font-size: 11px;
+  color: var(--color-text-muted, #666);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.conflict-cmd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conflict-cmd-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.conflict-cmd-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+.conflict-cmd-role {
+  font-size: 10px;
+  color: var(--color-text-muted, #666);
+  text-align: right;
+  max-width: 55%;
+}
+
+/* ── Sources ── */
+
+.conflict-sources {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 9px;
+  color: var(--color-text-muted, #555);
+  font-style: italic;
+}
+
+/* ── Footer legend ── */
+
+.conflict-panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border, #1e1e28);
+  background: var(--color-bg-secondary, #141418);
+}
+
+.conflict-legend-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conflict-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.conflict-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--color-text-muted, #666);
+}
+
+.conflict-legend-swatch {
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ── Stat bars (unused in current layout but available) ── */
+
+.conflict-stat-bar {
+  margin-bottom: 10px;
+}
+
+.conflict-stat-bar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #aaa);
+  margin-bottom: 4px;
+}
+
+.conflict-stat-bar-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conflict-stat-bar-track {
+  height: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.conflict-stat-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.4;
+}
+
+.conflict-stat-bar-val {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+/* ── Sidebar conflict styles ── */
+
+.conflict-sidebar-info {
+  padding: 10px;
+  background: rgba(255, 50, 50, 0.04);
+  border: 1px solid rgba(255, 50, 50, 0.12);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.conflict-sidebar-info strong {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-primary, #e8e8f0);
+  margin-bottom: 4px;
+}
+
+.conflict-sidebar-info p {
+  font-size: 10px;
+  color: var(--color-text-muted, #666);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.conflict-sidebar-day {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background: rgba(255, 50, 50, 0.1);
+  border: 1px solid rgba(255, 50, 50, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-bottom: 6px;
+}
+
+.conflict-sidebar-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .conflict-panel {
+    width: calc(100vw - 20px);
+    left: 10px !important;
+    max-height: 70vh;
+  }
+
+  .conflict-equip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .conflict-prod-item {
+    grid-template-columns: 70px 60px 1fr;
+  }
+}
