@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', '@vis.gl/react-maplibre'],
-      exclude: ['maplibre-gl'],
+      include: ['react', 'react-dom', '@vis.gl/react-maplibre', 'maplibre-gl'],
+      force: true,
     },
     server: {
       host: '0.0.0.0',
