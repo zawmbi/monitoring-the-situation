@@ -799,12 +799,12 @@ function App() {
       '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
     ];
     const lightPalette = [
-      '#b8b8f0', '#d4a8e0', '#e8a0c8', '#a8c0f0', '#d0a0e8',
-      '#f0a8c0', '#b0b0f5', '#d8a0d8', '#a0b8f0', '#e0a0c8',
-      '#c0a8f5', '#f0a0b8', '#c8a8f0', '#b0a8f5', '#e0a0d0',
-      '#a0b0f5', '#d0a0e0', '#f0a0c0', '#b8a8f5', '#d4a0d8',
-      '#a8b8f0', '#e8a0c0', '#c0a0f5', '#eda0c0', '#b0b0f0',
-      '#d0a0e5', '#a0c0f0', '#e0a0c0', '#b8a0f5', '#f0a5b8',
+      '#a8d5a2', '#7bc47f', '#c2e6b0', '#5db85e', '#d4edcf',
+      '#8fcc8c', '#b0dba8', '#6ac06a', '#c8e4b8', '#4aad4e',
+      '#9fd8a0', '#78c480', '#bce0ac', '#58b460', '#d0e8c4',
+      '#84c888', '#a4d4a0', '#6ebc70', '#c4e2b4', '#50b058',
+      '#98d098', '#72c078', '#b8dea8', '#5cb860', '#cce6c0',
+      '#80c884', '#acd8a4', '#64bc68', '#c0e0b0', '#48ac50',
     ];
     const palette = isLightTheme ? lightPalette : darkPalette;
     // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
@@ -2034,13 +2034,13 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#d0e8f0' : '#1a3a52',
+                      isLightTheme ? '#d0f0d4' : '#1a3a52',
                       ['get', 'tariffColor'],
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#d0e8f0' : '#1a3a52',
+                      isLightTheme ? '#d0f0d4' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
