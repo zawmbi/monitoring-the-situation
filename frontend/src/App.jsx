@@ -575,6 +575,7 @@ function App() {
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
   const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
@@ -1375,7 +1376,10 @@ function App() {
   // Track map center for globe hemisphere visibility check
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
-    if (c) mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+    if (c) {
+      mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      if (c.zoom !== undefined) setMapZoom(c.zoom);
+    }
   }, []);
 
   /**
@@ -2358,6 +2362,7 @@ function App() {
           <ConflictOverlay
             visible={conflictMode}
             showTroops={conflictShowTroops}
+            zoom={mapZoom}
             onTroopClick={(unit) => {
               if (!conflictPanelOpen) {
                 setConflictPanelOpen(true);

@@ -214,7 +214,8 @@ export const TROOP_POSITIONS = [
 // ─── Coat of Arms positions ───
 export const COAT_OF_ARMS = {
   ukraine: { lat: 49.0, lon: 32.0, name: 'Ukraine' },
-  russia: { lat: 61.5, lon: 50.0, name: 'Russia' },
+  // Russia coat of arms near border by conflict zone (visible when zoomed in)
+  russia: { lat: 50.8, lon: 38.5, name: 'Russia' },
 };
 
 // ─── Capitals & major cities ───
@@ -634,6 +635,71 @@ export const WAR_TIMELINE = [
   { date: '2024-10-15', event: 'Vuhledar falls after 20 months of fighting', phase: 'attrition' },
   { date: '2024-11-19', event: 'ATACMS & Storm Shadow authorized for deep strikes into Russia', phase: 'attrition' },
   { date: '2025-01-01', event: 'Russia 2025 budget: 40% military spending; war economy', phase: 'attrition' },
+];
+
+// ─── Major roads & strategic highways ───
+// Approximate routes of key Ukrainian transport corridors
+export const MAJOR_ROADS = [
+  {
+    id: 'road-m01',
+    name: 'M-01 (Kyiv–Chernihiv–Belarus)',
+    strategic: 'Northern supply route',
+    points: [[30.52, 50.45], [30.60, 50.60], [30.70, 50.80], [31.00, 51.10], [31.30, 51.50]],
+  },
+  {
+    id: 'road-m03',
+    name: 'M-03 (Kyiv–Kharkiv)',
+    strategic: 'Main east-west arterial to front',
+    points: [[30.52, 50.45], [31.20, 50.35], [32.00, 50.20], [33.00, 50.10], [34.00, 50.05], [35.00, 50.00], [36.23, 49.99]],
+  },
+  {
+    id: 'road-m04',
+    name: 'M-04 (Kharkiv–Luhansk)',
+    strategic: 'Frontline supply corridor',
+    points: [[36.23, 49.99], [36.80, 49.70], [37.30, 49.40], [37.60, 49.10], [38.00, 48.80]],
+  },
+  {
+    id: 'road-m05',
+    name: 'M-05 (Kyiv–Odesa)',
+    strategic: 'Southern logistics lifeline',
+    points: [[30.52, 50.45], [30.30, 50.10], [30.20, 49.70], [30.10, 49.20], [30.00, 48.70], [30.30, 48.20], [30.50, 47.80], [30.80, 47.20], [30.72, 46.48]],
+  },
+  {
+    id: 'road-m06',
+    name: 'M-06 (Kyiv–Lviv–Poland)',
+    strategic: 'Western aid corridor (NATO supply route)',
+    points: [[30.52, 50.45], [29.50, 50.30], [28.50, 50.20], [27.50, 50.00], [26.50, 49.90], [25.50, 49.85], [24.03, 49.84]],
+  },
+  {
+    id: 'road-m14',
+    name: 'M-14 (Odesa–Mykolaiv–Kherson)',
+    strategic: 'Southern coastal route',
+    points: [[30.72, 46.48], [31.20, 46.60], [32.00, 46.97], [32.62, 46.64]],
+  },
+  {
+    id: 'road-m18',
+    name: 'M-18 (Zaporizhzhia–Dnipro)',
+    strategic: 'Central front supply',
+    points: [[35.14, 47.84], [35.05, 48.46]],
+  },
+  {
+    id: 'road-m30',
+    name: 'M-30 (Dnipro–Pokrovsk)',
+    strategic: 'Eastern logistics to front',
+    points: [[35.05, 48.46], [35.50, 48.50], [36.00, 48.40], [36.21, 48.28]],
+  },
+  {
+    id: 'road-e40-rail',
+    name: 'Rail: Kyiv–Dnipro–Zaporizhzhia',
+    strategic: 'Main east rail artery',
+    points: [[30.52, 50.45], [31.50, 50.10], [32.50, 49.60], [33.50, 49.20], [34.50, 48.80], [35.05, 48.46], [35.14, 47.84]],
+  },
+  {
+    id: 'road-rail-south',
+    name: 'Rail: Kyiv–Odesa',
+    strategic: 'Southern rail supply',
+    points: [[30.52, 50.45], [30.20, 49.80], [30.00, 49.00], [30.10, 48.30], [30.50, 47.50], [30.72, 46.48]],
+  },
 ];
 
 // ─── Recency color coding ───
