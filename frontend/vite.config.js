@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,14 +23,36 @@ export default defineConfig(({ mode }) => {
       alias: [
         { find: 'react', replacement: path.resolve(__dirname, '../node_modules/react') },
         { find: 'react-dom', replacement: path.resolve(__dirname, '../node_modules/react-dom') },
-        // Exact-match only: use the dev (non-minified) build so esbuild pre-bundling
-        // doesn't break class prototype chains on the mega-long single-line minified code.
-        // Regex ensures sub-path imports like 'maplibre-gl/dist/maplibre-gl.css' still resolve normally.
-        { find: /^maplibre-gl$/, replacement: path.resolve(__dirname, '../node_modules/maplibre-gl/dist/maplibre-gl-dev.js') },
       ],
     },
     optimizeDeps: {
       include: ['react', 'react-dom', '@vis.gl/react-maplibre', 'maplibre-gl'],
+      esbuildOptions: {
+        plugins: [{
+          name: 'fix-maplibre-prebundle',
+          setup(build) {
+            // Fix: esbuild pre-bundling of the minified maplibre-gl.js (~1MB on ~3 lines)
+            // breaks class prototype chains. Map.prototype.setProjection becomes undefined
+            // at runtime even though the source code defines it.
+            // Solution: load the non-minified dev build instead, which esbuild handles correctly.
+            // Fallback: reformat the minified code by adding line breaks at class/method
+            // boundaries so esbuild can properly parse the class bodies.
+            build.onLoad({ filter: /maplibre-gl[\\/]dist[\\/]maplibre-gl\.js$/ }, async (args) => {
+              // Try the dev (non-minified) build first
+              const devPath = args.path.replace(/maplibre-gl\.js$/, 'maplibre-gl-dev.js');
+              if (existsSync(devPath)) {
+                return { contents: readFileSync(devPath, 'utf8'), loader: 'js' };
+              }
+              // Fallback: reformat minified code to break up mega-long lines
+              let code = readFileSync(args.path, 'utf8');
+              code = code
+                .replace(/([=,;({])class\b/g, '$1\nclass ')
+                .replace(/\}(\w+\s*\()/g, '}\n$1');
+              return { contents: code, loader: 'js' };
+            });
+          }
+        }]
+      }
     },
     server: {
       host: '0.0.0.0',
