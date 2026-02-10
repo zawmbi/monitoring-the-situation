@@ -573,7 +573,7 @@ function App() {
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
   const [conflictMode, setConflictMode] = useState(false);
-  const [conflictPanel, setConflictPanel] = useState({ open: false, pos: { x: 60, y: 80 } });
+  const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
@@ -1692,7 +1692,7 @@ function App() {
                         onChange={() => {
                           setConflictMode(prev => {
                             if (prev) {
-                              setConflictPanel(p => ({ ...p, open: false }));
+                              setConflictPanelOpen(false);
                               setShowFrontline(false);
                             } else {
                               setShowFrontline(true);
@@ -1737,9 +1737,9 @@ function App() {
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
-                        onClick={() => setConflictPanel(prev => ({ ...prev, open: !prev.open }))}
+                        onClick={() => setConflictPanelOpen(prev => !prev)}
                       >
-                        {conflictPanel.open ? 'Close' : 'Open'} War Statistics Panel
+                        {conflictPanelOpen ? 'Close' : 'Open'} War Statistics Panel
                       </button>
                     </div>
                   )}
@@ -2006,12 +2006,10 @@ function App() {
         )}
 
         {/* Conflict panel */}
-        {conflictMode && conflictPanel.open && (
+        {conflictMode && (
           <ConflictPanel
-            open={conflictPanel.open}
-            position={conflictPanel.pos}
-            onPositionChange={(pos) => setConflictPanel(prev => ({ ...prev, pos }))}
-            onClose={() => setConflictPanel(prev => ({ ...prev, open: false }))}
+            open={conflictPanelOpen}
+            onClose={() => setConflictPanelOpen(false)}
           />
         )}
 
@@ -2361,8 +2359,8 @@ function App() {
             visible={conflictMode}
             showTroops={conflictShowTroops}
             onTroopClick={(unit) => {
-              if (!conflictPanel.open) {
-                setConflictPanel(prev => ({ ...prev, open: true }));
+              if (!conflictPanelOpen) {
+                setConflictPanelOpen(true);
               }
             }}
           />
