@@ -36,6 +36,13 @@ function formatArea(area) {
   return `${area.toLocaleString()} km²`;
 }
 
+function formatPopDensity(pop, area) {
+  if (!pop || !area) return null;
+  const density = pop / area;
+  if (density >= 1000) return `${(density / 1000).toFixed(1)}k/km²`;
+  return `${Math.round(density)}/km²`;
+}
+
 export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
 
@@ -88,7 +95,6 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                   src={data.leaderPhoto}
                   alt={data.leader}
                   onError={() => setLeaderImgError(true)}
-                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="cp-leader-photo cp-leader-photo--placeholder">
@@ -234,10 +240,22 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 <span className="cp-detail-val">{data.languages.slice(0, 3).join(', ')}{data.languages.length > 3 ? ` +${data.languages.length - 3}` : ''}</span>
               </div>
             )}
+            {!isScope && data.demonym && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Demonym</span>
+                <span className="cp-detail-val">{data.demonym}</span>
+              </div>
+            )}
             {!isScope && data.area && (
               <div className="cp-detail-row">
                 <span className="cp-detail-key">Area</span>
                 <span className="cp-detail-val">{formatArea(data.area)}</span>
+              </div>
+            )}
+            {!isScope && data.populationRaw && data.area && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Pop. Density</span>
+                <span className="cp-detail-val">{formatPopDensity(data.populationRaw, data.area)}</span>
               </div>
             )}
             {!isScope && data.continent && (
@@ -249,15 +267,111 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         </div>
 
-        {/* Status badges */}
-        {!isScope && (data.independent != null || data.unMember != null) && (
+        {/* Infrastructure & Communication */}
+        {!isScope && (data.dialingCode || data.tld || data.drivingSide || data.timezoneCount || data.startOfWeek) && (
           <div className="cp-section">
+            <div className="cp-section-label">Infrastructure</div>
+            <div className="cp-details-card">
+              {data.dialingCode && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Dialing Code</span>
+                  <span className="cp-detail-val">{data.dialingCode}</span>
+                </div>
+              )}
+              {data.tld && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Internet TLD</span>
+                  <span className="cp-detail-val">{data.tld}</span>
+                </div>
+              )}
+              {data.drivingSide && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Driving Side</span>
+                  <span className="cp-detail-val" style={{ textTransform: 'capitalize' }}>{data.drivingSide}</span>
+                </div>
+              )}
+              {data.timezoneCount > 1 && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Timezones</span>
+                  <span className="cp-detail-val">{data.timezoneCount}</span>
+                </div>
+              )}
+              {data.startOfWeek && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Week Starts</span>
+                  <span className="cp-detail-val" style={{ textTransform: 'capitalize' }}>{data.startOfWeek}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Inequality / Indices */}
+        {!isScope && data.gini && (
+          <div className="cp-section">
+            <div className="cp-section-label">Indices</div>
+            <div className="cp-details-card">
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Gini Coefficient</span>
+                <span className="cp-detail-val">{data.gini.value} ({data.gini.year})</span>
+              </div>
+              <div className="cp-gini-bar-container">
+                <div className="cp-gini-bar">
+                  <div className="cp-gini-fill" style={{ width: `${data.gini.value}%` }} />
+                  <div className="cp-gini-marker" style={{ left: `${data.gini.value}%` }} />
+                </div>
+                <div className="cp-gini-labels">
+                  <span>Equal</span>
+                  <span>Unequal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Geography notes */}
+        {!isScope && (data.landlocked || data.latlng) && (
+          <div className="cp-section">
+            <div className="cp-section-label">Geography</div>
+            <div className="cp-details-card">
+              {data.latlng && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Coordinates</span>
+                  <span className="cp-detail-val">{data.latlng[0].toFixed(1)}°, {data.latlng[1].toFixed(1)}°</span>
+                </div>
+              )}
+              {data.landlocked && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Coastline</span>
+                  <span className="cp-detail-val">Landlocked</span>
+                </div>
+              )}
+              {data.borders && data.borders.length > 0 && (
+                <div className="cp-detail-row">
+                  <span className="cp-detail-key">Borders</span>
+                  <span className="cp-detail-val">{data.borders.length} countries</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Status badges */}
+        {!isScope && (data.independent != null || data.unMember != null || data.cca2) && (
+          <div className="cp-section">
+            <div className="cp-section-label">Status</div>
             <div className="cp-badges">
               {data.independent && (
                 <span className="cp-badge cp-badge--neutral">Independent</span>
               )}
               {data.unMember && (
                 <span className="cp-badge cp-badge--accent">UN Member</span>
+              )}
+              {data.landlocked && (
+                <span className="cp-badge cp-badge--neutral">Landlocked</span>
+              )}
+              {data.cca2 && (
+                <span className="cp-badge cp-badge--neutral">ISO: {data.cca2}</span>
               )}
             </div>
           </div>

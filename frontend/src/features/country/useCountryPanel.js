@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
-import { getLeader } from './worldLeaders';
+import { getLeader, fetchLeaderPhoto } from './worldLeaders';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
 
@@ -17,7 +17,6 @@ export function useCountryPanel() {
   });
   const [currencyData, setCurrencyData] = useState(null);
   const [currencyLoading, setCurrencyLoading] = useState(false);
-  const currencyAbort = useRef(null);
 
   // Fetch currency data when country data changes
   useEffect(() => {
@@ -52,15 +51,24 @@ export function useCountryPanel() {
         population: 'Loading...',
         leader: leaderData?.name || 'Loading...',
         leaderTitle: leaderData?.title || '',
-        leaderPhoto: leaderData?.photo || null,
+        leaderPhoto: null,
         timezone: 'UTC',
         loading: true,
       },
     });
 
+    // Fetch leader photo from Wikipedia API in parallel with country data
+    const photoPromise = leaderData?.wiki
+      ? fetchLeaderPhoto(leaderData.wiki)
+      : Promise.resolve(null);
+
     // Fetch country data
     try {
-      const profile = await fetchCountryProfile(countryName);
+      const [profile, leaderPhotoUrl] = await Promise.all([
+        fetchCountryProfile(countryName),
+        photoPromise,
+      ]);
+
       if (profile) {
         const leader = leaderData || {};
         setCountryPanel(prev => ({
@@ -72,8 +80,9 @@ export function useCountryPanel() {
             populationRaw: profile.populationRaw,
             leader: leader.name || profile.leader || 'Unavailable',
             leaderTitle: leader.title || '',
-            leaderPhoto: leader.photo || null,
+            leaderPhoto: leaderPhotoUrl || null,
             timezone: profile.timezone || 'UTC',
+            timezoneCount: profile.timezoneCount,
             capital: profile.capital,
             region: profile.region,
             subregion: profile.subregion,
@@ -87,17 +96,27 @@ export function useCountryPanel() {
             independent: profile.independent,
             unMember: profile.unMember,
             borders: profile.borders,
+            dialingCode: profile.dialingCode,
+            tld: profile.tld,
+            drivingSide: profile.drivingSide,
+            demonym: profile.demonym,
+            gini: profile.gini,
+            latlng: profile.latlng,
+            landlocked: profile.landlocked,
+            startOfWeek: profile.startOfWeek,
             loading: false,
           },
         }));
       }
     } catch (err) {
+      const leaderPhotoUrl = await photoPromise.catch(() => null);
       setCountryPanel(prev => ({
         ...prev,
         data: {
           ...prev.data,
           population: 'Unknown',
           leader: leaderData?.name || 'Unavailable',
+          leaderPhoto: leaderPhotoUrl || null,
           error: err?.message || 'Unable to load country info',
           loading: false,
         },
@@ -123,7 +142,6 @@ export function useCountryPanel() {
   };
 
   const openProvincePanel = (provinceName) => {
-    // Handle "Yukon Territory" vs "Yukon" naming mismatch
     const info = CA_PROVINCE_INFO[provinceName] || CA_PROVINCE_INFO[provinceName.replace(' Territory', '')];
     setCountryPanel({
       open: true,

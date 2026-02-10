@@ -59,12 +59,45 @@ export async function fetchCountryProfile(name) {
   // cca2 code (for flag CDN etc.)
   const cca2 = country.cca2 || null;
 
+  // Dialing code
+  const dialingCode = country.idd?.root
+    ? `${country.idd.root}${(country.idd.suffixes || [])[0] || ''}`
+    : null;
+
+  // Top-level domain
+  const tld = Array.isArray(country.tld) ? country.tld[0] : null;
+
+  // Driving side
+  const drivingSide = country.car?.side || null;
+
+  // Demonym
+  const demonym = country.demonyms?.eng?.m || null;
+
+  // Gini coefficient (most recent)
+  let gini = null;
+  if (country.gini) {
+    const years = Object.keys(country.gini).sort().reverse();
+    if (years.length > 0) {
+      gini = { year: years[0], value: country.gini[years[0]] };
+    }
+  }
+
+  // Lat/lng
+  const latlng = Array.isArray(country.latlng) ? country.latlng : null;
+
+  // Landlocked
+  const landlocked = country.landlocked || false;
+
+  // Start of week
+  const startOfWeek = country.startOfWeek || null;
+
   return {
     name: country.name?.common || name,
     officialName: country.name?.official || name,
     population,
     populationRaw: country.population,
     timezone,
+    timezoneCount: Array.isArray(country.timezones) ? country.timezones.length : 1,
     capital,
     leader,
     region: country.region,
@@ -79,6 +112,14 @@ export async function fetchCountryProfile(name) {
     independent: country.independent,
     unMember: country.unMember,
     borders: country.borders || [],
+    dialingCode,
+    tld,
+    drivingSide,
+    demonym,
+    gini,
+    latlng,
+    landlocked,
+    startOfWeek,
     raw: country,
   };
 }
