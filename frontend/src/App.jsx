@@ -1357,36 +1357,23 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // Debug: figure out what evt.target actually is
-    const target = evt.target;
-    console.log('[Globe Debug] evt.target keys:', Object.keys(target).slice(0, 20));
-    console.log('[Globe Debug] evt.target has getMap:', typeof target.getMap);
-    console.log('[Globe Debug] evt.target has flyTo:', typeof target.flyTo);
-    console.log('[Globe Debug] evt.target has setProjection:', typeof target.setProjection);
-    // Try getting raw map via getMap()
-    if (typeof target.getMap === 'function') {
-      const rawMap = target.getMap();
-      console.log('[Globe Debug] getMap() result:', rawMap);
-      console.log('[Globe Debug] rawMap.setProjection:', typeof rawMap?.setProjection);
+    // The map instance from evt.target doesn't have setProjection on its prototype
+    // (Vite pre-bundling issue). Use maplibregl.Map.prototype.setProjection directly.
+    const map = evt.target;
+    const proto = maplibregl.Map.prototype;
+    console.log('[Globe Debug] Map.prototype.setProjection:', typeof proto.setProjection);
+    console.log('[Globe Debug] Map.prototype.getProjection:', typeof proto.getProjection);
+    if (useGlobeRef.current && proto.setProjection) {
+      proto.setProjection.call(map, { type: 'globe' });
+      const proj = proto.getProjection ? proto.getProjection.call(map) : null;
+      console.log('[Globe Debug] After set, projection:', JSON.stringify(proj));
     }
-    // Try via the React ref
-    const refMap = mapGLRef.current;
-    console.log('[Globe Debug] React ref:', refMap);
-    console.log('[Globe Debug] React ref getMap:', typeof refMap?.getMap);
-    if (typeof refMap?.getMap === 'function') {
-      const rawFromRef = refMap.getMap();
-      console.log('[Globe Debug] ref.getMap() setProjection:', typeof rawFromRef?.setProjection);
-      console.log('[Globe Debug] ref.getMap() getProjection:', typeof rawFromRef?.getProjection);
-      if (rawFromRef?.getProjection) {
-        console.log('[Globe Debug] ACTUAL projection:', JSON.stringify(rawFromRef.getProjection()));
+    // Also re-apply after style reloads
+    map.on('style.load', () => {
+      if (useGlobeRef.current && proto.setProjection) {
+        proto.setProjection.call(map, { type: 'globe' });
       }
-      // Try setting globe projection from the ref's raw map
-      if (rawFromRef?.setProjection) {
-        rawFromRef.setProjection({ type: 'globe' });
-        console.log('[Globe Debug] SET projection to globe!');
-        console.log('[Globe Debug] After set:', JSON.stringify(rawFromRef.getProjection()));
-      }
-    }
+    });
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1430,6 +1417,15 @@ function App() {
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
+  // Apply projection when useGlobe toggles (using prototype call to bypass Vite bundling issue)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    const proto = maplibregl.Map.prototype;
+    if (proto.setProjection) {
+      proto.setProjection.call(map, { type: useGlobe ? 'globe' : 'mercator' });
+    }
+  }, [useGlobe, mapLoaded]);
 
   // Auto-rotate globe
   useEffect(() => {
