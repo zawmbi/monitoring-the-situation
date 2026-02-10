@@ -1357,23 +1357,29 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // The map instance from evt.target doesn't have setProjection on its prototype
-    // (Vite pre-bundling issue). Use maplibregl.Map.prototype.setProjection directly.
+    // Vite pre-bundling breaks the Map prototype chain — setProjection is missing
+    // from both the instance and Map.prototype. Bypass entirely via Style internals.
     const map = evt.target;
-    const proto = maplibregl.Map.prototype;
-    console.log('[Globe Debug] Map.prototype.setProjection:', typeof proto.setProjection);
-    console.log('[Globe Debug] Map.prototype.getProjection:', typeof proto.getProjection);
-    if (useGlobeRef.current && proto.setProjection) {
-      proto.setProjection.call(map, { type: 'globe' });
-      const proj = proto.getProjection ? proto.getProjection.call(map) : null;
-      console.log('[Globe Debug] After set, projection:', JSON.stringify(proj));
-    }
-    // Also re-apply after style reloads
-    map.on('style.load', () => {
-      if (useGlobeRef.current && proto.setProjection) {
-        proto.setProjection.call(map, { type: 'globe' });
+    const applyGlobeProjection = () => {
+      if (!useGlobeRef.current) return;
+      const style = map.style;
+      if (style && style.setProjection) {
+        style.setProjection({ type: 'globe' });
+        map._update(true);
+        console.log('[Globe] Set via style.setProjection');
+      } else if (style && style._setProjectionInternal) {
+        style._setProjectionInternal('globe');
+        map._update(true);
+        console.log('[Globe] Set via style._setProjectionInternal');
+      } else {
+        console.log('[Globe] style:', !!style,
+          'style.setProjection:', typeof style?.setProjection,
+          'style._setProjectionInternal:', typeof style?._setProjectionInternal);
       }
-    });
+    };
+    applyGlobeProjection();
+    // Re-apply after style reloads (theme/holo changes)
+    map.on('style.load', () => applyGlobeProjection());
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1417,13 +1423,18 @@ function App() {
   useEffect(() => { rotateCCWRef.current = rotateCCW; }, [rotateCCW]);
   useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
 
-  // Apply projection when useGlobe toggles (using prototype call to bypass Vite bundling issue)
+  // Apply projection when useGlobe toggles via Style internals
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    const proto = maplibregl.Map.prototype;
-    if (proto.setProjection) {
-      proto.setProjection.call(map, { type: useGlobe ? 'globe' : 'mercator' });
+    const style = map.style;
+    const type = useGlobe ? 'globe' : 'mercator';
+    if (style && style.setProjection) {
+      style.setProjection({ type });
+      map._update(true);
+    } else if (style && style._setProjectionInternal) {
+      style._setProjectionInternal(type);
+      map._update(true);
     }
   }, [useGlobe, mapLoaded]);
 
