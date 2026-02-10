@@ -428,6 +428,51 @@ export const COMMAND = {
   },
 };
 
+// ─── Key battle sites (map markers with dates) ───
+export const BATTLE_SITES = [
+  { id: 'battle-bakhmut', name: 'Battle of Bakhmut', lat: 48.5953, lon: 38.0005, date: 'Aug 2022 – May 2023', result: 'RU captured', note: 'Deadliest battle; Wagner-led assault' },
+  { id: 'battle-avdiivka', name: 'Battle of Avdiivka', lat: 48.1397, lon: 37.7473, date: 'Oct 2023 – Feb 2024', result: 'RU captured', note: 'Major fortified position fell after 4-month siege' },
+  { id: 'battle-vuhledar', name: 'Battle of Vuhledar', lat: 47.7764, lon: 37.2527, date: 'Jan 2023 – Oct 2024', result: 'RU captured', note: 'Multiple failed assaults before eventual fall' },
+  { id: 'battle-mariupol', name: 'Siege of Mariupol', lat: 47.0958, lon: 37.5433, date: 'Feb – May 2022', result: 'RU captured', note: 'Azovstal siege; ~2,500 UA POWs' },
+  { id: 'battle-kherson', name: 'Battle of Kherson', lat: 46.6354, lon: 32.6169, date: 'Feb – Nov 2022', result: 'UA liberated', note: 'Only regional capital liberated' },
+  { id: 'battle-chasiv-yar', name: 'Battle of Chasiv Yar', lat: 48.6089, lon: 37.8447, date: 'Apr 2024 – ongoing', result: 'Contested', note: 'Key high-ground position west of Bakhmut' },
+  { id: 'battle-toretsk', name: 'Battle of Toretsk', lat: 48.3928, lon: 37.8448, date: 'Jun 2024 – ongoing', result: 'Contested', note: 'Urban combat in Donetsk sector' },
+  { id: 'battle-pokrovsk-axis', name: 'Pokrovsk Axis', lat: 48.15, lon: 37.10, date: 'Jul 2024 – ongoing', result: 'RU advancing', note: 'Fastest RU advance since 2022' },
+  { id: 'battle-kursk', name: 'Kursk Incursion', lat: 51.42, lon: 35.20, date: 'Aug 2024 – ongoing', result: 'UA holds ~500 km²', note: 'Surprise UA cross-border offensive' },
+  { id: 'battle-kharkiv-2024', name: 'Kharkiv Offensive (2024)', lat: 50.28, lon: 36.70, date: 'May 2024', result: 'Stalled', note: 'RU attempt to create buffer zone; largely repelled' },
+];
+
+// ─── Fortification / defense lines ───
+export const FORTIFICATION_LINES = [
+  {
+    id: 'surovikin-line',
+    name: 'Surovikin Line',
+    note: 'Russian multi-layered defense (minefields, dragon teeth, trenches)',
+    points: [
+      [36.60, 47.50], [36.30, 47.35], [36.00, 47.25], [35.70, 47.15],
+      [35.40, 47.08], [35.10, 47.00], [34.80, 46.92], [34.50, 46.85],
+    ],
+  },
+  {
+    id: 'kursk-incursion',
+    name: 'Kursk Incursion Zone (UA-held)',
+    note: 'Ukrainian-held territory inside Russia (~500 km²)',
+    points: [
+      [34.90, 51.55], [35.10, 51.60], [35.30, 51.55], [35.50, 51.45],
+      [35.40, 51.30], [35.20, 51.25], [35.00, 51.30], [34.90, 51.40],
+      [34.90, 51.55],
+    ],
+  },
+];
+
+// ─── Nuclear power plants ───
+export const NUCLEAR_PLANTS = [
+  { id: 'npp-zaporizhzhia', name: 'Zaporizhzhia NPP', lat: 47.5070, lon: 34.5853, status: 'occupied', note: 'Europe\'s largest NPP — Russian-occupied since Mar 2022, cold shutdown' },
+  { id: 'npp-south-ukraine', name: 'South Ukraine NPP', lat: 47.8167, lon: 31.2167, status: 'operational', note: '3 reactors — operational under UA control' },
+  { id: 'npp-rivne', name: 'Rivne NPP', lat: 51.3281, lon: 25.8953, status: 'operational', note: '4 reactors — operational' },
+  { id: 'npp-khmelnytskyi', name: 'Khmelnytskyi NPP', lat: 50.3014, lon: 26.6492, status: 'operational', note: '2 reactors — operational' },
+];
+
 // ─── Conflict summary ───
 export const CONFLICT_SUMMARY = {
   name: 'Russia–Ukraine War',
@@ -443,6 +488,153 @@ export const CONFLICT_SUMMARY = {
     russia: 'Iran, North Korea, China (economic)',
   },
 };
+
+// ─── Territorial control (approximate) ───
+export const TERRITORIAL_CONTROL = {
+  ukraineTotalArea: 603550,
+  occupiedPreFeb2022: 43133,
+  occupiedAtPeak: 119000,
+  currentOccupied: 109000,
+  liberatedSincePeak: 10000,
+  crimea: 27000,
+  donbasPreWar: 16133,
+  asOf: 'February 2025',
+  source: 'ISW / DeepStateMap (est.)',
+};
+
+// ─── Drone & missile warfare ───
+export const DRONE_MISSILE_DATA = {
+  russianStrikes: {
+    totalMissiles: 9500,
+    totalDrones: 14000,
+    cruiseMissiles: { type: 'Cruise Missiles', count: 5200, variants: 'Kalibr, Kh-101, Kh-555' },
+    ballisticMissiles: { type: 'Ballistic Missiles', count: 1800, variants: 'Iskander-M, KN-23 (DPRK), Kinzhal' },
+    sGlide: { type: 'S-300/400 (Surface-to-Air used as ground)', count: 2500, note: 'Repurposed air defense missiles' },
+    shahed: { type: 'Shahed-136/131 Drones', count: 12500, note: 'Iranian-designed, RU-produced' },
+    otherDrones: { type: 'Other UAVs (recon/strike)', count: 1500 },
+    interceptRate: '~75-80%',
+    source: 'UA Air Force / OSINT',
+  },
+  ukrainianStrikes: {
+    totalDrones: 8000,
+    longRange: { type: 'Long-range strike drones', count: 5000, note: 'Domestically produced (Beaver, Lyutyy, etc.)' },
+    navalUSV: { type: 'Naval USV attacks', count: 200, note: 'Sea Baby, MAGURA V5' },
+    atacms: { type: 'ATACMS strikes', count: '~100', note: 'US-provided, 165-300km range' },
+    stormShadow: { type: 'Storm Shadow/SCALP', count: '~50', note: 'UK/France provided' },
+    neptune: { type: 'Neptune AShM', count: '~30', note: 'Sank Moskva, adapted for land targets' },
+    source: 'UA MoD / OSINT',
+  },
+  asOf: 'February 2025',
+};
+
+// ─── Humanitarian / refugee data ───
+export const HUMANITARIAN = {
+  refugees: {
+    total: 6500000,
+    label: '~6.5 million',
+    topCountries: [
+      { country: 'Poland', count: 1580000 },
+      { country: 'Germany', count: 1180000 },
+      { country: 'Czech Republic', count: 380000 },
+      { country: 'United Kingdom', count: 250000 },
+      { country: 'Spain', count: 200000 },
+      { country: 'Italy', count: 180000 },
+    ],
+    source: 'UNHCR (Jan 2025)',
+  },
+  internallyDisplaced: {
+    total: 3670000,
+    label: '~3.67 million',
+    source: 'IOM (Dec 2024)',
+  },
+  infrastructureDamage: {
+    housingUnits: 250000,
+    schools: 3800,
+    hospitals: 1200,
+    powerGrid: '~40% damaged at peak (winter 2022-23)',
+    economicDamage: '$152 billion (World Bank est.)',
+    reconstructionCost: '$486 billion (World Bank est.)',
+    source: 'World Bank / KSE Institute',
+  },
+  grainCorridor: {
+    status: 'Active (UA-enforced since Aug 2023)',
+    totalExported: '~60 million tonnes (since Jul 2022)',
+    note: 'Black Sea Grain Initiative expired Jul 2023; UA established own corridor',
+    source: 'UA Infrastructure Ministry',
+  },
+  asOf: 'February 2025',
+};
+
+// ─── Sanctions & economic impact ───
+export const SANCTIONS_ECONOMIC = {
+  sanctions: {
+    packages: '14 EU packages, 10+ US rounds',
+    keyMeasures: [
+      { measure: 'SWIFT disconnection', detail: '~10 major Russian banks' },
+      { measure: 'Central Bank reserves frozen', detail: '~$300B of ~$640B total' },
+      { measure: 'Oil price cap', detail: '$60/barrel (G7/EU)' },
+      { measure: 'Technology export controls', detail: 'Semiconductors, precision equipment' },
+      { measure: 'Oligarch asset freezes', detail: '~$58B in yachts, property, accounts' },
+      { measure: 'Diamond import ban', detail: 'Belgian/G7 since Jan 2024' },
+    ],
+    source: 'EU/US Treasury / Castellum.AI',
+  },
+  russianEconomy: {
+    gdpGrowth2023: '+3.6%',
+    gdpGrowth2024: '+3.8% (est.)',
+    inflation2024: '~9.5%',
+    keyRate: '21%',
+    rubleUSD: '~97',
+    militarySpending: '~$140B (2025 budget, ~40% of total)',
+    note: 'War economy; shifted to military production; labor shortages',
+    source: 'CBR / Russian Finance Ministry / IMF',
+  },
+  westernAid: {
+    totalPledged: '$380 billion',
+    topDonors: [
+      { donor: 'United States', amount: '$113B (incl. $67B military)' },
+      { donor: 'EU Institutions', amount: '$93B (incl. macro-financial)' },
+      { donor: 'Germany', amount: '$25B' },
+      { donor: 'United Kingdom', amount: '$18B' },
+      { donor: 'Japan', amount: '$12B' },
+      { donor: 'Canada', amount: '$8B' },
+      { donor: 'Norway', amount: '$7.8B' },
+      { donor: 'Denmark', amount: '$7.4B' },
+    ],
+    frozenAssetsLoan: '$50B G7 loan backed by frozen RU asset profits',
+    source: 'Kiel Institute Ukraine Support Tracker',
+  },
+  asOf: 'February 2025',
+};
+
+// ─── War timeline (key events) ───
+export const WAR_TIMELINE = [
+  { date: '2022-02-24', event: 'Full-scale Russian invasion begins', phase: 'invasion' },
+  { date: '2022-03-02', event: 'Siege of Mariupol begins', phase: 'invasion' },
+  { date: '2022-04-02', event: 'Russia retreats from Kyiv / northern Ukraine', phase: 'turning' },
+  { date: '2022-04-14', event: 'Moskva cruiser sunk by Neptune missiles', phase: 'turning' },
+  { date: '2022-05-20', event: 'Mariupol falls after Azovstal siege', phase: 'invasion' },
+  { date: '2022-06-01', event: 'HIMARS deliveries begin — transforms artillery war', phase: 'turning' },
+  { date: '2022-09-06', event: 'Kharkiv counteroffensive begins — 6,000 km² liberated', phase: 'counteroffensive' },
+  { date: '2022-10-08', event: 'Crimean Bridge struck for the first time', phase: 'counteroffensive' },
+  { date: '2022-11-11', event: 'Kherson liberated — only regional capital retaken', phase: 'counteroffensive' },
+  { date: '2022-12-01', event: 'Russia begins systematic energy infrastructure attacks', phase: 'attrition' },
+  { date: '2023-01-01', event: 'Battle of Bakhmut intensifies — Wagner Group leads', phase: 'attrition' },
+  { date: '2023-05-20', event: 'Bakhmut falls after 9-month battle', phase: 'attrition' },
+  { date: '2023-06-04', event: 'Kakhovka Dam destroyed — massive flooding', phase: 'attrition' },
+  { date: '2023-06-08', event: 'Ukrainian summer counteroffensive begins', phase: 'counteroffensive' },
+  { date: '2023-07-17', event: 'Black Sea Grain Initiative expires', phase: 'attrition' },
+  { date: '2023-09-13', event: 'UA strikes Sevastopol dry dock — damages RU submarine', phase: 'counteroffensive' },
+  { date: '2024-02-08', event: 'Syrskyi replaces Zaluzhny as Commander-in-Chief', phase: 'attrition' },
+  { date: '2024-02-17', event: 'Avdiivka falls after 4-month battle', phase: 'attrition' },
+  { date: '2024-05-10', event: 'Russia launches Kharkiv offensive — creates buffer zone attempt', phase: 'attrition' },
+  { date: '2024-06-01', event: 'F-16 deliveries begin from Denmark/Netherlands', phase: 'attrition' },
+  { date: '2024-08-06', event: 'Ukraine launches Kursk incursion into Russia', phase: 'kursk' },
+  { date: '2024-10-01', event: 'North Korean troops arrive in Russia (~12,000)', phase: 'attrition' },
+  { date: '2024-10-15', event: 'Vuhledar falls after 20 months of fighting', phase: 'attrition' },
+  { date: '2024-11-19', event: 'ATACMS & Storm Shadow authorized for deep strikes into Russia', phase: 'attrition' },
+  { date: '2025-01-01', event: 'Russia 2025 budget: 40% military spending; war economy', phase: 'attrition' },
+];
 
 // ─── Recency color coding ───
 export function getFrontlineColor(asOf) {
