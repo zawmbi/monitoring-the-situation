@@ -1535,15 +1535,6 @@ function App() {
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  className={`sidebar-tab ${sidebarTab === 'tariffs' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('tariffs')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'tariffs'}
-                >
-                  Tariffs & Trade
-                </button>
               </div>
             )}
           </div>
@@ -1652,6 +1643,35 @@ function App() {
                       <span className="slider" />
                     </label>
                   </div>
+
+                  {showTariffHeatmap && (
+                    <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
+                      <div className="tariff-heatmap-active-badge">
+                        <span className="tariff-heatmap-active-dot" />
+                        Heatmap active
+                      </div>
+
+                      <div className="tariff-legend">
+                        <div className="tariff-legend-title">Tariff Rate Legend</div>
+                        <div className="tariff-legend-items">
+                          {TARIFF_LEGEND.map((item) => (
+                            <div key={item.label} className="tariff-legend-item">
+                              <span
+                                className="tariff-legend-swatch"
+                                style={{ background: isLightTheme ? item.colorLight : item.color }}
+                              />
+                              <span>{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="tariff-sidebar-info">
+                        <strong>US Import Tariffs</strong><br />
+                        Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="source-group">
@@ -1789,49 +1809,6 @@ function App() {
               </div>
             )}
 
-            {sidebarExpanded && sidebarTab === 'tariffs' && (
-              <div className="settings-panel tariff-sidebar">
-                <div className="toggle-group-title">Tariff Heatmap</div>
-                <div className="settings-group tariff-heatmap-toggle">
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Show Heatmap</span>
-                    <input
-                      type="checkbox"
-                      checked={showTariffHeatmap}
-                      onChange={() => setShowTariffHeatmap(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                {showTariffHeatmap && (
-                  <div className="tariff-heatmap-active-badge">
-                    <span className="tariff-heatmap-active-dot" />
-                    Heatmap active
-                  </div>
-                )}
-
-                <div className="tariff-legend">
-                  <div className="tariff-legend-title">Tariff Rate Legend</div>
-                  <div className="tariff-legend-items">
-                    {TARIFF_LEGEND.map((item) => (
-                      <div key={item.label} className="tariff-legend-item">
-                        <span
-                          className="tariff-legend-swatch"
-                          style={{ background: isLightTheme ? item.colorLight : item.color }}
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="tariff-sidebar-info">
-                  <strong>US Import Tariffs</strong><br />
-                  Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
-                </div>
-              </div>
-            )}
 
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
