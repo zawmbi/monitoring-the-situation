@@ -1,9 +1,9 @@
 /**
  * ConflictOverlay — Russia-Ukraine conflict map layers
  * Renders frontlines, capitals, cities, military infrastructure,
- * naval positions, battle sites, fortifications, NPPs, coat of arms, and troops.
+ * naval positions, battle sites, fortifications, NPPs, roads, coat of arms, and troops.
  */
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 import {
   FRONTLINE_SEGMENTS,
@@ -16,11 +16,38 @@ import {
   BATTLE_SITES,
   FORTIFICATION_LINES,
   NUCLEAR_PLANTS,
+  MAJOR_ROADS,
   UA_BLUE,
   UA_YELLOW,
   RU_RED,
   getFrontlineColor,
 } from './conflictData';
+
+/* ───────────────────────────────────────────
+   Zoom thresholds — markers hidden when zoomed out
+   ─────────────────────────────────────────── */
+const ZOOM_SHOW_DETAIL = 4;     // cities, infra, naval, battles, troops, sector labels
+const ZOOM_SHOW_ROADS = 3.5;    // roads/rail
+const ZOOM_SHOW_LABELS = 5;     // city name labels on infra markers
+
+/* ───────────────────────────────────────────
+   Build a set of cities that share coords with infrastructure
+   so we can skip duplicate name labels
+   ─────────────────────────────────────────── */
+const INFRA_CITY_IDS = (() => {
+  const infraCoords = new Set();
+  MILITARY_INFRASTRUCTURE.forEach((item) => {
+    // Round to 2 decimal places to match nearby
+    const key = `${item.lat.toFixed(2)},${item.lon.toFixed(2)}`;
+    infraCoords.add(key);
+  });
+  const ids = new Set();
+  MAJOR_CITIES.forEach((c) => {
+    const key = `${c.lat.toFixed(2)},${c.lon.toFixed(2)}`;
+    if (infraCoords.has(key)) ids.add(c.id);
+  });
+  return ids;
+})();
 
 /* ───────────────────────────────────────────
    Marker sub-components
@@ -89,23 +116,24 @@ function CapitalMarker({ city }) {
   );
 }
 
-function CityMarker({ city }) {
+function CityMarker({ city, hideLabel }) {
   const colorClass = city.country === 'ukraine' ? 'ua' : city.country === 'russia' ? 'ru' : 'occ';
   return (
     <div className={`conflict-city conflict-city--${colorClass}`} title={city.note || city.name}>
-      <span className="conflict-city-dot" /><span className="conflict-city-label">{city.name}</span>
+      <span className="conflict-city-dot" />
+      {!hideLabel && <span className="conflict-city-label">{city.name}</span>}
     </div>
   );
 }
 
 const INFRA_ICONS = { airbase: '✈', port: '⚓', depot: '◆', bridge: '⌇', airdefense: '⊕' };
-function InfraMarker({ item }) {
+function InfraMarker({ item, showLabel }) {
   const isUA = item.side === 'ukraine';
   return (
     <div className={`conflict-infra conflict-infra--${item.type} conflict-infra--${isUA ? 'ua' : 'ru'}`}
       title={`${item.name}${item.note ? ` — ${item.note}` : ''}`}>
       <span className="conflict-infra-icon">{INFRA_ICONS[item.type] || '●'}</span>
-      <span className="conflict-infra-label">{item.name.split(' ')[0]}</span>
+      {showLabel && <span className="conflict-infra-label">{item.name.split(' ')[0]}</span>}
     </div>
   );
 }
@@ -144,11 +172,147 @@ function NppMarker({ plant }) {
 }
 
 /* ───────────────────────────────────────────
+   Map Legend — explains all symbols
+   ─────────────────────────────────────────── */
+function MapLegend({ open, onToggle }) {
+  return (
+    <div className={`conflict-map-legend ${open ? 'conflict-map-legend--open' : ''}`}>
+      <button className="conflict-map-legend-toggle" onClick={onToggle}>
+        {open ? '✕' : '?'} {!open && <span>Legend</span>}
+      </button>
+      {open && (
+        <div className="conflict-map-legend-body">
+          <div className="conflict-map-legend-title">Map Symbols</div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Frontlines</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-line" style={{ background: UA_BLUE }} />
+              <span>Ukrainian side</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-line" style={{ background: RU_RED }} />
+              <span>Russian side</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
+              <span>Fortification (Surovikin Line)</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Cities & Territory</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#5baaff' }} />
+              <span>Ukrainian-controlled city</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#ff6b6b' }} />
+              <span>Russian / occupied city</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" fill={UA_BLUE} stroke={UA_YELLOW} strokeWidth="2" /></svg>
+              <span>Capital city</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Military</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>✈</span>
+              <span>Airbase</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⚓</span>
+              <span>Port / Naval base</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⊕</span>
+              <span>Air defense</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◆</span>
+              <span>Supply depot</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⌇</span>
+              <span>Bridge</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Combat & Strategic</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ffa500' }}>⚔</span>
+              <span>Battle site</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#66ff66' }}>☢</span>
+              <span>Nuclear power plant</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⛵</span>
+              <span>Naval patrol</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◈</span>
+              <span>Unmanned surface vehicle</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">NATO Unit Symbols</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: UA_BLUE, borderColor: UA_YELLOW }}>╳</span>
+              <span>Ukrainian unit (infantry)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: RU_RED, borderColor: '#fff' }}>╳</span>
+              <span>Russian unit (infantry)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⊙</span>
+              <span>Armor</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳⊙</span>
+              <span>Mechanized</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Roads & Rail</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-line" style={{ background: 'rgba(255,200,50,0.5)' }} />
+              <span>Major highway</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: 'rgba(180,180,220,0.5)' }} />
+              <span>Railway</span>
+            </div>
+          </div>
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Coat of Arms</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+              <span>Ukraine (Tryzub)</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+              <span>Russia (Double-headed eagle)</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────
    Main overlay
    ─────────────────────────────────────────── */
 
-export default function ConflictOverlay({ visible, onTroopClick, showTroops = true }) {
+export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2 }) {
   const visibility = visible ? 'visible' : 'none';
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  const showDetail = zoom >= ZOOM_SHOW_DETAIL;
+  const showRoads = zoom >= ZOOM_SHOW_ROADS;
+  const showLabels = zoom >= ZOOM_SHOW_LABELS;
 
   const frontlineGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -171,6 +335,19 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
     })),
   }), []);
 
+  const roadsGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: MAJOR_ROADS.map((road) => ({
+      type: 'Feature',
+      properties: {
+        id: road.id,
+        name: road.name,
+        isRail: road.id.includes('rail'),
+      },
+      geometry: { type: 'LineString', coordinates: road.points },
+    })),
+  }), []);
+
   const sectorLabels = useMemo(() =>
     FRONTLINE_SEGMENTS.map((seg) => {
       const mid = seg.points[Math.floor(seg.points.length / 2)];
@@ -179,6 +356,35 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
 
   return (
     <>
+      {/* ══════════ Major roads & railways ══════════ */}
+      <Source id="conflict-roads" type="geojson" data={roadsGeoJSON}>
+        {/* Highways — solid yellow-ish */}
+        <Layer
+          id="conflict-roads-highway"
+          type="line"
+          filter={['==', ['get', 'isRail'], false]}
+          layout={{ visibility: visible && showRoads ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' }}
+          paint={{
+            'line-color': 'rgba(255,200,50,0.35)',
+            'line-width': 1.5,
+            'line-opacity': 0.7,
+          }}
+        />
+        {/* Railways — dashed gray */}
+        <Layer
+          id="conflict-roads-rail"
+          type="line"
+          filter={['==', ['get', 'isRail'], true]}
+          layout={{ visibility: visible && showRoads ? 'visible' : 'none', 'line-cap': 'butt', 'line-join': 'round' }}
+          paint={{
+            'line-color': 'rgba(180,180,220,0.35)',
+            'line-width': 1.5,
+            'line-dasharray': [4, 3],
+            'line-opacity': 0.6,
+          }}
+        />
+      </Source>
+
       {/* ══════════ Fortification lines & zones ══════════ */}
       <Source id="conflict-fortifications" type="geojson" data={fortificationGeoJSON}>
         {/* Surovikin line — dashed orange */}
@@ -235,8 +441,8 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
           paint={{ 'line-color': RU_RED, 'line-width': 2, 'line-offset': 3, 'line-opacity': 0.8 }} />
       </Source>
 
-      {/* ══════════ Sector labels ══════════ */}
-      {visible && sectorLabels.map((s) => (
+      {/* ══════════ Sector labels (zoom-gated) ══════════ */}
+      {visible && showDetail && sectorLabels.map((s) => (
         <Marker key={`cfl-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="right">
           <div className="conflict-sector-label" style={{ marginRight: 18 }}>
             <span className="conflict-sector-name">{s.label}</span>
@@ -247,43 +453,43 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         </Marker>
       ))}
 
-      {/* ══════════ Battle sites ══════════ */}
-      {visible && BATTLE_SITES.map((site) => (
+      {/* ══════════ Battle sites (zoom-gated) ══════════ */}
+      {visible && showDetail && BATTLE_SITES.map((site) => (
         <Marker key={site.id} longitude={site.lon} latitude={site.lat} anchor="center">
           <BattleSiteMarker site={site} />
         </Marker>
       ))}
 
-      {/* ══════════ Nuclear power plants ══════════ */}
-      {visible && NUCLEAR_PLANTS.map((plant) => (
+      {/* ══════════ Nuclear power plants (zoom-gated) ══════════ */}
+      {visible && showDetail && NUCLEAR_PLANTS.map((plant) => (
         <Marker key={plant.id} longitude={plant.lon} latitude={plant.lat} anchor="center">
           <NppMarker plant={plant} />
         </Marker>
       ))}
 
-      {/* ══════════ Capitals ══════════ */}
+      {/* ══════════ Capitals (always visible when conflict mode on) ══════════ */}
       {visible && CAPITALS.map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="center">
           <CapitalMarker city={c} />
         </Marker>
       ))}
 
-      {/* ══════════ Major cities ══════════ */}
-      {visible && MAJOR_CITIES.map((c) => (
+      {/* ══════════ Major cities (zoom-gated, hide label if infra shares coords) ══════════ */}
+      {visible && showDetail && MAJOR_CITIES.map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="left">
-          <CityMarker city={c} />
+          <CityMarker city={c} hideLabel={INFRA_CITY_IDS.has(c.id)} />
         </Marker>
       ))}
 
-      {/* ══════════ Military infrastructure ══════════ */}
-      {visible && MILITARY_INFRASTRUCTURE.map((item) => (
+      {/* ══════════ Military infrastructure (zoom-gated) ══════════ */}
+      {visible && showDetail && MILITARY_INFRASTRUCTURE.map((item) => (
         <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
-          <InfraMarker item={item} />
+          <InfraMarker item={item} showLabel={showLabels} />
         </Marker>
       ))}
 
-      {/* ══════════ Black Sea naval ══════════ */}
-      {visible && NAVAL_POSITIONS.map((pos) => (
+      {/* ══════════ Black Sea naval (zoom-gated) ══════════ */}
+      {visible && showDetail && NAVAL_POSITIONS.map((pos) => (
         <Marker key={pos.id} longitude={pos.lon} latitude={pos.lat} anchor="center">
           <NavalMarker pos={pos} />
         </Marker>
@@ -295,18 +501,24 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
           <Marker longitude={COAT_OF_ARMS.ukraine.lon} latitude={COAT_OF_ARMS.ukraine.lat} anchor="center">
             <CoatOfArms country="ukraine" />
           </Marker>
-          <Marker longitude={COAT_OF_ARMS.russia.lon} latitude={COAT_OF_ARMS.russia.lat} anchor="center">
+          {/* Russia coat of arms positioned near the border by the conflict zone */}
+          <Marker longitude={38.5} latitude={50.8} anchor="center">
             <CoatOfArms country="russia" />
           </Marker>
         </>
       )}
 
-      {/* ══════════ NATO troop symbols ══════════ */}
-      {visible && showTroops && TROOP_POSITIONS.map((unit) => (
+      {/* ══════════ NATO troop symbols (zoom-gated) ══════════ */}
+      {visible && showDetail && showTroops && TROOP_POSITIONS.map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
           <NatoSymbol unit={unit} onClick={onTroopClick} />
         </Marker>
       ))}
+
+      {/* ══════════ Map Legend ══════════ */}
+      {visible && (
+        <MapLegend open={legendOpen} onToggle={() => setLegendOpen(!legendOpen)} />
+      )}
     </>
   );
 }
