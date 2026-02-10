@@ -217,7 +217,7 @@ function NppMarker({ plant }) {
 /* ───────────────────────────────────────────
    Map Legend — explains all symbols
    ─────────────────────────────────────────── */
-function MapLegend({ open, onToggle }) {
+export function MapLegend({ open, onToggle }) {
   return (
     <div className={`conflict-map-legend ${open ? 'conflict-map-legend--open' : ''}`}>
       <button className="conflict-map-legend-toggle" onClick={onToggle}>
@@ -378,7 +378,6 @@ function MapLegend({ open, onToggle }) {
 
 export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2 }) {
   const visibility = visible ? 'visible' : 'none';
-  const [legendOpen, setLegendOpen] = useState(false);
   const [selectedBattle, setSelectedBattle] = useState(null);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
@@ -550,10 +549,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         </Marker>
       ))}
 
-      {/* ══════════ Map Legend ══════════ */}
-      {visible && (
-        <MapLegend open={legendOpen} onToggle={() => setLegendOpen(!legendOpen)} />
-      )}
     </>
   );
 }
