@@ -1344,6 +1344,9 @@ function App() {
 
   const breadcrumb = getBreadcrumb();
 
+  // React ref to access the map via react-maplibre's useImperativeHandle
+  const mapGLRef = useRef(null);
+
   // Store map ref on load
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
@@ -1354,14 +1357,36 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
-    // Debug: log projection state so we can diagnose globe issues
-    const raw = evt.target.getMap ? evt.target.getMap() : evt.target;
-    const proj = raw.getProjection ? raw.getProjection() : 'getProjection not found';
-    console.log('[Globe Debug] evt.target type:', evt.target.constructor?.name);
-    console.log('[Globe Debug] raw map type:', raw.constructor?.name);
-    console.log('[Globe Debug] raw.setProjection exists:', typeof raw.setProjection);
-    console.log('[Globe Debug] current projection:', JSON.stringify(proj));
-    console.log('[Globe Debug] style projection:', JSON.stringify(raw.getStyle?.()?.projection));
+    // Debug: figure out what evt.target actually is
+    const target = evt.target;
+    console.log('[Globe Debug] evt.target keys:', Object.keys(target).slice(0, 20));
+    console.log('[Globe Debug] evt.target has getMap:', typeof target.getMap);
+    console.log('[Globe Debug] evt.target has flyTo:', typeof target.flyTo);
+    console.log('[Globe Debug] evt.target has setProjection:', typeof target.setProjection);
+    // Try getting raw map via getMap()
+    if (typeof target.getMap === 'function') {
+      const rawMap = target.getMap();
+      console.log('[Globe Debug] getMap() result:', rawMap);
+      console.log('[Globe Debug] rawMap.setProjection:', typeof rawMap?.setProjection);
+    }
+    // Try via the React ref
+    const refMap = mapGLRef.current;
+    console.log('[Globe Debug] React ref:', refMap);
+    console.log('[Globe Debug] React ref getMap:', typeof refMap?.getMap);
+    if (typeof refMap?.getMap === 'function') {
+      const rawFromRef = refMap.getMap();
+      console.log('[Globe Debug] ref.getMap() setProjection:', typeof rawFromRef?.setProjection);
+      console.log('[Globe Debug] ref.getMap() getProjection:', typeof rawFromRef?.getProjection);
+      if (rawFromRef?.getProjection) {
+        console.log('[Globe Debug] ACTUAL projection:', JSON.stringify(rawFromRef.getProjection()));
+      }
+      // Try setting globe projection from the ref's raw map
+      if (rawFromRef?.setProjection) {
+        rawFromRef.setProjection({ type: 'globe' });
+        console.log('[Globe Debug] SET projection to globe!');
+        console.log('[Globe Debug] After set:', JSON.stringify(rawFromRef.getProjection()));
+      }
+    }
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1947,6 +1972,7 @@ function App() {
         )}
 
         <MapGL
+          ref={mapGLRef}
           mapLib={maplibregl}
           mapStyle={mapStyle}
           onLoad={onMapLoad}
