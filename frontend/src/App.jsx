@@ -1354,6 +1354,14 @@ function App() {
       sh.setWheelZoomRate(1 / 200);
       sh.setZoomRate(1 / 50);
     }
+    // Debug: log projection state so we can diagnose globe issues
+    const raw = evt.target.getMap ? evt.target.getMap() : evt.target;
+    const proj = raw.getProjection ? raw.getProjection() : 'getProjection not found';
+    console.log('[Globe Debug] evt.target type:', evt.target.constructor?.name);
+    console.log('[Globe Debug] raw map type:', raw.constructor?.name);
+    console.log('[Globe Debug] raw.setProjection exists:', typeof raw.setProjection);
+    console.log('[Globe Debug] current projection:', JSON.stringify(proj));
+    console.log('[Globe Debug] style projection:', JSON.stringify(raw.getStyle?.()?.projection));
   }, []);
 
   // Track map center for globe hemisphere visibility check
@@ -1960,7 +1968,6 @@ function App() {
           touchPitch={useGlobe}
           renderWorldCopies={!useGlobe}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
-          projection={useGlobe ? { type: 'globe' } : { type: 'mercator' }}
           maxZoom={8}
           minZoom={1}
         >
