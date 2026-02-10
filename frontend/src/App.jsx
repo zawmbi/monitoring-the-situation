@@ -27,6 +27,8 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import { ElectionPanel } from './features/elections/ElectionPanel';
+import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -567,6 +569,8 @@ function App() {
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
+  const [electionMode, setElectionMode] = useState(false);
+  const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
 
   // Tariff panel state
   const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
@@ -699,6 +703,13 @@ function App() {
       setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } });
     }
   }, [showTariffHeatmap]);
+
+  // Close election panel when election mode is turned off
+  useEffect(() => {
+    if (!electionMode) {
+      setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+    }
+  }, [electionMode]);
 
   const flightPaths = useMemo(() => {
     return (flights || [])
@@ -833,15 +844,20 @@ function App() {
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: US_STATE_FEATURES.map((f, i) => ({
-      type: 'Feature',
-      id: i,
-      geometry: f.geometry,
-      properties: {
-        name: f.properties?.name || `State ${i}`,
-        originalId: String(f.id),
-      },
-    })),
+    features: US_STATE_FEATURES.map((f, i) => {
+      const name = f.properties?.name || `State ${i}`;
+      return {
+        type: 'Feature',
+        id: i,
+        geometry: f.geometry,
+        properties: {
+          name,
+          originalId: String(f.id),
+          electionColor: getElectionColor(name),
+          hasElection: hasElectionRaces(name),
+        },
+      };
+    }),
   }), []);
 
   const caProvincesGeoJSON = useMemo(() => ({
@@ -1121,7 +1137,12 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openStatePanel(name, { x, y });
+
+          if (electionMode && hasElectionRaces(name)) {
+            setElectionPanel({ open: true, state: name, pos: { x, y } });
+          } else {
+            openStatePanel(name, { x, y });
+          }
         }
       } else if (sourceId === 'ca-provinces') {
         setSelectedRegion({ type: 'province', id: originalId, name });
@@ -1143,7 +1164,7 @@ function App() {
         }
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1605,16 +1626,27 @@ function App() {
                 <div className="source-group">
                   <div className="source-group-title">Politics & Economy</div>
                   <div className="source-group-items">
-                    {[
-                      { id: 'elections', label: 'Election News', tone: 'neutral', disabled: true },
-                      { id: 'tariffs', label: 'Tariffs & Trade', tone: 'neutral', disabled: true },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
-                        <span className="switch-label">{layer.label} (WIP)</span>
-                        <input type="checkbox" checked={false} disabled />
-                        <span className="slider" />
-                      </label>
-                    ))}
+                    <label className="switch switch-elections">
+                      <span className="switch-label">2026 Midterm Elections</span>
+                      <input
+                        type="checkbox"
+                        checked={electionMode}
+                        onChange={() => {
+                          setElectionMode(prev => {
+                            if (prev) {
+                              setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral switch-disabled">
+                      <span className="switch-label">Tariffs & Trade (WIP)</span>
+                      <input type="checkbox" checked={false} disabled />
+                      <span className="slider" />
+                    </label>
                   </div>
                 </div>
 
@@ -1918,6 +1950,47 @@ function App() {
           />
         )}
 
+        {/* Election Panel */}
+        {electionPanel.open && electionPanel.state && (
+          <ElectionPanel
+            stateName={electionPanel.state}
+            position={electionPanel.pos}
+            bounds={
+              mapContainerRef.current
+                ? {
+                    width: mapContainerRef.current.getBoundingClientRect().width,
+                    height: mapContainerRef.current.getBoundingClientRect().height,
+                  }
+                : null
+            }
+            onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
+            onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+          />
+        )}
+
+        {/* Election mode map legend */}
+        {electionMode && (
+          <div className="el-map-legend">
+            {[
+              { rating: 'safe-d', label: 'Safe D' },
+              { rating: 'likely-d', label: 'Likely D' },
+              { rating: 'lean-d', label: 'Lean D' },
+              { rating: 'toss-up', label: 'Toss-Up' },
+              { rating: 'lean-r', label: 'Lean R' },
+              { rating: 'likely-r', label: 'Likely R' },
+              { rating: 'safe-r', label: 'Safe R' },
+            ].map((item, idx) => (
+              <span key={item.rating}>
+                {idx > 0 && <span className="el-legend-sep" />}
+                <span className="el-legend-item">
+                  <span className="el-legend-swatch" style={{ background: RATING_COLORS[item.rating] }} />
+                  {item.label}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+
         {countryPanel.open && countryPanel.data && (
           <CountryPanel
             data={countryPanel.data}
@@ -2153,15 +2226,22 @@ function App() {
               id="us-states-fill"
               type="fill"
               paint={{
-                'fill-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme
-                    ? 'rgba(194, 120, 62, 0.15)'
-                    : 'rgba(123, 107, 255, 0.22)',
-                  'rgba(0, 0, 0, 0)',
-                ],
-                'fill-opacity': 1,
+                'fill-color': electionMode
+                  ? [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                      ['get', 'electionColor'],
+                    ]
+                  : [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme
+                        ? 'rgba(194, 120, 62, 0.15)'
+                        : 'rgba(123, 107, 255, 0.22)',
+                      'rgba(0, 0, 0, 0)',
+                    ],
+                'fill-opacity': electionMode ? 0.7 : 1,
               }}
             />
             <Layer
