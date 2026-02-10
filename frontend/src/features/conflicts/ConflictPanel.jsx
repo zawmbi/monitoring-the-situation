@@ -3,7 +3,7 @@
  * Casualties, equipment, command, drone/missile warfare,
  * humanitarian, sanctions/economic, territorial control, timeline
  */
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CASUALTIES,
   EQUIPMENT,
@@ -22,21 +22,36 @@ import './conflicts.css';
 
 export default function ConflictPanel({ open, onClose, position, onPositionChange }) {
   const [tab, setTab] = useState('overview');
-  const [dragStart, setDragStart] = useState(null);
+  const dragRef = useRef(null);
+
+  const handleDrag = useCallback((e) => {
+    if (!dragRef.current || !e.clientX) return;
+    onPositionChange?.({ x: e.clientX - dragRef.current.x, y: e.clientY - dragRef.current.y });
+  }, [onPositionChange]);
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current = null;
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', handleDragEnd);
+  }, [handleDrag]);
+
+  const handleDragStart = useCallback((e) => {
+    if (e.target.closest('button, a, input, select')) return;
+    dragRef.current = { x: e.clientX - (position?.x || 0), y: e.clientY - (position?.y || 0) };
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+  }, [position, handleDrag, handleDragEnd]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDrag);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [handleDrag, handleDragEnd]);
 
   if (!open) return null;
 
   const days = CONFLICT_SUMMARY.daysSince();
-
-  const handleDragStart = (e) => {
-    if (e.target.closest('button, a, input, select')) return;
-    setDragStart({ x: e.clientX - (position?.x || 0), y: e.clientY - (position?.y || 0) });
-  };
-  const handleDrag = (e) => {
-    if (!dragStart || !e.clientX) return;
-    onPositionChange?.({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  };
-  const handleDragEnd = () => setDragStart(null);
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
@@ -50,8 +65,7 @@ export default function ConflictPanel({ open, onClose, position, onPositionChang
 
   return (
     <div className="conflict-panel"
-      style={{ left: position?.x ?? 60, top: position?.y ?? 60 }}
-      onMouseMove={handleDrag} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd}>
+      style={{ left: position?.x ?? 60, top: position?.y ?? 60 }}>
 
       <div className="conflict-panel-header" onMouseDown={handleDragStart}>
         <div className="conflict-panel-header-left">
