@@ -500,7 +500,6 @@ const getInitialNavCollapsed = () => {
 };
 
 const VISUAL_LAYER_DEFAULTS = {
-  atmosphere: false,
   contours: true,
   hillshade: true,
   heatmap: false,
@@ -560,13 +559,14 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
-  const [transparentGlobe, setTransparentGlobe] = useState(true);
+  const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
+  const [continuousMap, setContinuousMap] = useState(true);
 
   // Tariff panel state
   const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
@@ -799,12 +799,12 @@ function App() {
       '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
     ];
     const lightPalette = [
-      '#4a7a3e', '#6b8f42', '#8a6e3a', '#3d6b35', '#7a8548',
-      '#5c7040', '#9b7a3c', '#4e7e44', '#6e6838', '#3a6030',
-      '#87764a', '#527238', '#7c8a4e', '#48703a', '#a0823e',
-      '#5a6e3c', '#6a7a40', '#8b7044', '#3e6832', '#74804a',
-      '#4c6a36', '#96783e', '#5e7c42', '#7e6c3a', '#447034',
-      '#6c8648', '#8e7a40', '#3c6530', '#78724c', '#568038',
+      '#5a8a4a', '#7d9e55', '#9a7d48', '#4a7840', '#8c9658',
+      '#6b8350', '#a88a4a', '#5c8e52', '#7e7a45', '#458040',
+      '#97865a', '#5e8248', '#8a9a5c', '#538a48', '#b09248',
+      '#688a4c', '#7a9050', '#9b7e52', '#4c7a3e', '#849558',
+      '#588044', '#a68848', '#6a9050', '#8e7c48', '#4e8240',
+      '#789858', '#9e8a50', '#48783c', '#887e5a', '#629046',
     ];
     const palette = isLightTheme ? lightPalette : darkPalette;
     // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
@@ -880,8 +880,8 @@ function App() {
       type: 'background',
       paint: {
         'background-color': holoMode
-          ? (isLightTheme ? '#8ab4d8' : '#060a14')
-          : (isLightTheme ? '#8ab4d8' : '#0c1126'),
+          ? (isLightTheme ? '#7aacc8' : '#060a14')
+          : (isLightTheme ? '#7aacc8' : '#0a0e1e'),
       },
     }],
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -1697,7 +1697,7 @@ function App() {
                   ))}
                 </div>
 
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>3D Globe Settings</div>
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Projection</div>
                 <div className="settings-group">
                   <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
                     <span className="switch-label">Transparent Globe</span>
@@ -1709,13 +1709,13 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Atmospheric Edge Glow</span>
+                  <label className={`switch switch-neutral ${useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Continuous Map (2D)</span>
                     <input
                       type="checkbox"
-                      checked={visualLayers.atmosphere}
-                      onChange={() => toggleVisualLayer('atmosphere')}
-                      disabled={!useGlobe}
+                      checked={continuousMap}
+                      onChange={() => setContinuousMap(prev => !prev)}
+                      disabled={useGlobe}
                     />
                     <span className="slider" />
                   </label>
@@ -1795,7 +1795,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        <div className="map-container" ref={mapContainerRef}>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -1946,7 +1946,7 @@ function App() {
           dragRotate={useGlobe}
           pitchWithRotate={useGlobe}
           touchPitch={useGlobe}
-          renderWorldCopies={!useGlobe}
+          renderWorldCopies={!useGlobe && continuousMap}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
           maxZoom={8}
           minZoom={1}
@@ -1958,8 +1958,8 @@ function App() {
               type="line"
               layout={{ visibility: visualLayers.contours ? 'visible' : 'none' }}
               paint={{
-                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : 'rgba(73, 198, 255, 0.16)',
-                'line-width': 0.7,
+                'line-color': isLightTheme ? 'rgba(255, 255, 255, 0.22)' : 'rgba(73, 198, 255, 0.16)',
+                'line-width': isLightTheme ? 0.5 : 0.7,
               }}
             />
           </Source>
@@ -1971,7 +1971,7 @@ function App() {
               id="compass-lines-glow"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : 'rgba(73, 198, 255, 0.10)',
+                'line-color': isLightTheme ? 'rgba(59, 111, 212, 0.08)' : 'rgba(73, 198, 255, 0.10)',
                 'line-width': useGlobe ? 4 : 2,
                 'line-blur': 4,
               }}
@@ -1981,7 +1981,7 @@ function App() {
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(59, 111, 212, 0.18)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
@@ -1994,7 +1994,7 @@ function App() {
               id="equator-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(59, 111, 212, 0.2)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': 1,
                 'line-dasharray': [6, 4],
               }}
@@ -2008,7 +2008,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(59, 111, 212, 0.15)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -2018,7 +2018,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(59, 111, 212, 0.15)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -2034,13 +2034,13 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
+                      isLightTheme ? '#8cb888' : '#1a3a52',
                       ['get', 'tariffColor'],
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
+                      isLightTheme ? '#8cb888' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
@@ -2052,7 +2052,7 @@ function App() {
                 id="countries-glow-outer"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#7b6bff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3b6fd4' : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
                   'line-opacity': 0.2,
@@ -2064,7 +2064,7 @@ function App() {
                 id="countries-glow-mid"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3b6fd4' : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
                   'line-opacity': 0.4,
@@ -2076,22 +2076,22 @@ function App() {
               type="line"
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
+                  ? (isLightTheme ? 'rgba(255, 255, 255, 0.8)' : 'rgba(73, 198, 255, 0.6)')
                   : (isLightTheme
-                      ? 'rgba(50, 40, 80, 0.5)'
-                      : 'rgba(140, 160, 200, 0.4)'),
+                      ? 'rgba(255, 255, 255, 0.85)'
+                      : 'rgba(148, 163, 184, 0.55)'),
                 'line-width': holoMode
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.4,
+                      3.0,
+                      2.0,
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.6,
+                      3.5,
+                      2.4,
                     ],
               }}
             />
@@ -2102,9 +2102,9 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(59, 111, 212, 0.1)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
-                      ? 'rgba(194, 120, 62, 0.25)'
+                      ? 'rgba(59, 111, 212, 0.2)'
                       : 'rgba(123, 107, 255, 0.35)'),
               }}
             />
@@ -2114,7 +2114,7 @@ function App() {
                 type="line"
                 filter={selectedCountryFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3b6fd4' : '#49c6ff',
                   'line-width': 5,
                   'line-blur': 6,
                   'line-opacity': 0.5,
@@ -2127,8 +2127,8 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? '#5d4dff' : '#49c6ff')
-                  : (isLightTheme ? '#5d4dff' : '#7b6bff'),
+                  ? (isLightTheme ? '#3b6fd4' : '#49c6ff')
+                  : (isLightTheme ? '#3b6fd4' : '#7b6bff'),
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
@@ -2144,7 +2144,7 @@ function App() {
                   'case',
                   ['boolean', ['feature-state', 'hover'], false],
                   isLightTheme
-                    ? 'rgba(194, 120, 62, 0.15)'
+                    ? 'rgba(59, 111, 212, 0.12)'
                     : 'rgba(123, 107, 255, 0.22)',
                   'rgba(0, 0, 0, 0)',
                 ],
@@ -2156,9 +2156,9 @@ function App() {
               type="line"
               paint={{
                 'line-color': isLightTheme
-                  ? 'rgba(166, 120, 80, 0.35)'
-                  : 'rgba(160, 145, 255, 0.35)',
-                'line-width': 1,
+                  ? 'rgba(255, 255, 255, 0.7)'
+                  : 'rgba(160, 145, 255, 0.4)',
+                'line-width': 1.8,
               }}
             />
             <Layer
@@ -2167,7 +2167,7 @@ function App() {
               filter={selectedStateFilter}
               paint={{
                 'fill-color': isLightTheme
-                  ? 'rgba(194, 120, 62, 0.25)'
+                  ? 'rgba(59, 111, 212, 0.2)'
                   : 'rgba(123, 107, 255, 0.35)',
               }}
             />
@@ -2176,8 +2176,8 @@ function App() {
               type="line"
               filter={selectedStateFilter}
               paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 1.5,
+                'line-color': isLightTheme ? '#3b6fd4' : '#7b6bff',
+                'line-width': 2.0,
               }}
             />
           </Source>
@@ -2198,14 +2198,14 @@ function App() {
                 'line-color': [
                   'case',
                   ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
-                  isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                  isLightTheme ? 'rgba(255, 255, 255, 0.9)' : 'rgba(180, 165, 255, 0.6)',
+                  isLightTheme ? 'rgba(255, 255, 255, 0.65)' : 'rgba(160, 145, 255, 0.35)',
                 ],
                 'line-width': [
                   'case',
                   ['boolean', ['feature-state', 'hover'], false],
-                  1.5,
-                  0.8,
+                  2.2,
+                  1.6,
                 ],
               }}
             />
@@ -2215,7 +2215,7 @@ function App() {
               type="line"
               filter={selectedProvinceFilter}
               paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                'line-color': isLightTheme ? '#3b6fd4' : '#7b6bff',
                 'line-width': 2,
               }}
             />
