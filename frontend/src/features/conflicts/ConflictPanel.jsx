@@ -10,13 +10,13 @@ import {
   COMMAND,
   DECEASED_COMMANDERS,
   CONFLICT_SUMMARY,
-  RECENCY_LEGEND,
   TERRITORIAL_CONTROL,
   DRONE_MISSILE_DATA,
   HUMANITARIAN,
   SANCTIONS_ECONOMIC,
   WAR_TIMELINE,
   UA_BLUE,
+  UA_YELLOW,
   RU_RED,
 } from './conflictData';
 import './conflicts.css';
@@ -77,17 +77,6 @@ export default function ConflictPanel({ open, onClose }) {
         {tab === 'donate' && <DonateTab />}
       </div>
 
-      <div className="conflict-panel-footer">
-        <div className="conflict-legend-title">Frontline Recency</div>
-        <div className="conflict-legend-items">
-          {RECENCY_LEGEND.map((item) => (
-            <div key={item.label} className="conflict-legend-item">
-              <span className="conflict-legend-swatch" style={{ background: item.color }} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -166,6 +155,153 @@ function OverviewTab() {
       </div>
 
       <div className="conflict-sources">Sources: {CASUALTIES.russia.source}; {CASUALTIES.ukraine.source}; {tc.source}</div>
+
+      {/* ── Map Legend ── */}
+      <div className="conflict-stat-group" style={{ marginTop: 14 }}>
+        <div className="conflict-stat-group-title">Map Legend</div>
+        <div className="conflict-panel-legend">
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Frontlines</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-line" style={{ background: UA_BLUE }} />
+              <span>Ukrainian side</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-line" style={{ background: RU_RED }} />
+              <span>Russian side</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
+              <span>Fortification (Surovikin Line)</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Cities & Territory</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#5baaff' }} />
+              <span>Ukrainian-controlled city</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#ff6b6b' }} />
+              <span>Russian / occupied city</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" fill={UA_BLUE} stroke={UA_YELLOW} strokeWidth="2" /></svg>
+              <span>Capital city</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Military</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>✈</span>
+              <span>Airbase</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⚓</span>
+              <span>Port / Naval base</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⊕</span>
+              <span>Air defense</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◆</span>
+              <span>Supply depot</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⌇</span>
+              <span>Bridge</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Combat & Strategic</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ffa500' }}>⚔</span>
+              <span>Battle site</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#66ff66' }}>☢</span>
+              <span>Nuclear power plant</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⛵</span>
+              <span>Naval patrol</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◈</span>
+              <span>Unmanned surface vehicle</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">NATO Unit Symbols — Affiliation</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: UA_BLUE, borderColor: UA_YELLOW }}>╳</span>
+              <span>Ukrainian unit</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: RU_RED, borderColor: '#fff' }}>╳</span>
+              <span>Russian unit</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Unit Type (symbol inside box)</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳</span>
+              <span>Infantry</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⊙</span>
+              <span>Armor / Tanks</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳⊙</span>
+              <span>Mechanized Infantry</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>●</span>
+              <span>Artillery</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⚓</span>
+              <span>Marines</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Unit Size (pips above box)</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-pips">II</span>
+              <span>Battalion (~300–1,000)</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-pips">III</span>
+              <span>Regiment (~1,000–3,000)</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-pips">╳</span>
+              <span>Brigade (~3,000–5,000)</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-pips">╳╳</span>
+              <span>Division (~10,000–20,000)</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-pips">╳╳╳</span>
+              <span>Corps (~20,000–40,000)</span>
+            </div>
+          </div>
+          <div className="conflict-panel-legend-section">
+            <div className="conflict-panel-legend-heading">Coat of Arms</div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+              <span>Ukraine (Tryzub)</span>
+            </div>
+            <div className="conflict-panel-legend-row">
+              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+              <span>Russia (Double-headed eagle)</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

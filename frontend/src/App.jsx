@@ -27,7 +27,7 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
-import ConflictOverlay, { MapLegend } from './features/conflicts/ConflictOverlay';
+import ConflictOverlay from './features/conflicts/ConflictOverlay';
 import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
@@ -575,7 +575,7 @@ function App() {
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
-  const [conflictLegendOpen, setConflictLegendOpen] = useState(false);
+
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
@@ -2570,10 +2570,6 @@ function App() {
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
 
-        {/* Conflict Map Legend — rendered outside MapGL so position:fixed works */}
-        {conflictMode && (
-          <MapLegend open={conflictLegendOpen} onToggle={() => setConflictLegendOpen(!conflictLegendOpen)} />
-        )}
 
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (
