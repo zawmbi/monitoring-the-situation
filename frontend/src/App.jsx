@@ -27,6 +27,11 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import ConflictOverlay, { MapLegend } from './features/conflicts/ConflictOverlay';
+import ConflictPanel from './features/conflicts/ConflictPanel';
+import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
+import { ElectionPanel } from './features/elections/ElectionPanel';
+import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -536,11 +541,12 @@ function App() {
   // Country panel hook
   const {
     countryPanel,
+    currencyData,
+    currencyLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
     closeCountryPanel,
-    updateCountryPanelPosition,
   } = useCountryPanel();
 
   // Temperature unit: 'F' (default) or 'C'
@@ -566,7 +572,14 @@ function App() {
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
+  const [conflictMode, setConflictMode] = useState(false);
+  const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
+  const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  const [conflictLegendOpen, setConflictLegendOpen] = useState(false);
+  const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
+  const [electionMode, setElectionMode] = useState(false);
+  const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
 
   // Tariff panel state
   const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
@@ -699,6 +712,13 @@ function App() {
       setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } });
     }
   }, [showTariffHeatmap]);
+
+  // Close election panel when election mode is turned off
+  useEffect(() => {
+    if (!electionMode) {
+      setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+    }
+  }, [electionMode]);
 
   const flightPaths = useMemo(() => {
     return (flights || [])
@@ -833,15 +853,20 @@ function App() {
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: US_STATE_FEATURES.map((f, i) => ({
-      type: 'Feature',
-      id: i,
-      geometry: f.geometry,
-      properties: {
-        name: f.properties?.name || `State ${i}`,
-        originalId: String(f.id),
-      },
-    })),
+    features: US_STATE_FEATURES.map((f, i) => {
+      const name = f.properties?.name || `State ${i}`;
+      return {
+        type: 'Feature',
+        id: i,
+        geometry: f.geometry,
+        properties: {
+          name,
+          originalId: String(f.id),
+          electionColor: getElectionColor(name),
+          hasElection: hasElectionRaces(name),
+        },
+      };
+    }),
   }), []);
 
   const caProvincesGeoJSON = useMemo(() => ({
@@ -1102,9 +1127,8 @@ function App() {
             setTariffPanel({ open: true, country: name, pos: { x, y } });
           }
 
-          openCountryPanel(name, { x, y });
+          openCountryPanel(name);
           setPolymarketCountry(name);
-          setShowPolymarketPanel(true);
         }
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
@@ -1122,7 +1146,12 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openStatePanel(name, { x, y });
+
+          if (electionMode && hasElectionRaces(name)) {
+            setElectionPanel({ open: true, state: name, pos: { x, y } });
+          } else {
+            openStatePanel(name);
+          }
         }
       } else if (sourceId === 'ca-provinces') {
         setSelectedRegion({ type: 'province', id: originalId, name });
@@ -1140,11 +1169,11 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openProvincePanel(name, { x, y });
+          openProvincePanel(name);
         }
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1348,7 +1377,10 @@ function App() {
   // Track map center for globe hemisphere visibility check
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
-    if (c) mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+    if (c) {
+      mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      if (c.zoom !== undefined) setMapZoom(c.zoom);
+    }
   }, []);
 
   /**
@@ -1515,15 +1547,6 @@ function App() {
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  className={`sidebar-tab ${sidebarTab === 'tariffs' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('tariffs')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'tariffs'}
-                >
-                  Tariffs & Trade
-                </button>
               </div>
             )}
           </div>
@@ -1586,38 +1609,145 @@ function App() {
                         <span className="slider" />
                       </label>
                     ))}
+                    <label className="switch switch-stocks">
+                      <span className="switch-label">Betting Markets</span>
+                      <input
+                        type="checkbox"
+                        checked={showPolymarketPanel}
+                        onChange={() => {
+                          setShowPolymarketPanel(prev => {
+                            if (!prev) setPolymarketCountry(null);
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
                   </div>
                 </div>
 
                 <div className="source-group">
                   <div className="source-group-title">Politics & Economy</div>
                   <div className="source-group-items">
-                    {[
-                      { id: 'elections', label: 'Election News', tone: 'neutral', disabled: true },
-                      { id: 'tariffs', label: 'Tariffs & Trade', tone: 'neutral', disabled: true },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
-                        <span className="switch-label">{layer.label} (WIP)</span>
-                        <input type="checkbox" checked={false} disabled />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Overlays</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-frontline">
-                      <span className="switch-label">UA/RU Frontline</span>
+                    <label className="switch switch-elections">
+                      <span className="switch-label">2026 Midterm Elections</span>
                       <input
                         type="checkbox"
-                        checked={showFrontline}
-                        onChange={() => setShowFrontline(prev => !prev)}
+                        checked={electionMode}
+                        onChange={() => {
+                          setElectionMode(prev => {
+                            if (prev) {
+                              setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Tariffs & Trade</span>
+                      <input
+                        type="checkbox"
+                        checked={showTariffHeatmap}
+                        onChange={() => setShowTariffHeatmap(prev => !prev)}
                       />
                       <span className="slider" />
                     </label>
                   </div>
+
+                  {showTariffHeatmap && (
+                    <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
+                      <div className="tariff-heatmap-active-badge">
+                        <span className="tariff-heatmap-active-dot" />
+                        Heatmap active
+                      </div>
+
+                      <div className="tariff-legend">
+                        <div className="tariff-legend-title">Tariff Rate Legend</div>
+                        <div className="tariff-legend-items">
+                          {TARIFF_LEGEND.map((item) => (
+                            <div key={item.label} className="tariff-legend-item">
+                              <span
+                                className="tariff-legend-swatch"
+                                style={{ background: isLightTheme ? item.colorLight : item.color }}
+                              />
+                              <span>{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="tariff-sidebar-info">
+                        <strong>US Import Tariffs</strong><br />
+                        Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Conflicts</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-frontline">
+                      <span className="switch-label">Russia–Ukraine War</span>
+                      <input
+                        type="checkbox"
+                        checked={conflictMode}
+                        onChange={() => {
+                          setConflictMode(prev => {
+                            if (prev) {
+                              setConflictPanelOpen(false);
+                              setShowFrontline(false);
+                            } else {
+                              setShowFrontline(true);
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {conflictMode && (
+                    <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
+                      <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
+                      <strong>Russia–Ukraine War</strong>
+                      <p>
+                        Frontlines, estimated troop positions, and occupied territory are shown on the map. Click for detailed statistics.
+                      </p>
+                      <div className="conflict-sidebar-toggles">
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Show Troop Positions</span>
+                          <input
+                            type="checkbox"
+                            checked={conflictShowTroops}
+                            onChange={() => setConflictShowTroops(prev => !prev)}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                      <button
+                        className="conflict-sidebar-open-btn"
+                        style={{
+                          marginTop: '8px',
+                          width: '100%',
+                          padding: '7px 10px',
+                          background: 'rgba(255, 50, 50, 0.12)',
+                          border: '1px solid rgba(255, 50, 50, 0.25)',
+                          borderRadius: '6px',
+                          color: '#ff6b6b',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setConflictPanelOpen(prev => !prev)}
+                      >
+                        {conflictPanelOpen ? 'Close' : 'Open'} War Statistics Panel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="source-group">
@@ -1740,49 +1870,6 @@ function App() {
               </div>
             )}
 
-            {sidebarExpanded && sidebarTab === 'tariffs' && (
-              <div className="settings-panel tariff-sidebar">
-                <div className="toggle-group-title">Tariff Heatmap</div>
-                <div className="settings-group tariff-heatmap-toggle">
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Show Heatmap</span>
-                    <input
-                      type="checkbox"
-                      checked={showTariffHeatmap}
-                      onChange={() => setShowTariffHeatmap(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                {showTariffHeatmap && (
-                  <div className="tariff-heatmap-active-badge">
-                    <span className="tariff-heatmap-active-dot" />
-                    Heatmap active
-                  </div>
-                )}
-
-                <div className="tariff-legend">
-                  <div className="tariff-legend-title">Tariff Rate Legend</div>
-                  <div className="tariff-legend-items">
-                    {TARIFF_LEGEND.map((item) => (
-                      <div key={item.label} className="tariff-legend-item">
-                        <span
-                          className="tariff-legend-swatch"
-                          style={{ background: isLightTheme ? item.colorLight : item.color }}
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="tariff-sidebar-info">
-                  <strong>US Import Tariffs</strong><br />
-                  Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
-                </div>
-              </div>
-            )}
 
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
@@ -1883,7 +1970,7 @@ function App() {
           error={polymarketsError}
           lastUpdated={polymarketsLastUpdated}
           country={polymarketCountry}
-          onClose={() => setShowPolymarketPanel(false)}
+          onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
           onRefresh={refreshPolymarkets}
         />
 
@@ -1905,10 +1992,11 @@ function App() {
           />
         )}
 
-        {countryPanel.open && countryPanel.data && (
-          <CountryPanel
-            data={countryPanel.data}
-            position={countryPanel.pos}
+        {/* Election Panel */}
+        {electionPanel.open && electionPanel.state && (
+          <ElectionPanel
+            stateName={electionPanel.state}
+            position={electionPanel.pos}
             bounds={
               mapContainerRef.current
                 ? {
@@ -1917,11 +2005,51 @@ function App() {
                   }
                 : null
             }
-            onPositionChange={updateCountryPanelPosition}
+            onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
+            onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+          />
+        )}
+
+        {/* Conflict panel */}
+        {conflictMode && (
+          <ConflictPanel
+            open={conflictPanelOpen}
+            onClose={() => setConflictPanelOpen(false)}
+          />
+        )}
+
+        {/* Election mode map legend */}
+        {electionMode && (
+          <div className="el-map-legend">
+            {[
+              { rating: 'safe-d', label: 'Safe D' },
+              { rating: 'likely-d', label: 'Likely D' },
+              { rating: 'lean-d', label: 'Lean D' },
+              { rating: 'toss-up', label: 'Toss-Up' },
+              { rating: 'lean-r', label: 'Lean R' },
+              { rating: 'likely-r', label: 'Likely R' },
+              { rating: 'safe-r', label: 'Safe R' },
+            ].map((item, idx) => (
+              <span key={item.rating}>
+                {idx > 0 && <span className="el-legend-sep" />}
+                <span className="el-legend-item">
+                  <span className="el-legend-swatch" style={{ background: RATING_COLORS[item.rating] }} />
+                  {item.label}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {countryPanel.open && countryPanel.data && (
+          <CountryPanel
+            data={countryPanel.data}
             onClose={closeCountryPanel}
             weather={panelWeather}
             weatherLoading={panelWeatherLoading}
             tempUnit={tempUnit}
+            currencyData={currencyData}
+            currencyLoading={currencyLoading}
           />
         )}
 
@@ -2140,15 +2268,22 @@ function App() {
               id="us-states-fill"
               type="fill"
               paint={{
-                'fill-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme
-                    ? 'rgba(194, 120, 62, 0.15)'
-                    : 'rgba(123, 107, 255, 0.22)',
-                  'rgba(0, 0, 0, 0)',
-                ],
-                'fill-opacity': 1,
+                'fill-color': electionMode
+                  ? [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                      ['get', 'electionColor'],
+                    ]
+                  : [
+                      'case',
+                      ['boolean', ['feature-state', 'hover'], false],
+                      isLightTheme
+                        ? 'rgba(194, 120, 62, 0.15)'
+                        : 'rgba(123, 107, 255, 0.22)',
+                      'rgba(0, 0, 0, 0)',
+                    ],
+                'fill-opacity': electionMode ? 0.7 : 1,
               }}
             />
             <Layer
@@ -2221,8 +2356,20 @@ function App() {
             />
           </Source>
 
-          {/* UA/RU Frontline Overlay */}
-          <FrontlineOverlay visible={showFrontline} />
+          {/* UA/RU Frontline Overlay (legacy — hidden when conflict mode is on) */}
+          <FrontlineOverlay visible={showFrontline && !conflictMode} />
+
+          {/* Conflict Overlay — frontlines, occupied territory, coat of arms, NATO symbols */}
+          <ConflictOverlay
+            visible={conflictMode}
+            showTroops={conflictShowTroops}
+            zoom={mapZoom}
+            onTroopClick={(unit) => {
+              if (!conflictPanelOpen) {
+                setConflictPanelOpen(true);
+              }
+            }}
+          />
 
           {/* Elevation / Hillshade — on top of country fills so ocean bathymetry is hidden */}
           <Source
@@ -2422,6 +2569,11 @@ function App() {
 
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
+
+        {/* Conflict Map Legend — rendered outside MapGL so position:fixed works */}
+        {conflictMode && (
+          <MapLegend open={conflictLegendOpen} onToggle={() => setConflictLegendOpen(!conflictLegendOpen)} />
+        )}
 
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (
