@@ -23,6 +23,7 @@ import { useWeather } from './hooks/useWeather';
 import { useSevereWeather } from './hooks/useSevereWeather';
 import { SevereWeatherPanel } from './features/severeWeather/SevereWeatherPanel';
 import { TariffPanel } from './features/tariffs/TariffPanel';
+import StarField from './components/StarField';
 import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } from './features/tariffs/tariffData';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
@@ -510,6 +511,8 @@ const VISUAL_LAYER_DEFAULTS = {
   hillshade: true,
   heatmap: false,
   countryFill: true,
+  starField: true,
+  terrainTexture: true,
 };
 
 const getInitialVisualLayers = () => {
@@ -1810,9 +1813,11 @@ function App() {
                     <span className="slider" />
                   </label>
                   {[
+                    { key: 'starField', label: 'Star Field Background' },
+                    { key: 'terrainTexture', label: 'Terrain Texture Base' },
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'countryFill', label: 'Country Fill Color' },
-                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade' },
                     { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
@@ -1883,6 +1888,7 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        <StarField visible={visualLayers.starField && !isLightTheme} />
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -2079,6 +2085,31 @@ function App() {
           maxZoom={8}
           minZoom={1}
         >
+          {/* Terrain texture base tiles */}
+          <Source
+            id="terrain-texture"
+            type="raster"
+            tiles={isLightTheme
+              ? ['https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}@2x.png',
+                 'https://b.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}@2x.png']
+              : ['https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png',
+                 'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png']}
+            tileSize={256}
+            maxzoom={18}
+            attribution="&copy; CartoDB"
+          >
+            <Layer
+              id="terrain-texture-layer"
+              type="raster"
+              layout={{ visibility: visualLayers.terrainTexture ? 'visible' : 'none' }}
+              paint={{
+                'raster-opacity': isLightTheme ? 0.4 : 0.3,
+                'raster-brightness-max': isLightTheme ? 0.8 : 0.4,
+                'raster-saturation': -0.3,
+              }}
+            />
+          </Source>
+
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
             <Layer
@@ -2171,7 +2202,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? (visualLayers.terrainTexture ? 0.55 : 1) : 0),
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
@@ -2383,9 +2414,9 @@ function App() {
             <Layer
               id="hillshade-layer"
               type="hillshade"
-              layout={{ visibility: 'none' /* WIP — terrain tile alignment issues */ }}
+              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
               paint={{
-                'hillshade-exaggeration': 0.3,
+                'hillshade-exaggeration': 0.5,
                 'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,0,0.35)',
                 'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.12)',
                 'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
