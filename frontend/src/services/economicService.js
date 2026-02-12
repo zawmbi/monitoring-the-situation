@@ -1,9 +1,12 @@
 /**
  * Economic Data Service
- * Fetches live economic indicators from the World Bank API and merges
- * with static baseline data from economicData.js.
+ * Fetches live economic indicators — tries backend first (Redis-cached, pre-warmed),
+ * then falls back to direct World Bank API calls, then to static baseline data.
  *
- * World Bank indicators used:
+ * Backend indicators (7 total):
+ *   inflation, gdpGrowth, unemployment, debtToGdp, population, tradePercGdp, currentAccount
+ *
+ * Direct World Bank fallback (3 indicators):
  *   FP.CPI.TOTL.ZG  — Inflation (CPI, annual %)
  *   NY.GDP.MKTP.KD.ZG — GDP growth (annual %)
  *   SL.UEM.TOTL.ZS  — Unemployment (% of labor force)
@@ -12,6 +15,7 @@
  */
 
 import { getEconomicData } from '../features/country/economicData';
+import api from './api';
 
 const WB_BASE = 'https://api.worldbank.org/v2/country';
 const INDICATORS = {
@@ -24,13 +28,29 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const cache = new Map();
 
 /**
+ * Try fetching from the backend service first (has Redis caching + more indicators).
+ */
+async function fetchFromBackend(cca2) {
+  if (!cca2) return null;
+  try {
+    const res = await api.getEconomicData(cca2);
+    if (res.success && res.data) {
+      return res.data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a single World Bank indicator for a country code.
  * Returns { value, date } or null.
  */
 async function fetchWBIndicator(cca2, indicatorCode) {
   const url =
     `${WB_BASE}/${cca2}/indicator/${indicatorCode}` +
-    `?format=json&per_page=5&date=2020:2026&mrv=1`;
+    `?format=json&per_page=5&date=2018:2026&mrv=1`;
 
   try {
     const res = await fetch(url);
@@ -57,10 +77,10 @@ async function fetchWBIndicator(cca2, indicatorCode) {
 }
 
 /**
- * Fetch live economic data for a country from World Bank.
+ * Fetch live economic data for a country from World Bank directly.
  * Returns an object with updated indicator values, or null.
  */
-async function fetchWBData(cca2) {
+async function fetchWBDataDirect(cca2) {
   if (!cca2) return null;
 
   const key = `wb_${cca2}`;
@@ -101,50 +121,75 @@ async function fetchWBData(cca2) {
 }
 
 /**
- * Get economic data for a country. Merges static baseline with live World Bank data.
- * Returns the full object shape from economicData.js, with live values overriding
- * where available, plus a `source` and `lastUpdated` field.
+ * Merge live data into the static baseline, preferring newer data.
+ */
+function mergeWithStatic(staticData, liveData) {
+  const result = { ...(staticData || {}) };
+
+  if (!liveData) return result;
+
+  // Override with live data where available (only if it's newer)
+  const pairs = [
+    ['inflation', 'inflationDate'],
+    ['gdpGrowth', 'gdpDate'],
+    ['unemployment', 'unemploymentDate'],
+    ['debtToGdp', 'debtToGdpDate'],
+  ];
+
+  for (const [valKey, dateKey] of pairs) {
+    if (liveData[valKey] != null) {
+      const liveYear = parseInt(liveData[dateKey]) || 9999;
+      const staticYear = parseInt(result[dateKey]) || 0;
+      if (liveYear >= staticYear) {
+        result[valKey] = liveData[valKey];
+        result[dateKey] = liveData[dateKey];
+      }
+    }
+  }
+
+  // Population from World Bank (always prefer live)
+  if (liveData.population != null) {
+    result.populationWB = liveData.population;
+    result.populationDate = liveData.populationDate;
+  }
+
+  // Additional indicators from backend
+  if (liveData.tradePercGdp != null) {
+    result.tradePercGdp = liveData.tradePercGdp;
+    result.tradePercGdpDate = liveData.tradePercGdpDate;
+  }
+  if (liveData.currentAccount != null) {
+    result.currentAccount = liveData.currentAccount;
+    result.currentAccountDate = liveData.currentAccountDate;
+  }
+
+  result.liveSource = liveData.source || 'worldbank';
+  result.lastUpdated = liveData.fetchedAt || new Date().toISOString();
+
+  return result;
+}
+
+/**
+ * Get economic data for a country. Tries:
+ * 1. Backend (Redis-cached, pre-warmed, 7 indicators)
+ * 2. Direct World Bank API (3 indicators)
+ * 3. Static baseline from economicData.js
+ *
+ * Returns the merged result.
  */
 export async function fetchEconomicProfile(countryName, cca2) {
   const staticData = getEconomicData(countryName);
   const effectiveCca2 = cca2 || staticData?.cca2 || null;
 
-  // Fetch live data in parallel
-  const liveData = await fetchWBData(effectiveCca2);
+  // Try backend first (has more indicators + Redis caching)
+  let liveData = await fetchFromBackend(effectiveCca2);
+
+  // Fall back to direct World Bank calls if backend is unreachable
+  if (!liveData) {
+    liveData = await fetchWBDataDirect(effectiveCca2);
+  }
 
   if (!staticData && !liveData) return null;
 
-  const result = { ...(staticData || {}) };
-
-  if (liveData) {
-    // Override with live data where available (only if it's newer)
-    if (liveData.inflation != null) {
-      const liveYear = parseInt(liveData.inflationDate);
-      const staticYear = parseInt(result.inflationDate) || 0;
-      if (liveYear >= staticYear) {
-        result.inflation = liveData.inflation;
-        result.inflationDate = liveData.inflationDate;
-      }
-    }
-    if (liveData.gdpGrowth != null) {
-      const liveYear = parseInt(liveData.gdpDate);
-      const staticYear = parseInt(result.gdpDate) || 0;
-      if (liveYear >= staticYear) {
-        result.gdpGrowth = liveData.gdpGrowth;
-        result.gdpDate = liveData.gdpDate;
-      }
-    }
-    if (liveData.unemployment != null) {
-      const liveYear = parseInt(liveData.unemploymentDate);
-      const staticYear = parseInt(result.unemploymentDate) || 0;
-      if (liveYear >= staticYear) {
-        result.unemployment = liveData.unemployment;
-        result.unemploymentDate = liveData.unemploymentDate;
-      }
-    }
-    result.liveSource = 'worldbank';
-    result.lastUpdated = new Date().toISOString();
-  }
-
-  return result;
+  return mergeWithStatic(staticData, liveData);
 }

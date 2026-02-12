@@ -45,7 +45,7 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 3px 3px;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: color 0.2s ease;
@@ -68,12 +68,13 @@
 
 
 .navbar-title {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   white-space: nowrap;
-  text-shadow: 0 0 18px rgba(var(--accent-alt-rgb), 0.35);
+  text-shadow: 0 0 14px rgba(var(--accent-rgb), 0.3);
 }
 
 .navbar.collapsed .navbar-title {
@@ -206,9 +207,11 @@
 }
 
 .page-panel-title {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--color-text-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .page-panel-subtitle {
@@ -218,13 +221,20 @@
 }
 
 .page-panel-close {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all 0.15s;
+}
+
+.page-panel-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  border-color: var(--glass-border-accent);
 }
 
 .page-panel-body {
@@ -235,11 +245,12 @@
 }
 
 .page-panel-section-title {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  letter-spacing: 0.14em;
+  color: var(--color-accent);
   margin-bottom: 6px;
+  opacity: 0.7;
 }
 
 .page-panel-list {

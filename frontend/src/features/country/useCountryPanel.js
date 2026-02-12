@@ -8,7 +8,8 @@ import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
 import { fetchLeaderApproval, hasApprovalData, preloadApprovals } from '../../services/approvalService';
 import { fetchEconomicProfile } from '../../services/economicService';
-import { getLeader, fetchLeaderPhoto } from './worldLeaders';
+import { fetchMarketData } from '../../services/marketService';
+import { getLeader, getLeaderLive, fetchLeaderPhoto } from './worldLeaders';
 import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
@@ -27,6 +28,8 @@ export function useCountryPanel() {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [economicData, setEconomicData] = useState(null);
   const [economicLoading, setEconomicLoading] = useState(false);
+  const [marketData, setMarketData] = useState(null);
+  const [marketLoading, setMarketLoading] = useState(false);
 
   // Fetch currency data when country data changes
   useEffect(() => {
@@ -92,11 +95,32 @@ export function useCountryPanel() {
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
+  // Fetch market data (stock indices + forex) when country panel opens
+  useEffect(() => {
+    const cca2 = countryPanel.data?.cca2;
+    if (!countryPanel.open || !cca2 || countryPanel.data?.scope) {
+      setMarketData(null);
+      return;
+    }
+
+    let cancelled = false;
+    setMarketLoading(true);
+
+    fetchMarketData(cca2).then(result => {
+      if (!cancelled) {
+        setMarketData(result);
+        setMarketLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [countryPanel.open, countryPanel.data?.cca2, countryPanel.data?.scope]);
+
   const openCountryPanel = async (rawName) => {
     // Resolve abbreviated TopoJSON names to standard names
     const countryName = resolveCountryName(rawName);
 
-    // Look up leader from static data
+    // Look up leader from static/cached data for instant display
     const leaderData = getLeader(countryName);
 
     // Set initial state with loading
@@ -113,20 +137,41 @@ export function useCountryPanel() {
       },
     });
 
-    // Fetch leader photo from Wikipedia API in parallel with country data
+    // Fetch live leader (from Wikidata via backend), photo, and country data in parallel
+    const liveLeaderPromise = getLeaderLive(countryName);
     const photoPromise = leaderData?.wiki
       ? fetchLeaderPhoto(leaderData.wiki)
       : Promise.resolve(null);
 
     // Fetch country data
     try {
-      const [profile, leaderPhotoUrl] = await Promise.all([
+      const [profile, liveLeader, leaderPhotoUrl] = await Promise.all([
         fetchCountryProfile(countryName),
+        liveLeaderPromise,
         photoPromise,
       ]);
 
+      // Merge live and static leader data — prefer live name/wiki but keep
+      // the curated static title when the leader is the same person (Wikidata
+      // sometimes returns incorrect titles like "Prime Minister" for the US).
+      let leader;
+      if (liveLeader && leaderData) {
+        leader = {
+          ...leaderData,
+          ...liveLeader,
+          title: leaderData.title || liveLeader.title || '',
+        };
+      } else {
+        leader = liveLeader || leaderData || {};
+      }
+
+      // If the live leader has a different wiki article, fetch their photo too
+      let finalPhoto = leaderPhotoUrl;
+      if (liveLeader?.wiki && liveLeader.wiki !== leaderData?.wiki) {
+        finalPhoto = await fetchLeaderPhoto(liveLeader.wiki).catch(() => leaderPhotoUrl);
+      }
+
       if (profile) {
-        const leader = leaderData || {};
         setCountryPanel(prev => ({
           ...prev,
           data: {
@@ -136,7 +181,7 @@ export function useCountryPanel() {
             populationRaw: profile.populationRaw,
             leader: leader.name || profile.leader || 'Unavailable',
             leaderTitle: leader.title || '',
-            leaderPhoto: leaderPhotoUrl || null,
+            leaderPhoto: finalPhoto || null,
             timezone: profile.timezone || 'UTC',
             timezoneCount: profile.timezoneCount,
             capital: profile.capital,
@@ -214,11 +259,76 @@ export function useCountryPanel() {
     });
   };
 
+  const openEUPanel = () => {
+    setCountryPanel({
+      open: true,
+      data: {
+        name: 'European Union',
+        officialName: 'European Union',
+        scope: 'eu',
+        population: '448,400,000',
+        populationRaw: 448400000,
+        capital: 'Brussels',
+        region: 'Europe',
+        subregion: 'Supranational Union',
+        flag: '\u{1F1EA}\u{1F1FA}',
+        flagUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Flag_of_Europe.svg',
+        currency: { code: 'EUR', name: 'Euro', symbol: '\u{20AC}' },
+        languages: ['24 official languages'],
+        area: 4233262,
+        continent: 'Europe',
+        cca2: 'EU',
+        leader: 'Ursula von der Leyen',
+        leaderTitle: 'President of the European Commission',
+        leaderPhoto: null,
+        timezone: 'UTC+1',
+        timezoneCount: 4,
+        independent: true,
+        unMember: false,
+        dialingCode: null,
+        tld: '.eu',
+        drivingSide: 'right',
+        demonym: 'European',
+        gini: null,
+        latlng: [50.85, 4.35],
+        landlocked: false,
+        startOfWeek: 'monday',
+        borders: [],
+        euMembers: [
+          'Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czechia',
+          'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece',
+          'Hungary', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg',
+          'Malta', 'Netherlands', 'Poland', 'Portugal', 'Romania', 'Slovakia',
+          'Slovenia', 'Spain', 'Sweden',
+        ],
+        euStats: {
+          gdpTotal: '$16.6 trillion (2024)',
+          gdpPerCapita: '$37,040',
+          memberStates: 27,
+          foundedTreaty: 'Treaty of Rome (1957)',
+          eurozone: 20,
+          schengenArea: 29,
+          officialLanguages: 24,
+        },
+        loading: false,
+      },
+    });
+
+    // Fetch EU leader photo
+    fetchLeaderPhoto('Ursula_von_der_Leyen').then(url => {
+      setCountryPanel(prev => {
+        if (!prev.data || prev.data.name !== 'European Union') return prev;
+        return { ...prev, data: { ...prev.data, leaderPhoto: url } };
+      });
+    });
+  };
+
   const closeCountryPanel = () => {
     setCountryPanel({ open: false, data: null });
     setCurrencyData(null);
     setApprovalData(null);
     setEconomicData(null);
+    setMarketData(null);
   };
 
   return {
@@ -229,9 +339,12 @@ export function useCountryPanel() {
     approvalLoading,
     economicData,
     economicLoading,
+    marketData,
+    marketLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openEUPanel,
     closeCountryPanel,
   };
 }

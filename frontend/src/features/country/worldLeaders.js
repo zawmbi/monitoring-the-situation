@@ -2,7 +2,10 @@
  * World Leaders Data
  * Maps country names to their current head of state/government
  * Photos fetched dynamically from Wikipedia REST API
+ * Live updates via Wikidata (CC0) through backend, falling back to static data below.
  */
+
+import api from '../../services/api';
 
 const WORLD_LEADERS = {
   // ─── Americas ───
@@ -31,7 +34,7 @@ const WORLD_LEADERS = {
   'Bolivia': { name: 'Luis Arce', title: 'President', wiki: 'Luis_Arce' },
   'Nicaragua': { name: 'Daniel Ortega', title: 'President', wiki: 'Daniel_Ortega' },
   'Guyana': { name: 'Irfaan Ali', title: 'President', wiki: 'Irfaan_Ali' },
-  'Suriname': { name: 'Chan Santokhi', title: 'President', wiki: 'Chan_Santokhi' },
+  'Suriname': { name: 'Jennifer Geerlings-Simons', title: 'President', wiki: 'Jennifer_Geerlings-Simons' },
   'Belize': { name: 'Johnny Briceño', title: 'Prime Minister', wiki: 'Johnny_Brice%C3%B1o' },
   'Barbados': { name: 'Mia Mottley', title: 'Prime Minister', wiki: 'Mia_Mottley' },
   'Bahamas': { name: 'Philip Davis', title: 'Prime Minister', wiki: 'Philip_Davis_(politician)' },
@@ -49,16 +52,16 @@ const WORLD_LEADERS = {
   'Norway': { name: 'Jonas Gahr Støre', title: 'Prime Minister', wiki: 'Jonas_Gahr_St%C3%B8re' },
   'Denmark': { name: 'Mette Frederiksen', title: 'Prime Minister', wiki: 'Mette_Frederiksen' },
   'Finland': { name: 'Petteri Orpo', title: 'Prime Minister', wiki: 'Petteri_Orpo' },
-  'Switzerland': { name: 'Karin Keller-Sutter', title: 'President', wiki: 'Karin_Keller-Sutter' },
+  'Switzerland': { name: 'Guy Parmelin', title: 'President', wiki: 'Guy_Parmelin' },
   'Austria': { name: 'Christian Stocker', title: 'Chancellor', wiki: 'Christian_Stocker' },
   'Greece': { name: 'Kyriakos Mitsotakis', title: 'Prime Minister', wiki: 'Kyriakos_Mitsotakis' },
   'Portugal': { name: 'Luís Montenegro', title: 'Prime Minister', wiki: 'Lu%C3%ADs_Montenegro_(politician)' },
   'Ireland': { name: 'Micheál Martin', title: 'Taoiseach', wiki: 'Miche%C3%A1l_Martin' },
-  'Czechia': { name: 'Petr Fiala', title: 'Prime Minister', wiki: 'Petr_Fiala' },
-  'Romania': { name: 'Marcel Ciolacu', title: 'Prime Minister', wiki: 'Marcel_Ciolacu' },
+  'Czechia': { name: 'Andrej Babiš', title: 'Prime Minister', wiki: 'Andrej_Babi%C5%A1' },
+  'Romania': { name: 'Ilie Bolojan', title: 'Prime Minister', wiki: 'Ilie_Bolojan' },
   'Hungary': { name: 'Viktor Orbán', title: 'Prime Minister', wiki: 'Viktor_Orb%C3%A1n' },
   'Slovakia': { name: 'Robert Fico', title: 'Prime Minister', wiki: 'Robert_Fico' },
-  'Bulgaria': { name: 'Rosen Zhelyazkov', title: 'Prime Minister', wiki: 'Rosen_Zhelyazkov' },
+  'Bulgaria': { name: 'Andrey Gurov', title: 'Prime Minister (Caretaker)', wiki: 'Andrey_Gurov' },
   'Croatia': { name: 'Andrej Plenković', title: 'Prime Minister', wiki: 'Andrej_Plenkovi%C4%87' },
   'Serbia': { name: 'Aleksandar Vučić', title: 'President', wiki: 'Aleksandar_Vu%C4%8Di%C4%87' },
   'Slovenia': { name: 'Robert Golob', title: 'Prime Minister', wiki: 'Robert_Golob' },
@@ -84,7 +87,7 @@ const WORLD_LEADERS = {
   'Andorra': { name: 'Xavier Espot', title: 'Prime Minister', wiki: 'Xavier_Espot' },
   'Monaco': { name: 'Didier Guillaume', title: 'Minister of State', wiki: 'Didier_Guillaume' },
   'Liechtenstein': { name: 'Daniel Risch', title: 'Prime Minister', wiki: 'Daniel_Risch' },
-  'San Marino': { name: 'Francesca Civerchia', title: 'Captain Regent', wiki: 'Captains_Regent' },
+  'San Marino': { name: 'Matteo Rossi & Lorenzo Bugli', title: 'Captains Regent', wiki: 'Captains_Regent' },
 
   // ─── Asia ───
   'China': { name: 'Xi Jinping', title: 'President', wiki: 'Xi_Jinping' },
@@ -97,7 +100,7 @@ const WORLD_LEADERS = {
   'Iran': { name: 'Masoud Pezeshkian', title: 'President', wiki: 'Masoud_Pezeshkian' },
   'Israel': { name: 'Benjamin Netanyahu', title: 'Prime Minister', wiki: 'Benjamin_Netanyahu' },
   'Pakistan': { name: 'Shehbaz Sharif', title: 'Prime Minister', wiki: 'Shehbaz_Sharif' },
-  'Thailand': { name: 'Paetongtarn Shinawatra', title: 'Prime Minister', wiki: 'Paetongtarn_Shinawatra' },
+  'Thailand': { name: 'Anutin Charnvirakul', title: 'Prime Minister', wiki: 'Anutin_Charnvirakul' },
   'Philippines': { name: 'Bongbong Marcos', title: 'President', wiki: 'Bongbong_Marcos' },
   'Vietnam': { name: 'Tô Lâm', title: 'General Secretary', wiki: 'T%C3%B4_L%C3%A2m' },
   'Taiwan': { name: 'Lai Ching-te', title: 'President', wiki: 'Lai_Ching-te' },
@@ -112,7 +115,7 @@ const WORLD_LEADERS = {
   'Sri Lanka': { name: 'Anura Kumara Dissanayake', title: 'President', wiki: 'Anura_Kumara_Dissanayake' },
   'Cambodia': { name: 'Hun Manet', title: 'Prime Minister', wiki: 'Hun_Manet' },
   'Laos': { name: 'Sonexay Siphandone', title: 'Prime Minister', wiki: 'Sonexay_Siphandone' },
-  'Mongolia': { name: 'Luvsannamsrain Oyun-Erdene', title: 'Prime Minister', wiki: 'Luvsannamsrain_Oyun-Erdene' },
+  'Mongolia': { name: 'Gombojavyn Zandanshatar', title: 'Prime Minister', wiki: 'Gombojavyn_Zandanshatar' },
   'Kazakhstan': { name: 'Kassym-Jomart Tokayev', title: 'President', wiki: 'Kassym-Jomart_Tokayev' },
   'Uzbekistan': { name: 'Shavkat Mirziyoyev', title: 'President', wiki: 'Shavkat_Mirziyoyev' },
   'Turkmenistan': { name: 'Serdar Berdimuhamedow', title: 'President', wiki: 'Serdar_Berdimuhamedow' },
@@ -120,7 +123,7 @@ const WORLD_LEADERS = {
   'Kyrgyzstan': { name: 'Sadyr Japarov', title: 'President', wiki: 'Sadyr_Japarov' },
   'Jordan': { name: 'Abdullah II', title: 'King', wiki: 'Abdullah_II_of_Jordan' },
   'Lebanon': { name: 'Nawaf Salam', title: 'Prime Minister', wiki: 'Nawaf_Salam' },
-  'Syria': { name: 'Ahmad al-Sharaa', title: 'President', wiki: 'Abu_Mohammed_al-Julani' },
+  'Syria': { name: 'Ahmad al-Sharaa', title: 'President (Transitional)', wiki: 'Abu_Mohammed_al-Julani' },
   'Yemen': { name: 'Rashad al-Alimi', title: 'Presidential Council Chair', wiki: 'Rashad_al-Alimi' },
   'Oman': { name: 'Haitham bin Tariq', title: 'Sultan', wiki: 'Haitham_bin_Tariq' },
   'Kuwait': { name: 'Mishal Al-Ahmad Al-Jaber Al-Sabah', title: 'Emir', wiki: 'Mishal_Al-Ahmad_Al-Jaber_Al-Sabah' },
@@ -198,6 +201,38 @@ const WORLD_LEADERS = {
 // Cache for fetched Wikipedia thumbnails
 const photoCache = new Map();
 
+// Cache for live leaders fetched from backend (Wikidata)
+let liveLeadersCache = null;
+let liveLeadersFetchedAt = 0;
+const LIVE_LEADERS_TTL = 60 * 60 * 1000; // 1 hour local cache
+
+/**
+ * Fetch all live leaders from the backend (Wikidata source).
+ * Returns the leaders object or null.
+ */
+async function fetchLiveLeaders() {
+  if (liveLeadersCache && Date.now() - liveLeadersFetchedAt < LIVE_LEADERS_TTL) {
+    return liveLeadersCache;
+  }
+
+  try {
+    const res = await api.getWorldLeaders();
+    if (res.success && res.data?.leaders) {
+      liveLeadersCache = res.data.leaders;
+      liveLeadersFetchedAt = Date.now();
+      return liveLeadersCache;
+    }
+  } catch {
+    // Backend unreachable — use static data
+  }
+  return null;
+}
+
+/**
+ * Pre-fetch live leaders on module load (non-blocking).
+ */
+fetchLiveLeaders();
+
 /**
  * Fetch leader photo from Wikipedia REST API
  * Returns an embeddable thumbnail URL
@@ -222,7 +257,27 @@ export async function fetchLeaderPhoto(wikiTitle) {
   }
 }
 
+/**
+ * Get leader data for a country.
+ * Returns static data immediately (synchronous).
+ */
 export function getLeader(countryName) {
+  // Check live cache first (may have been pre-fetched)
+  if (liveLeadersCache?.[countryName]) {
+    return liveLeadersCache[countryName];
+  }
+  return WORLD_LEADERS[countryName] || null;
+}
+
+/**
+ * Get leader data for a country, trying live backend first.
+ * Returns a promise. Falls back to static if backend fails.
+ */
+export async function getLeaderLive(countryName) {
+  const live = await fetchLiveLeaders();
+  if (live?.[countryName]) {
+    return live[countryName];
+  }
   return WORLD_LEADERS[countryName] || null;
 }
 

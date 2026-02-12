@@ -276,13 +276,6 @@ export function StocksPanel({
       >
         <div className="stocks-panel-header">
           <span className="stocks-panel-drag-hint">Drag to move</span>
-          <button
-            className="stocks-panel-close"
-            onClick={onClose}
-            aria-label="Close stocks panel"
-          >
-            x
-          </button>
         </div>
         <StocksMetaBar
           localClock={localClock}

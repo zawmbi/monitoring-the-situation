@@ -7,54 +7,54 @@
 // ── Regional color palettes (multiple shades per region for neighbor variety) ──
 
 const DARK = {
-  // NATO / Western democracies — steel blue / navy
-  western:    ['#1b3a5e', '#1d3c62', '#1f3e66', '#1a3860', '#1e3b63'],
-  // Nordic — icy pale blue
-  nordic:     ['#184860', '#1a4a63', '#1c4c66', '#174660'],
-  // Eastern Europe (EU) — slate blue, slightly warmer
-  easternEU:  ['#2a3560', '#2c3864', '#2e3a68', '#28335e', '#2b3662'],
-  // Russia — deep crimson
-  russia:     ['#5a1e28'],
-  // Post-Soviet CIS (non-EU) — wine / burgundy
-  postSoviet: ['#4a2035', '#4c2238', '#4e243a', '#482034', '#4b2237'],
-  // Central Asia — dusty mauve / steppe
-  centralAsia:['#3e2845', '#402a48', '#422c4a', '#3c2644', '#3f2947'],
-  // China — rich red
-  china:      ['#5e1c22'],
-  // East Asian democracies — plum / cherry blossom
-  eastAsia:   ['#4a2250', '#4d2453', '#502656'],
-  // Southeast Asia — jade / tropical teal
-  seAsia:     ['#1a4540', '#1c4843', '#1e4a46', '#184340', '#1b4642'],
-  // South Asia — saffron / deep amber
-  southAsia:  ['#4a3518', '#4d381b', '#503a1e', '#483418', '#4b361a'],
-  // Middle East — desert gold / sand
-  middleEast: ['#4a3d1e', '#4d4021', '#504224', '#483c1e', '#4b3f20'],
-  // North Africa — terracotta / ochre
-  northAfrica:['#4a3528', '#4d382b', '#503a2e', '#483428', '#4b372a'],
-  // West Africa — rich green
-  westAfrica: ['#1e4528', '#20482b', '#224a2e', '#1c4326', '#1f4629'],
-  // East Africa — olive green
-  eastAfrica: ['#2a4522', '#2c4825', '#2e4a28', '#284320', '#2b4623'],
-  // Central Africa — deep forest green
-  centralAfr: ['#1a3a20', '#1c3d23', '#1e3f26', '#18381e', '#1b3b21'],
-  // Southern Africa — earth brown-green
-  southernAfr:['#2e3a22', '#303d25', '#323f28', '#2c3820', '#2f3b23'],
-  // Latin America — warm emerald
-  latam:      ['#1a4a32', '#1c4d35', '#1e4f38', '#184830', '#1b4b33'],
-  // Brazil — distinctive green-gold
-  brazil:     ['#1e4a28'],
-  // Caribbean — tropical aqua
-  caribbean:  ['#1a3e4a', '#1c414d', '#1e4350', '#183c48', '#1b3f4b'],
-  // Oceania — ocean blue-teal
-  oceania:    ['#1a3854', '#1c3b57', '#1e3d5a', '#183652', '#1b3955'],
-  // Turkey — bridge of civilizations, muted purple
-  turkey:     ['#3a2e50'],
-  // Israel — distinct blue-white tradition, muted
-  israel:     ['#1e3570'],
-  // Balkans (non-EU complex states) — muted indigo
-  balkans:    ['#2e2e55', '#303058', '#32325a', '#2c2c52', '#2f2f56'],
-  // Fallback — neutral dark grey-blue
-  fallback:   ['#222838', '#24293a', '#262b3c', '#202636', '#232939'],
+  // NATO / Western democracies — steel blue / navy (brightened)
+  western:    ['#264f7a', '#28528e', '#2b5582', '#24507d', '#275185'],
+  // Nordic — icy pale blue (brightened)
+  nordic:     ['#215e7c', '#24618f', '#266483', '#1f5c7a'],
+  // Eastern Europe (EU) — slate blue, slightly warmer (brightened)
+  easternEU:  ['#384a7c', '#3a4d80', '#3c5084', '#36487a', '#394b7e'],
+  // Russia — deep crimson (brightened)
+  russia:     ['#7a2835'],
+  // Post-Soviet CIS (non-EU) — wine / burgundy (brightened)
+  postSoviet: ['#632c48', '#66304c', '#683250', '#602a46', '#642e4a'],
+  // Central Asia — dusty mauve / steppe (brightened)
+  centralAsia:['#54385e', '#563b62', '#583d64', '#52365c', '#553a60'],
+  // China — rich red (brightened)
+  china:      ['#7e2830'],
+  // East Asian democracies — plum / cherry blossom (brightened)
+  eastAsia:   ['#643068', '#67336b', '#6a366e'],
+  // Southeast Asia — jade / tropical teal (brightened)
+  seAsia:     ['#245c56', '#266058', '#28625c', '#225a54', '#255e57'],
+  // South Asia — saffron / deep amber (brightened)
+  southAsia:  ['#644824', '#674b28', '#6a4e2c', '#624622', '#654a26'],
+  // Middle East — desert gold / sand (brightened)
+  middleEast: ['#64522a', '#68562e', '#6b5832', '#625028', '#66542c'],
+  // North Africa — terracotta / ochre (brightened)
+  northAfrica:['#644838', '#68503c', '#6b5240', '#624636', '#664a3a'],
+  // West Africa — rich green (brightened)
+  westAfrica: ['#2a5e38', '#2d623c', '#306540', '#285c36', '#2c603a'],
+  // East Africa — olive green (brightened)
+  eastAfrica: ['#3a5e30', '#3d6234', '#406538', '#385c2e', '#3c6032'],
+  // Central Africa — deep forest green (brightened)
+  centralAfr: ['#244e2e', '#275232', '#2a5436', '#224c2c', '#265030'],
+  // Southern Africa — earth brown-green (brightened)
+  southernAfr:['#3e4e30', '#425234', '#445438', '#3c4c2e', '#405032'],
+  // Latin America — warm emerald (brightened)
+  latam:      ['#246444', '#276848', '#2a6a4c', '#226242', '#266646'],
+  // Brazil — distinctive green-gold (brightened)
+  brazil:     ['#2a6438'],
+  // Caribbean — tropical aqua (brightened)
+  caribbean:  ['#245464', '#275868', '#2a5a6c', '#225262', '#265666'],
+  // Oceania — ocean blue-teal (brightened)
+  oceania:    ['#244e6e', '#275272', '#2a5476', '#224c6c', '#265070'],
+  // Turkey — bridge of civilizations, muted purple (brightened)
+  turkey:     ['#4e3e6a'],
+  // Israel — distinct blue-white tradition, muted (brightened)
+  israel:     ['#2a4890'],
+  // Balkans (non-EU complex states) — muted indigo (brightened)
+  balkans:    ['#3e3e70', '#404274', '#424478', '#3c3c6e', '#3f4072'],
+  // Fallback — neutral dark grey-blue (brightened)
+  fallback:   ['#303848', '#32394a', '#343c4e', '#2e3646', '#313a4a'],
 };
 
 const LIGHT = {

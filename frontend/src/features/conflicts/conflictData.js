@@ -2,7 +2,7 @@
  * Russia-Ukraine Conflict Data
  * Frontline positions, troop deployments, casualties, equipment, and command structure
  *
- * Frontline coordinates approximate early-2025 positions based on publicly
+ * Frontline coordinates approximate early-2026 positions based on publicly
  * available DeepStateMap / ISW assessments. Many more points are used per
  * sector so the line follows actual geographic features (rivers, roads,
  * settlement lines) rather than smooth arcs.
@@ -19,7 +19,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'kharkiv',
     label: 'Kharkiv',
-    asOf: '2025-02-01',
+    asOf: '2026-02-01',
     status: 'contested',
     points: [
       // Russian border → Vovchansk pocket → south toward Kupiansk
@@ -36,7 +36,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'luhansk',
     label: 'Luhansk',
-    asOf: '2025-01-28',
+    asOf: '2026-01-28',
     status: 'contested',
     points: [
       // Svatove–Kreminna line → south toward Siversk
@@ -51,7 +51,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'donetsk-north',
     label: 'Donetsk (North)',
-    asOf: '2025-02-03',
+    asOf: '2026-02-03',
     status: 'active',
     points: [
       // Siversk → Chasiv Yar → Toretsk corridor
@@ -65,7 +65,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'donetsk-south',
     label: 'Donetsk (South)',
-    asOf: '2025-02-03',
+    asOf: '2026-02-03',
     status: 'active',
     points: [
       // Avdiivka salient → Marinka → Vuhledar → south
@@ -80,7 +80,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'zaporizhzhia',
     label: 'Zaporizhzhia',
-    asOf: '2025-01-20',
+    asOf: '2026-01-20',
     status: 'stable',
     points: [
       // Relatively stable line west through Zaporizhzhia oblast
@@ -97,7 +97,7 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'kherson',
     label: 'Kherson / Dnipro',
-    asOf: '2025-01-15',
+    asOf: '2026-01-15',
     status: 'stable',
     points: [
       // Follows Dnipro river west to Black Sea coast
@@ -338,65 +338,65 @@ export const INTERNATIONAL_BORDER = {
 // ─── Casualties data (estimates compiled from multiple OSINT sources) ───
 export const CASUALTIES = {
   ukraine: {
-    killed: { low: 70000, high: 120000, label: '70,000–120,000' },
-    wounded: { low: 140000, high: 240000, label: '140,000–240,000' },
+    killed: { low: 100000, high: 140000, label: '100,000–140,000' },
+    wounded: { low: 300000, high: 460000, label: '300,000–460,000' },
     captured: { low: 5000, high: 15000, label: '5,000–15,000' },
-    civilian: { killed: 11500, label: '~11,500+' },
-    source: 'Various OSINT / UN (est.)',
+    civilian: { killed: 15000, label: '~15,000+' },
+    source: 'CSIS / OHCHR / OSINT (est.)',
   },
   russia: {
-    killed: { low: 150000, high: 250000, label: '150,000–250,000' },
-    wounded: { low: 300000, high: 500000, label: '300,000–500,000' },
-    captured: { low: 8000, high: 20000, label: '8,000–20,000' },
-    source: 'UA General Staff / OSINT (est.)',
+    killed: { low: 267000, high: 386000, label: '267,000–386,000' },
+    wounded: { low: 700000, high: 860000, label: '700,000–860,000' },
+    captured: { low: 10000, high: 25000, label: '10,000–25,000' },
+    source: 'BBC / UK MoD / CSIS / OSINT (est.)',
   },
-  asOf: 'February 2025',
+  asOf: 'February 2026',
 };
 
 // ─── Equipment losses (from Oryx/OSINT visually confirmed + estimates) ───
 export const EQUIPMENT = {
   russia: {
     lost: [
-      { type: 'Tanks', count: 3650, icon: '🛡️' },
-      { type: 'AFVs', count: 7800, icon: '🚛' },
-      { type: 'Artillery', count: 2100, icon: '💥' },
-      { type: 'MLRS', count: 450, icon: '🚀' },
-      { type: 'Aircraft', count: 370, icon: '✈️' },
-      { type: 'Helicopters', count: 330, icon: '🚁' },
-      { type: 'UAVs', count: 5200, icon: '🤖' },
-      { type: 'Naval Ships', count: 28, icon: '🚢' },
-      { type: 'Cruise Missiles', count: 2800, icon: '🎯' },
+      { type: 'Tanks', count: 4200, icon: '🛡️' },
+      { type: 'AFVs', count: 9600, icon: '🚛' },
+      { type: 'Artillery', count: 3100, icon: '💥' },
+      { type: 'MLRS', count: 580, icon: '🚀' },
+      { type: 'Aircraft', count: 435, icon: '✈️' },
+      { type: 'Helicopters', count: 347, icon: '🚁' },
+      { type: 'UAVs', count: 8500, icon: '🤖' },
+      { type: 'Naval Ships', count: 29, icon: '🚢' },
+      { type: 'Cruise Missiles', count: 4270, icon: '🎯' },
     ],
     production: [
-      { type: 'Tanks/yr', count: '~250', note: 'Mostly refurbished T-72/T-80' },
-      { type: 'AFVs/yr', count: '~350', note: 'BMPs, BTRs' },
-      { type: 'Artillery/yr', count: '~150', note: 'New + repaired' },
-      { type: 'Shaheds/mo', count: '~300', note: 'Iranian-design drones' },
+      { type: 'Tanks/yr', count: '~300', note: 'Mostly refurbished T-72/T-80; T-90M from scratch' },
+      { type: 'AFVs/yr', count: '~400', note: 'BMPs, BTRs (Soviet stockpiles depleting)' },
+      { type: 'Artillery/yr', count: '~200', note: 'New + repaired' },
+      { type: 'Shaheds/mo', count: '~5,000', note: 'RU-produced; ~170/day by mid-2025' },
     ],
-    source: 'Oryx (visually confirmed) + est.',
+    source: 'Oryx / WarSpotting (visually confirmed) + est.',
   },
   ukraine: {
     lost: [
-      { type: 'Tanks', count: 900, icon: '🛡️' },
-      { type: 'AFVs', count: 2100, icon: '🚛' },
-      { type: 'Artillery', count: 580, icon: '💥' },
-      { type: 'MLRS', count: 95, icon: '🚀' },
-      { type: 'Aircraft', count: 95, icon: '✈️' },
-      { type: 'Helicopters', count: 40, icon: '🚁' },
-      { type: 'UAVs', count: 3800, icon: '🤖' },
+      { type: 'Tanks', count: 1200, icon: '🛡️' },
+      { type: 'AFVs', count: 2800, icon: '🚛' },
+      { type: 'Artillery', count: 750, icon: '💥' },
+      { type: 'MLRS', count: 120, icon: '🚀' },
+      { type: 'Aircraft', count: 140, icon: '✈️' },
+      { type: 'Helicopters', count: 50, icon: '🚁' },
+      { type: 'UAVs', count: 5500, icon: '🤖' },
       { type: 'Naval Ships', count: 1, icon: '🚢' },
     ],
     aidReceived: [
-      { type: 'Tanks', count: '~600', note: 'Leopard 2, Challenger 2, M1 Abrams, T-72 variants' },
-      { type: 'IFVs/APCs', count: '~2,500', note: 'Bradley, Marder, Stryker, CV90, etc.' },
-      { type: 'Artillery', count: '~800', note: 'M777, PzH 2000, CAESAR, Krab, etc.' },
-      { type: 'MLRS', count: '~60', note: 'HIMARS, M270, MARS II' },
-      { type: 'Air Defense', count: '~30 batteries', note: 'Patriot, NASAMS, IRIS-T, Gepard' },
-      { type: 'F-16s', count: '~80 pledged', note: 'Denmark, Netherlands, Norway, Belgium' },
+      { type: 'Tanks', count: '~700', note: 'Leopard 2, Challenger 2, M1 Abrams, T-72 variants' },
+      { type: 'IFVs/APCs', count: '~3,000', note: 'Bradley, Marder, Stryker, CV90, etc.' },
+      { type: 'Artillery', count: '~1,000', note: 'M777, PzH 2000, CAESAR, Krab, etc.' },
+      { type: 'MLRS', count: '~70', note: 'HIMARS, M270, MARS II' },
+      { type: 'Air Defense', count: '~40 batteries', note: 'Patriot, NASAMS, IRIS-T, Gepard, HAWK' },
+      { type: 'F-16s', count: '~100 delivered', note: 'Denmark, Netherlands, Norway, Belgium' },
     ],
-    source: 'Oryx (visually confirmed) + est.',
+    source: 'Oryx / WarSpotting (visually confirmed) + est.',
   },
-  asOf: 'February 2025',
+  asOf: 'February 2026',
 };
 
 // ─── Military command structure ───
@@ -408,11 +408,11 @@ export const COMMAND = {
       { name: 'Volodymyr Zelenskyy', role: 'Supreme Commander (President)' },
       { name: 'Rustem Umerov', role: 'Minister of Defence' },
       { name: 'Oleksandr Syrskyi', role: 'Commander-in-Chief of the AFU' },
-      { name: 'Anatoliy Barhylevych', role: 'Commander, Ground Forces' },
-      { name: 'Mykola Oleshchuk', role: 'Commander, Air Force' },
+      { name: 'Mykhailo Drapatyi', role: 'Commander, Ground Forces' },
+      { name: 'Anatoliy Kryvonozhko', role: 'Commander, Air Force' },
       { name: 'Oleksiy Hromov', role: 'Deputy Chief of General Staff' },
     ],
-    totalPersonnel: '~1,000,000 (incl. reserves)',
+    totalPersonnel: '~1,000,000 (incl. reserves; 18 corps)',
   },
   russia: {
     title: 'Russian Armed Forces',
@@ -425,7 +425,7 @@ export const COMMAND = {
       { name: 'Mikhail Teplinsky', role: 'Commander, VDV (Airborne)' },
       { name: 'Viktor Afzalov', role: 'Commander, VKS (Aerospace Forces)' },
     ],
-    totalPersonnel: '~700,000 in theatre (est.)',
+    totalPersonnel: '~750,000 in theatre (est.)',
   },
 };
 
@@ -451,7 +451,7 @@ export const DECEASED_COMMANDERS = {
     { name: 'Oleh Makiievskyi', rank: 'Colonel', role: 'Commander, 47th Mech. Brigade', date: '21 Jan 2024', cause: 'Killed in Avdiivka fighting' },
     { name: 'Ihor Skybiuk', rank: 'Colonel', role: 'Special Operations Forces', date: '9 Mar 2024', cause: 'Killed in combat operations' },
   ],
-  source: 'Compiled from official reports, OSINT, and media as of Feb 2025',
+  source: 'Compiled from official reports, OSINT, and media as of Feb 2026',
 };
 
 // ─── Key battle sites (map markers with dates) ───
@@ -503,7 +503,7 @@ export const BATTLE_SITES = [
   },
   {
     id: 'battle-chasiv-yar', name: 'Battle of Chasiv Yar', lat: 48.6089, lon: 37.8447,
-    date: 'Apr 2024 – ongoing', result: 'Contested', note: 'Key high-ground position west of Bakhmut',
+    date: 'Apr 2024 – ongoing', result: 'Contested', note: 'Key high-ground position west of Bakhmut; canal defense line',
     ruCommander: 'Southern Group of Forces', uaCommander: 'Multiple brigade rotations',
     ruTroops: '~15,000', uaTroops: '~8,000',
     ruEquipment: 'Glide bombs, infantry assaults', uaEquipment: 'Fortified canal line, elevated positions',
@@ -521,21 +521,21 @@ export const BATTLE_SITES = [
   },
   {
     id: 'battle-pokrovsk-axis', name: 'Pokrovsk Axis', lat: 48.15, lon: 37.10,
-    date: 'Jul 2024 – ongoing', result: 'RU advancing', note: 'Fastest RU advance since 2022',
+    date: 'Jul 2024 – ongoing', result: 'RU advancing', note: 'RU captured Myrnohrad (Feb 2026); approaching Pokrovsk',
     ruCommander: 'Centre Group of Forces', uaCommander: 'UA General Staff reserves',
-    ruTroops: '~30,000+', uaTroops: '~20,000 (reinforced)',
+    ruTroops: '~35,000+', uaTroops: '~25,000 (reinforced)',
     ruEquipment: 'Combined arms, armor, glide bombs', uaEquipment: 'Prepared defensive lines, drones',
     ruCasualties: 'Very heavy (~1,000+/week est.)', uaCasualties: 'Heavy',
-    significance: 'Most active front in late 2024. Pokrovsk is a critical logistics hub for UA. RU trading massive casualties for incremental gains.',
+    significance: 'Most active front 2024-2025. Myrnohrad fell Feb 2026. Pokrovsk critical logistics hub. RU trading massive casualties for incremental gains.',
   },
   {
     id: 'battle-kursk', name: 'Kursk Incursion', lat: 51.42, lon: 35.20,
-    date: 'Aug 2024 – ongoing', result: 'UA holds ~500 km²', note: 'Surprise UA cross-border offensive',
+    date: 'Aug 2024 – Mar 2025', result: 'RU recaptured most territory', note: 'UA cross-border offensive; RU recaptured Sudzha Mar 2025',
     ruCommander: 'Col. Gen. Aleksandr Lapin (redeployed)', uaCommander: 'Gen. Oleksandr Syrskyi',
-    ruTroops: '~40,000 (inc. North Korean troops)', uaTroops: '~10,000–12,000',
+    ruTroops: '~50,000 (inc. ~15,000 North Korean troops)', uaTroops: '~10,000–12,000',
     ruEquipment: 'Reserves, conscripts, KPA infantry', uaEquipment: 'Western armor, mobile brigades',
-    ruCasualties: '~12,000 killed/wounded (UA claims)', uaCasualties: 'Moderate',
-    significance: 'Audacious UA cross-border operation into Russia. Forced RU to divert troops from Donbas. First foreign incursion into Russia since WWII.',
+    ruCasualties: '~20,000 killed/wounded (est.)', uaCasualties: 'Heavy',
+    significance: 'Audacious UA cross-border operation. RU recaptured Sudzha and most territory by Mar 2025. UA held ~90 km² by mid-2025, minimal foothold by 2026.',
   },
   {
     id: 'battle-kharkiv-2024', name: 'Kharkiv Offensive (2024)', lat: 50.28, lon: 36.70,
@@ -561,8 +561,8 @@ export const FORTIFICATION_LINES = [
   },
   {
     id: 'kursk-incursion',
-    name: 'Kursk Incursion Zone (UA-held)',
-    note: 'Ukrainian-held territory inside Russia (~500 km²)',
+    name: 'Kursk Incursion Zone (former UA-held)',
+    note: 'RU recaptured most territory by Mar 2025; UA holds minimal foothold',
     points: [
       [34.90, 51.55], [35.10, 51.60], [35.30, 51.55], [35.50, 51.45],
       [35.40, 51.30], [35.20, 51.25], [35.00, 51.30], [34.90, 51.40],
@@ -600,117 +600,117 @@ export const TERRITORIAL_CONTROL = {
   ukraineTotalArea: 603550,
   occupiedPreFeb2022: 43133,
   occupiedAtPeak: 119000,
-  currentOccupied: 109000,
-  liberatedSincePeak: 10000,
+  currentOccupied: 116300,
+  liberatedSincePeak: 2700,
   crimea: 27000,
   donbasPreWar: 16133,
-  asOf: 'February 2025',
+  asOf: 'February 2026',
   source: 'ISW / DeepStateMap (est.)',
 };
 
 // ─── Drone & missile warfare ───
 export const DRONE_MISSILE_DATA = {
   russianStrikes: {
-    totalMissiles: 9500,
-    totalDrones: 14000,
-    cruiseMissiles: { type: 'Cruise Missiles', count: 5200, variants: 'Kalibr, Kh-101, Kh-555' },
-    ballisticMissiles: { type: 'Ballistic Missiles', count: 1800, variants: 'Iskander-M, KN-23 (DPRK), Kinzhal' },
-    sGlide: { type: 'S-300/400 (Surface-to-Air used as ground)', count: 2500, note: 'Repurposed air defense missiles' },
-    shahed: { type: 'Shahed-136/131 Drones', count: 12500, note: 'Iranian-designed, RU-produced' },
-    otherDrones: { type: 'Other UAVs (recon/strike)', count: 1500 },
-    interceptRate: '~75-80%',
+    totalMissiles: 14000,
+    totalDrones: 60000,
+    cruiseMissiles: { type: 'Cruise Missiles', count: 6500, variants: 'Kalibr, Kh-101, Kh-555' },
+    ballisticMissiles: { type: 'Ballistic Missiles', count: 2800, variants: 'Iskander-M, KN-23 (DPRK), Kinzhal, Oreshnik' },
+    sGlide: { type: 'S-300/400 (Surface-to-Air used as ground)', count: 3200, note: 'Repurposed air defense missiles' },
+    shahed: { type: 'Shahed-136/131 Drones', count: 56000, note: 'RU-produced; ~5,000/month since mid-2025' },
+    otherDrones: { type: 'Other UAVs (recon/strike)', count: 4000 },
+    interceptRate: '~65-80%',
     source: 'UA Air Force / OSINT',
   },
   ukrainianStrikes: {
-    totalDrones: 8000,
-    longRange: { type: 'Long-range strike drones', count: 5000, note: 'Domestically produced (Beaver, Lyutyy, etc.)' },
-    navalUSV: { type: 'Naval USV attacks', count: 200, note: 'Sea Baby, MAGURA V5' },
-    atacms: { type: 'ATACMS strikes', count: '~100', note: 'US-provided, 165-300km range' },
-    stormShadow: { type: 'Storm Shadow/SCALP', count: '~50', note: 'UK/France provided' },
-    neptune: { type: 'Neptune AShM', count: '~30', note: 'Sank Moskva, adapted for land targets' },
+    totalDrones: 18000,
+    longRange: { type: 'Long-range strike drones', count: 12000, note: 'Domestically produced (Beaver, Lyutyy, Palianytsia, etc.)' },
+    navalUSV: { type: 'Naval USV attacks', count: 350, note: 'Sea Baby, MAGURA V5' },
+    atacms: { type: 'ATACMS strikes', count: '~200', note: 'US-provided, 165-300km range' },
+    stormShadow: { type: 'Storm Shadow/SCALP', count: '~100', note: 'UK/France provided' },
+    neptune: { type: 'Neptune AShM', count: '~40', note: 'Sank Moskva, adapted for land targets' },
     source: 'UA MoD / OSINT',
   },
-  asOf: 'February 2025',
+  asOf: 'February 2026',
 };
 
 // ─── Humanitarian / refugee data ───
 export const HUMANITARIAN = {
   refugees: {
-    total: 6500000,
-    label: '~6.5 million',
+    total: 5860000,
+    label: '~5.86 million',
     topCountries: [
-      { country: 'Poland', count: 1580000 },
-      { country: 'Germany', count: 1180000 },
-      { country: 'Czech Republic', count: 380000 },
-      { country: 'United Kingdom', count: 250000 },
-      { country: 'Spain', count: 200000 },
-      { country: 'Italy', count: 180000 },
+      { country: 'Poland', count: 1400000 },
+      { country: 'Germany', count: 1150000 },
+      { country: 'Czech Republic', count: 370000 },
+      { country: 'United Kingdom', count: 240000 },
+      { country: 'Spain', count: 195000 },
+      { country: 'Italy', count: 175000 },
     ],
-    source: 'UNHCR (Jan 2025)',
+    source: 'UNHCR (Dec 2025)',
   },
   internallyDisplaced: {
-    total: 3670000,
-    label: '~3.67 million',
-    source: 'IOM (Dec 2024)',
+    total: 3700000,
+    label: '~3.7 million',
+    source: 'UNHCR / IOM (Dec 2025)',
   },
   infrastructureDamage: {
-    housingUnits: 250000,
-    schools: 3800,
-    hospitals: 1200,
-    powerGrid: '~40% damaged at peak (winter 2022-23)',
-    economicDamage: '$152 billion (World Bank est.)',
-    reconstructionCost: '$486 billion (World Bank est.)',
-    source: 'World Bank / KSE Institute',
+    housingUnits: 2500000,
+    schools: 4200,
+    hospitals: 1400,
+    powerGrid: '~50% generation + 60% gas production offline (Oct 2025)',
+    economicDamage: '$186 billion (World Bank est.)',
+    reconstructionCost: '$524 billion (World Bank / EU est.)',
+    source: 'World Bank / EU / KSE Institute',
   },
   grainCorridor: {
     status: 'Active (UA-enforced since Aug 2023)',
-    totalExported: '~60 million tonnes (since Jul 2022)',
+    totalExported: '~80 million tonnes (since Jul 2022)',
     note: 'Black Sea Grain Initiative expired Jul 2023; UA established own corridor',
     source: 'UA Infrastructure Ministry',
   },
-  asOf: 'February 2025',
+  asOf: 'February 2026',
 };
 
 // ─── Sanctions & economic impact ───
 export const SANCTIONS_ECONOMIC = {
   sanctions: {
-    packages: '14 EU packages, 10+ US rounds',
+    packages: '18 EU packages, 12+ US rounds',
     keyMeasures: [
       { measure: 'SWIFT disconnection', detail: '~10 major Russian banks' },
       { measure: 'Central Bank reserves frozen', detail: '~$300B of ~$640B total' },
-      { measure: 'Oil price cap', detail: '$60/barrel (G7/EU)' },
+      { measure: 'Oil price cap', detail: '$47.6/barrel (EU lowered Jul 2025)' },
       { measure: 'Technology export controls', detail: 'Semiconductors, precision equipment' },
       { measure: 'Oligarch asset freezes', detail: '~$58B in yachts, property, accounts' },
-      { measure: 'Diamond import ban', detail: 'Belgian/G7 since Jan 2024' },
+      { measure: 'Total restrictions', detail: '16,000+ on Russian entities (most sanctioned country)' },
     ],
     source: 'EU/US Treasury / Castellum.AI',
   },
   russianEconomy: {
     gdpGrowth2023: '+3.6%',
-    gdpGrowth2024: '+3.8% (est.)',
-    inflation2024: '~9.5%',
-    keyRate: '21%',
-    rubleUSD: '~97',
-    militarySpending: '~$140B (2025 budget, ~40% of total)',
-    note: 'War economy; shifted to military production; labor shortages',
-    source: 'CBR / Russian Finance Ministry / IMF',
+    gdpGrowth2024: '+3.8%',
+    inflation2024: '~10%',
+    keyRate: '~16%',
+    rubleUSD: '~100',
+    militarySpending: '~$169B (2025), ~$162B (2026 budget)',
+    note: 'Stagnation in 2025-26; IMF forecasts 0.6-1.0% growth; labor shortages',
+    source: 'CBR / IMF / Moscow Times',
   },
   westernAid: {
-    totalPledged: '$380 billion',
+    totalPledged: '$450 billion+',
     topDonors: [
-      { donor: 'United States', amount: '$113B (incl. $67B military)' },
-      { donor: 'EU Institutions', amount: '$93B (incl. macro-financial)' },
-      { donor: 'Germany', amount: '$25B' },
-      { donor: 'United Kingdom', amount: '$18B' },
-      { donor: 'Japan', amount: '$12B' },
-      { donor: 'Canada', amount: '$8B' },
-      { donor: 'Norway', amount: '$7.8B' },
-      { donor: 'Denmark', amount: '$7.4B' },
+      { donor: 'United States', amount: '$128B (new aid halted 2025)' },
+      { donor: 'EU Institutions', amount: '$110B+ (Team Europe: $178B total)' },
+      { donor: 'Germany', amount: '$34B (largest EU military donor)' },
+      { donor: 'United Kingdom', amount: '$22B' },
+      { donor: 'Japan', amount: '$14B' },
+      { donor: 'Canada', amount: '$9B' },
+      { donor: 'Norway', amount: '$9B' },
+      { donor: 'Denmark', amount: '$8.5B' },
     ],
     frozenAssetsLoan: '$50B G7 loan backed by frozen RU asset profits',
     source: 'Kiel Institute Ukraine Support Tracker',
   },
-  asOf: 'February 2025',
+  asOf: 'February 2026',
 };
 
 // ─── War timeline (key events) ───
@@ -739,7 +739,20 @@ export const WAR_TIMELINE = [
   { date: '2024-10-01', event: 'North Korean troops arrive in Russia (~12,000)', phase: 'attrition' },
   { date: '2024-10-15', event: 'Vuhledar falls after 20 months of fighting', phase: 'attrition' },
   { date: '2024-11-19', event: 'ATACMS & Storm Shadow authorized for deep strikes into Russia', phase: 'attrition' },
+  { date: '2024-11-21', event: 'Russia fires Oreshnik hypersonic IRBM at Dnipro', phase: 'attrition' },
   { date: '2025-01-01', event: 'Russia 2025 budget: 40% military spending; war economy', phase: 'attrition' },
+  { date: '2025-03-15', event: 'Russia recaptures Sudzha; UA Kursk incursion largely repelled', phase: 'attrition' },
+  { date: '2025-04-20', event: 'Putin declares Easter ceasefire; UA reports attacks continue', phase: 'attrition' },
+  { date: '2025-05-10', event: 'UA drone strikes reduce Russian refinery capacity by 17%', phase: 'attrition' },
+  { date: '2025-06-01', event: 'Shahed production reaches ~170/day; drone war intensifies', phase: 'attrition' },
+  { date: '2025-07-01', event: 'EU 18th sanctions package; oil price cap lowered to $47.6/bbl', phase: 'attrition' },
+  { date: '2025-08-06', event: 'Ukraine tests Palianytsia cruise missile (3,000 km range)', phase: 'attrition' },
+  { date: '2025-09-15', event: 'Largest single Russian aerial attack: 818 drones + missiles', phase: 'attrition' },
+  { date: '2025-10-01', event: 'Russian strikes knock out 50% of Ukraine energy generation', phase: 'attrition' },
+  { date: '2025-12-01', event: 'Oreshnik missile deployed to Belarus; enters combat duty', phase: 'attrition' },
+  { date: '2026-01-01', event: 'Europe surpasses US in total Ukraine aid; US halts new funding', phase: 'attrition' },
+  { date: '2026-01-15', event: 'Russia fires Oreshnik IRBM at Lviv', phase: 'attrition' },
+  { date: '2026-02-01', event: 'Russia captures Myrnohrad and Huliaipole in Donetsk/Zaporizhzhia', phase: 'attrition' },
 ];
 
 // ─── Major roads & strategic highways ───
