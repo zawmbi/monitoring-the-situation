@@ -4,12 +4,19 @@ const COUNTRY_INFO_API =
 
 export async function fetchCountryProfile(name) {
   if (!name) return null;
-  const url = `${COUNTRY_INFO_API}/${encodeURIComponent(name)}?fullText=true`;
-  const response = await fetch(url);
+
+  // Try exact match first, then fall back to partial search
+  let response = await fetch(`${COUNTRY_INFO_API}/${encodeURIComponent(name)}?fullText=true`);
   if (!response.ok) {
-    throw new Error(`Country info error: ${response.status}`);
+    // Partial search fallback for abbreviated or alternate names
+    const partialUrl = COUNTRY_INFO_API.replace('/name', '/name') ;
+    response = await fetch(`${partialUrl}/${encodeURIComponent(name)}`);
+    if (!response.ok) {
+      throw new Error(`Country info error: ${response.status}`);
+    }
   }
   const data = await response.json();
+  // If partial search returned multiple results, pick the best match
   const country = Array.isArray(data) ? data[0] : data;
   if (!country) return null;
 

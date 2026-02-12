@@ -817,10 +817,3 @@ export function getFrontlineColor(asOf) {
   return '#999999';
 }
 
-export const RECENCY_LEGEND = [
-  { label: '< 1 week', color: '#ff3333' },
-  { label: '1–2 weeks', color: '#ff6633' },
-  { label: '< 1 month', color: '#ff9933' },
-  { label: '1–2 months', color: '#ffcc33' },
-  { label: '> 2 months', color: '#999999' },
-];

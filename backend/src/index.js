@@ -12,6 +12,8 @@ import { createServer } from 'http';
 import config from './config/index.js';
 import { cacheService } from './services/cache.service.js';
 import { aggregationService } from './services/aggregation.service.js';
+import { conflictService } from './services/conflict.service.js';
+import { tariffService } from './services/tariff.service.js';
 import { wsHandler } from './services/websocket.service.js';
 import apiRoutes from './api/routes.js';
 
@@ -57,6 +59,8 @@ app.get('/', (req, res) => {
       rss: '/api/rss',
       stocks: '/api/stocks',
       polymarket: '/api/polymarket',
+      conflict: '/api/conflict',
+      tariffs: '/api/tariffs',
       search: '/api/search',
       health: '/health',
     },
@@ -95,19 +99,45 @@ app.use((err, req, res, next) => {
 // ===========================================
 
 let refreshInterval = null;
+let conflictRefreshInterval = null;
+let tariffRefreshInterval = null;
 
 function startBackgroundRefresh() {
   // Initial fetch
   console.log('[Worker] Starting initial content fetch...');
   aggregationService.getCombinedFeed({ refresh: true }).catch(console.error);
 
-  // Periodic refresh
+  // Initial conflict data fetch
+  console.log('[Worker] Starting initial conflict data fetch...');
+  conflictService.getLiveData().catch(console.error);
+
+  // Initial tariff data fetch
+  console.log('[Worker] Starting initial tariff data fetch...');
+  tariffService.getLiveData().catch(console.error);
+
+  // Periodic refresh — news content
   refreshInterval = setInterval(() => {
     console.log('[Worker] Refreshing content...');
     aggregationService.getCombinedFeed({ refresh: true }).catch(console.error);
   }, config.polling.news);
 
+  // Periodic refresh — conflict data (every 30 min)
+  const CONFLICT_POLL_MS = 30 * 60 * 1000;
+  conflictRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing conflict data...');
+    conflictService.getLiveData().catch(console.error);
+  }, CONFLICT_POLL_MS);
+
+  // Periodic refresh — tariff data (every 15 min)
+  const TARIFF_POLL_MS = 15 * 60 * 1000;
+  tariffRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing tariff data...');
+    tariffService.getLiveData().catch(console.error);
+  }, TARIFF_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
+  console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
+  console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
 }
 
 // ===========================================
@@ -155,6 +185,8 @@ async function shutdown(signal) {
   server.close(() => console.log('[Shutdown] HTTP server closed'));
   
   if (refreshInterval) clearInterval(refreshInterval);
+  if (conflictRefreshInterval) clearInterval(conflictRefreshInterval);
+  if (tariffRefreshInterval) clearInterval(tariffRefreshInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 

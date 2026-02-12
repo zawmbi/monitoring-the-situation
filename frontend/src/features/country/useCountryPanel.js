@@ -6,9 +6,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
+import { fetchLeaderApproval, hasApprovalData, preloadApprovals } from '../../services/approvalService';
+import { fetchEconomicProfile } from '../../services/economicService';
 import { getLeader, fetchLeaderPhoto } from './worldLeaders';
+import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
+
+// Kick off Wikipedia approval data preload on module init
+preloadApprovals();
 
 export function useCountryPanel() {
   const [countryPanel, setCountryPanel] = useState({
@@ -17,6 +23,10 @@ export function useCountryPanel() {
   });
   const [currencyData, setCurrencyData] = useState(null);
   const [currencyLoading, setCurrencyLoading] = useState(false);
+  const [approvalData, setApprovalData] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [economicData, setEconomicData] = useState(null);
+  const [economicLoading, setEconomicLoading] = useState(false);
 
   // Fetch currency data when country data changes
   useEffect(() => {
@@ -39,7 +49,53 @@ export function useCountryPanel() {
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.currency?.code]);
 
-  const openCountryPanel = async (countryName) => {
+  // Fetch approval data when country panel opens
+  useEffect(() => {
+    const name = countryPanel.data?.name;
+    if (!countryPanel.open || !name || countryPanel.data?.scope) {
+      setApprovalData(null);
+      return;
+    }
+
+    let cancelled = false;
+    setApprovalLoading(true);
+
+    fetchLeaderApproval(name).then(result => {
+      if (!cancelled) {
+        setApprovalData(result);
+        setApprovalLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.scope]);
+
+  // Fetch economic data when country panel opens
+  useEffect(() => {
+    const name = countryPanel.data?.name;
+    const cca2 = countryPanel.data?.cca2;
+    if (!countryPanel.open || !name || countryPanel.data?.scope) {
+      setEconomicData(null);
+      return;
+    }
+
+    let cancelled = false;
+    setEconomicLoading(true);
+
+    fetchEconomicProfile(name, cca2).then(result => {
+      if (!cancelled) {
+        setEconomicData(result);
+        setEconomicLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.cca2, countryPanel.data?.scope]);
+
+  const openCountryPanel = async (rawName) => {
+    // Resolve abbreviated TopoJSON names to standard names
+    const countryName = resolveCountryName(rawName);
+
     // Look up leader from static data
     const leaderData = getLeader(countryName);
 
@@ -161,12 +217,18 @@ export function useCountryPanel() {
   const closeCountryPanel = () => {
     setCountryPanel({ open: false, data: null });
     setCurrencyData(null);
+    setApprovalData(null);
+    setEconomicData(null);
   };
 
   return {
     countryPanel,
     currencyData,
     currencyLoading,
+    approvalData,
+    approvalLoading,
+    economicData,
+    economicLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,

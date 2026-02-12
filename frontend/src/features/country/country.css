@@ -173,6 +173,223 @@
   margin-top: 2px;
 }
 
+/* ── Approval button ── */
+
+.cp-approval-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.cp-approval-btn:hover {
+  background: rgba(123, 107, 255, 0.15);
+  border-color: rgba(123, 107, 255, 0.35);
+  color: var(--color-accent);
+}
+
+/* ── Approval popup ── */
+
+.cp-approval-popup {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow-glow);
+  margin-top: 8px;
+  overflow: hidden;
+  animation: cp-approval-in 0.2s ease-out;
+}
+
+@keyframes cp-approval-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cp-approval-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-approval-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cp-approval-popup-close {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+}
+
+/* Current stats row */
+
+.cp-approval-current {
+  display: flex;
+  gap: 4px;
+  padding: 10px 10px 6px;
+}
+
+.cp-approval-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cp-approval-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cp-approval-stat--approve {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-approval-stat--disapprove {
+  color: var(--color-negative, #ef4444);
+}
+
+.cp-approval-stat-label {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Chart area */
+
+.cp-approval-chart-wrap {
+  padding: 6px 10px 4px;
+}
+
+.cp-approval-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+}
+
+.cp-approval-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 0 2px;
+}
+
+/* Horizontal bar for single-point / wiki-only approval data */
+
+.cp-approval-bar-wrap {
+  padding: 8px 10px 4px;
+}
+
+.cp-approval-bar {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  gap: 2px;
+}
+
+.cp-approval-bar-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  transition: width 0.4s ease;
+}
+
+.cp-approval-bar-fill--approve {
+  background: rgba(34, 197, 94, 0.6);
+  border-radius: 6px 0 0 6px;
+}
+
+.cp-approval-bar-fill--disapprove {
+  background: rgba(239, 68, 68, 0.5);
+  border-radius: 0 6px 6px 0;
+}
+
+.cp-approval-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-approval-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.cp-approval-dot--approve {
+  background: #22c55e;
+}
+
+.cp-approval-dot--disapprove {
+  background: #ef4444;
+}
+
+/* Info rows */
+
+.cp-approval-info {
+  padding: 2px 10px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-approval-info .cp-detail-row {
+  padding: 5px 0;
+  font-size: 11px;
+}
+
+.cp-approval-info .cp-detail-val {
+  max-width: 55%;
+  font-size: 11px;
+}
+
+.cp-approval-countdown {
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Note */
+
+.cp-approval-note {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 4px 10px 8px;
+  line-height: 1.4;
+  font-style: italic;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
 /* ── Currency card ── */
 
 .cp-currency-card {
@@ -476,6 +693,112 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 6px;
   padding: 8px 12px;
+}
+
+/* ── Economic Indicators Button ── */
+
+.cp-econ-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 8px;
+  color: #c7d2fe;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-econ-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.cp-econ-btn svg {
+  opacity: 0.7;
+}
+
+.cp-econ-loading {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* ── Economic Popup ── */
+
+.cp-econ-popup {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 8px;
+  animation: cp-popup-in 0.18s ease-out;
+}
+
+@keyframes cp-popup-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cp-econ-section {
+  margin-bottom: 12px;
+}
+
+.cp-econ-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+.cp-econ-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-econ-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cp-econ-indicator {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cp-econ-indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.cp-econ-indicator-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.cp-econ-indicator-date {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.cp-econ-indicator-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.2;
 }
 
 /* ── Responsive ── */

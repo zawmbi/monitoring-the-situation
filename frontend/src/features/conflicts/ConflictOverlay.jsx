@@ -136,7 +136,7 @@ function InfraMarker({ item, showLabel }) {
   );
 }
 
-const NAVAL_ICONS = { patrol: '⛵', anchorage: '⚓', submarine: '▼', coastal: '⛳', usv: '◈', corridor: '⇢', wreck: '✕' };
+const NAVAL_ICONS = { patrol: '⛵', anchorage: '⚓', submarine: '▼', coastal: '🛡', usv: '◈', corridor: '⇢', wreck: '✕' };
 function NavalMarker({ pos }) {
   const isUA = pos.side === 'ukraine';
   const isWreck = pos.status === 'destroyed';
@@ -165,7 +165,7 @@ function BattlePopup({ site, onClose }) {
   if (!site) return null;
   const resultClass = site.result.startsWith('RU') ? 'ru' : site.result.startsWith('UA') ? 'ua' : 'contested';
   return (
-    <div className="conflict-battle-popup" onClick={(e) => e.stopPropagation()}>
+    <div className="conflict-battle-popup" onClick={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
       <div className="conflict-battle-popup-header">
         <div className="conflict-battle-popup-title">{site.name}</div>
         <button className="conflict-battle-popup-close" onClick={onClose}>✕</button>

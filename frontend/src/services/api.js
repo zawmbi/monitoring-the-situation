@@ -20,6 +20,16 @@ export const api = {
   getRss: () => api.fetch('/rss'),
   search: (q) => api.fetch(`/search?q=${encodeURIComponent(q)}`),
   getStats: () => api.fetch('/stats'),
+
+  // Conflict (Russia-Ukraine live data)
+  getConflictLive: () => api.fetch('/conflict'),
+  getConflictLosses: () => api.fetch('/conflict/losses'),
+  getConflictLossesHistory: (days = 30) => api.fetch(`/conflict/losses/history?days=${days}`),
+  getConflictNews: (limit = 30) => api.fetch(`/conflict/news?limit=${limit}`),
+
+  // Tariffs (US trade policy live data)
+  getTariffLive: () => api.fetch('/tariffs'),
+  getTariffNews: (limit = 30) => api.fetch(`/tariffs/news?limit=${limit}`),
 };
 
 export default api;

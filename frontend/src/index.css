@@ -491,6 +491,34 @@ body {
   z-index: 2;
 }
 
+/* ── Apple Maps-style space background for globe mode ── */
+
+/* ── Globe mode: NASA deep star map background ── */
+
+.map-container.globe-mode {
+  background: #030508;
+}
+
+.map-container.globe-mode::after {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/starfield.jpg') center / cover no-repeat;
+  opacity: 0.85;
+  animation: spaceDrift 120s linear infinite alternate;
+}
+
+@keyframes spaceDrift {
+  0%   { transform: translate(0, 0) scale(1.15); }
+  25%  { transform: translate(-3%, 2%) scale(1.18); }
+  50%  { transform: translate(2%, -1%) scale(1.15); }
+  75%  { transform: translate(-1%, -3%) scale(1.17); }
+  100% { transform: translate(3%, 1%) scale(1.15); }
+}
+
+
 .map-controls-br {
   position: absolute;
   bottom: 110px;
@@ -656,6 +684,10 @@ body {
 
 .map-container.hide-atmosphere::before {
   opacity: 0;
+}
+
+.map-container.globe-mode::before {
+  display: none;
 }
 
 
@@ -877,84 +909,110 @@ body {
   stroke-width: 2;
 }
 
-.pulse {
-  filter: drop-shadow(0 0 12px rgba(59,130,246,0.2));
-}
+/* ── Hotspot map markers ── */
 
-.breathe circle {
-  animation: pulseGlow 2s ease-in-out infinite;
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-.breathe circle:first-child {
-  animation: pulseOuter 2s ease-in-out infinite;
-}
-
-@keyframes pulseGlow {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.08); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes pulseOuter {
-  0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.2; transform: scale(1.25); }
-  100% { opacity: 0.5; transform: scale(1); }
-}
-
-.hotspot-marker {
+.hs-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  transition: all 0.2s;
-  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.35));
+  position: relative;
+  transition: opacity 0.25s;
 }
 
-.hotspot-marker:hover circle:first-child,
-.hotspot-marker-wrap:hover .hotspot-marker circle:first-child {
-  fill: rgba(var(--accent-alt-rgb), 0.35);
-  stroke: rgba(var(--accent-alt-rgb), 0.9);
+.hs-wrap:hover { z-index: 10; }
+.hs-wrap.hs-stale { opacity: 0.35; }
+
+/* The solid center dot */
+.hs-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b8cff;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 6px rgba(107,140,255,0.4);
 }
 
-.hotspot-marker:hover circle:nth-child(2),
-.hotspot-marker-wrap:hover .hotspot-marker circle:nth-child(2) {
-  fill: rgba(var(--accent-alt-rgb), 1);
-  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
+.hs-wrap:hover .hs-dot {
+  transform: scale(1.35);
+  box-shadow: 0 0 12px rgba(107,140,255,0.7);
 }
 
-.hotspot-updated-badge {
+.hs-wrap.hs-selected .hs-dot {
+  background: #93b4ff;
+  box-shadow: 0 0 14px rgba(147,180,255,0.8);
+}
+
+/* Tier sizing — more items = bigger dot */
+.hs-mid .hs-dot  { width: 12px; height: 12px; }
+.hs-high .hs-dot { width: 14px; height: 14px; background: #ff8c6b; border-color: rgba(255,255,255,0.3); box-shadow: 0 0 8px rgba(255,140,107,0.5); }
+.hs-high:hover .hs-dot { box-shadow: 0 0 14px rgba(255,140,107,0.7); }
+
+/* Stale dot is dimmed */
+.hs-stale .hs-dot {
+  background: rgba(160,175,220,0.4);
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: none;
+}
+
+/* Expanding ping ring for active hotspots */
+.hs-ping {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(107,140,255,0.6);
+  animation: hs-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hs-mid .hs-ping  { width: 12px; height: 12px; }
+.hs-high .hs-ping { width: 14px; height: 14px; border-color: rgba(255,140,107,0.6); }
+
+@keyframes hs-ping {
+  0%   { transform: translateY(-50%) scale(1); opacity: 0.7; }
+  75%  { transform: translateY(-50%) scale(2.8); opacity: 0; }
+  100% { transform: translateY(-50%) scale(2.8); opacity: 0; }
+}
+
+/* Label + count badge */
+.hs-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hs-name {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.hs-count {
   font-size: 0.55rem;
   font-weight: 700;
-  fill: var(--color-news);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-variant-numeric: tabular-nums;
 }
 
-.hotspot-stale {
-  opacity: 0.5;
-}
-
-.hotspot-stale circle {
-  fill: rgba(var(--accent-alt-rgb), 0.22);
-  stroke: rgba(var(--accent-alt-rgb), 0.28);
-}
-
-.hotspot-active circle:last-child {
-  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
-}
-
-/* MapLibre marker wrapper stale/active state */
-.hotspot-marker-wrap.hotspot-stale {
-  opacity: 0.5;
-}
-
-.hotspot-marker-wrap.hotspot-stale circle {
-  fill: rgba(var(--accent-alt-rgb), 0.22);
-  stroke: rgba(var(--accent-alt-rgb), 0.28);
-}
-
-.hotspot-marker-wrap.hotspot-active circle:last-child {
-  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.9));
-}
+.hs-wrap:hover .hs-name { color: rgba(255,255,255,0.95); }
+.hs-wrap:hover .hs-count { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.12); }
 
 .hotspot-card {
   display: flex;
@@ -1443,177 +1501,179 @@ body {
   stroke-width: 1.5 !important;
 }
 
-/* Hotspot Popover */
-.hotspot-popover {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-heavy);
-  -webkit-backdrop-filter: var(--glass-blur-heavy);
-  border: 1px solid var(--glass-border);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shadow-glow);
-  min-width: 280px;
-  max-width: 320px;
+/* ── Hotspot Popover ── */
+
+.hs-popover {
   transform: translate(-50%, -100%);
-  margin-top: -16px;
+  margin-top: -14px;
   pointer-events: all;
   max-height: calc(100vh - 40px);
+  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.55));
+  animation: hs-pop-in 0.15s ease-out;
+}
+
+@keyframes hs-pop-in {
+  from { opacity: 0; transform: translate(-50%, -100%) translateY(6px); }
+  to   { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+}
+
+.hs-popover-inner {
+  background: rgba(12, 14, 28, 0.96);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px;
+  min-width: 260px;
+  max-width: 310px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-.hotspot-popover-arrow {
+.hs-popover-arrow {
   position: absolute;
-  bottom: -8px;
+  bottom: -6px;
   left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid var(--glass-bg);
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: rgba(12, 14, 28, 0.96);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.hotspot-popover-content {
-  padding: 16px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.hotspot-popover-header {
+.hs-popover-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.hotspot-popover-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
+.hs-popover-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
-.hotspot-popover-close {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--color-border);
+.hs-popover-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hs-popover-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.06);
   border-radius: 4px;
-  width: 24px;
-  height: 24px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.hs-popover-close {
+  background: none;
+  border: none;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 1.2rem;
-  line-height: 1;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.hotspot-popover-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--color-border-light);
-}
-
-.hotspot-popover-badge {
-  background: rgba(82, 224, 138, 0.15);
-  border: 1px solid rgba(82, 224, 138, 0.3);
-  color: #52e08a;
-  padding: 4px 8px;
+  color: rgba(255,255,255,0.35);
   border-radius: 4px;
-  font-size: 0.7rem;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.hs-popover-close:hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.08);
+}
+
+.hs-popover-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.hs-popover-tag {
+  font-size: 0.6rem;
   font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 3px;
+  padding: 2px 6px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 12px;
-  display: inline-block;
+  letter-spacing: 0.04em;
 }
 
-.hotspot-popover-stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.hotspot-popover-stat {
+.hs-popover-items {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 1px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
 }
 
-.hotspot-popover-stat .stat-value {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
+.hs-popover-item {
+  display: block;
+  padding: 8px 10px;
+  background: rgba(12, 14, 28, 0.6);
+  text-decoration: none;
+  transition: background 0.12s;
 }
 
-.hotspot-popover-stat .stat-label {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.hs-popover-item:hover {
+  background: rgba(107,140,255,0.08);
 }
 
-.hotspot-popover-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-  max-height: 200px;
-  overflow-y: auto;
+.hs-popover-item-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c8d0e0;
+  line-height: 1.35;
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.hotspot-popover-item {
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+.hs-popover-item-meta {
+  display: block;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.3);
+}
+
+.hs-popover-more {
+  width: 100%;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 7px 12px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+  font-size: 0.72rem;
+  cursor: pointer;
   transition: all 0.15s;
 }
 
-.hotspot-popover-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--color-border-light);
-}
-
-.hotspot-popover-item-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 4px;
-  line-height: 1.3;
-}
-
-.hotspot-popover-item-meta {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-}
-
-.hotspot-popover-btn {
-  width: 100%;
-  background: var(--color-accent);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
-  color: white;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.hotspot-popover-btn:hover {
-  background: var(--color-accent-2);
-  transform: translateY(-1px);
+.hs-popover-more:hover {
+  border-color: rgba(107,140,255,0.3);
+  color: #93b4ff;
+  background: rgba(107,140,255,0.06);
 }
 
 /* Disabled Switch */
@@ -1699,6 +1759,49 @@ body {
   user-select: none;
 }
 
+/* ── Pole markers (3D globe) ── */
+
+.pole-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.pole-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  box-shadow:
+    0 0 8px rgba(140,170,255,0.15),
+    inset 0 0 6px rgba(140,170,255,0.08);
+  position: relative;
+}
+
+.pole-ring::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+  box-shadow: 0 0 4px rgba(200,220,255,0.5);
+}
+
+.pole-label {
+  margin-top: 3px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.45);
+  text-shadow: 0 0 6px rgba(140,170,255,0.3);
+}
+
 /* Fixed cardinal overlay for 3D globe */
 .cardinal-overlay {
   position: absolute;
@@ -1762,43 +1865,7 @@ body {
 }
 
 /* Hotspot Marker (DOM - MapLibre markers) */
-.hotspot-marker-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  filter: drop-shadow(0 0 10px rgba(var(--accent-alt-rgb), 0.35));
-}
-
-.hotspot-label-wrap {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  white-space: nowrap;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 4px;
-}
-
-.hotspot-label-dom {
-  color: var(--color-text-secondary);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.hotspot-updated-badge-dom {
-  font-size: 0.55rem;
-  font-weight: 700;
-  color: var(--color-news);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+/* (hotspot marker styles moved to .hs-wrap above) */
 
 .country-panel {
   position: absolute;
@@ -1915,82 +1982,53 @@ body {
 }
 
 /* News Panel */
-.news-panel {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-heavy);
-  -webkit-backdrop-filter: var(--glass-blur-heavy);
-  border: 1px solid var(--glass-border);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shadow-glow);
-  width: 480px;
+/* ── Hotspot expanded panel ── */
+
+.hs-panel {
+  background: rgba(12, 14, 28, 0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  width: 420px;
   max-width: calc(100vw - 440px);
-  height: 600px;
+  height: 540px;
   max-height: calc(100vh - 80px);
   transform: translate(-50%, -50%);
   pointer-events: all;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: hs-pop-in 0.15s ease-out;
 }
 
-.news-panel-header {
+.hs-panel-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.03);
 }
 
-.news-panel-title-section {
-  flex: 1;
-}
-
-.news-panel-title {
-  font-size: 1.3rem;
+.hs-panel-title {
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0 0 4px 0;
+  color: #e2e8f0;
+  margin: 0 0 2px 0;
 }
 
-.news-panel-subtitle {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+.hs-panel-subtitle {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
   font-weight: 500;
 }
 
-.news-panel-close {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 1.4rem;
-  line-height: 1;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  margin-left: 16px;
-}
-
-.news-panel-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--color-border-light);
-  color: var(--color-text-primary);
-}
-
-.news-panel-content {
+.hs-panel-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }

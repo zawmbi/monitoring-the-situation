@@ -2,29 +2,64 @@
  * ConflictPanel — Comprehensive war statistics side panel
  * Casualties, equipment, command, drone/missile warfare,
  * humanitarian, sanctions/economic, territorial control, timeline
+ *
+ * Integrates live data from russianwarship.rip (daily losses) and
+ * Ukrinform / Google News RSS (war news) via useConflictData hook.
  */
 import { useState } from 'react';
+import useConflictData from '../../hooks/useConflictData';
 import {
   CASUALTIES,
   EQUIPMENT,
   COMMAND,
   DECEASED_COMMANDERS,
   CONFLICT_SUMMARY,
-  RECENCY_LEGEND,
   TERRITORIAL_CONTROL,
   DRONE_MISSILE_DATA,
   HUMANITARIAN,
   SANCTIONS_ECONOMIC,
   WAR_TIMELINE,
   UA_BLUE,
+  UA_YELLOW,
   RU_RED,
 } from './conflictData';
 import './conflicts.css';
 
+/* ─── Utility: format relative time ─── */
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+/* ─── Live data badge ─── */
+function LiveBadge({ date, loading }) {
+  if (loading) return <span className="conflict-live-badge conflict-live-badge--loading">UPDATING</span>;
+  if (!date) return null;
+  return (
+    <span className="conflict-live-badge" title={`Last updated: ${new Date(date).toLocaleString()}`}>
+      LIVE
+    </span>
+  );
+}
+
+/* ─── Daily increase chip ─── */
+function DailyIncrease({ value }) {
+  if (!value || value === 0) return null;
+  return <span className="conflict-daily-increase">+{value.toLocaleString()} today</span>;
+}
+
 export default function ConflictPanel({ open, onClose }) {
   const [tab, setTab] = useState('overview');
+  const { losses, news, loading, lastUpdated } = useConflictData(open);
 
-  const days = CONFLICT_SUMMARY.daysSince();
+  const days = losses?.day || CONFLICT_SUMMARY.daysSince();
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
@@ -34,6 +69,7 @@ export default function ConflictPanel({ open, onClose }) {
     { id: 'sanctions', label: 'Sanctions' },
     { id: 'command', label: 'Command' },
     { id: 'timeline', label: 'Timeline' },
+    { id: 'news', label: 'Live Feed' },
     { id: 'donate', label: 'Donate' },
   ];
 
@@ -48,8 +84,14 @@ export default function ConflictPanel({ open, onClose }) {
             <span className="conflict-panel-flag" title="Ukraine">🇺🇦</span>
           </div>
           <div>
-            <h3 className="conflict-panel-title">{CONFLICT_SUMMARY.name}</h3>
-            <div className="conflict-panel-subtitle">Day {days} — Since {CONFLICT_SUMMARY.started}</div>
+            <h3 className="conflict-panel-title">
+              {CONFLICT_SUMMARY.name}
+              <LiveBadge date={losses?.fetchedAt || lastUpdated} loading={loading} />
+            </h3>
+            <div className="conflict-panel-subtitle">
+              Day {days} — Since {CONFLICT_SUMMARY.started}
+              {losses?.date && <span className="conflict-panel-data-date"> — Data: {losses.date}</span>}
+            </div>
           </div>
         </div>
         <button className="conflict-panel-close" onClick={onClose} aria-label="Close">
@@ -61,31 +103,208 @@ export default function ConflictPanel({ open, onClose }) {
 
       <div className="conflict-panel-tabs">
         {TABS.map((t) => (
-          <button key={t.id} className={`conflict-panel-tab ${tab === t.id ? 'active' : ''}`}
+          <button key={t.id} className={`conflict-panel-tab ${tab === t.id ? 'active' : ''} ${t.id === 'news' && news.length > 0 ? 'conflict-panel-tab--live' : ''}`}
             onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
 
       <div className="conflict-panel-content">
-        {tab === 'overview' && <OverviewTab />}
-        {tab === 'equipment' && <EquipmentTab />}
+        {tab === 'overview' && <OverviewTab losses={losses} />}
+        {tab === 'equipment' && <EquipmentTab losses={losses} />}
         {tab === 'drones' && <DronesTab />}
         {tab === 'humanitarian' && <HumanitarianTab />}
         {tab === 'sanctions' && <SanctionsTab />}
         {tab === 'command' && <CommandTab />}
         {tab === 'timeline' && <TimelineTab />}
+        {tab === 'news' && <LiveFeedTab news={news} loading={loading} lastUpdated={lastUpdated} />}
         {tab === 'donate' && <DonateTab />}
       </div>
 
-      <div className="conflict-panel-footer">
-        <div className="conflict-legend-title">Frontline Recency</div>
-        <div className="conflict-legend-items">
-          {RECENCY_LEGEND.map((item) => (
-            <div key={item.label} className="conflict-legend-item">
-              <span className="conflict-legend-swatch" style={{ background: item.color }} />
-              <span>{item.label}</span>
-            </div>
-          ))}
+      {lastUpdated && (
+        <div className="conflict-panel-footer">
+          <div className="conflict-footer-updated">
+            Live data updated {timeAgo(lastUpdated)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Map Symbol Legend (inline in panel) ─── */
+function MapSymbolLegend() {
+  return (
+    <div className="conflict-panel-legend">
+      <div className="conflict-panel-legend-title">Map Symbols Guide</div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Frontlines</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line" style={{ background: UA_BLUE }} />
+            <span>Ukrainian side</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line" style={{ background: RU_RED }} />
+            <span>Russian side</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
+            <span>Fortification (Surovikin Line)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Cities & Territory</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-dot" style={{ background: '#5baaff' }} />
+            <span>Ukrainian-controlled city</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-dot" style={{ background: '#ff6b6b' }} />
+            <span>Russian / occupied city</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"
+                fill={UA_BLUE} stroke={UA_YELLOW} strokeWidth="2" />
+            </svg>
+            <span>Capital city</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Military Infrastructure</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>✈</span>
+            <span>Airbase</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⚓</span>
+            <span>Port / Naval base</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⊕</span>
+            <span>Air defense</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◆</span>
+            <span>Supply depot</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⌇</span>
+            <span>Bridge</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Combat & Strategic</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ffa500' }}>⚔</span>
+            <span>Battle site (click for details)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#66ff66' }}>☢</span>
+            <span>Nuclear power plant</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⛵</span>
+            <span>Naval patrol</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◈</span>
+            <span>Unmanned surface vehicle</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff6b6b' }}>✕</span>
+            <span>Wreck / destroyed vessel</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">NATO Unit Symbols — Affiliation</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: UA_BLUE, borderColor: UA_YELLOW }}>╳</span>
+            <span>Ukrainian unit</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: RU_RED, borderColor: '#fff' }}>╳</span>
+            <span>Russian unit</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Unit Type (symbol inside box)</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳</span>
+            <span>Infantry</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⊙</span>
+            <span>Armor / Tanks</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳⊙</span>
+            <span>Mechanized Infantry</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>●</span>
+            <span>Artillery</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⚓</span>
+            <span>Marines</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Unit Size (pips above box)</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">II</span>
+            <span>Battalion (~300–1,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">III</span>
+            <span>Regiment (~1,000–3,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳</span>
+            <span>Brigade (~3,000–5,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳╳</span>
+            <span>Division (~10,000–20,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳╳╳</span>
+            <span>Corps (~20,000–40,000)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Coat of Arms</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+            <span>Ukraine (Tryzub)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+            <span>Russia (Double-headed eagle)</span>
+          </div>
         </div>
       </div>
     </div>
@@ -93,15 +312,26 @@ export default function ConflictPanel({ open, onClose }) {
 }
 
 /* ─── Overview / Casualties + Territorial ─── */
-function OverviewTab() {
+function OverviewTab({ losses }) {
   const tc = TERRITORIAL_CONTROL;
   const occupiedPct = ((tc.currentOccupied / tc.ukraineTotalArea) * 100).toFixed(1);
+  const hasLive = !!losses?.stats;
 
   return (
     <div className="conflict-tab-body">
-      <div className="conflict-section-note">
-        Estimates compiled from multiple OSINT sources. Data as of {CASUALTIES.asOf}.
-      </div>
+      {hasLive ? (
+        <div className="conflict-section-note conflict-section-note--live">
+          <span className="conflict-live-dot" /> Live data from Ukrainian Armed Forces daily report ({losses.date}).
+          Updates daily. See Equipment tab for full Russian losses breakdown.
+        </div>
+      ) : (
+        <div className="conflict-section-note">
+          Estimates compiled from multiple OSINT sources. Data as of {CASUALTIES.asOf}.
+        </div>
+      )}
+
+      {/* ── Map Symbol Legend ── */}
+      <MapSymbolLegend />
 
       <div className="conflict-stat-group">
         <div className="conflict-stat-group-title">Territorial Control</div>
@@ -129,7 +359,7 @@ function OverviewTab() {
       </div>
 
       <div className="conflict-stat-group">
-        <div className="conflict-stat-group-title">Killed (Military)</div>
+        <div className="conflict-stat-group-title">Killed (Military — OSINT est.)</div>
         <div className="conflict-stat-compare">
           <div className="conflict-stat-value conflict-stat-value--ru">{CASUALTIES.russia.killed.label}</div>
           <div className="conflict-stat-value conflict-stat-value--ua">{CASUALTIES.ukraine.killed.label}</div>
@@ -171,17 +401,45 @@ function OverviewTab() {
 }
 
 /* ─── Equipment Tab ─── */
-function EquipmentTab() {
+function EquipmentTab({ losses }) {
+  const hasLive = !!losses?.stats;
+
+  // Map live stats to equipment categories for Russian losses
+  const liveRuLosses = hasLive ? [
+    { type: 'Tanks', count: losses.stats.tanks, inc: losses.increase.tanks },
+    { type: 'AFVs', count: losses.stats.afv, inc: losses.increase.afv },
+    { type: 'Artillery', count: losses.stats.artillery, inc: losses.increase.artillery },
+    { type: 'MLRS', count: losses.stats.mlrs, inc: losses.increase.mlrs },
+    { type: 'Aircraft', count: losses.stats.aircraft, inc: losses.increase.aircraft },
+    { type: 'Helicopters', count: losses.stats.helicopters, inc: losses.increase.helicopters },
+    { type: 'UAVs', count: losses.stats.uav, inc: losses.increase.uav },
+    { type: 'Naval Ships', count: losses.stats.ships, inc: losses.increase.ships },
+    { type: 'Cruise Missiles', count: losses.stats.cruiseMissiles, inc: losses.increase.cruiseMissiles },
+    { type: 'Anti-Air Systems', count: losses.stats.antiAir, inc: losses.increase.antiAir },
+    { type: 'Vehicles', count: losses.stats.vehicles, inc: losses.increase.vehicles },
+    { type: 'Special Equip.', count: losses.stats.specialEquip, inc: losses.increase.specialEquip },
+  ] : null;
+
   return (
     <div className="conflict-tab-body">
-      <div className="conflict-section-note">Visually confirmed losses + estimates. Data as of {EQUIPMENT.asOf}.</div>
+      {hasLive ? (
+        <div className="conflict-section-note conflict-section-note--live">
+          <span className="conflict-live-dot" /> Live equipment losses from UA MOD ({losses.date}). Updated daily.
+        </div>
+      ) : (
+        <div className="conflict-section-note">Visually confirmed losses + estimates. Data as of {EQUIPMENT.asOf}.</div>
+      )}
 
       <div className="conflict-equip-section">
-        <div className="conflict-equip-header"><span className="conflict-side-dot" style={{ background: RU_RED }} /> Russian Losses</div>
+        <div className="conflict-equip-header">
+          <span className="conflict-side-dot" style={{ background: RU_RED }} /> Russian Losses
+          {hasLive && <span className="conflict-live-badge" style={{ marginLeft: 8 }}>LIVE</span>}
+        </div>
         <div className="conflict-equip-grid">
-          {EQUIPMENT.russia.lost.map((item) => (
+          {(liveRuLosses || EQUIPMENT.russia.lost).map((item) => (
             <div key={item.type} className="conflict-equip-item">
               <span className="conflict-equip-count">{item.count.toLocaleString()}</span>
+              {item.inc > 0 && <DailyIncrease value={item.inc} />}
               <span className="conflict-equip-type">{item.type}</span>
             </div>
           ))}
@@ -226,7 +484,9 @@ function EquipmentTab() {
         </div>
       </div>
 
-      <div className="conflict-sources">Sources: {EQUIPMENT.russia.source}; {EQUIPMENT.ukraine.source}</div>
+      <div className="conflict-sources">
+        Sources: {hasLive ? losses.source : EQUIPMENT.russia.source}; {EQUIPMENT.ukraine.source}
+      </div>
     </div>
   );
 }
@@ -507,6 +767,51 @@ function TimelineTab() {
             <div className="conflict-timeline-event">{evt.event}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Live Feed Tab ─── */
+function LiveFeedTab({ news, loading, lastUpdated }) {
+  return (
+    <div className="conflict-tab-body">
+      <div className="conflict-section-note conflict-section-note--live">
+        <span className="conflict-live-dot" /> Live war news from Ukrinform and international sources.
+        {lastUpdated && <span> Updated {timeAgo(lastUpdated)}.</span>}
+      </div>
+
+      {loading && news.length === 0 && (
+        <div className="conflict-news-loading">Loading latest news...</div>
+      )}
+
+      {news.length === 0 && !loading && (
+        <div className="conflict-news-empty">
+          No news available. The backend may be offline or the feeds are temporarily unavailable.
+        </div>
+      )}
+
+      <div className="conflict-news-list">
+        {news.map((item) => (
+          <a
+            key={item.id}
+            className="conflict-news-item"
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <div className="conflict-news-item-source">{item.source}</div>
+            <div className="conflict-news-item-title">{item.title}</div>
+            {item.summary && (
+              <div className="conflict-news-item-summary">{item.summary}</div>
+            )}
+            <div className="conflict-news-item-time">{timeAgo(item.publishedAt)}</div>
+          </a>
+        ))}
+      </div>
+
+      <div className="conflict-sources" style={{ marginTop: 12 }}>
+        Sources: Ukrinform; Google News. Articles link to original publishers.
       </div>
     </div>
   );

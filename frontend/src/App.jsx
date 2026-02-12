@@ -32,6 +32,7 @@ import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
+import { getCountryFillColor } from './features/country/countryColors';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -223,20 +224,49 @@ const TIMEZONE_LINES_GEOJSON = {
   })),
 };
 
+// Ambiguous location names that are also common first names, words, or overlap
+// with another region. Require these to appear as whole words with context.
+const AMBIGUOUS_NAMES = new Set([
+  'georgia', 'jordan', 'chad', 'niger', 'guinea', 'mali', 'ireland',
+  'turkey', 'china', 'japan', 'india', 'france', 'brazil', 'cuba',
+  'panama', 'monaco', 'malta', 'cyprus', 'togo', 'nauru', 'oman',
+  'peru', 'fiji', 'laos', 'iran', 'iraq', 'israel', 'congo',
+]);
+
+// Build a word-boundary regex for a name; for ambiguous names also check
+// that the surrounding context looks geographic/political.
+function buildMatchRegex(name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[\\s,.()"'])${escaped}(?=[\\s,.()"']|$)`, 'i');
+}
+
 function deriveHotspots(items) {
-  const buckets = GEO_MARKERS.map(marker => ({ ...marker, items: [] }));
+  const buckets = GEO_MARKERS.map(marker => ({
+    ...marker,
+    items: [],
+    regex: marker.match ? buildMatchRegex(marker.match) : null,
+  }));
 
   items.forEach(item => {
-    const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`.toLowerCase();
+    const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`;
+    const textLower = text.toLowerCase();
     buckets.forEach(bucket => {
-      if (bucket.match && text.includes(bucket.match)) {
-        bucket.items.push(item);
+      if (!bucket.regex) return;
+      // Word-boundary match to avoid substring false positives
+      if (!bucket.regex.test(text)) return;
+      // For ambiguous names, require at least one geographic context word nearby
+      if (AMBIGUOUS_NAMES.has(bucket.match)) {
+        const ctx = textLower;
+        const hasContext = /\b(government|president|minister|military|troops|war|conflict|crisis|protest|election|capital|border|region|province|state of|country|nation|attack|bomb|strike|sanction|embassy|diplomat|foreign|amid|unrest)\b/.test(ctx);
+        if (!hasContext) return;
       }
+      bucket.items.push(item);
     });
   });
 
+  // Require minimum 2 items for a hotspot to appear (reduces noise)
   return buckets
-    .filter(bucket => bucket.items.length > 0)
+    .filter(bucket => bucket.items.length >= 2)
     .map(bucket => {
       const byType = {};
       bucket.items.forEach(entry => {
@@ -355,10 +385,12 @@ function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionC
 
   if (!hotspot || !position) return null;
 
+  const typeLabel = (t) => ({ article: 'news', rumor: 'rumor', tweet: 'twitter', reddit_post: 'reddit', flight: 'flights', stock: 'stocks' }[t] || t);
+
   return (
     <div
       ref={popoverRef}
-      className="hotspot-popover"
+      className="hs-popover"
       style={{
         position: 'absolute',
         left: position.x,
@@ -368,39 +400,38 @@ function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionC
       }}
       onMouseDown={handleDragStart}
     >
-      <div className="hotspot-popover-arrow" />
-      <div className="hotspot-popover-content">
-        <div className="hotspot-popover-header" style={{ cursor: 'grab' }}>
-          <h3 className="hotspot-popover-title">{hotspot.name}</h3>
-          <button className="hotspot-popover-close" onClick={onClose} aria-label="Close">x</button>
-        </div>
-        {isRecentlyUpdated(hotspot.lastUpdated) && (
-          <div className="hotspot-popover-badge">Updated {timeAgo(hotspot.lastUpdated)}</div>
-        )}
-        <div className="hotspot-popover-stats">
-          <div className="hotspot-popover-stat">
-            <span className="stat-value">{hotspot.count}</span>
-            <span className="stat-label">items</span>
+      <div className="hs-popover-inner">
+        <div className="hs-popover-head" style={{ cursor: 'grab' }}>
+          <div className="hs-popover-title-row">
+            <h3 className="hs-popover-title">{hotspot.name}</h3>
+            <span className="hs-popover-count">{hotspot.count}</span>
           </div>
-          {Object.entries(hotspot.byType).map(([type, count]) => (
-            <div key={type} className="hotspot-popover-stat">
-              <span className="stat-value">{count}</span>
-              <span className="stat-label">{type === 'article' ? 'news' : type}</span>
-            </div>
+          <button className="hs-popover-close" onClick={onClose} aria-label="Close">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
+        {Object.keys(hotspot.byType).length > 1 && (
+          <div className="hs-popover-tags">
+            {Object.entries(hotspot.byType).sort((a,b) => b[1] - a[1]).map(([type, count]) => (
+              <span key={type} className="hs-popover-tag">{count} {typeLabel(type)}</span>
+            ))}
+          </div>
+        )}
+        <div className="hs-popover-items">
+          {hotspot.items.slice(0, 4).map((item, idx) => (
+            <a key={item.id || idx} className="hs-popover-item" href={item.url} target="_blank" rel="noopener noreferrer">
+              <span className="hs-popover-item-title">{item.title || 'Untitled'}</span>
+              <span className="hs-popover-item-meta">{item.sourceName || item.source} &middot; {timeAgo(item.publishedAt)}</span>
+            </a>
           ))}
         </div>
-        <div className="hotspot-popover-items">
-          {hotspot.items.slice(0, 3).map((item, idx) => (
-            <div key={item.id || idx} className="hotspot-popover-item">
-              <div className="hotspot-popover-item-title">{item.title || 'Untitled'}</div>
-              <div className="hotspot-popover-item-meta">{item.sourceName} - {timeAgo(item.publishedAt)}</div>
-            </div>
-          ))}
-        </div>
-        <button className="hotspot-popover-btn" onClick={onOpenInPanel}>
-          Open in Panel
-        </button>
+        {hotspot.items.length > 4 && (
+          <button className="hs-popover-more" onClick={onOpenInPanel}>
+            View all {hotspot.count} items
+          </button>
+        )}
       </div>
+      <div className="hs-popover-arrow" />
     </div>
   );
 }
@@ -461,7 +492,7 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   return (
     <div
       ref={panelRef}
-      className="news-panel"
+      className="hs-panel"
       style={{
         position: 'absolute',
         left: position.x,
@@ -471,14 +502,16 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
       }}
       onMouseDown={handleDragStart}
     >
-      <div className="news-panel-header" style={{ cursor: 'grab' }}>
-        <div className="news-panel-title-section">
-          <h3 className="news-panel-title">{hotspot.name}</h3>
-          <div className="news-panel-subtitle">{hotspot.count} items</div>
+      <div className="hs-panel-head" style={{ cursor: 'grab' }}>
+        <div>
+          <h3 className="hs-panel-title">{hotspot.name}</h3>
+          <div className="hs-panel-subtitle">{hotspot.count} items</div>
         </div>
-        <button className="news-panel-close" onClick={onClose} aria-label="Close">x</button>
+        <button className="hs-popover-close" onClick={onClose} aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
       </div>
-      <div className="news-panel-content">
+      <div className="hs-panel-content">
         {hotspot.items.map((item, idx) => (
           <NewsItem key={item.id || idx} item={item} />
         ))}
@@ -543,6 +576,10 @@ function App() {
     countryPanel,
     currencyData,
     currencyLoading,
+    approvalData,
+    approvalLoading,
+    economicData,
+    economicLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
@@ -566,7 +603,7 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
-  const [transparentGlobe, setTransparentGlobe] = useState(true);
+  const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
@@ -808,29 +845,6 @@ function App() {
 
   // ---- MapLibre GeoJSON data ----
 
-  const countryColor = useCallback((index) => {
-    // Futuristic palette — blues, purples, pinks, teals
-    const darkPalette = [
-      '#2a3070', '#4a2268', '#602050', '#1e4078', '#3a2878',
-      '#5a2058', '#283880', '#4e2060', '#1a3870', '#682050',
-      '#303880', '#5e1e52', '#382878', '#224068', '#502465',
-      '#1e4a6a', '#422875', '#602852', '#2a3578', '#482468',
-      '#1a4572', '#58205a', '#303080', '#522258', '#244070',
-      '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
-    ];
-    const lightPalette = [
-      '#4a7a3e', '#6b8f42', '#8a6e3a', '#3d6b35', '#7a8548',
-      '#5c7040', '#9b7a3c', '#4e7e44', '#6e6838', '#3a6030',
-      '#87764a', '#527238', '#7c8a4e', '#48703a', '#a0823e',
-      '#5a6e3c', '#6a7a40', '#8b7044', '#3e6832', '#74804a',
-      '#4c6a36', '#96783e', '#5e7c42', '#7e6c3a', '#447034',
-      '#6c8648', '#8e7a40', '#3c6530', '#78724c', '#568038',
-    ];
-    const palette = isLightTheme ? lightPalette : darkPalette;
-    // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
-    return palette[(index * 11) % palette.length];
-  }, [isLightTheme]);
-
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: GEO_FEATURES.map((f, i) => {
@@ -843,13 +857,13 @@ function App() {
         properties: {
           name,
           originalId: String(f.id),
-          fillColor: countryColor(i),
+          fillColor: getCountryFillColor(name, i, isLightTheme),
           tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
           tariffRate,
         },
       };
     }),
-  }), [countryColor, isLightTheme]);
+  }), [isLightTheme]);
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -896,21 +910,27 @@ function App() {
   }), [flightPaths]);
 
   // MapLibre style (minimal, theme-aware background)
-  const mapStyle = useMemo(() => ({
-    version: 8,
-    name: 'monitoring',
-    sources: {},
-    layers: [{
-      id: 'background',
-      type: 'background',
-      paint: {
-        'background-color': holoMode
-          ? (isLightTheme ? '#8ab4d8' : '#060a14')
-          : (isLightTheme ? '#8ab4d8' : '#0c1126'),
-      },
-    }],
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, holoMode]);
+  const mapStyle = useMemo(() => {
+    let bgColor;
+    if (isLightTheme) {
+      bgColor = useGlobe ? '#0d1a30' : '#8ab4d8';
+    } else if (useGlobe) {
+      bgColor = '#0a1628'; // deep ocean blue — distinct from space
+    } else {
+      bgColor = holoMode ? '#060a14' : '#0c1126';
+    }
+    return {
+      version: 8,
+      name: 'monitoring',
+      sources: {},
+      layers: [{
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': bgColor },
+      }],
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    };
+  }, [isLightTheme, holoMode, useGlobe]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1366,11 +1386,11 @@ function App() {
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
     setMapLoaded(true);
-    // Faster, smoother scroll zoom
+    // Smooth, Apple-Maps-like scroll zoom (slower = more controlled)
     const sh = evt.target.scrollZoom;
     if (sh) {
-      sh.setWheelZoomRate(1 / 200);
-      sh.setZoomRate(1 / 50);
+      sh.setWheelZoomRate(1 / 250);
+      sh.setZoomRate(1 / 60);
     }
   }, []);
 
@@ -1882,7 +1902,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -2050,6 +2070,10 @@ function App() {
             tempUnit={tempUnit}
             currencyData={currencyData}
             currencyLoading={currencyLoading}
+            approvalData={approvalData}
+            approvalLoading={approvalLoading}
+            economicData={economicData}
+            economicLoading={economicLoading}
           />
         )}
 
@@ -2072,12 +2096,12 @@ function App() {
           onDblClick={handleMapDblClick}
           doubleClickZoom={false}
           dragRotate={useGlobe}
-          pitchWithRotate={useGlobe}
-          touchPitch={useGlobe}
+          pitchWithRotate={false}
+          touchPitch={false}
           renderWorldCopies={!useGlobe}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
           maxZoom={8}
-          minZoom={1}
+          minZoom={useGlobe ? 0.8 : 1}
         >
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
@@ -2203,24 +2227,33 @@ function App() {
               id="countries-line"
               type="line"
               paint={{
-                'line-color': holoMode
-                  ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
-                  : (isLightTheme
-                      ? 'rgba(50, 40, 80, 0.5)'
-                      : 'rgba(140, 160, 200, 0.4)'),
-                'line-width': holoMode
+                'line-color': showTariffHeatmap
+                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
+                  : holoMode
+                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
+                    : (isLightTheme
+                        ? 'rgba(40, 35, 70, 0.6)'
+                        : 'rgba(160, 175, 220, 0.55)'),
+                'line-width': showTariffHeatmap
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
+                      2.8,
                       1.4,
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.6,
-                    ],
+                  : holoMode
+                    ? [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        2.5,
+                        1.6,
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        2.5,
+                        1.8,
+                      ],
               }}
             />
             {/* Selected country highlight */}
@@ -2518,11 +2551,12 @@ function App() {
           {/* Hotspots */}
           {hotspots.filter((h) => isMarkerVisible(h.lon, h.lat)).map((hotspot) => {
             const maxCount = hotspots[0]?.count || 1;
-            const intensity = Math.max(0.2, hotspot.count / maxCount);
-            const size = 6 + intensity * 12;
+            const intensity = Math.min(1, hotspot.count / Math.max(maxCount, 1));
             const isActive = hotspot.id === selectedHotspotId;
             const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
             const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
+            // Tier: high (10+), mid (5-9), low (2-4) items
+            const tier = hotspot.count >= 10 ? 'high' : hotspot.count >= 5 ? 'mid' : 'low';
 
             return (
               <Marker
@@ -2532,40 +2566,40 @@ function App() {
                 anchor="center"
               >
                 <div
-                  className={`hotspot-marker-wrap ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
+                  className={`hs-wrap ${isStale ? 'hs-stale' : ''} ${isActive ? 'hs-selected' : ''} hs-${tier}`}
                   onMouseEnter={(e) => handleHotspotMouseEnter(hotspot, e)}
                   onMouseLeave={handleHotspotMouseLeave}
                   onClick={(e) => handleHotspotClick(hotspot, e)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <svg
-                    className="hotspot-marker breathe"
-                    width={size * 2 + 4}
-                    height={size * 2 + 4}
-                    viewBox={`${-size - 2} ${-size - 2} ${size * 2 + 4} ${size * 2 + 4}`}
-                    style={{ overflow: 'visible', display: 'block' }}
-                  >
-                    <circle
-                      r={size}
-                      fill={`rgba(var(--accent-rgb), ${0.15 + intensity * 0.35})`}
-                      stroke="rgba(var(--accent-rgb), 0.7)"
-                      strokeWidth={isActive ? 2 : 1.5}
-                    />
-                    <circle r={size * 0.6} fill="rgba(var(--accent-rgb), 0.95)" />
-                    {isRecent && <circle r={size * 0.25} fill="rgb(var(--success-rgb))" />}
-                  </svg>
-                  <div className="hotspot-label-wrap">
-                    <span className="hotspot-label-dom">{hotspot.name}</span>
-                    {isRecent && (
-                      <span className="hotspot-updated-badge-dom">
-                        Updated {timeAgo(hotspot.lastUpdated)}
-                      </span>
-                    )}
+                  {/* Ping ring for active hotspots */}
+                  {!isStale && tier !== 'low' && <span className="hs-ping" />}
+                  <span className="hs-dot" />
+                  <div className="hs-label">
+                    <span className="hs-name">{hotspot.name}</span>
+                    <span className="hs-count">{hotspot.count}</span>
                   </div>
                 </div>
               </Marker>
             );
           })}
+
+          {/* Pole markers — 3D globe only */}
+          {useGlobe && (
+            <>
+              <Marker longitude={0} latitude={90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">N</span>
+                </div>
+              </Marker>
+              <Marker longitude={0} latitude={-90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">S</span>
+                </div>
+              </Marker>
+            </>
+          )}
 
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
