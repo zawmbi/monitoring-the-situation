@@ -17,6 +17,7 @@ import { tariffService } from '../services/tariff.service.js';
 import { worldBankService } from '../services/worldbank.service.js';
 import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
+import { marketsService } from '../services/markets.service.js';
 
 const router = Router();
 
@@ -488,6 +489,32 @@ router.get('/leaders/:country', async (req, res) => {
   } catch (error) {
     console.error('[API] Leader error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch leader data' });
+  }
+});
+
+// ===========================================
+// MARKETS (Stock indices & forex per country)
+// ===========================================
+
+/**
+ * GET /api/markets/:countryCode
+ * Get stock market indices and forex data for a country (ISO 3166-1 alpha-2)
+ * Source: Yahoo Finance (indices), Frankfurter API (forex)
+ */
+router.get('/markets/:countryCode', async (req, res) => {
+  try {
+    const { countryCode } = req.params;
+    if (!countryCode || countryCode.length < 2 || countryCode.length > 3) {
+      return res.status(400).json({ success: false, error: 'Valid 2-letter country code required' });
+    }
+    const data = await marketsService.getMarketData(countryCode.toUpperCase());
+    if (!data) {
+      return res.status(404).json({ success: false, error: `No market data for ${countryCode}` });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Markets error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch market data' });
   }
 });
 

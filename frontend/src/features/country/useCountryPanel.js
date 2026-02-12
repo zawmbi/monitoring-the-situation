@@ -8,6 +8,7 @@ import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
 import { fetchLeaderApproval, hasApprovalData, preloadApprovals } from '../../services/approvalService';
 import { fetchEconomicProfile } from '../../services/economicService';
+import { fetchMarketData } from '../../services/marketService';
 import { getLeader, getLeaderLive, fetchLeaderPhoto } from './worldLeaders';
 import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
@@ -27,6 +28,8 @@ export function useCountryPanel() {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [economicData, setEconomicData] = useState(null);
   const [economicLoading, setEconomicLoading] = useState(false);
+  const [marketData, setMarketData] = useState(null);
+  const [marketLoading, setMarketLoading] = useState(false);
 
   // Fetch currency data when country data changes
   useEffect(() => {
@@ -91,6 +94,27 @@ export function useCountryPanel() {
 
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.cca2, countryPanel.data?.scope]);
+
+  // Fetch market data (stock indices + forex) when country panel opens
+  useEffect(() => {
+    const cca2 = countryPanel.data?.cca2;
+    if (!countryPanel.open || !cca2 || countryPanel.data?.scope) {
+      setMarketData(null);
+      return;
+    }
+
+    let cancelled = false;
+    setMarketLoading(true);
+
+    fetchMarketData(cca2).then(result => {
+      if (!cancelled) {
+        setMarketData(result);
+        setMarketLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [countryPanel.open, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
   const openCountryPanel = async (rawName) => {
     // Resolve abbreviated TopoJSON names to standard names
@@ -304,6 +328,7 @@ export function useCountryPanel() {
     setCurrencyData(null);
     setApprovalData(null);
     setEconomicData(null);
+    setMarketData(null);
   };
 
   return {
@@ -314,6 +339,8 @@ export function useCountryPanel() {
     approvalLoading,
     economicData,
     economicLoading,
+    marketData,
+    marketLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,

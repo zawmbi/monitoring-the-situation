@@ -38,6 +38,9 @@ export const api = {
   getWorldLeaders: () => api.fetch('/leaders'),
   getLeaderByCountry: (country) => api.fetch(`/leaders/${encodeURIComponent(country)}`),
 
+  // Markets (stock indices & forex per country)
+  getMarketData: (countryCode) => api.fetch(`/markets/${countryCode}`),
+
   // UCDP conflict events
   getUCDPEvents: (params = {}) => {
     const query = new URLSearchParams(params).toString();

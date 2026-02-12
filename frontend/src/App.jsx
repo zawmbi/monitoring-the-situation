@@ -600,6 +600,8 @@ function App() {
     approvalLoading,
     economicData,
     economicLoading,
+    marketData,
+    marketLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
@@ -2347,6 +2349,8 @@ function App() {
               approvalLoading={approvalLoading}
               economicData={economicData}
               economicLoading={economicLoading}
+              marketData={marketData}
+              marketLoading={marketLoading}
             />
           </PanelWindow>
         )}

@@ -803,6 +803,183 @@
 }
 
 /* ═══════════════════════════════════════════
+   Markets Section (Stock Indices & Forex)
+   ═══════════════════════════════════════════ */
+
+/* ── Markets trigger button ── */
+
+.cp-markets-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 8px;
+  color: #a7f3d0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-markets-btn:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.cp-markets-btn svg {
+  opacity: 0.7;
+}
+
+.cp-markets-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+/* ── Markets popup ── */
+
+.cp-markets-popup {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 8px;
+  animation: cp-popup-in 0.18s ease-out;
+}
+
+.cp-markets-section {
+  margin-bottom: 12px;
+}
+
+.cp-markets-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+/* ── Index cards ── */
+
+.cp-markets-indices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-market-index-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.cp-market-index-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.cp-market-index-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.cp-market-index-exchange {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.cp-market-index-data {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cp-market-index-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-market-index-change {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-market-index-change.positive {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-market-index-change.negative {
+  color: var(--color-negative, #ef4444);
+}
+
+.cp-market-index-range {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cp-market-range-label {
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-market-range-val {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Forex grid ── */
+
+.cp-markets-forex-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cp-forex-pair {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cp-forex-pair-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.cp-forex-pair-rate {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════
    Supreme Court (SCOTUS) Section
    ═══════════════════════════════════════════ */
 

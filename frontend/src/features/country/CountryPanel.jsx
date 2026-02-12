@@ -593,13 +593,15 @@ function SCOTUSPanel({ onClose }) {
   );
 }
 
-export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading }) {
+export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading, marketData, marketLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showEconomic, setShowEconomic] = useState(false);
   const [showSCOTUS, setShowSCOTUS] = useState(false);
+  const [showMarkets, setShowMarkets] = useState(false);
   const hasApproval = !!(approvalData && approvalData.approvalHistory?.length > 0);
   const hasEconomic = !!(economicData && (economicData.policyRate != null || economicData.inflation != null));
+  const hasMarkets = !!(marketData && (marketData.indices?.length > 0 || marketData.forex));
 
   if (!data) return null;
 
@@ -763,6 +765,95 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
         {!isScope && economicLoading && !economicData && (
+          <div className="cp-section">
+            <div className="cp-loading-line" />
+          </div>
+        )}
+
+        {/* Markets section (stock indices + forex) */}
+        {!isScope && hasMarkets && (
+          <div className="cp-section">
+            <button
+              className="cp-markets-btn"
+              onClick={() => setShowMarkets(!showMarkets)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Stock Markets & Forex
+              {marketData.indices?.length > 0 && (
+                <span className="cp-markets-badge">
+                  {marketData.indices[0].marketState === 'REGULAR' ? 'LIVE' : marketData.indices[0].marketState === 'PRE' ? 'PRE' : 'CLOSED'}
+                </span>
+              )}
+            </button>
+            {showMarkets && (
+              <div className="cp-markets-popup">
+                {/* Stock indices */}
+                {marketData.indices?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Stock Indices</div>
+                    <div className="cp-markets-indices">
+                      {marketData.indices.map((idx) => (
+                        <div key={idx.symbol} className="cp-market-index-card">
+                          <div className="cp-market-index-header">
+                            <div className="cp-market-index-name">{idx.name}</div>
+                            <div className="cp-market-index-exchange">{idx.exchange}</div>
+                          </div>
+                          <div className="cp-market-index-data">
+                            <span className="cp-market-index-price">
+                              {idx.price != null ? idx.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
+                            </span>
+                            {idx.change != null && (
+                              <span className={`cp-market-index-change ${idx.change >= 0 ? 'positive' : 'negative'}`}>
+                                {idx.change >= 0 ? '+' : ''}{idx.change.toFixed(2)}
+                                {idx.changePercent != null && (
+                                  <> ({idx.changePercent >= 0 ? '+' : ''}{idx.changePercent.toFixed(2)}%)</>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          {(idx.dayHigh != null || idx.dayLow != null) && (
+                            <div className="cp-market-index-range">
+                              <span className="cp-market-range-label">Day Range</span>
+                              <span className="cp-market-range-val">
+                                {idx.dayLow?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '--'}
+                                {' — '}
+                                {idx.dayHigh?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '--'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Forex rates */}
+                {marketData.forex && marketData.forex.pairs?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Forex — {marketData.forex.base}</div>
+                    <div className="cp-markets-forex-grid">
+                      {marketData.forex.pairs.map((pair) => (
+                        <div key={pair.pair} className="cp-forex-pair">
+                          <span className="cp-forex-pair-name">{pair.pair}</span>
+                          <span className="cp-forex-pair-rate">{pair.rate.toFixed(4)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {marketData.lastUpdated && (
+                  <div className="cp-approval-note" style={{ marginTop: 4, opacity: 0.6, fontSize: '0.7rem' }}>
+                    Via Yahoo Finance & Frankfurter &middot; {new Date(marketData.lastUpdated).toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {!isScope && marketLoading && !marketData && (
           <div className="cp-section">
             <div className="cp-loading-line" />
           </div>
