@@ -2029,30 +2029,6 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
-                  <button
-                    className="settings-eu-btn"
-                    onClick={openEUPanel}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '7px 10px',
-                      border: '1px solid rgba(61, 194, 208, 0.2)',
-                      borderRadius: '3px',
-                      background: 'rgba(61, 194, 208, 0.06)',
-                      color: 'inherit',
-                      fontSize: '0.78rem',
-                      letterSpacing: '0.03em',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s, border-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(61, 194, 208, 0.12)'; e.currentTarget.style.borderColor = 'rgba(61, 194, 208, 0.35)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(61, 194, 208, 0.06)'; e.currentTarget.style.borderColor = 'rgba(61, 194, 208, 0.2)'; }}
-                  >
-                    <span style={{ fontSize: '1.1em' }}>{'\u{1F1EA}\u{1F1FA}'}</span>
-                    View EU Overview
-                  </button>
                   {[
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'countryFill', label: 'Country Fill Color' },
