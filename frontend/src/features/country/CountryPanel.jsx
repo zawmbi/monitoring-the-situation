@@ -859,34 +859,36 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 {/* Commodities & Crypto */}
                 {marketData.commodities?.length > 0 && (() => {
                   // Convert USD prices to local currency using forex rates
-                  const forexBase = marketData.forex?.base;
+                  const currency = marketData.forex?.base || 'USD';
                   const usdPair = marketData.forex?.pairs?.find(p => p.quote === 'USD');
                   // usdPair.rate = "1 LOCAL = X USD", so "1 USD = 1/X LOCAL"
-                  const toLocal = (usdPrice) => {
-                    if (!usdPair || forexBase === 'USD') return { price: usdPrice, symbol: '$' };
-                    return { price: usdPrice / usdPair.rate, symbol: '' };
+                  const formatPrice = (usdPrice) => {
+                    const localPrice = usdPair && currency !== 'USD' ? usdPrice / usdPair.rate : usdPrice;
+                    try {
+                      return new Intl.NumberFormat(undefined, {
+                        style: 'currency',
+                        currency: currency,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(localPrice);
+                    } catch {
+                      return `$${localPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
                   };
-                  const localCur = forexBase && forexBase !== 'USD' ? forexBase : null;
 
                   return (
                   <div className="cp-markets-section">
                     <div className="cp-econ-section-title">
                       Commodities & Crypto
-                      {localCur && <span className="cp-econ-section-note"> — in {localCur}</span>}
+                      {currency !== 'USD' && <span className="cp-econ-section-note"> — {currency}</span>}
                     </div>
                     <div className="cp-commodities-grid">
-                      {marketData.commodities.map((c) => {
-                        const converted = c.price != null ? toLocal(c.price) : null;
-                        return (
+                      {marketData.commodities.map((c) => (
                         <div key={c.symbol} className="cp-commodity-card">
                           <div className="cp-commodity-name">{c.name}</div>
                           <div className="cp-commodity-price">
-                            {converted ? (
-                              <>
-                                {converted.symbol}{converted.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                {c.unit && <span className="cp-commodity-unit">{c.unit}</span>}
-                              </>
-                            ) : '--'}
+                            {c.price != null ? formatPrice(c.price) : '--'}
+                            {c.unit && <span className="cp-commodity-unit">{c.unit}</span>}
                           </div>
                           {c.changePercent != null && (
                             <div className={`cp-commodity-change ${c.changePercent >= 0 ? 'positive' : 'negative'}`}>
@@ -894,8 +896,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                             </div>
                           )}
                         </div>
-                        );
-                      })}
+                      ))}
                     </div>
                   </div>
                   );
