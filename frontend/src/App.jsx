@@ -913,9 +913,9 @@ function App() {
   const mapStyle = useMemo(() => {
     let bgColor;
     if (isLightTheme) {
-      bgColor = useGlobe ? '#0a0e1a' : '#8ab4d8';
+      bgColor = useGlobe ? '#0d1a30' : '#8ab4d8';
     } else if (useGlobe) {
-      bgColor = '#050810'; // space-black for globe
+      bgColor = '#0a1628'; // deep ocean blue — distinct from space
     } else {
       bgColor = holoMode ? '#060a14' : '#0c1126';
     }
@@ -2582,6 +2582,24 @@ function App() {
               </Marker>
             );
           })}
+
+          {/* Pole markers — 3D globe only */}
+          {useGlobe && (
+            <>
+              <Marker longitude={0} latitude={90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">N</span>
+                </div>
+              </Marker>
+              <Marker longitude={0} latitude={-90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">S</span>
+                </div>
+              </Marker>
+            </>
+          )}
 
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
