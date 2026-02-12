@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useWindowManager } from '../hooks/useWindowManager.jsx';
 import './panelWindow.css';
 
@@ -121,7 +122,7 @@ export default function PanelWindow({
     `pw--${mode}`,
   ].join(' ');
 
-  return (
+  const panel = (
     <div
       className={className}
       style={style}
@@ -227,4 +228,13 @@ export default function PanelWindow({
       </div>
     </div>
   );
+
+  // Portal maximized and floating windows to document.body so they escape
+  // the map-container's stacking context (isolation: isolate) and render
+  // above the sidebar and everything else.
+  if (mode === 'maximized' || mode === 'floating') {
+    return createPortal(panel, document.body);
+  }
+
+  return panel;
 }

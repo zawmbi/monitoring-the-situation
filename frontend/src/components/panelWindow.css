@@ -53,12 +53,14 @@
 }
 
 /* ── Maximized (fullscreen below nav) ── */
+/* Portaled to document.body to escape map-container stacking context */
 .pw--maximized {
   position: fixed;
   top: var(--nav-height, 64px);
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 10000 !important;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
