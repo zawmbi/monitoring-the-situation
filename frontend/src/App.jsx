@@ -545,6 +545,8 @@ function App() {
     currencyLoading,
     approvalData,
     approvalLoading,
+    economicData,
+    economicLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
@@ -2054,6 +2056,8 @@ function App() {
             currencyLoading={currencyLoading}
             approvalData={approvalData}
             approvalLoading={approvalLoading}
+            economicData={economicData}
+            economicLoading={economicLoading}
           />
         )}
 

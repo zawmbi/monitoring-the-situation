@@ -695,6 +695,112 @@
   padding: 8px 12px;
 }
 
+/* ── Economic Indicators Button ── */
+
+.cp-econ-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 8px;
+  color: #c7d2fe;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-econ-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.cp-econ-btn svg {
+  opacity: 0.7;
+}
+
+.cp-econ-loading {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* ── Economic Popup ── */
+
+.cp-econ-popup {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 8px;
+  animation: cp-popup-in 0.18s ease-out;
+}
+
+@keyframes cp-popup-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cp-econ-section {
+  margin-bottom: 12px;
+}
+
+.cp-econ-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+.cp-econ-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-econ-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cp-econ-indicator {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cp-econ-indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.cp-econ-indicator-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.cp-econ-indicator-date {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.cp-econ-indicator-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {

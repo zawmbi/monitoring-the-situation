@@ -331,10 +331,156 @@ function ApprovalPopup({ countryName, leaderName, onClose, approval }) {
   );
 }
 
-export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading }) {
+/* ── Economic data popup ── */
+
+function EconIndicator({ label, value, unit, date, color }) {
+  if (value == null) return null;
+  const display = typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(1)) : value;
+  return (
+    <div className="cp-econ-indicator">
+      <div className="cp-econ-indicator-header">
+        <span className="cp-econ-indicator-label">{label}</span>
+        {date && <span className="cp-econ-indicator-date">{date}</span>}
+      </div>
+      <div className="cp-econ-indicator-val" style={color ? { color } : undefined}>
+        {display}{unit || ''}
+      </div>
+    </div>
+  );
+}
+
+function EconomicPopup({ data, onClose }) {
+  const popupRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) onClose();
+    };
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onClose]);
+
+  if (!data) return null;
+
+  const rateColor = (v) => {
+    if (v == null) return undefined;
+    return v > 10 ? '#ef4444' : v > 5 ? '#f59e0b' : '#22c55e';
+  };
+  const gdpColor = (v) => {
+    if (v == null) return undefined;
+    return v > 0 ? '#22c55e' : '#ef4444';
+  };
+
+  return (
+    <div className="cp-econ-popup" ref={popupRef}>
+      <div className="cp-approval-popup-header">
+        <span className="cp-approval-popup-title">Economic Indicators</span>
+        <button className="cp-close cp-approval-popup-close" onClick={onClose} aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Central bank & rates */}
+      {data.centralBank && (
+        <div className="cp-econ-section">
+          <div className="cp-econ-section-title">{data.centralBank}</div>
+          <div className="cp-econ-grid">
+            {data.policyRate != null && (
+              <EconIndicator
+                label="Policy Rate"
+                value={data.policyRate}
+                unit="%"
+                date={data.policyRateDate}
+                color={rateColor(data.policyRate)}
+              />
+            )}
+            {data.bondYield10Y != null && (
+              <EconIndicator
+                label="10Y Bond Yield"
+                value={data.bondYield10Y}
+                unit="%"
+                date={data.bondYieldDate}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Macro indicators */}
+      <div className="cp-econ-section">
+        <div className="cp-econ-section-title">Macro</div>
+        <div className="cp-econ-grid">
+          <EconIndicator
+            label="Inflation (CPI)"
+            value={data.inflation}
+            unit="%"
+            date={data.inflationDate}
+            color={rateColor(data.inflation)}
+          />
+          <EconIndicator
+            label="GDP Growth"
+            value={data.gdpGrowth}
+            unit="%"
+            date={data.gdpDate}
+            color={gdpColor(data.gdpGrowth)}
+          />
+          <EconIndicator
+            label="Unemployment"
+            value={data.unemployment}
+            unit="%"
+            date={data.unemploymentDate}
+          />
+          {data.debtToGdp != null && (
+            <EconIndicator
+              label="Debt/GDP"
+              value={data.debtToGdp}
+              unit="%"
+              date={data.debtDate}
+              color={data.debtToGdp > 100 ? '#ef4444' : data.debtToGdp > 60 ? '#f59e0b' : '#22c55e'}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Credit & market */}
+      {(data.creditRating || data.stockIndex) && (
+        <div className="cp-econ-section">
+          <div className="cp-econ-grid">
+            {data.creditRating && (
+              <EconIndicator label="Credit Rating" value={data.creditRating} />
+            )}
+            {data.stockIndex && (
+              <EconIndicator label="Stock Index" value={data.stockIndex} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {data.note && (
+        <div className="cp-approval-note">{data.note}</div>
+      )}
+      {data.liveSource === 'worldbank' && (
+        <div className="cp-approval-note" style={{ marginTop: 4, opacity: 0.6, fontSize: '0.7rem' }}>
+          Live macro data via World Bank API
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
+  const [showEconomic, setShowEconomic] = useState(false);
   const hasApproval = !!(approvalData && approvalData.approvalHistory?.length > 0);
+  const hasEconomic = !!(economicData && (economicData.policyRate != null || economicData.inflation != null));
 
   if (!data) return null;
 
@@ -466,6 +612,32 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Economic indicators button */}
+        {!isScope && hasEconomic && (
+          <div className="cp-section">
+            <button
+              className="cp-econ-btn"
+              onClick={() => setShowEconomic(!showEconomic)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="20" x2="12" y2="10" />
+                <line x1="18" y1="20" x2="18" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="16" />
+              </svg>
+              Economic Indicators
+              {economicLoading && <span className="cp-econ-loading">Loading...</span>}
+            </button>
+            {showEconomic && economicData && (
+              <EconomicPopup data={economicData} onClose={() => setShowEconomic(false)} />
+            )}
+          </div>
+        )}
+        {!isScope && economicLoading && !economicData && (
+          <div className="cp-section">
+            <div className="cp-loading-line" />
           </div>
         )}
 
