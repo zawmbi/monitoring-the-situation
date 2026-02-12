@@ -603,7 +603,7 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
-  const [transparentGlobe, setTransparentGlobe] = useState(true);
+  const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
@@ -910,21 +910,27 @@ function App() {
   }), [flightPaths]);
 
   // MapLibre style (minimal, theme-aware background)
-  const mapStyle = useMemo(() => ({
-    version: 8,
-    name: 'monitoring',
-    sources: {},
-    layers: [{
-      id: 'background',
-      type: 'background',
-      paint: {
-        'background-color': holoMode
-          ? (isLightTheme ? '#8ab4d8' : '#060a14')
-          : (isLightTheme ? '#8ab4d8' : '#0c1126'),
-      },
-    }],
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, holoMode]);
+  const mapStyle = useMemo(() => {
+    let bgColor;
+    if (isLightTheme) {
+      bgColor = useGlobe ? '#0a0e1a' : '#8ab4d8';
+    } else if (useGlobe) {
+      bgColor = '#050810'; // space-black for globe
+    } else {
+      bgColor = holoMode ? '#060a14' : '#0c1126';
+    }
+    return {
+      version: 8,
+      name: 'monitoring',
+      sources: {},
+      layers: [{
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': bgColor },
+      }],
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    };
+  }, [isLightTheme, holoMode, useGlobe]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1380,11 +1386,11 @@ function App() {
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
     setMapLoaded(true);
-    // Faster, smoother scroll zoom
+    // Smooth, Apple-Maps-like scroll zoom (slower = more controlled)
     const sh = evt.target.scrollZoom;
     if (sh) {
-      sh.setWheelZoomRate(1 / 200);
-      sh.setZoomRate(1 / 50);
+      sh.setWheelZoomRate(1 / 250);
+      sh.setZoomRate(1 / 60);
     }
   }, []);
 
@@ -1896,7 +1902,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -2090,12 +2096,12 @@ function App() {
           onDblClick={handleMapDblClick}
           doubleClickZoom={false}
           dragRotate={useGlobe}
-          pitchWithRotate={useGlobe}
-          touchPitch={useGlobe}
+          pitchWithRotate={false}
+          touchPitch={false}
           renderWorldCopies={!useGlobe}
           maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
           maxZoom={8}
-          minZoom={1}
+          minZoom={useGlobe ? 0.8 : 1}
         >
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>

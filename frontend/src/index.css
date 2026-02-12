@@ -491,6 +491,80 @@ body {
   z-index: 2;
 }
 
+/* ── Apple Maps-style space background for globe mode ── */
+
+/* Override map-bg to space-black in globe mode */
+.map-container.globe-mode {
+  background: #050810;
+}
+
+/* Starfield layer */
+.map-container.globe-mode::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    /* bright stars */
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 78% 8%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1.5px 1.5px at 45% 65%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 92% 42%, rgba(255,255,255,0.75), transparent),
+    radial-gradient(1.3px 1.3px at 28% 88%, rgba(255,255,255,0.65), transparent),
+    radial-gradient(1px 1px at 65% 92%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1.2px 1.2px at 8% 52%, rgba(255,255,255,0.55), transparent),
+    radial-gradient(1px 1px at 55% 12%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1.4px 1.4px at 85% 75%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 35% 38%, rgba(255,255,255,0.55), transparent),
+    /* dim stars — smaller, fainter */
+    radial-gradient(0.8px 0.8px at 5% 5%, rgba(200,210,255,0.45), transparent),
+    radial-gradient(0.7px 0.7px at 22% 72%, rgba(200,210,255,0.35), transparent),
+    radial-gradient(0.8px 0.8px at 48% 28%, rgba(200,210,255,0.4), transparent),
+    radial-gradient(0.6px 0.6px at 72% 55%, rgba(200,210,255,0.3), transparent),
+    radial-gradient(0.8px 0.8px at 95% 15%, rgba(200,210,255,0.4), transparent),
+    radial-gradient(0.7px 0.7px at 38% 95%, rgba(200,210,255,0.35), transparent),
+    radial-gradient(0.6px 0.6px at 62% 35%, rgba(200,210,255,0.3), transparent),
+    radial-gradient(0.8px 0.8px at 15% 45%, rgba(200,210,255,0.35), transparent),
+    radial-gradient(0.7px 0.7px at 82% 88%, rgba(200,210,255,0.3), transparent),
+    radial-gradient(0.6px 0.6px at 50% 50%, rgba(200,210,255,0.25), transparent),
+    /* faint dust — very dim specks */
+    radial-gradient(0.5px 0.5px at 3% 33%, rgba(180,190,240,0.2), transparent),
+    radial-gradient(0.5px 0.5px at 18% 62%, rgba(180,190,240,0.18), transparent),
+    radial-gradient(0.5px 0.5px at 42% 82%, rgba(180,190,240,0.2), transparent),
+    radial-gradient(0.5px 0.5px at 68% 15%, rgba(180,190,240,0.18), transparent),
+    radial-gradient(0.5px 0.5px at 88% 58%, rgba(180,190,240,0.2), transparent),
+    radial-gradient(0.5px 0.5px at 25% 25%, rgba(180,190,240,0.15), transparent),
+    radial-gradient(0.5px 0.5px at 58% 78%, rgba(180,190,240,0.18), transparent),
+    radial-gradient(0.5px 0.5px at 75% 32%, rgba(180,190,240,0.2), transparent),
+    radial-gradient(0.5px 0.5px at 33% 48%, rgba(180,190,240,0.15), transparent),
+    radial-gradient(0.5px 0.5px at 90% 92%, rgba(180,190,240,0.18), transparent);
+  animation: starTwinkle 8s ease-in-out infinite alternate;
+}
+
+@keyframes starTwinkle {
+  0%   { opacity: 0.85; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.9; }
+}
+
+/* Atmosphere edge glow — soft blue halo around globe center */
+.map-container.globe-mode .maplibregl-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 52% 52% at 50% 50%,
+    transparent 70%,
+    rgba(80, 140, 255, 0.06) 78%,
+    rgba(80, 140, 255, 0.12) 84%,
+    rgba(60, 120, 255, 0.05) 90%,
+    transparent 100%
+  );
+}
+
 .map-controls-br {
   position: absolute;
   bottom: 110px;
@@ -654,7 +728,8 @@ body {
   transition: opacity 0.35s ease;
 }
 
-.map-container.hide-atmosphere::before {
+.map-container.hide-atmosphere::before,
+.map-container.globe-mode::before {
   opacity: 0;
 }
 
