@@ -110,7 +110,14 @@ const CAPITAL_MARKERS = GEO_FEATURES.map((geo, idx) => {
 
 // Build marker list for every country and US state
 const COUNTRY_MARKERS = GEO_FEATURES.map((geo, idx) => {
-  const [lon, lat] = geoCentroid(geo);
+  const ccn3 = String(geo.id).padStart(3, '0');
+  const coords = CAPITAL_COORDS[ccn3];
+  let lon, lat;
+  if (coords) {
+    [lat, lon] = coords;
+  } else {
+    [lon, lat] = geoCentroid(geo);
+  }
   if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
   return {
     id: geo.id || `country-${idx}`,
