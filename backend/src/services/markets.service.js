@@ -1,23 +1,74 @@
 /**
  * Markets Service
  * Fetches stock market indices, top stocks, commodities, and forex data per country
- * Uses yahoo-finance2 (no API key required) for stock/commodity data
+ * Uses Yahoo Finance chart API directly (no library, no API key)
  * Uses Frankfurter API (no API key required) for forex pairs
  */
 
-import YahooFinance from 'yahoo-finance2';
 import { cacheService } from './cache.service.js';
-
-// yahoo-finance2 v3 requires instantiation
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
-
-// Bypass strict validation (Yahoo often returns fields that don't match the schema)
-const YF_OPTS = { validateResult: false };
 
 const CACHE_TTL = 300; // 5 minutes
 const FOREX_CACHE_TTL = 600; // 10 minutes
 
-// ── Country code → major stock index symbols (Yahoo Finance) ──
+// ── Fetch a quote directly from Yahoo Finance's chart API ──
+async function fetchQuote(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = json.chart?.result?.[0];
+    if (!result) return null;
+
+    const meta = result.meta;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose ?? meta.previousClose;
+    if (price == null) return null;
+
+    const change = prevClose != null ? price - prevClose : null;
+    const changePct = prevClose ? ((price - prevClose) / prevClose) * 100 : null;
+
+    // Try to get day high/low from the indicators
+    const indicators = result.indicators?.quote?.[0];
+    let dayHigh = meta.regularMarketDayHigh ?? null;
+    let dayLow = meta.regularMarketDayLow ?? null;
+    let volume = meta.regularMarketVolume ?? null;
+
+    if (dayHigh == null && indicators?.high) {
+      const highs = indicators.high.filter(v => v != null);
+      if (highs.length) dayHigh = Math.max(...highs);
+    }
+    if (dayLow == null && indicators?.low) {
+      const lows = indicators.low.filter(v => v != null);
+      if (lows.length) dayLow = Math.min(...lows);
+    }
+    if (volume == null && indicators?.volume) {
+      const vols = indicators.volume.filter(v => v != null);
+      if (vols.length) volume = vols.reduce((a, b) => a + b, 0);
+    }
+
+    return {
+      price,
+      change,
+      changePercent: changePct,
+      previousClose: prevClose ?? null,
+      dayHigh,
+      dayLow,
+      volume,
+      marketState: meta.marketState ?? null,
+      currency: meta.currency ?? null,
+      exchange: meta.exchangeName ?? null,
+      marketCap: null, // chart API doesn't include market cap
+    };
+  } catch (err) {
+    console.warn(`[Markets] fetchQuote failed for ${symbol}: ${err.message}`);
+    return null;
+  }
+}
+
+// ── Country code → major stock index symbols ──
 const COUNTRY_INDICES = {
   US: [
     { symbol: '^GSPC', name: 'S&P 500', exchange: 'NYSE' },
@@ -203,7 +254,7 @@ const COUNTRY_INDICES = {
   ],
 };
 
-// ── Country code → top blue-chip stocks (Yahoo Finance tickers) ──
+// ── Country code → top blue-chip stocks ──
 const COUNTRY_TOP_STOCKS = {
   US: [
     { symbol: 'AAPL', name: 'Apple' },
@@ -399,7 +450,7 @@ const COUNTRY_TOP_STOCKS = {
   ],
 };
 
-// ── Global commodities & crypto (shown for all countries) ──
+// ── Global commodities & crypto ──
 const COMMODITIES = [
   { symbol: 'GC=F', name: 'Gold', unit: '/oz' },
   { symbol: 'CL=F', name: 'Crude Oil (WTI)', unit: '/bbl' },
@@ -423,23 +474,9 @@ const COUNTRY_CURRENCIES = {
   HR: 'EUR', EU: 'EUR',
 };
 
-// Major forex pairs to show relative to the country's currency
 const MAJOR_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'CNY'];
 
-// Helper: fetch a Yahoo Finance quote with safe fallback
-async function safeQuote(symbol) {
-  try {
-    return await yahooFinance.quote(symbol, {}, YF_OPTS);
-  } catch (err) {
-    console.warn(`[Markets] safeQuote failed for ${symbol}: ${err.message}`);
-    return null;
-  }
-}
-
 class MarketsService {
-  /**
-   * Get stock market indices for a country
-   */
   async getIndices(countryCode) {
     const code = countryCode.toUpperCase();
     const cacheKey = `markets:indices:${code}`;
@@ -448,54 +485,36 @@ class MarketsService {
     if (cached) return cached;
 
     const indexDefs = COUNTRY_INDICES[code];
-    if (!indexDefs || indexDefs.length === 0) {
-      return null;
-    }
+    if (!indexDefs || indexDefs.length === 0) return null;
 
     const results = await Promise.all(
       indexDefs.map(async (def) => {
-        try {
-          const quote = await yahooFinance.quote(def.symbol, {}, YF_OPTS);
-          return {
-            symbol: def.symbol,
-            name: def.name,
-            exchange: def.exchange,
-            price: quote.regularMarketPrice ?? null,
-            change: quote.regularMarketChange ?? null,
-            changePercent: quote.regularMarketChangePercent ?? null,
-            previousClose: quote.regularMarketPreviousClose ?? null,
-            open: quote.regularMarketOpen ?? null,
-            dayHigh: quote.regularMarketDayHigh ?? null,
-            dayLow: quote.regularMarketDayLow ?? null,
-            volume: quote.regularMarketVolume ?? null,
-            marketState: quote.marketState ?? null,
-            currency: quote.currency ?? null,
-          };
-        } catch (err) {
-          console.warn(`[Markets] Failed to fetch ${def.symbol}: ${err.message}`);
-          return {
-            symbol: def.symbol,
-            name: def.name,
-            exchange: def.exchange,
-            price: null,
-            change: null,
-            changePercent: null,
-            error: true,
-          };
-        }
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          exchange: def.exchange,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          previousClose: q.previousClose,
+          dayHigh: q.dayHigh,
+          dayLow: q.dayLow,
+          volume: q.volume,
+          marketState: q.marketState,
+          currency: q.currency,
+        };
       })
     );
 
-    const data = results.filter(r => r.price !== null);
+    const data = results.filter(Boolean);
     if (data.length > 0) {
       await cacheService.set(cacheKey, data, CACHE_TTL);
     }
     return data.length > 0 ? data : null;
   }
 
-  /**
-   * Get top stocks for a country
-   */
   async getTopStocks(countryCode) {
     const code = countryCode.toUpperCase();
     const cacheKey = `markets:stocks:${code}`;
@@ -508,16 +527,15 @@ class MarketsService {
 
     const results = await Promise.all(
       stockDefs.map(async (def) => {
-        const quote = await safeQuote(def.symbol);
-        if (!quote || quote.regularMarketPrice == null) return null;
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
         return {
           symbol: def.symbol,
           name: def.name,
-          price: quote.regularMarketPrice,
-          change: quote.regularMarketChange ?? null,
-          changePercent: quote.regularMarketChangePercent ?? null,
-          marketCap: quote.marketCap ?? null,
-          currency: quote.currency ?? null,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          currency: q.currency,
         };
       })
     );
@@ -529,9 +547,6 @@ class MarketsService {
     return data.length > 0 ? data : null;
   }
 
-  /**
-   * Get global commodities and crypto prices
-   */
   async getCommodities() {
     const cacheKey = 'markets:commodities';
 
@@ -540,16 +555,16 @@ class MarketsService {
 
     const results = await Promise.all(
       COMMODITIES.map(async (def) => {
-        const quote = await safeQuote(def.symbol);
-        if (!quote || quote.regularMarketPrice == null) return null;
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
         return {
           symbol: def.symbol,
           name: def.name,
           unit: def.unit,
-          price: quote.regularMarketPrice,
-          change: quote.regularMarketChange ?? null,
-          changePercent: quote.regularMarketChangePercent ?? null,
-          currency: quote.currency ?? 'USD',
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          currency: q.currency ?? 'USD',
         };
       })
     );
@@ -561,9 +576,6 @@ class MarketsService {
     return data.length > 0 ? data : null;
   }
 
-  /**
-   * Get forex rates for a country's currency vs major currencies
-   */
   async getForex(countryCode) {
     const code = countryCode.toUpperCase();
     const localCurrency = COUNTRY_CURRENCIES[code];
@@ -573,7 +585,6 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    // Build target currencies (exclude the local one)
     const targets = MAJOR_CURRENCIES.filter(c => c !== localCurrency);
     if (targets.length === 0) return null;
 
@@ -604,9 +615,6 @@ class MarketsService {
     }
   }
 
-  /**
-   * Get combined market data for a country
-   */
   async getMarketData(countryCode) {
     const code = countryCode.toUpperCase();
     const cacheKey = `markets:combined:${code}`;
@@ -636,9 +644,6 @@ class MarketsService {
     return data;
   }
 
-  /**
-   * Check if a country has market data available
-   */
   hasMarketData(countryCode) {
     const code = countryCode.toUpperCase();
     return !!(COUNTRY_INDICES[code] || COUNTRY_CURRENCIES[code]);

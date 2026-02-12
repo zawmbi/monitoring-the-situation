@@ -98,8 +98,6 @@ export function TariffPanel({ countryName, position, onClose, onPositionChange, 
     <div
       ref={panelRef}
       className={`tariff-panel ${isEmbargo ? 'tariff-panel--embargo' : ''}`}
-      style={{ left: position.x, top: position.y }}
-      onMouseDown={onMouseDown}
     >
       <div className="tariff-panel-header">
         <div>

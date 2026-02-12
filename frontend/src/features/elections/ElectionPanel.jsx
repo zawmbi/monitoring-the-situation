@@ -322,8 +322,6 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
     <div
       ref={panelRef}
       className="el-panel"
-      style={{ left: position.x, top: position.y }}
-      onMouseDown={onMouseDown}
     >
       {/* Header */}
       <div className="el-header">
