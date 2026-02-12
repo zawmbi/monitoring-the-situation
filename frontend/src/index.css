@@ -923,12 +923,12 @@ body {
 
 /* The solid center dot */
 .hs-dot {
+  display: block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: #6b8cff;
   border: 1.5px solid rgba(255,255,255,0.25);
-  flex-shrink: 0;
   position: relative;
   z-index: 2;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -981,9 +981,17 @@ body {
   100% { transform: translateY(-50%) scale(2.8); opacity: 0; }
 }
 
-/* Label + count badge — hidden; hotspots show as dots only */
+/* Label + count badge — positioned absolutely so it doesn't shift the anchor */
 .hs-label {
-  display: none;
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .hs-name {
