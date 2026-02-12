@@ -8,9 +8,8 @@
 import yahooFinance from 'yahoo-finance2';
 import { cacheService } from './cache.service.js';
 
-// Suppress yahoo-finance2 strict validation errors (Yahoo often returns
-// fields that don't match the library's schema, causing throws)
-yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
+// Bypass yahoo-finance2 strict validation (Yahoo often returns fields
+// that don't match the library's schema, causing throws)
 const YF_OPTS = { validateResult: false };
 
 const CACHE_TTL = 300; // 5 minutes
