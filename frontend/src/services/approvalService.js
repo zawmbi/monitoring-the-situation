@@ -53,20 +53,29 @@ function parseApprovalTable(html) {
         const cells = rows[r].querySelectorAll('td, th');
         if (cells.length <= approveIdx) continue;
 
-        const country = (cells[countryIdx]?.textContent || '').trim().replace(/\[.*\]/g, '');
-        const approveStr = (cells[approveIdx]?.textContent || '').replace(/[^0-9.]/g, '');
-        const disapproveStr = disapproveIdx >= 0 && cells[disapproveIdx]
-          ? (cells[disapproveIdx].textContent || '').replace(/[^0-9.]/g, '')
+        // Strip footnote refs like [1], [note 2], etc. before extracting values
+        const country = (cells[countryIdx]?.textContent || '').replace(/\[.*?\]/g, '').trim();
+
+        // Extract only the FIRST number from the cell to avoid footnote numbers
+        // e.g. "36%[39]" textContent is "36%39" → match "36" not "3639"
+        const approveMatch = (cells[approveIdx]?.textContent || '').match(/(\d+\.?\d*)/);
+        const approveStr = approveMatch ? approveMatch[1] : '';
+        const disapproveMatch = disapproveIdx >= 0 && cells[disapproveIdx]
+          ? (cells[disapproveIdx].textContent || '').match(/(\d+\.?\d*)/)
           : null;
+        const disapproveStr = disapproveMatch ? disapproveMatch[1] : null;
 
         const approve = parseFloat(approveStr);
-        if (!country || isNaN(approve)) continue;
+        if (!country || isNaN(approve) || approve > 100 || approve < 0) continue;
 
         const disapprove = disapproveStr ? parseFloat(disapproveStr) : null;
+        const validDisapprove = disapprove != null && !isNaN(disapprove) && disapprove >= 0 && disapprove <= 100
+          ? Math.round(disapprove)
+          : null;
 
         results.set(normalizeWikiCountry(country), {
           approve: Math.round(approve),
-          disapprove: disapprove && !isNaN(disapprove) ? Math.round(disapprove) : null,
+          disapprove: validDisapprove,
           date: new Date().toISOString().slice(0, 7), // e.g. "2026-02"
         });
       }
@@ -141,13 +150,20 @@ export async function fetchLeaderApproval(countryName) {
     : { approvalHistory: [] };
 
   if (live) {
-    // Append the live data point if it's newer than the last static entry
+    // Merge the live data point into the history
     const history = [...(result.approvalHistory || [])];
     const lastEntry = history[history.length - 1];
-    const alreadyHas = lastEntry && lastEntry.date === live.date &&
-      lastEntry.approve === live.approve;
+    const existingIdx = history.findIndex(h => h.date === live.date);
 
-    if (!alreadyHas) {
+    if (existingIdx >= 0) {
+      // Update existing entry for this month with live data
+      history[existingIdx] = {
+        ...history[existingIdx],
+        approve: live.approve,
+        disapprove: live.disapprove ?? history[existingIdx].disapprove,
+      };
+    } else if (!lastEntry || lastEntry.date < live.date) {
+      // Append new data point only if it's newer
       history.push({
         date: live.date,
         approve: live.approve,
