@@ -912,9 +912,7 @@ body {
 /* ── Hotspot map markers ── */
 
 .hs-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-block;
   cursor: pointer;
   position: relative;
   transition: opacity 0.25s;
@@ -983,8 +981,12 @@ body {
   100% { transform: translateY(-50%) scale(2.8); opacity: 0; }
 }
 
-/* Label + count badge */
+/* Label + count badge — positioned absolutely so it doesn't shift the anchor */
 .hs-label {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 5px;
