@@ -21,6 +21,7 @@ import {
   SANCTIONS_ECONOMIC,
   WAR_TIMELINE,
   UA_BLUE,
+  UA_YELLOW,
   RU_RED,
 } from './conflictData';
 import './conflicts.css';
