@@ -493,21 +493,29 @@ body {
 
 /* ── Apple Maps-style space background for globe mode ── */
 
-/* ── Globe mode: space background ── */
+/* ── Globe mode: NASA deep star map background ── */
 
 .map-container.globe-mode {
   background: #030508;
 }
 
-/* Canvas starfield — rendered by Starfield component */
-.starfield-canvas {
+.map-container.globe-mode::after {
+  content: '';
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -15%;
   z-index: 0;
   pointer-events: none;
-  object-fit: cover;
+  background: url('/starfield.jpg') center / cover no-repeat;
+  opacity: 0.85;
+  animation: spaceDrift 120s linear infinite alternate;
+}
+
+@keyframes spaceDrift {
+  0%   { transform: translate(0, 0) scale(1.15); }
+  25%  { transform: translate(-3%, 2%) scale(1.18); }
+  50%  { transform: translate(2%, -1%) scale(1.15); }
+  75%  { transform: translate(-1%, -3%) scale(1.17); }
+  100% { transform: translate(3%, 1%) scale(1.15); }
 }
 
 
