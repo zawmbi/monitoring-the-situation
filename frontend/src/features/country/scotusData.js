@@ -1,6 +1,7 @@
 /**
  * Supreme Court of the United States (SCOTUS) data
- * Current justices and notable pending cases for the 2024-2025 term.
+ * Current justices and notable pending cases for the October 2025-2026 term.
+ * Last updated: February 12, 2026
  */
 
 export const SCOTUS_JUSTICES = [
@@ -17,134 +18,166 @@ export const SCOTUS_JUSTICES = [
 
 export const SCOTUS_PENDING_CASES = [
   {
-    id: 'catholic-charities-v-wisconsin',
-    name: 'Catholic Charities Bureau v. Wisconsin LIRC',
-    docket: '24-203',
-    argued: '2025-02-26',
-    topic: 'Religious Liberty',
-    question: 'Whether the ministerial exception or church autonomy doctrine bars state agencies from adjudicating employment disputes involving employees of religious organizations.',
+    id: 'learning-resources-v-trump',
+    name: 'Learning Resources v. Trump',
+    docket: '24-1287',
+    argued: '2025-11-05',
+    topic: 'Tariffs / Executive Power',
+    question: 'Whether the International Emergency Economic Powers Act (IEEPA) authorizes the president to impose tariffs, and if so, whether the statute unconstitutionally delegates Congress\'s legislative authority to the executive.',
     petitioner: {
-      side: 'Catholic Charities Bureau',
-      argument: 'Religious organizations have a First Amendment right to manage their own internal affairs, including employment decisions, free from government interference. State labor regulators cannot override church autonomy.',
-    },
-    respondent: {
-      side: 'Wisconsin LIRC',
-      argument: 'Neutral, generally applicable employment laws can apply to religious organizations when the employees perform secular functions. The ministerial exception should be narrowly construed.',
-    },
-  },
-  {
-    id: 'fda-v-azar',
-    name: 'FDA v. Wages and White Lion Investments',
-    docket: '23-1038',
-    argued: '2024-10-07',
-    topic: 'Administrative Law',
-    question: 'Whether the FDA acted lawfully when it denied marketing authorization for flavored e-cigarette products.',
-    petitioner: {
-      side: 'FDA',
-      argument: 'The agency has broad discretion to evaluate public health evidence and deny marketing orders for e-cigarette products that fail to demonstrate a net benefit to public health.',
-    },
-    respondent: {
-      side: 'E-cigarette Manufacturers',
-      argument: 'The FDA applied an impossible evidentiary standard, changed its requirements mid-review without notice, and treated similarly-situated applicants differently in violation of the APA.',
-    },
-  },
-  {
-    id: 'san-francisco-v-epa',
-    name: 'City and County of San Francisco v. EPA',
-    docket: '23-753',
-    argued: '2024-10-16',
-    topic: 'Environmental Law',
-    question: 'Whether the Clean Water Act permits the EPA to impose "generic prohibitions" in water discharge permits rather than only specific, numeric effluent limitations.',
-    petitioner: {
-      side: 'San Francisco',
-      argument: 'The CWA requires EPA to set specific, measurable discharge limits. Generic prohibitions like "no toxic amounts" give regulated parties no clear compliance standard and invite arbitrary enforcement.',
-    },
-    respondent: {
-      side: 'EPA',
-      argument: 'Generic prohibitions are a permissible backstop that ensure water quality standards are met even when specific numeric limits may not capture all pollutants. This has been standard practice for decades.',
-    },
-  },
-  {
-    id: 'royal-canin-v-woudenberg',
-    name: 'Royal Canin USA v. Woudenberg',
-    docket: '23-677',
-    argued: '2024-11-18',
-    topic: 'Civil Procedure',
-    question: 'Whether Article III standing requires a concrete injury or whether a statutory violation alone is sufficient to confer standing in federal court.',
-    petitioner: {
-      side: 'Royal Canin',
-      argument: 'A plaintiff must show actual, concrete injury-in-fact to have standing. A bare statutory violation without real-world harm does not satisfy Article III requirements.',
-    },
-    respondent: {
-      side: 'Woudenberg',
-      argument: 'Congress can create new legal rights, and the violation of those rights constitutes a concrete injury sufficient for standing, even without additional tangible harm.',
-    },
-  },
-  {
-    id: 'free-speech-coalition-v-paxton',
-    name: 'Free Speech Coalition v. Paxton',
-    docket: '23-1122',
-    argued: '2024-11-26',
-    topic: 'First Amendment',
-    question: 'Whether a state law requiring age verification to access online adult content violates the First Amendment.',
-    petitioner: {
-      side: 'Free Speech Coalition',
-      argument: 'Mandatory age-verification requirements for lawful speech are content-based restrictions subject to strict scrutiny. They chill protected speech and create surveillance risks for adult users.',
-    },
-    respondent: {
-      side: 'Texas (Paxton)',
-      argument: 'The state has a compelling interest in protecting minors from harmful material. Age verification is a narrowly tailored, minimally burdensome means to achieve that interest without banning any speech.',
-    },
-  },
-  {
-    id: 'poland-v-trump',
-    name: 'Poland v. Trump (Birthright Citizenship)',
-    docket: '24A645',
-    argued: null,
-    topic: 'Constitutional Law',
-    question: 'Whether the president may, by executive order, limit birthright citizenship guaranteed by the Fourteenth Amendment for children born to non-citizen parents.',
-    petitioner: {
-      side: 'Challenging States',
-      argument: 'The Fourteenth Amendment\'s Citizenship Clause is unambiguous: all persons born in the United States and subject to its jurisdiction are citizens. No executive order can override a constitutional guarantee.',
+      side: 'Learning Resources & Importers',
+      argument: 'IEEPA was enacted to impose sanctions and embargoes for national security, not to levy tariffs — a core congressional power under Article I. No president before Trump used IEEPA for tariffs. The delegation of such sweeping economic authority violates the non-delegation doctrine.',
     },
     respondent: {
       side: 'Trump Administration',
-      argument: 'The phrase "subject to the jurisdiction thereof" has historically excluded certain categories. The executive has authority to interpret and enforce immigration-related constitutional provisions.',
+      argument: 'IEEPA grants the president broad authority to "regulate" importation during a national emergency. Trade deficits and supply chain vulnerabilities constitute an emergency. The statute provides an intelligible principle sufficient to satisfy the non-delegation doctrine.',
     },
   },
   {
-    id: 'tiktok-v-garland',
-    name: 'TikTok Inc. v. Garland',
-    docket: '24-656',
-    argued: '2025-01-10',
-    topic: 'First Amendment / National Security',
-    question: 'Whether a federal law requiring ByteDance to divest TikTok or face a ban violates the First Amendment rights of the platform and its users.',
+    id: 'trump-v-slaughter',
+    name: 'Trump v. Slaughter (FTC)',
+    docket: '25-7',
+    argued: '2025-12-08',
+    topic: 'Executive Power / Independent Agencies',
+    question: 'Whether the president has the authority to remove Federal Trade Commission commissioners at will, overturning the 90-year-old Humphrey\'s Executor precedent that shields independent agency heads from political firing.',
     petitioner: {
-      side: 'TikTok / ByteDance',
-      argument: 'The divest-or-ban law is an unprecedented restriction on speech affecting 170 million American users. It is a content-based restriction that fails strict scrutiny and constitutes a bill of attainder.',
+      side: 'Trump Administration',
+      argument: 'Article II vests all executive power in the president. Restrictions on the president\'s removal power over agency heads are unconstitutional. Humphrey\'s Executor was wrongly decided and should be overruled.',
     },
     respondent: {
-      side: 'U.S. Government',
-      argument: 'The law addresses genuine national security concerns about a foreign adversary\'s access to American data and ability to covertly manipulate content. It targets foreign ownership, not speech.',
+      side: 'Rebecca Slaughter (FTC Commissioner)',
+      argument: 'Congress has the constitutional authority to create independent agencies insulated from political pressure. Humphrey\'s Executor has been settled law for 90 years. Agencies like the FTC serve Congress\'s regulatory mandate, not the president\'s policy agenda.',
     },
   },
   {
-    id: 'oklahoma-v-epa',
-    name: 'Oklahoma v. EPA (Good Neighbor Rule)',
-    docket: '23A349',
+    id: 'trump-v-cook',
+    name: 'Trump v. Cook (Federal Reserve)',
+    docket: '25-21',
+    argued: '2026-01-21',
+    topic: 'Executive Power / Fed Independence',
+    question: 'Whether the president can fire a Federal Reserve board member, threatening the independence of the central bank from political control.',
+    petitioner: {
+      side: 'Trump Administration',
+      argument: 'The president\'s removal power extends to all principal officers of the executive branch. The Federal Reserve exercises executive power and its governors must be accountable to the elected president.',
+    },
+    respondent: {
+      side: 'Lisa Cook (Fed Governor)',
+      argument: 'Federal Reserve independence is essential to economic stability. Congress deliberately insulated the Fed from short-term political pressure to protect monetary policy from electoral cycles. Markets worldwide depend on this independence.',
+    },
+  },
+  {
+    id: 'trump-v-barbara',
+    name: 'Trump v. Barbara (Birthright Citizenship)',
+    docket: '25-61',
     argued: null,
-    topic: 'Environmental / Federal Power',
-    question: 'Whether the EPA exceeded its authority under the Clean Air Act by issuing the "Good Neighbor" ozone transport rule requiring upwind states to reduce emissions.',
+    topic: 'Constitutional Law',
+    question: 'Whether Executive Order 14160, which declared an end to birthright citizenship for children of non-citizen parents, complies with the Citizenship Clause of the Fourteenth Amendment and the Immigration and Nationality Act of 1952.',
     petitioner: {
-      side: 'Oklahoma & Industry Groups',
-      argument: 'EPA\'s rule imposes massive costs on states without adequately accounting for individual state contributions to downwind pollution. The agency bypassed required state consultation procedures.',
+      side: 'Trump Administration',
+      argument: 'The phrase "subject to the jurisdiction thereof" in the Fourteenth Amendment has historically excluded certain categories. The executive has authority to interpret citizenship provisions, and the order properly narrows citizenship to children of lawful permanent residents or citizens.',
     },
     respondent: {
-      side: 'EPA',
-      argument: 'The Clean Air Act expressly directs EPA to address interstate air pollution when states fail to do so. The Good Neighbor provision has been upheld for decades and the rule follows established methodology.',
+      side: 'Barbara et al.',
+      argument: 'The Fourteenth Amendment is unambiguous: all persons born in the United States and subject to its jurisdiction are citizens. The 1952 INA explicitly codifies birthright citizenship based on birth on U.S. soil regardless of parents\' status. No executive order can override the Constitution.',
+    },
+  },
+  {
+    id: 'west-virginia-v-bpj',
+    name: 'West Virginia v. B.P.J.',
+    docket: '25-101',
+    argued: '2026-01-13',
+    topic: 'Equal Protection / Title IX',
+    question: 'Whether a state law that categorically bans transgender females from participating in women\'s school sports violates the Equal Protection Clause of the Fourteenth Amendment and Title IX.',
+    petitioner: {
+      side: 'West Virginia',
+      argument: 'States have a legitimate interest in ensuring fair competition in women\'s athletics. Biological differences between the sexes are real, and sex-based classifications in sports serve important governmental objectives. The law does not discriminate based on transgender status.',
+    },
+    respondent: {
+      side: 'B.P.J. (Transgender Student)',
+      argument: 'A categorical ban based on transgender status is sex discrimination subject to heightened scrutiny. The law singles out transgender girls for exclusion without individualized assessment. It violates both the Equal Protection Clause and Title IX\'s prohibition on sex discrimination in education.',
+    },
+  },
+  {
+    id: 'chiles-v-salazar',
+    name: 'Chiles v. Salazar',
+    docket: '24-1246',
+    argued: '2025-10-06',
+    topic: 'First Amendment / LGBTQ+',
+    question: 'Whether Colorado\'s ban on conversion therapy for minors violates the First Amendment by restricting the speech of licensed counselors based on viewpoint.',
+    petitioner: {
+      side: 'Chiles (Counselor)',
+      argument: 'Conversion therapy bans regulate pure speech — talk therapy between a counselor and client. The government cannot dictate which viewpoints therapists may express. The law is a viewpoint-based restriction subject to strict scrutiny.',
+    },
+    respondent: {
+      side: 'Colorado',
+      argument: 'Conversion therapy bans regulate professional conduct, not speech. States have long regulated the practice of licensed professions. The ban protects minors from a discredited practice that major medical organizations unanimously condemn as harmful.',
+    },
+  },
+  {
+    id: 'louisiana-v-callais',
+    name: 'Louisiana v. Callais',
+    docket: '24-175',
+    argued: '2025-10-11',
+    topic: 'Voting Rights / Redistricting',
+    question: 'Whether race-conscious redistricting required by Section 2 of the Voting Rights Act constitutes unconstitutional racial gerrymandering, potentially invalidating the VRA\'s core enforcement mechanism.',
+    petitioner: {
+      side: 'Callais Plaintiffs',
+      argument: 'Drawing majority-minority districts is racial classification that triggers strict scrutiny under the Equal Protection Clause. Section 2\'s "results test" forces states to sort voters by race, which the Constitution forbids regardless of benign intent.',
+    },
+    respondent: {
+      side: 'Louisiana (Defending the VRA)',
+      argument: 'Section 2 of the Voting Rights Act is a valid exercise of Congress\'s enforcement power under the Fourteenth and Fifteenth Amendments. It does not mandate racial quotas but ensures minorities have equal opportunity to participate in the political process.',
+    },
+  },
+  {
+    id: 'watson-v-rnc',
+    name: 'Watson v. Republican National Committee',
+    docket: '25-316',
+    argued: null,
+    topic: 'Voting Rights / Elections',
+    question: 'Whether federal "Election Day" statutes require that all mail-in ballots be received by election officials on Election Day, or whether states may count ballots postmarked by Election Day but received afterward.',
+    petitioner: {
+      side: 'Watson (Mississippi Secretary of State)',
+      argument: 'Mississippi\'s five-day grace period ensures that voters who cast their ballots by Election Day have their votes counted. The postmark requirement confirms timely voting. Sixteen states plus D.C. have similar provisions, and abruptly invalidating late-arriving ballots would disenfranchise millions.',
+    },
+    respondent: {
+      side: 'Republican National Committee',
+      argument: 'Federal law establishes a single, uniform Election Day by which all ballots must be both cast and received. Grace periods undermine election integrity and finality. The Constitution gives Congress clear authority to set the time for federal elections.',
+    },
+  },
+  {
+    id: 'wolford-v-lopez',
+    name: 'Wolford v. Lopez',
+    docket: '23-1148',
+    argued: '2026-01-20',
+    topic: 'Second Amendment',
+    question: 'Whether a Hawaii law making it a crime for concealed carry permit holders to carry handguns on private property without express authorization from the property owner violates the Second Amendment.',
+    petitioner: {
+      side: 'Wolford (Permit Holder)',
+      argument: 'The Second Amendment protects the right to carry firearms in public for self-defense. Hawaii\'s default ban on carry across all private property, even when the owner has not objected, is an extreme outlier with no historical analogue that survives scrutiny under Bruen.',
+    },
+    respondent: {
+      side: 'Hawaii (Lopez)',
+      argument: 'Property owners have a fundamental right to control who may bring weapons onto their property. Hawaii\'s law respects property rights by requiring express consent. Historical tradition supports broad government authority to regulate firearms in sensitive places.',
+    },
+  },
+  {
+    id: 'us-v-hemani',
+    name: 'United States v. Hemani',
+    docket: '23-1226',
+    argued: '2026-02-10',
+    topic: 'Second Amendment',
+    question: 'Whether the federal law prohibiting firearm possession by persons who are "unlawful users of or addicted to any controlled substance" violates the Second Amendment.',
+    petitioner: {
+      side: 'United States',
+      argument: 'Congress has a compelling interest in keeping firearms from those whose judgment is impaired by drug use. The historical tradition of disarming dangerous persons supports prohibiting drug users from possessing firearms.',
+    },
+    respondent: {
+      side: 'Hemani',
+      argument: 'The prohibition is overbroad — it applies to any marijuana user in states where it is legal, even when not intoxicated. There is no historical analogue for permanently disarming someone based on substance use alone. The law fails the Bruen historical-tradition test.',
     },
   },
 ];
 
-export const SCOTUS_TERM = '2024-2025';
+export const SCOTUS_TERM = '2025-2026';
 export const SCOTUS_COMPOSITION = { conservative: 6, liberal: 3 };
