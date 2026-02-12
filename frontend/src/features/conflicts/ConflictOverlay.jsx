@@ -15,7 +15,6 @@ import {
   NAVAL_POSITIONS,
   BATTLE_SITES,
   FORTIFICATION_LINES,
-  OCCUPIED_OBLAST_BORDERS,
   NUCLEAR_PLANTS,
   UA_BLUE,
   UA_YELLOW,
@@ -241,10 +240,6 @@ export function MapLegend({ open, onToggle }) {
               <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
               <span>Fortification (Surovikin Line)</span>
             </div>
-            <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ffa500' }} />
-              <span>Occupied oblast border</span>
-            </div>
           </div>
           <div className="conflict-map-legend-section">
             <div className="conflict-map-legend-heading">Cities & Territory</div>
@@ -409,15 +404,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
     })),
   }), []);
 
-  const oblastBordersGeoJSON = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: OCCUPIED_OBLAST_BORDERS.map((ob) => ({
-      type: 'Feature',
-      properties: { id: ob.id, name: ob.name, note: ob.note },
-      geometry: { type: 'LineString', coordinates: ob.points },
-    })),
-  }), []);
-
   const sectorLabels = useMemo(() =>
     FRONTLINE_SEGMENTS.map((seg) => {
       const mid = seg.points[Math.floor(seg.points.length / 2)];
@@ -426,32 +412,6 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
 
   return (
     <>
-      {/* ══════════ Occupied oblast borders ══════════ */}
-      <Source id="conflict-oblast-borders" type="geojson" data={oblastBordersGeoJSON}>
-        <Layer
-          id="conflict-oblast-glow"
-          type="line"
-          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{
-            'line-color': '#ffa500',
-            'line-width': 5,
-            'line-blur': 4,
-            'line-opacity': 0.15,
-          }}
-        />
-        <Layer
-          id="conflict-oblast-line"
-          type="line"
-          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{
-            'line-color': '#ffa500',
-            'line-width': 1.5,
-            'line-dasharray': [6, 4],
-            'line-opacity': 0.55,
-          }}
-        />
-      </Source>
-
       {/* ══════════ Fortification lines & zones ══════════ */}
       <Source id="conflict-fortifications" type="geojson" data={fortificationGeoJSON}>
         {/* Surovikin line — dashed orange */}
