@@ -742,6 +742,17 @@ function App() {
     setVisualLayers(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Sync hillshade visibility to native style layer when toggle changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      if (map.getLayer('hillshade-layer')) {
+        map.setLayoutProperty('hillshade-layer', 'visibility', visualLayers.hillshade ? 'visible' : 'none');
+      }
+    } catch {}
+  }, [visualLayers.hillshade]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1100) {
@@ -918,25 +929,73 @@ function App() {
     })),
   }), [flightPaths]);
 
-  // MapLibre style (minimal, theme-aware background)
+  // MapLibre style — basemap baked in for reliable globe rendering
   const mapStyle = useMemo(() => {
     let bgColor;
     if (isLightTheme) {
       bgColor = useGlobe ? '#0b1a35' : '#4a8ab8';
     } else if (useGlobe) {
-      bgColor = '#081830'; // deep ocean blue — distinct from space
+      bgColor = '#081830';
     } else {
       bgColor = holoMode ? '#040c1e' : '#0a1e3d';
     }
+
+    // Use Positron (light) basemap even in dark mode — darken via raster paint
+    // properties to preserve terrain contrast. Dark Matter is uniformly dark.
+    const basemapUrl = isLightTheme
+      ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+      : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
     return {
       version: 8,
       name: 'monitoring',
-      sources: {},
-      layers: [{
-        id: 'background',
-        type: 'background',
-        paint: { 'background-color': bgColor },
-      }],
+      sources: {
+        'basemap-tiles': {
+          type: 'raster',
+          tiles: [basemapUrl],
+          tileSize: 256,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        },
+        'terrain-dem': {
+          type: 'raster-dem',
+          tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+          encoding: 'terrarium',
+          tileSize: 256,
+          maxzoom: 15,
+        },
+      },
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': bgColor },
+        },
+        {
+          id: 'basemap-raster',
+          type: 'raster',
+          source: 'basemap-tiles',
+          paint: isLightTheme
+            ? { 'raster-opacity': 0.7 }
+            : {
+                'raster-opacity': 0.85,
+                'raster-brightness-max': 0.28,
+                'raster-saturation': -0.3,
+                'raster-contrast': 0.15,
+              },
+        },
+        {
+          id: 'hillshade-layer',
+          type: 'hillshade',
+          source: 'terrain-dem',
+          paint: {
+            'hillshade-exaggeration': 0.7,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.45)' : 'rgba(0,0,15,0.55)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.35)' : 'rgba(200,220,255,0.25)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,30,0.3)',
+            'hillshade-illumination-direction': 315,
+          },
+        },
+      ],
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     };
   }, [isLightTheme, holoMode, useGlobe]);
@@ -2159,53 +2218,7 @@ function App() {
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
-          {/* Raster basemap — real geography underneath country fills */}
-          <Source
-            key={isLightTheme ? 'basemap-light' : 'basemap-dark'}
-            id="basemap-tiles"
-            type="raster"
-            tiles={[
-              isLightTheme
-                ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
-                : 'https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-            ]}
-            tileSize={256}
-          >
-            <Layer
-              id="basemap-raster"
-              type="raster"
-              paint={{
-                'raster-opacity': isLightTheme ? 0.7 : 0.8,
-                'raster-saturation': isLightTheme ? 0.0 : 0.25,
-                'raster-contrast': isLightTheme ? 0.1 : 0.2,
-                'raster-brightness-min': isLightTheme ? 0 : 0.05,
-                'raster-brightness-max': isLightTheme ? 1 : 0.9,
-              }}
-            />
-          </Source>
-
-          {/* Hillshade terrain — subtle depth and texture under country fills */}
-          <Source
-            id="terrain-dem"
-            type="raster-dem"
-            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
-            encoding="terrarium"
-            tileSize={256}
-            maxzoom={15}
-          >
-            <Layer
-              id="hillshade-layer"
-              type="hillshade"
-              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
-              paint={{
-                'hillshade-exaggeration': 0.7,
-                'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.45)' : 'rgba(0,0,15,0.55)',
-                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.35)' : 'rgba(200,220,255,0.25)',
-                'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,30,0.3)',
-                'hillshade-illumination-direction': 315,
-              }}
-            />
-          </Source>
+          {/* Basemap raster + hillshade are baked into mapStyle for globe compatibility */}
 
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
@@ -2299,7 +2312,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.3 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.4 : 0),
               }}
             />
             {/* Coastline shadow — soft glow that separates land from water */}
@@ -2524,8 +2537,6 @@ function App() {
               }
             }}
           />
-
-          {/* Hillshade now rendered below country fills — see basemap section above */}
 
           {/* Population heatmap */}
           <Source id="population-heat" type="geojson" data={POPULATION_POINTS}>
