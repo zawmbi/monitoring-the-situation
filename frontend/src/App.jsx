@@ -325,6 +325,108 @@ function isRecentlyUpdated(dateString) {
 
 // Compact news item for sidebar
 
+// Canvas-rendered starfield for globe mode
+function Starfield() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = 2048;
+    const h = 2048;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    // Deep space base
+    ctx.fillStyle = '#030508';
+    ctx.fillRect(0, 0, w, h);
+
+    // Nebula clouds — soft colored regions
+    const nebulae = [
+      { x: w * 0.2, y: h * 0.15, rx: 320, ry: 220, color: [50, 60, 140, 0.04] },
+      { x: w * 0.75, y: h * 0.7, rx: 280, ry: 200, color: [100, 50, 130, 0.035] },
+      { x: w * 0.5, y: h * 0.85, rx: 350, ry: 180, color: [30, 80, 120, 0.03] },
+      { x: w * 0.1, y: h * 0.65, rx: 200, ry: 280, color: [70, 40, 110, 0.025] },
+      { x: w * 0.85, y: h * 0.2, rx: 250, ry: 160, color: [40, 70, 130, 0.03] },
+    ];
+    for (const nb of nebulae) {
+      const grad = ctx.createRadialGradient(nb.x, nb.y, 0, nb.x, nb.y, Math.max(nb.rx, nb.ry));
+      grad.addColorStop(0, `rgba(${nb.color[0]},${nb.color[1]},${nb.color[2]},${nb.color[3] * 3})`);
+      grad.addColorStop(0.5, `rgba(${nb.color[0]},${nb.color[1]},${nb.color[2]},${nb.color[3]})`);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Seed-based pseudo-random for consistency
+    let seed = 42;
+    const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; };
+
+    // Star layers
+    const starCount = 800;
+    for (let i = 0; i < starCount; i++) {
+      const x = rand() * w;
+      const y = rand() * h;
+      const brightness = rand();
+      let r, alpha;
+
+      if (brightness > 0.97) {
+        // Rare bright stars
+        r = 1.2 + rand() * 0.8;
+        alpha = 0.8 + rand() * 0.2;
+      } else if (brightness > 0.85) {
+        // Medium stars
+        r = 0.7 + rand() * 0.5;
+        alpha = 0.5 + rand() * 0.3;
+      } else {
+        // Dim stars (majority)
+        r = 0.3 + rand() * 0.4;
+        alpha = 0.15 + rand() * 0.3;
+      }
+
+      // Color temperature variation
+      const temp = rand();
+      let cr, cg, cb;
+      if (temp < 0.15) {
+        // Warm (yellowish)
+        cr = 255; cg = 230 + rand() * 25; cb = 180 + rand() * 40;
+      } else if (temp < 0.3) {
+        // Cool (bluish)
+        cr = 180 + rand() * 40; cg = 200 + rand() * 30; cb = 255;
+      } else {
+        // White
+        cr = 240 + rand() * 15; cg = 240 + rand() * 15; cb = 245 + rand() * 10;
+      }
+
+      // Draw star with soft glow
+      if (r > 1) {
+        // Bright stars get a glow halo
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+        glow.addColorStop(0, `rgba(${cr},${cg},${cb},${alpha})`);
+        glow.addColorStop(0.3, `rgba(${cr},${cg},${cb},${alpha * 0.4})`);
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fillRect(x - r * 3, y - r * 3, r * 6, r * 6);
+      }
+
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+      ctx.fill();
+    }
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="starfield-canvas"
+      aria-hidden="true"
+    />
+  );
+}
+
 // Hotspot Popover Component
 function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionChange }) {
   const popoverRef = useRef(null);
@@ -1903,6 +2005,7 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        {useGlobe && <Starfield />}
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
