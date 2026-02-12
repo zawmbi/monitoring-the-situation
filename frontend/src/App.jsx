@@ -64,7 +64,6 @@ function fixGeoJSON(geojson) {
 const GEO_FEATURES = fixGeoJSON(
   worldData?.objects?.countries
     ? feature(worldData, worldData.objects.countries).features
-        .filter(f => String(f.id).padStart(3, '0') !== '010') // Remove Antarctica
     : []
 );
 const US_STATE_FEATURES = usData?.objects?.states
@@ -753,6 +752,31 @@ function App() {
     } catch {}
   }, [visualLayers.hillshade]);
 
+  // Clean up hover states and update background on projection switch
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      // Clear stale hover feature states
+      if (hoveredCountryIdRef.current !== null) {
+        map.setFeatureState({ source: 'countries', id: hoveredCountryIdRef.current }, { hover: false });
+        hoveredCountryIdRef.current = null;
+      }
+      if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
+        map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
+        hoveredStateIdRef.current = null;
+      }
+      if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
+        map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
+        hoveredProvinceIdRef.current = null;
+      }
+      // Update background color without triggering full style reload
+      if (map.getLayer('background')) {
+        map.setPaintProperty('background', 'background-color', useGlobe ? '#0a1520' : '#0c1a28');
+      }
+    } catch {}
+  }, [useGlobe]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1100) {
@@ -869,6 +893,7 @@ function App() {
     type: 'FeatureCollection',
     features: GEO_FEATURES.map((f, i) => {
       const name = f.properties?.name || `Country ${i}`;
+      const isAntarctica = String(f.id).padStart(3, '0') === '010' || name === 'Antarctica';
       const tariffRate = getUniversalRate(name);
       return {
         type: 'Feature',
@@ -877,7 +902,9 @@ function App() {
         properties: {
           name,
           originalId: String(f.id),
-          fillColor: getCountryFillColor(name, i, isLightTheme),
+          fillColor: isAntarctica
+            ? (isLightTheme ? '#d8dde3' : '#8898a8')
+            : getCountryFillColor(name, i, isLightTheme),
           tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
           tariffRate,
         },
@@ -930,13 +957,13 @@ function App() {
   }), [flightPaths]);
 
   // MapLibre style — basemap baked in for reliable globe rendering
+  // NOTE: useGlobe is NOT a dependency — background is updated via map API
+  // to avoid full style reloads on projection switch
   const mapStyle = useMemo(() => {
     let bgColor;
     // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
-      bgColor = useGlobe ? '#0b1a35' : '#3a7ab0';
-    } else if (useGlobe) {
-      bgColor = '#0a1520';
+      bgColor = '#3a7ab0';
     } else {
       bgColor = holoMode ? '#040c1e' : '#0c1a28';
     }
@@ -1002,7 +1029,7 @@ function App() {
       ],
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     };
-  }, [isLightTheme, holoMode, useGlobe]);
+  }, [isLightTheme, holoMode]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -2219,7 +2246,7 @@ function App() {
           pitchWithRotate={false}
           touchPitch={false}
           renderWorldCopies={!useGlobe}
-          maxBounds={useGlobe ? undefined : [[-Infinity, -60], [Infinity, 85]]}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
