@@ -80,6 +80,9 @@ const EU_MEMBER_NAMES = new Set([
   'Poland', 'Portugal', 'Romania', 'Slovakia', 'Slovenia', 'Spain', 'Sweden',
 ]);
 
+// Pre-compute how many EU features exist so hover-all loops have a stable count
+const EU_FEATURE_COUNT = GEO_FEATURES.filter((f) => EU_MEMBER_NAMES.has(f.properties?.name)).length;
+
 const COUNTRIES_DATA = Array.isArray(countries)
   ? countries
   : (countries?.default && Array.isArray(countries.default) ? countries.default : []);
@@ -781,7 +784,9 @@ function App() {
         hoveredProvinceIdRef.current = null;
       }
       if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
-        map.setFeatureState({ source: 'eu-countries', id: hoveredEUIdRef.current }, { hover: false });
+        for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+          map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+        }
         hoveredEUIdRef.current = null;
       }
       // Update background color without triggering full style reload
@@ -920,6 +925,7 @@ function App() {
           properties: {
             name,
             originalId: String(f.id),
+            isEU: EU_MEMBER_NAMES.has(name),
             fillColor: getCountryFillColor(name, i, isLightTheme),
             tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
             tariffRate,
@@ -1088,13 +1094,6 @@ function App() {
     return ['==', ['get', 'originalId'], '__none__'];
   }, [selectedRegion]);
 
-  const selectedEUFilter = useMemo(() => {
-    if (selectedRegion?.type === 'eu-country' && selectedRegion.id != null) {
-      return ['==', ['get', 'originalId'], String(selectedRegion.id)];
-    }
-    return ['==', ['get', 'originalId'], '__none__'];
-  }, [selectedRegion]);
-
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -1125,7 +1124,9 @@ function App() {
           hoveredProvinceIdRef.current = null;
         }
         if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
-          map.setFeatureState({ source: 'eu-countries', id: hoveredEUIdRef.current }, { hover: false });
+          for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+            map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+          }
           hoveredEUIdRef.current = null;
         }
         setTooltip({ show: false, text: '', x: 0, y: 0 });
@@ -1159,10 +1160,9 @@ function App() {
       hoveredProvinceIdRef.current = null;
     }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
-      map.setFeatureState(
-        { source: 'eu-countries', id: hoveredEUIdRef.current },
-        { hover: false }
-      );
+      for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+        map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+      }
       hoveredEUIdRef.current = null;
     }
 
@@ -1189,14 +1189,16 @@ function App() {
         );
         hoveredProvinceIdRef.current = feat.id;
       } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
-        map.setFeatureState(
-          { source: 'eu-countries', id: feat.id },
-          { hover: true }
-        );
-        hoveredEUIdRef.current = feat.id;
+        // Highlight ALL EU country features for unified entity hover
+        for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+          map.setFeatureState({ source: 'eu-countries', id: i }, { hover: true });
+        }
+        hoveredEUIdRef.current = -1; // sentinel: all highlighted
       }
 
-      const tooltipName = feat.properties?.name || 'Unknown';
+      const tooltipName = sourceId === 'eu-countries'
+        ? 'European Union'
+        : (feat.properties?.name || 'Unknown');
       const tariffRate = feat.properties?.tariffRate;
       let tooltipText = tooltipName;
       if (showTariffHeatmap && tariffRate != null) {
@@ -1243,10 +1245,9 @@ function App() {
       hoveredProvinceIdRef.current = null;
     }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
-      map.setFeatureState(
-        { source: 'eu-countries', id: hoveredEUIdRef.current },
-        { hover: false }
-      );
+      for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+        map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+      }
       hoveredEUIdRef.current = null;
     }
     setTooltip({ show: false, text: '', x: 0, y: 0 });
@@ -1357,13 +1358,13 @@ function App() {
           openProvincePanel(name);
         }
       } else if (sourceId === 'eu-countries') {
-        setSelectedRegion({ type: 'eu-country', id: originalId, name });
+        setSelectedRegion({ type: 'eu', id: 'EU', name: 'European Union' });
         setViewMode('region');
         setSelectedCapital(null);
-        openCountryPanel(name);
+        openEUPanel();
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap, electionMode]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, openEUPanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -2419,12 +2420,23 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1c3040',
                       ['get', 'tariffColor'],
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1c3040',
-                      ['get', 'fillColor'],
-                    ],
+                  : showEUCountries
+                    ? [
+                        'case',
+                        ['boolean', ['get', 'isEU'], false],
+                        'rgba(0,0,0,0)',
+                        ['case',
+                          ['boolean', ['feature-state', 'hover'], false],
+                          isLightTheme ? '#a8c090' : '#1c3040',
+                          ['get', 'fillColor'],
+                        ],
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme ? '#a8c090' : '#1c3040',
+                        ['get', 'fillColor'],
+                      ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
               }}
             />
@@ -2484,6 +2496,9 @@ function App() {
                         1.8,
                         0.8,
                       ],
+                'line-opacity': showEUCountries
+                  ? ['case', ['boolean', ['get', 'isEU'], false], 0, 1]
+                  : 1,
               }}
             />
             {/* Selected country highlight */}
@@ -2623,9 +2638,19 @@ function App() {
             </Source>
           )}
 
-          {/* EU Country borders — only shown when toggled on */}
+          {/* EU unified entity — shown when toggled on */}
           {showEUCountries && (
             <Source id="eu-countries" type="geojson" data={euCountriesGeoJSON}>
+              {/* Border rendered UNDER fill — internal shared edges hidden by fills on both sides */}
+              <Layer
+                id="eu-countries-border"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? 'rgba(30, 70, 160, 0.6)' : 'rgba(80, 150, 255, 0.6)',
+                  'line-width': 2.5,
+                }}
+              />
+              {/* Unified EU fill — opaque enough to hide internal border artifacts */}
               <Layer
                 id="eu-countries-fill"
                 type="fill"
@@ -2633,37 +2658,10 @@ function App() {
                   'fill-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(30, 100, 200, 0.15)' : 'rgba(80, 160, 255, 0.15)',
-                    'rgba(0, 0, 0, 0)',
+                    isLightTheme ? 'rgba(30, 60, 140, 0.32)' : 'rgba(60, 120, 220, 0.32)',
+                    isLightTheme ? 'rgba(30, 60, 140, 0.22)' : 'rgba(50, 100, 200, 0.22)',
                   ],
                   'fill-opacity': 1,
-                }}
-              />
-              <Layer
-                id="eu-countries-line"
-                type="line"
-                paint={{
-                  'line-color': [
-                    'case',
-                    ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(30, 80, 180, 0.7)' : 'rgba(100, 180, 255, 0.7)',
-                    isLightTheme ? 'rgba(30, 80, 180, 0.35)' : 'rgba(80, 150, 255, 0.35)',
-                  ],
-                  'line-width': [
-                    'case',
-                    ['boolean', ['feature-state', 'hover'], false],
-                    1.8,
-                    1,
-                  ],
-                }}
-              />
-              <Layer
-                id="eu-countries-selected-line"
-                type="line"
-                filter={selectedEUFilter}
-                paint={{
-                  'line-color': isLightTheme ? '#1e50b0' : '#5ba0ff',
-                  'line-width': 2,
                 }}
               />
             </Source>
