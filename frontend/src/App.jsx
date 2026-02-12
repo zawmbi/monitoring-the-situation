@@ -1884,7 +1884,7 @@ function App() {
                   {[
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'countryFill', label: 'Country Fill Color' },
-                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade' },
                     { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
@@ -2159,6 +2159,50 @@ function App() {
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
+          {/* Raster basemap — real geography underneath country fills */}
+          <Source
+            key={isLightTheme ? 'basemap-light' : 'basemap-dark'}
+            id="basemap-tiles"
+            type="raster"
+            tiles={[
+              isLightTheme
+                ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+                : 'https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+            ]}
+            tileSize={256}
+          >
+            <Layer
+              id="basemap-raster"
+              type="raster"
+              paint={{
+                'raster-opacity': isLightTheme ? 0.55 : 0.5,
+              }}
+            />
+          </Source>
+
+          {/* Hillshade terrain — subtle depth and texture under country fills */}
+          <Source
+            id="terrain-dem"
+            type="raster-dem"
+            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
+            encoding="terrarium"
+            tileSize={256}
+            maxzoom={15}
+          >
+            <Layer
+              id="hillshade-layer"
+              type="hillshade"
+              layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
+              paint={{
+                'hillshade-exaggeration': 0.35,
+                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.25)' : 'rgba(0,0,0,0.3)',
+                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.2)' : 'rgba(180,200,255,0.1)',
+                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.12)' : 'rgba(10,10,30,0.15)',
+                'hillshade-illumination-direction': 315,
+              }}
+            />
+          </Source>
+
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
             <Layer
@@ -2251,7 +2295,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.55 : 0),
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
@@ -2288,8 +2332,8 @@ function App() {
                   : holoMode
                     ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
-                        ? 'rgba(40, 35, 70, 0.6)'
-                        : 'rgba(160, 175, 220, 0.55)'),
+                        ? 'rgba(40, 35, 70, 0.45)'
+                        : 'rgba(160, 175, 220, 0.35)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
@@ -2307,8 +2351,8 @@ function App() {
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.5,
-                        1.8,
+                        2.0,
+                        1.0,
                       ],
               }}
             />
@@ -2464,28 +2508,7 @@ function App() {
             }}
           />
 
-          {/* Elevation / Hillshade — on top of country fills so ocean bathymetry is hidden */}
-          <Source
-            id="terrain-dem"
-            type="raster-dem"
-            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
-            encoding="terrarium"
-            tileSize={256}
-            maxzoom={15}
-          >
-            <Layer
-              id="hillshade-layer"
-              type="hillshade"
-              layout={{ visibility: 'none' /* WIP — terrain tile alignment issues */ }}
-              paint={{
-                'hillshade-exaggeration': 0.3,
-                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,0,0.35)',
-                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.12)',
-                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
-                'hillshade-illumination-direction': 315,
-              }}
-            />
-          </Source>
+          {/* Hillshade now rendered below country fills — see basemap section above */}
 
           {/* Population heatmap */}
           <Source id="population-heat" type="geojson" data={POPULATION_POINTS}>
