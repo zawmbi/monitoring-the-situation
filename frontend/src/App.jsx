@@ -933,11 +933,11 @@ function App() {
   const mapStyle = useMemo(() => {
     let bgColor;
     if (isLightTheme) {
-      bgColor = useGlobe ? '#0b1a35' : '#4a8ab8';
+      bgColor = useGlobe ? '#0b1a35' : '#3a7ab0';
     } else if (useGlobe) {
-      bgColor = '#081830';
+      bgColor = '#0a2248';
     } else {
-      bgColor = holoMode ? '#040c1e' : '#0a1e3d';
+      bgColor = holoMode ? '#040c1e' : '#0c2850';
     }
 
     // Use Positron (light) basemap even in dark mode — darken via raster paint
@@ -980,10 +980,10 @@ function App() {
                 'raster-saturation': -0.5,
               }
             : {
-                'raster-opacity': 0.9,
-                'raster-brightness-max': 0.2,
+                'raster-opacity': 0.55,
+                'raster-brightness-max': 0.25,
                 'raster-saturation': -1,
-                'raster-contrast': 0.25,
+                'raster-contrast': 0.3,
               },
         },
         {
@@ -2315,7 +2315,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.4 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.6 : 0),
               }}
             />
             {/* Coastline shadow — soft glow that separates land from water */}
