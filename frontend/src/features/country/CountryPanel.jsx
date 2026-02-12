@@ -247,60 +247,77 @@ function ApprovalPopup({ countryName, leaderName, onClose, approval }) {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="cp-approval-chart-wrap">
-        <ApprovalChart history={approval.approvalHistory} />
-        <div className="cp-approval-legend">
-          <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--approve" /> Approve</span>
-          <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--disapprove" /> Disapprove</span>
+      {/* Chart - show trend line only when we have enough data points */}
+      {approval.approvalHistory.length >= 3 ? (
+        <div className="cp-approval-chart-wrap">
+          <ApprovalChart history={approval.approvalHistory} />
+          <div className="cp-approval-legend">
+            <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--approve" /> Approve</span>
+            <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--disapprove" /> Disapprove</span>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Simple horizontal bar for 1-2 data points (wiki-only countries) */
+        <div className="cp-approval-bar-wrap">
+          <div className="cp-approval-bar">
+            <div className="cp-approval-bar-fill cp-approval-bar-fill--approve" style={{ width: `${latest.approve}%` }} />
+            {latest.disapprove > 0 && (
+              <div className="cp-approval-bar-fill cp-approval-bar-fill--disapprove" style={{ width: `${latest.disapprove}%` }} />
+            )}
+          </div>
+          <div className="cp-approval-legend">
+            <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--approve" /> Approve</span>
+            <span className="cp-approval-legend-item"><span className="cp-approval-dot cp-approval-dot--disapprove" /> Disapprove</span>
+          </div>
+        </div>
+      )}
 
-      {/* Political info */}
-      <div className="cp-approval-info">
-        {approval.party && (
-          <div className="cp-detail-row">
-            <span className="cp-detail-key">Party</span>
-            <span className="cp-detail-val">{approval.party}</span>
-          </div>
-        )}
-        {approval.governmentType && (
-          <div className="cp-detail-row">
-            <span className="cp-detail-key">System</span>
-            <span className="cp-detail-val">{approval.governmentType}</span>
-          </div>
-        )}
-        {approval.inaugurated && (
-          <div className="cp-detail-row">
-            <span className="cp-detail-key">Inaugurated</span>
-            <span className="cp-detail-val">{new Date(approval.inaugurated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        )}
-        {approval.termNumber && (
-          <div className="cp-detail-row">
-            <span className="cp-detail-key">Term</span>
-            <span className="cp-detail-val">
-              {approval.termNumber}{approval.termLimit ? ` of ${approval.termLimit}` : ''}
-              {approval.termLimit && approval.termNumber >= approval.termLimit ? ' (final)' : ''}
-            </span>
-          </div>
-        )}
-        {approval.lastElection && (
-          <div className="cp-detail-row">
-            <span className="cp-detail-key">Last Election</span>
-            <span className="cp-detail-val">{new Date(approval.lastElection).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        )}
-        <div className="cp-detail-row">
-          <span className="cp-detail-key">Next Election</span>
-          <span className="cp-detail-val">
-            {approval.nextElection
-              ? <>{new Date(approval.nextElection).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} <span className="cp-approval-countdown">({formatCountdown(approval.nextElection)})</span></>
-              : <span className="cp-muted">Suspended</span>
-            }
-          </span>
+      {/* Political info — only show section when we have actual metadata */}
+      {(approval.party || approval.governmentType || approval.inaugurated || approval.lastElection || approval.nextElection) && (
+        <div className="cp-approval-info">
+          {approval.party && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">Party</span>
+              <span className="cp-detail-val">{approval.party}</span>
+            </div>
+          )}
+          {approval.governmentType && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">System</span>
+              <span className="cp-detail-val">{approval.governmentType}</span>
+            </div>
+          )}
+          {approval.inaugurated && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">Inaugurated</span>
+              <span className="cp-detail-val">{new Date(approval.inaugurated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+          )}
+          {approval.termNumber && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">Term</span>
+              <span className="cp-detail-val">
+                {approval.termNumber}{approval.termLimit ? ` of ${approval.termLimit}` : ''}
+                {approval.termLimit && approval.termNumber >= approval.termLimit ? ' (final)' : ''}
+              </span>
+            </div>
+          )}
+          {approval.lastElection && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">Last Election</span>
+              <span className="cp-detail-val">{new Date(approval.lastElection).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+          )}
+          {approval.nextElection && (
+            <div className="cp-detail-row">
+              <span className="cp-detail-key">Next Election</span>
+              <span className="cp-detail-val">
+                {new Date(approval.nextElection).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} <span className="cp-approval-countdown">({formatCountdown(approval.nextElection)})</span>
+              </span>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {approval.note && (
         <div className="cp-approval-note">{approval.note}</div>
