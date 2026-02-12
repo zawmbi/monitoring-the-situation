@@ -961,7 +961,7 @@ function App() {
           tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
           encoding: 'terrarium',
           tileSize: 256,
-          maxzoom: 15,
+          maxzoom: 7,
         },
       },
       layers: [
@@ -975,12 +975,15 @@ function App() {
           type: 'raster',
           source: 'basemap-tiles',
           paint: isLightTheme
-            ? { 'raster-opacity': 0.7 }
+            ? {
+                'raster-opacity': 0.6,
+                'raster-saturation': -0.5,
+              }
             : {
-                'raster-opacity': 0.85,
-                'raster-brightness-max': 0.28,
-                'raster-saturation': -0.3,
-                'raster-contrast': 0.15,
+                'raster-opacity': 0.9,
+                'raster-brightness-max': 0.2,
+                'raster-saturation': -1,
+                'raster-contrast': 0.25,
               },
         },
         {
