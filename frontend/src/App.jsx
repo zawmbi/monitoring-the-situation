@@ -922,11 +922,11 @@ function App() {
   const mapStyle = useMemo(() => {
     let bgColor;
     if (isLightTheme) {
-      bgColor = useGlobe ? '#0d1a30' : '#8ab4d8';
+      bgColor = useGlobe ? '#0b1a35' : '#4a8ab8';
     } else if (useGlobe) {
-      bgColor = '#0a1628'; // deep ocean blue — distinct from space
+      bgColor = '#081830'; // deep ocean blue — distinct from space
     } else {
-      bgColor = holoMode ? '#060a14' : '#0c1126';
+      bgColor = holoMode ? '#040c1e' : '#0a1e3d';
     }
     return {
       version: 8,
@@ -2175,7 +2175,11 @@ function App() {
               id="basemap-raster"
               type="raster"
               paint={{
-                'raster-opacity': isLightTheme ? 0.55 : 0.5,
+                'raster-opacity': isLightTheme ? 0.6 : 0.65,
+                'raster-saturation': isLightTheme ? -0.1 : 0.15,
+                'raster-contrast': isLightTheme ? 0.05 : 0.1,
+                'raster-brightness-min': isLightTheme ? 0 : 0.02,
+                'raster-brightness-max': isLightTheme ? 1 : 0.85,
               }}
             />
           </Source>
@@ -2194,10 +2198,10 @@ function App() {
               type="hillshade"
               layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
               paint={{
-                'hillshade-exaggeration': 0.35,
-                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.25)' : 'rgba(0,0,0,0.3)',
-                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.2)' : 'rgba(180,200,255,0.1)',
-                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.12)' : 'rgba(10,10,30,0.15)',
+                'hillshade-exaggeration': 0.5,
+                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,20,0.4)',
+                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.15)',
+                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
                 'hillshade-illumination-direction': 315,
               }}
             />
@@ -2298,6 +2302,19 @@ function App() {
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.55 : 0),
               }}
             />
+            {/* Coastline shadow — soft glow that separates land from water */}
+            {!holoMode && (
+              <Layer
+                id="countries-coastline-shadow"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? 'rgba(20, 40, 80, 0.3)' : 'rgba(6, 14, 36, 0.6)',
+                  'line-width': 6,
+                  'line-blur': 5,
+                  'line-opacity': visualLayers.countryFill ? 1 : 0,
+                }}
+              />
+            )}
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
             {holoMode && (
               <Layer
