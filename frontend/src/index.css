@@ -981,17 +981,9 @@ body {
   100% { transform: translateY(-50%) scale(2.8); opacity: 0; }
 }
 
-/* Label + count badge — positioned absolutely so it doesn't shift the anchor */
+/* Label + count badge — hidden; hotspots show as dots only */
 .hs-label {
-  position: absolute;
-  left: calc(100% + 6px);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  pointer-events: none;
+  display: none;
 }
 
 .hs-name {
