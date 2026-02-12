@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
 import { getLeader, fetchLeaderPhoto } from './worldLeaders';
+import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
 
@@ -39,7 +40,10 @@ export function useCountryPanel() {
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.currency?.code]);
 
-  const openCountryPanel = async (countryName) => {
+  const openCountryPanel = async (rawName) => {
+    // Resolve abbreviated TopoJSON names to standard names
+    const countryName = resolveCountryName(rawName);
+
     // Look up leader from static data
     const leaderData = getLeader(countryName);
 
