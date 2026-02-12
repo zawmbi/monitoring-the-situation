@@ -11,10 +11,8 @@ import canadaProvinces from './canadaProvinces.json';
 import CAPITAL_COORDS from './capitalCoords';
 import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
-import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
-import { StocksPanel } from './features/stocks/StocksPanel';
 import { PolymarketPanel } from './features/polymarket/PolymarketPanel';
 import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
@@ -690,9 +688,6 @@ function App() {
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
   const [newsPanelPosition, setNewsPanelPosition] = useState(null);
 
-  // Stocks panel visibility
-  const [showStocksPanel, setShowStocksPanel] = useState(false);
-
   // Polymarket panel visibility and state
   const [showPolymarketPanel, setShowPolymarketPanel] = useState(false);
   const [polymarketCountry, setPolymarketCountry] = useState(null);
@@ -706,21 +701,12 @@ function App() {
     twitter: true,
     reddit: true,
     flights: false,
-    stocks: false,
     severeWeather: false,
   });
   const [showSeverePanel, setShowSeverePanel] = useState(false);
   const [selectedSevereEventId, setSelectedSevereEventId] = useState(null);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
-  const {
-    stocks,
-    marketStatus,
-    lastUpdated: stocksLastUpdated,
-    loading: stocksLoading,
-    error: stocksError,
-    refresh: refreshStocks,
-  } = useStocks(enabledLayers.stocks);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
   const {
     markets: polymarkets,
@@ -846,12 +832,6 @@ function App() {
   const toggleLayer = (layer) => {
     setEnabledLayers(prev => {
       const newState = { ...prev, [layer]: !prev[layer] };
-      // Show stocks panel when stocks layer is enabled
-      if (layer === 'stocks' && newState.stocks) {
-        setShowStocksPanel(true);
-      } else if (layer === 'stocks' && !newState.stocks) {
-        setShowStocksPanel(false);
-      }
       // Show severe weather panel when toggled on
       if (layer === 'severeWeather' && newState.severeWeather) {
         setShowSeverePanel(true);
@@ -880,7 +860,6 @@ function App() {
       if (enabledLayers.twitter && item.contentType === 'tweet') return true;
       if (enabledLayers.reddit && item.contentType === 'reddit_post') return true;
       if (enabledLayers.flights && item.contentType === 'flight') return true;
-      if (enabledLayers.stocks && item.contentType === 'stock') return true;
       return false;
     });
   }, [feed, enabledLayers]);
@@ -1791,7 +1770,6 @@ function App() {
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
                     {[
-                      { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
                       { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false },
                       { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
                     ].map((layer) => (
@@ -2158,30 +2136,6 @@ function App() {
             onClose={handleCloseNewsPanel}
             onPositionChange={updateNewsPanelPosition}
           />
-        )}
-
-        {/* Stocks Panel */}
-        {showStocksPanel && (
-          <PanelWindow
-            id="stocks"
-            title="Stocks"
-            onClose={() => setShowStocksPanel(false)}
-            defaultWidth={520}
-            defaultHeight={600}
-            defaultMode="floating"
-            defaultPosition={{ x: 60, y: 80 }}
-          >
-            <StocksPanel
-              visible={true}
-              stocks={stocks}
-              marketStatus={marketStatus}
-              loading={stocksLoading}
-              error={stocksError}
-              lastUpdated={stocksLastUpdated}
-              onClose={() => setShowStocksPanel(false)}
-              onRefresh={refreshStocks}
-            />
-          </PanelWindow>
         )}
 
         {/* Severe Weather Panel */}
