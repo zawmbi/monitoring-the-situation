@@ -140,7 +140,6 @@ export function SevereWeatherPanel({
           <button className="severe-btn-refresh" onClick={onRefresh} disabled={loading}>
             {loading ? '...' : '↻'}
           </button>
-          <button className="severe-btn-close" onClick={onClose} aria-label="Close">x</button>
         </div>
       </div>
 
