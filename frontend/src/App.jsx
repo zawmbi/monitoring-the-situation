@@ -2175,11 +2175,11 @@ function App() {
               id="basemap-raster"
               type="raster"
               paint={{
-                'raster-opacity': isLightTheme ? 0.6 : 0.65,
-                'raster-saturation': isLightTheme ? -0.1 : 0.15,
-                'raster-contrast': isLightTheme ? 0.05 : 0.1,
-                'raster-brightness-min': isLightTheme ? 0 : 0.02,
-                'raster-brightness-max': isLightTheme ? 1 : 0.85,
+                'raster-opacity': isLightTheme ? 0.7 : 0.8,
+                'raster-saturation': isLightTheme ? 0.0 : 0.25,
+                'raster-contrast': isLightTheme ? 0.1 : 0.2,
+                'raster-brightness-min': isLightTheme ? 0 : 0.05,
+                'raster-brightness-max': isLightTheme ? 1 : 0.9,
               }}
             />
           </Source>
@@ -2198,10 +2198,10 @@ function App() {
               type="hillshade"
               layout={{ visibility: visualLayers.hillshade ? 'visible' : 'none' }}
               paint={{
-                'hillshade-exaggeration': 0.5,
-                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,20,0.4)',
-                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.15)',
-                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
+                'hillshade-exaggeration': 0.7,
+                'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.45)' : 'rgba(0,0,15,0.55)',
+                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.35)' : 'rgba(200,220,255,0.25)',
+                'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,30,0.3)',
                 'hillshade-illumination-direction': 315,
               }}
             />
@@ -2299,7 +2299,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.55 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.3 : 0),
               }}
             />
             {/* Coastline shadow — soft glow that separates land from water */}
@@ -2308,9 +2308,9 @@ function App() {
                 id="countries-coastline-shadow"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(20, 40, 80, 0.3)' : 'rgba(6, 14, 36, 0.6)',
-                  'line-width': 6,
-                  'line-blur': 5,
+                  'line-color': isLightTheme ? 'rgba(15, 30, 60, 0.5)' : 'rgba(2, 8, 24, 0.8)',
+                  'line-width': 10,
+                  'line-blur': 8,
                   'line-opacity': visualLayers.countryFill ? 1 : 0,
                 }}
               />
@@ -2349,8 +2349,8 @@ function App() {
                   : holoMode
                     ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
-                        ? 'rgba(40, 35, 70, 0.45)'
-                        : 'rgba(160, 175, 220, 0.35)'),
+                        ? 'rgba(40, 35, 70, 0.55)'
+                        : 'rgba(160, 175, 220, 0.5)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
@@ -2368,8 +2368,8 @@ function App() {
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.0,
-                        1.0,
+                        2.5,
+                        1.2,
                       ],
               }}
             />
