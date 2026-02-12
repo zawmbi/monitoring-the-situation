@@ -27,7 +27,7 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
-import ConflictOverlay, { MapLegend } from './features/conflicts/ConflictOverlay';
+import ConflictOverlay from './features/conflicts/ConflictOverlay';
 import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
@@ -619,7 +619,7 @@ function App() {
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
-  const [conflictLegendOpen, setConflictLegendOpen] = useState(false);
+  const [showUSStates, setShowUSStates] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
@@ -1665,6 +1665,8 @@ function App() {
                           setElectionMode(prev => {
                             if (prev) {
                               setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+                            } else {
+                              setShowUSStates(true);
                             }
                             return !prev;
                           });
@@ -1833,6 +1835,15 @@ function App() {
                       type="checkbox"
                       checked={false}
                       disabled
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">US State Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showUSStates}
+                      onChange={() => setShowUSStates(prev => !prev)}
                     />
                     <span className="slider" />
                   </label>
@@ -2095,7 +2106,7 @@ function App() {
             zoom: 2.0,
           }}
           style={{ width: '100%', height: '100%' }}
-          interactiveLayerIds={['countries-fill', 'us-states-fill', 'ca-provinces-fill']}
+          interactiveLayerIds={showUSStates ? ['countries-fill', 'us-states-fill', 'ca-provinces-fill'] : ['countries-fill', 'ca-provinces-fill']}
           onMove={handleMapMove}
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
@@ -2106,7 +2117,7 @@ function App() {
           pitchWithRotate={false}
           touchPitch={false}
           renderWorldCopies={!useGlobe}
-          maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -60], [Infinity, 85]]}
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
@@ -2302,60 +2313,62 @@ function App() {
             />
           </Source>
 
-          {/* US States */}
-          <Source id="us-states" type="geojson" data={usStatesGeoJSON}>
-            <Layer
-              id="us-states-fill"
-              type="fill"
-              paint={{
-                'fill-color': electionMode
-                  ? [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
-                      ['get', 'electionColor'],
-                    ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme
-                        ? 'rgba(194, 120, 62, 0.15)'
-                        : 'rgba(123, 107, 255, 0.22)',
-                      'rgba(0, 0, 0, 0)',
-                    ],
-                'fill-opacity': electionMode ? 0.7 : 1,
-              }}
-            />
-            <Layer
-              id="us-states-line"
-              type="line"
-              paint={{
-                'line-color': isLightTheme
-                  ? 'rgba(166, 120, 80, 0.35)'
-                  : 'rgba(160, 145, 255, 0.35)',
-                'line-width': 1,
-              }}
-            />
-            <Layer
-              id="us-states-selected-fill"
-              type="fill"
-              filter={selectedStateFilter}
-              paint={{
-                'fill-color': isLightTheme
-                  ? 'rgba(194, 120, 62, 0.25)'
-                  : 'rgba(123, 107, 255, 0.35)',
-              }}
-            />
-            <Layer
-              id="us-states-selected-line"
-              type="line"
-              filter={selectedStateFilter}
-              paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 1.5,
-              }}
-            />
-          </Source>
+          {/* US States — only shown when toggled on */}
+          {showUSStates && (
+            <Source id="us-states" type="geojson" data={usStatesGeoJSON}>
+              <Layer
+                id="us-states-fill"
+                type="fill"
+                paint={{
+                  'fill-color': electionMode
+                    ? [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                        ['get', 'electionColor'],
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme
+                          ? 'rgba(194, 120, 62, 0.15)'
+                          : 'rgba(123, 107, 255, 0.22)',
+                        'rgba(0, 0, 0, 0)',
+                      ],
+                  'fill-opacity': electionMode ? 0.7 : 1,
+                }}
+              />
+              <Layer
+                id="us-states-line"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme
+                    ? 'rgba(166, 120, 80, 0.35)'
+                    : 'rgba(160, 145, 255, 0.35)',
+                  'line-width': 1,
+                }}
+              />
+              <Layer
+                id="us-states-selected-fill"
+                type="fill"
+                filter={selectedStateFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(194, 120, 62, 0.25)'
+                    : 'rgba(123, 107, 255, 0.35)',
+                }}
+              />
+              <Layer
+                id="us-states-selected-line"
+                type="line"
+                filter={selectedStateFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                  'line-width': 1.5,
+                }}
+              />
+            </Source>
+          )}
 
           {/* Canadian provinces — borders only to avoid misalignment with world-atlas */}
           <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
@@ -2611,10 +2624,6 @@ function App() {
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
 
-        {/* Conflict Map Legend — rendered outside MapGL so position:fixed works */}
-        {conflictMode && (
-          <MapLegend open={conflictLegendOpen} onToggle={() => setConflictLegendOpen(!conflictLegendOpen)} />
-        )}
 
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (
