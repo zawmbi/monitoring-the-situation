@@ -2203,24 +2203,33 @@ function App() {
               id="countries-line"
               type="line"
               paint={{
-                'line-color': holoMode
-                  ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
-                  : (isLightTheme
-                      ? 'rgba(50, 40, 80, 0.5)'
-                      : 'rgba(140, 160, 200, 0.4)'),
-                'line-width': holoMode
+                'line-color': showTariffHeatmap
+                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.7)' : 'rgba(220, 230, 255, 0.55)')
+                  : holoMode
+                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
+                    : (isLightTheme
+                        ? 'rgba(50, 40, 80, 0.5)'
+                        : 'rgba(140, 160, 200, 0.4)'),
+                'line-width': showTariffHeatmap
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.4,
+                      2.5,
+                      1.2,
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.6,
-                    ],
+                  : holoMode
+                    ? [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        2.2,
+                        1.4,
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        2.2,
+                        1.6,
+                      ],
               }}
             />
             {/* Selected country highlight */}
