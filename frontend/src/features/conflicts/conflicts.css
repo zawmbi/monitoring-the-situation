@@ -321,11 +321,11 @@
 
 .conflict-panel {
   position: fixed;
-  top: 0;
+  top: var(--nav-height, 48px);
   right: 0;
   z-index: 900;
   width: 420px;
-  height: 100vh;
+  height: calc(100vh - var(--nav-height, 48px));
   background: var(--color-bg-primary, #0e0e12);
   border-left: 1px solid var(--color-border, #1e1e28);
   box-shadow:
