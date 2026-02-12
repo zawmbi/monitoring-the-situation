@@ -152,7 +152,18 @@
 .conflict-infra-icon {
   font-size: 17px;
   line-height: 1;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.8));
+}
+
+.conflict-infra-icon--svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-infra-icon--svg svg {
+  display: block;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
 .conflict-infra--ua .conflict-infra-icon {
@@ -198,7 +209,18 @@
 .conflict-naval-icon {
   font-size: 19px;
   line-height: 1;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.8));
+}
+
+.conflict-naval-icon--svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-naval-icon--svg svg {
+  display: block;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
 .conflict-naval--ru .conflict-naval-icon {
@@ -238,8 +260,8 @@
 
 .conflict-coa {
   pointer-events: none;
-  opacity: 0.45;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  opacity: 0.55;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
   transition: opacity 0.3s;
 }
 
@@ -819,6 +841,17 @@
   line-height: 1;
 }
 
+.conflict-battle-icon--svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-battle-icon--svg svg {
+  display: block;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
+}
+
 .conflict-battle--ru .conflict-battle-icon {
   color: #ff6b6b;
 }
@@ -873,6 +906,17 @@
 .conflict-npp-icon {
   font-size: 22px;
   line-height: 1;
+}
+
+.conflict-npp-icon--svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-npp-icon--svg svg {
+  display: block;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
 }
 
 .conflict-npp--operational .conflict-npp-icon {

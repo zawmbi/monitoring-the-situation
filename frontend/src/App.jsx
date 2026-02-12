@@ -72,6 +72,14 @@ const US_STATE_FEATURES = usData?.objects?.states
 
 const CA_PROVINCE_FEATURES = fixGeoJSON(canadaProvinces?.features || []);
 
+// EU member state names as they appear in the TopoJSON world-atlas data
+const EU_MEMBER_NAMES = new Set([
+  'Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czechia', 'Czech Rep.',
+  'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary',
+  'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands',
+  'Poland', 'Portugal', 'Romania', 'Slovakia', 'Slovenia', 'Spain', 'Sweden',
+]);
+
 const COUNTRIES_DATA = Array.isArray(countries)
   ? countries
   : (countries?.default && Array.isArray(countries.default) ? countries.default : []);
@@ -621,6 +629,7 @@ function App() {
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
+  const [showEUCountries, setShowEUCountries] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
@@ -667,6 +676,7 @@ function App() {
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
   const hoveredProvinceIdRef = useRef(null);
+  const hoveredEUIdRef = useRef(null);
 
   // News panel state
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
@@ -770,9 +780,13 @@ function App() {
         map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
         hoveredProvinceIdRef.current = null;
       }
+      if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+        map.setFeatureState({ source: 'eu-countries', id: hoveredEUIdRef.current }, { hover: false });
+        hoveredEUIdRef.current = null;
+      }
       // Update background color without triggering full style reload
       if (map.getLayer('background')) {
-        map.setPaintProperty('background', 'background-color', useGlobe ? '#0a1520' : '#0c1a28');
+        map.setPaintProperty('background', 'background-color', useGlobe ? '#050c14' : '#060e18');
       }
     } catch {}
   }, [useGlobe]);
@@ -903,7 +917,7 @@ function App() {
           name,
           originalId: String(f.id),
           fillColor: isAntarctica
-            ? (isLightTheme ? '#d8dde3' : '#8898a8')
+            ? (isLightTheme ? '#d8dde3' : '#9aabb8')
             : getCountryFillColor(name, i, isLightTheme),
           tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
           tariffRate,
@@ -943,6 +957,25 @@ function App() {
     })),
   }), []);
 
+  const euCountriesGeoJSON = useMemo(() => {
+    const euFeatures = GEO_FEATURES.filter((f) => {
+      const name = f.properties?.name;
+      return name && EU_MEMBER_NAMES.has(name);
+    });
+    return {
+      type: 'FeatureCollection',
+      features: euFeatures.map((f, i) => ({
+        type: 'Feature',
+        id: i,
+        geometry: f.geometry,
+        properties: {
+          name: f.properties?.name || `EU Country ${i}`,
+          originalId: String(f.id),
+        },
+      })),
+    };
+  }, []);
+
   const flightPathsGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: flightPaths.map((flight, i) => ({
@@ -965,7 +998,7 @@ function App() {
     if (isLightTheme) {
       bgColor = '#3a7ab0';
     } else {
-      bgColor = holoMode ? '#040c1e' : '#0c1a28';
+      bgColor = holoMode ? '#020810' : '#060e18';
     }
 
     // Positron basemap desaturated and heavily darkened — provides subtle
@@ -1053,6 +1086,13 @@ function App() {
     return ['==', ['get', 'originalId'], '__none__'];
   }, [selectedRegion]);
 
+  const selectedEUFilter = useMemo(() => {
+    if (selectedRegion?.type === 'eu-country' && selectedRegion.id != null) {
+      return ['==', ['get', 'originalId'], String(selectedRegion.id)];
+    }
+    return ['==', ['get', 'originalId'], '__none__'];
+  }, [selectedRegion]);
+
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -1081,6 +1121,10 @@ function App() {
         if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
           map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
           hoveredProvinceIdRef.current = null;
+        }
+        if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+          map.setFeatureState({ source: 'eu-countries', id: hoveredEUIdRef.current }, { hover: false });
+          hoveredEUIdRef.current = null;
         }
         setTooltip({ show: false, text: '', x: 0, y: 0 });
         map.getCanvas().style.cursor = '';
@@ -1112,6 +1156,13 @@ function App() {
       );
       hoveredProvinceIdRef.current = null;
     }
+    if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+      map.setFeatureState(
+        { source: 'eu-countries', id: hoveredEUIdRef.current },
+        { hover: false }
+      );
+      hoveredEUIdRef.current = null;
+    }
 
     if (features && features.length > 0) {
       const feat = features[0];
@@ -1135,6 +1186,12 @@ function App() {
           { hover: true }
         );
         hoveredProvinceIdRef.current = feat.id;
+      } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'eu-countries', id: feat.id },
+          { hover: true }
+        );
+        hoveredEUIdRef.current = feat.id;
       }
 
       const tooltipName = feat.properties?.name || 'Unknown';
@@ -1182,6 +1239,13 @@ function App() {
         { hover: false }
       );
       hoveredProvinceIdRef.current = null;
+    }
+    if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+      map.setFeatureState(
+        { source: 'eu-countries', id: hoveredEUIdRef.current },
+        { hover: false }
+      );
+      hoveredEUIdRef.current = null;
     }
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   }, []);
@@ -1290,6 +1354,11 @@ function App() {
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
           openProvincePanel(name);
         }
+      } else if (sourceId === 'eu-countries') {
+        setSelectedRegion({ type: 'eu-country', id: originalId, name });
+        setViewMode('region');
+        setSelectedCapital(null);
+        openCountryPanel(name);
       }
     }, 250);
   }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap, electionMode]);
@@ -1948,6 +2017,15 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">EU Country Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showEUCountries}
+                      onChange={() => setShowEUCountries(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
                   <button
                     className="settings-eu-btn"
                     onClick={openEUPanel}
@@ -2235,6 +2313,7 @@ function App() {
             'countries-fill',
             ...(showUSStates ? ['us-states-fill'] : []),
             ...(showCAProvinces ? ['ca-provinces-fill'] : []),
+            ...(showEUCountries ? ['eu-countries-fill'] : []),
           ]}
           onMove={handleMapMove}
           onMouseMove={handleMapMouseMove}
@@ -2246,7 +2325,7 @@ function App() {
           pitchWithRotate={false}
           touchPitch={false}
           renderWorldCopies={!useGlobe}
-          maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -63], [Infinity, 85]]}
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
@@ -2536,6 +2615,52 @@ function App() {
                 filter={selectedProvinceFilter}
                 paint={{
                   'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
+                  'line-width': 2,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* EU Country borders — only shown when toggled on */}
+          {showEUCountries && (
+            <Source id="eu-countries" type="geojson" data={euCountriesGeoJSON}>
+              <Layer
+                id="eu-countries-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 100, 200, 0.15)' : 'rgba(80, 160, 255, 0.15)',
+                    'rgba(0, 0, 0, 0)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+              <Layer
+                id="eu-countries-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 80, 180, 0.7)' : 'rgba(100, 180, 255, 0.7)',
+                    isLightTheme ? 'rgba(30, 80, 180, 0.35)' : 'rgba(80, 150, 255, 0.35)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.8,
+                    1,
+                  ],
+                }}
+              />
+              <Layer
+                id="eu-countries-selected-line"
+                type="line"
+                filter={selectedEUFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#1e50b0' : '#5ba0ff',
                   'line-width': 2,
                 }}
               />
