@@ -5,11 +5,13 @@
  * Uses Frankfurter API (no API key required) for forex pairs
  */
 
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { cacheService } from './cache.service.js';
 
-// Bypass yahoo-finance2 strict validation (Yahoo often returns fields
-// that don't match the library's schema, causing throws)
+// yahoo-finance2 v3 requires instantiation
+const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+
+// Bypass strict validation (Yahoo often returns fields that don't match the schema)
 const YF_OPTS = { validateResult: false };
 
 const CACHE_TTL = 300; // 5 minutes
