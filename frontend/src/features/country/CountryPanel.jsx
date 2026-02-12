@@ -4,7 +4,6 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { getLeaderApproval } from './leaderApproval';
 import './country.css';
 
 function getCurrentTimeForOffset(offsetHours) {
@@ -198,9 +197,8 @@ function ApprovalChart({ history }) {
 
 /* ── Approval popup ── */
 
-function ApprovalPopup({ countryName, leaderName, onClose }) {
+function ApprovalPopup({ countryName, leaderName, onClose, approval }) {
   const popupRef = useRef(null);
-  const approval = useMemo(() => getLeaderApproval(countryName), [countryName]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -307,14 +305,19 @@ function ApprovalPopup({ countryName, leaderName, onClose }) {
       {approval.note && (
         <div className="cp-approval-note">{approval.note}</div>
       )}
+      {approval.source === 'wikipedia' && approval.lastUpdated && (
+        <div className="cp-approval-note" style={{ marginTop: 4, opacity: 0.6, fontSize: '0.7rem' }}>
+          Live data via Wikipedia &middot; Updated {new Date(approval.lastUpdated).toLocaleDateString()}
+        </div>
+      )}
     </div>
   );
 }
 
-export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading }) {
+export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
-  const hasApproval = !!(data && getLeaderApproval(data.name));
+  const hasApproval = !!(approvalData && approvalData.approvalHistory?.length > 0);
 
   if (!data) return null;
 
@@ -396,6 +399,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 countryName={data.name}
                 leaderName={data.leader}
                 onClose={() => setShowApproval(false)}
+                approval={approvalData}
               />
             )}
           </div>

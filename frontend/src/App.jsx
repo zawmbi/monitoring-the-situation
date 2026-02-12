@@ -543,6 +543,8 @@ function App() {
     countryPanel,
     currencyData,
     currencyLoading,
+    approvalData,
+    approvalLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
@@ -2050,6 +2052,8 @@ function App() {
             tempUnit={tempUnit}
             currencyData={currencyData}
             currencyLoading={currencyLoading}
+            approvalData={approvalData}
+            approvalLoading={approvalLoading}
           />
         )}
 

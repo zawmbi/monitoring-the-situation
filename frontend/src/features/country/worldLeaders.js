@@ -50,7 +50,7 @@ const WORLD_LEADERS = {
   'Denmark': { name: 'Mette Frederiksen', title: 'Prime Minister', wiki: 'Mette_Frederiksen' },
   'Finland': { name: 'Petteri Orpo', title: 'Prime Minister', wiki: 'Petteri_Orpo' },
   'Switzerland': { name: 'Karin Keller-Sutter', title: 'President', wiki: 'Karin_Keller-Sutter' },
-  'Austria': { name: 'Herbert Kickl', title: 'Chancellor', wiki: 'Herbert_Kickl' },
+  'Austria': { name: 'Christian Stocker', title: 'Chancellor', wiki: 'Christian_Stocker' },
   'Greece': { name: 'Kyriakos Mitsotakis', title: 'Prime Minister', wiki: 'Kyriakos_Mitsotakis' },
   'Portugal': { name: 'Luís Montenegro', title: 'Prime Minister', wiki: 'Lu%C3%ADs_Montenegro_(politician)' },
   'Ireland': { name: 'Micheál Martin', title: 'Taoiseach', wiki: 'Miche%C3%A1l_Martin' },
@@ -88,9 +88,9 @@ const WORLD_LEADERS = {
 
   // ─── Asia ───
   'China': { name: 'Xi Jinping', title: 'President', wiki: 'Xi_Jinping' },
-  'Japan': { name: 'Shigeru Ishiba', title: 'Prime Minister', wiki: 'Shigeru_Ishiba' },
+  'Japan': { name: 'Sanae Takaichi', title: 'Prime Minister', wiki: 'Sanae_Takaichi' },
   'India': { name: 'Narendra Modi', title: 'Prime Minister', wiki: 'Narendra_Modi' },
-  'South Korea': { name: 'Han Duck-soo', title: 'Acting President', wiki: 'Han_Duck-soo' },
+  'South Korea': { name: 'Lee Jae-myung', title: 'President', wiki: 'Lee_Jae-myung' },
   'Indonesia': { name: 'Prabowo Subianto', title: 'President', wiki: 'Prabowo_Subianto' },
   'Turkey': { name: 'Recep Tayyip Erdoğan', title: 'President', wiki: 'Recep_Tayyip_Erdo%C4%9Fan' },
   'Saudi Arabia': { name: 'Mohammed bin Salman', title: 'Crown Prince & PM', wiki: 'Mohammed_bin_Salman' },
