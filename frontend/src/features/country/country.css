@@ -72,13 +72,13 @@
 }
 
 .cp-close {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   width: 26px;
   height: 26px;
   min-width: 26px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -118,13 +118,14 @@
 }
 
 .cp-section-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   margin-bottom: 6px;
   padding: 0 2px;
+  opacity: 0.7;
 }
 
 /* ── Leader card ── */
@@ -132,7 +133,7 @@
 .cp-leader-card {
   background: var(--panel-card-bg);
   border: 1px solid var(--panel-card-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   display: flex;
   align-items: center;

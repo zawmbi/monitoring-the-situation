@@ -1930,16 +1930,17 @@ function App() {
                       gap: '8px',
                       width: '100%',
                       padding: '7px 10px',
-                      border: '1px solid rgba(123, 107, 255, 0.25)',
-                      borderRadius: '6px',
-                      background: 'rgba(123, 107, 255, 0.08)',
+                      border: '1px solid rgba(61, 194, 208, 0.2)',
+                      borderRadius: '3px',
+                      background: 'rgba(61, 194, 208, 0.06)',
                       color: 'inherit',
-                      fontSize: '0.82rem',
+                      fontSize: '0.78rem',
+                      letterSpacing: '0.03em',
                       cursor: 'pointer',
-                      transition: 'background 0.15s',
+                      transition: 'background 0.15s, border-color 0.15s',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(123, 107, 255, 0.18)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(123, 107, 255, 0.08)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(61, 194, 208, 0.12)'; e.currentTarget.style.borderColor = 'rgba(61, 194, 208, 0.35)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(61, 194, 208, 0.06)'; e.currentTarget.style.borderColor = 'rgba(61, 194, 208, 0.2)'; }}
                   >
                     <span style={{ fontSize: '1.1em' }}>{'\u{1F1EA}\u{1F1FA}'}</span>
                     View EU Overview
@@ -2307,13 +2308,13 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
+                      isLightTheme ? '#a8c090' : '#1c3040',
                       ['get', 'tariffColor'],
                     ]
                   : [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
+                      isLightTheme ? '#a8c090' : '#1c3040',
                       ['get', 'fillColor'],
                     ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
@@ -2325,7 +2326,7 @@ function App() {
                 id="countries-glow-outer"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#7b6bff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
                   'line-opacity': 0.2,
@@ -2337,7 +2338,7 @@ function App() {
                 id="countries-glow-mid"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
                   'line-opacity': 0.4,
@@ -2387,7 +2388,7 @@ function App() {
                   ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
-                      : 'rgba(123, 107, 255, 0.35)'),
+                      : 'rgba(61, 194, 208, 0.25)'),
               }}
             />
             {holoMode && (
@@ -2396,7 +2397,7 @@ function App() {
                 type="line"
                 filter={selectedCountryFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
                   'line-width': 5,
                   'line-blur': 6,
                   'line-opacity': 0.5,
@@ -2409,8 +2410,8 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? '#5d4dff' : '#49c6ff')
-                  : (isLightTheme ? '#5d4dff' : '#7b6bff'),
+                  ? (isLightTheme ? '#2a8a94' : '#49c6ff')
+                  : (isLightTheme ? '#2a8a94' : '#3dc2d0'),
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
@@ -2435,7 +2436,7 @@ function App() {
                         ['boolean', ['feature-state', 'hover'], false],
                         isLightTheme
                           ? 'rgba(194, 120, 62, 0.15)'
-                          : 'rgba(123, 107, 255, 0.22)',
+                          : 'rgba(61, 194, 208, 0.15)',
                         'rgba(0, 0, 0, 0)',
                       ],
                   'fill-opacity': electionMode ? 0.7 : 1,
@@ -2458,7 +2459,7 @@ function App() {
                 paint={{
                   'fill-color': isLightTheme
                     ? 'rgba(194, 120, 62, 0.25)'
-                    : 'rgba(123, 107, 255, 0.35)',
+                    : 'rgba(61, 194, 208, 0.25)',
                 }}
               />
               <Layer
@@ -2466,7 +2467,7 @@ function App() {
                 type="line"
                 filter={selectedStateFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
                   'line-width': 1.5,
                 }}
               />
@@ -2507,7 +2508,7 @@ function App() {
                 type="line"
                 filter={selectedProvinceFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
                   'line-width': 2,
                 }}
               />
