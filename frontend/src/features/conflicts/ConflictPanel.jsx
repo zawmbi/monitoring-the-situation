@@ -140,6 +140,186 @@ export default function ConflictPanel({ open, onClose }) {
   );
 }
 
+/* ─── Map Symbol Legend (inline in panel) ─── */
+function MapSymbolLegend() {
+  return (
+    <div className="conflict-panel-legend">
+      <div className="conflict-panel-legend-title">Map Symbols Guide</div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Frontlines</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line" style={{ background: UA_BLUE }} />
+            <span>Ukrainian side</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line" style={{ background: RU_RED }} />
+            <span>Russian side</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
+            <span>Fortification (Surovikin Line)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Cities & Territory</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-dot" style={{ background: '#5baaff' }} />
+            <span>Ukrainian-controlled city</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-dot" style={{ background: '#ff6b6b' }} />
+            <span>Russian / occupied city</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"
+                fill={UA_BLUE} stroke={UA_YELLOW} strokeWidth="2" />
+            </svg>
+            <span>Capital city</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Military Infrastructure</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>✈</span>
+            <span>Airbase</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⚓</span>
+            <span>Port / Naval base</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⊕</span>
+            <span>Air defense</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◆</span>
+            <span>Supply depot</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⌇</span>
+            <span>Bridge</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Combat & Strategic</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ffa500' }}>⚔</span>
+            <span>Battle site (click for details)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#66ff66' }}>☢</span>
+            <span>Nuclear power plant</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⛵</span>
+            <span>Naval patrol</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◈</span>
+            <span>Unmanned surface vehicle</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ color: '#ff6b6b' }}>✕</span>
+            <span>Wreck / destroyed vessel</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">NATO Unit Symbols — Affiliation</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: UA_BLUE, borderColor: UA_YELLOW }}>╳</span>
+            <span>Ukrainian unit</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: RU_RED, borderColor: '#fff' }}>╳</span>
+            <span>Russian unit</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Unit Type (symbol inside box)</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳</span>
+            <span>Infantry</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⊙</span>
+            <span>Armor / Tanks</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>╳⊙</span>
+            <span>Mechanized Infantry</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>●</span>
+            <span>Artillery</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>⚓</span>
+            <span>Marines</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Unit Size (pips above box)</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">II</span>
+            <span>Battalion (~300–1,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">III</span>
+            <span>Regiment (~1,000–3,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳</span>
+            <span>Brigade (~3,000–5,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳╳</span>
+            <span>Division (~10,000–20,000)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-pips">╳╳╳</span>
+            <span>Corps (~20,000–40,000)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="conflict-panel-legend-section">
+        <div className="conflict-panel-legend-heading">Coat of Arms</div>
+        <div className="conflict-panel-legend-grid">
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+            <span>Ukraine (Tryzub)</span>
+          </div>
+          <div className="conflict-map-legend-row">
+            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+            <span>Russia (Double-headed eagle)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Overview / Casualties + Territorial ─── */
 function OverviewTab({ losses }) {
   const tc = TERRITORIAL_CONTROL;
@@ -151,7 +331,7 @@ function OverviewTab({ losses }) {
       {hasLive ? (
         <div className="conflict-section-note conflict-section-note--live">
           <span className="conflict-live-dot" /> Live data from Ukrainian Armed Forces daily report ({losses.date}).
-          Updates daily. Figures represent claimed Russian losses.
+          Updates daily. See Equipment tab for full Russian losses breakdown.
         </div>
       ) : (
         <div className="conflict-section-note">
@@ -159,40 +339,8 @@ function OverviewTab({ losses }) {
         </div>
       )}
 
-      {/* ── Live Russian Losses Banner ── */}
-      {hasLive && (
-        <div className="conflict-live-losses">
-          <div className="conflict-live-losses-title">
-            <span className="conflict-side-dot" style={{ background: RU_RED }} />
-            Russian Losses (UA MOD Daily Report)
-          </div>
-          <div className="conflict-live-losses-grid">
-            {[
-              { label: 'Personnel', value: losses.stats.personnel, inc: losses.increase.personnel },
-              { label: 'Tanks', value: losses.stats.tanks, inc: losses.increase.tanks },
-              { label: 'AFVs', value: losses.stats.afv, inc: losses.increase.afv },
-              { label: 'Artillery', value: losses.stats.artillery, inc: losses.increase.artillery },
-              { label: 'MLRS', value: losses.stats.mlrs, inc: losses.increase.mlrs },
-              { label: 'Anti-Air', value: losses.stats.antiAir, inc: losses.increase.antiAir },
-              { label: 'Aircraft', value: losses.stats.aircraft, inc: losses.increase.aircraft },
-              { label: 'Helicopters', value: losses.stats.helicopters, inc: losses.increase.helicopters },
-              { label: 'UAVs', value: losses.stats.uav, inc: losses.increase.uav },
-              { label: 'Ships', value: losses.stats.ships, inc: losses.increase.ships },
-              { label: 'Cruise Missiles', value: losses.stats.cruiseMissiles, inc: losses.increase.cruiseMissiles },
-              { label: 'Vehicles', value: losses.stats.vehicles, inc: losses.increase.vehicles },
-            ].map((item) => (
-              <div key={item.label} className="conflict-live-loss-item">
-                <span className="conflict-live-loss-value">{item.value.toLocaleString()}</span>
-                <DailyIncrease value={item.inc} />
-                <span className="conflict-live-loss-label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="conflict-sources" style={{ marginTop: 8 }}>
-            Source: {losses.source}
-          </div>
-        </div>
-      )}
+      {/* ── Map Symbol Legend ── */}
+      <MapSymbolLegend />
 
       <div className="conflict-stat-group">
         <div className="conflict-stat-group-title">Territorial Control</div>
