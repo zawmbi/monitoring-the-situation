@@ -136,7 +136,7 @@ function InfraMarker({ item, showLabel }) {
   );
 }
 
-const NAVAL_ICONS = { patrol: '⛵', anchorage: '⚓', submarine: '▼', coastal: '⛳', usv: '◈', corridor: '⇢', wreck: '✕' };
+const NAVAL_ICONS = { patrol: '⛵', anchorage: '⚓', submarine: '▼', coastal: '🛡', usv: '◈', corridor: '⇢', wreck: '✕' };
 function NavalMarker({ pos }) {
   const isUA = pos.side === 'ukraine';
   const isWreck = pos.status === 'destroyed';
