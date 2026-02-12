@@ -66,9 +66,12 @@ export async function fetchCountryProfile(name) {
   // cca2 code (for flag CDN etc.)
   const cca2 = country.cca2 || null;
 
-  // Dialing code
+  // Dialing code — if there are many suffixes they are area codes, not part of
+  // the international dialing prefix, so only append the suffix when there is
+  // exactly one (e.g. "+44" for UK has suffix "4" → but root is already "+44").
+  const iddSuffixes = country.idd?.suffixes || [];
   const dialingCode = country.idd?.root
-    ? `${country.idd.root}${(country.idd.suffixes || [])[0] || ''}`
+    ? `${country.idd.root}${iddSuffixes.length === 1 ? iddSuffixes[0] : ''}`
     : null;
 
   // Top-level domain

@@ -127,8 +127,19 @@ export function useCountryPanel() {
         photoPromise,
       ]);
 
-      // Prefer live leader data over static
-      const leader = liveLeader || leaderData || {};
+      // Merge live and static leader data — prefer live name/wiki but keep
+      // the curated static title when the leader is the same person (Wikidata
+      // sometimes returns incorrect titles like "Prime Minister" for the US).
+      let leader;
+      if (liveLeader && leaderData) {
+        leader = {
+          ...leaderData,
+          ...liveLeader,
+          title: leaderData.title || liveLeader.title || '',
+        };
+      } else {
+        leader = liveLeader || leaderData || {};
+      }
 
       // If the live leader has a different wiki article, fetch their photo too
       let finalPhoto = leaderPhotoUrl;
@@ -224,6 +235,70 @@ export function useCountryPanel() {
     });
   };
 
+  const openEUPanel = () => {
+    setCountryPanel({
+      open: true,
+      data: {
+        name: 'European Union',
+        officialName: 'European Union',
+        scope: 'eu',
+        population: '448,400,000',
+        populationRaw: 448400000,
+        capital: 'Brussels',
+        region: 'Europe',
+        subregion: 'Supranational Union',
+        flag: '\u{1F1EA}\u{1F1FA}',
+        flagUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Flag_of_Europe.svg',
+        currency: { code: 'EUR', name: 'Euro', symbol: '\u{20AC}' },
+        languages: ['24 official languages'],
+        area: 4233262,
+        continent: 'Europe',
+        cca2: 'EU',
+        leader: 'Ursula von der Leyen',
+        leaderTitle: 'President of the European Commission',
+        leaderPhoto: null,
+        timezone: 'UTC+1',
+        timezoneCount: 4,
+        independent: true,
+        unMember: false,
+        dialingCode: null,
+        tld: '.eu',
+        drivingSide: 'right',
+        demonym: 'European',
+        gini: null,
+        latlng: [50.85, 4.35],
+        landlocked: false,
+        startOfWeek: 'monday',
+        borders: [],
+        euMembers: [
+          'Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czechia',
+          'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece',
+          'Hungary', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg',
+          'Malta', 'Netherlands', 'Poland', 'Portugal', 'Romania', 'Slovakia',
+          'Slovenia', 'Spain', 'Sweden',
+        ],
+        euStats: {
+          gdpTotal: '$16.6 trillion (2024)',
+          gdpPerCapita: '$37,040',
+          memberStates: 27,
+          foundedTreaty: 'Treaty of Rome (1957)',
+          eurozone: 20,
+          schengenArea: 29,
+          officialLanguages: 24,
+        },
+        loading: false,
+      },
+    });
+
+    // Fetch EU leader photo
+    fetchLeaderPhoto('Ursula_von_der_Leyen').then(url => {
+      setCountryPanel(prev => {
+        if (!prev.data || prev.data.name !== 'European Union') return prev;
+        return { ...prev, data: { ...prev.data, leaderPhoto: url } };
+      });
+    });
+  };
+
   const closeCountryPanel = () => {
     setCountryPanel({ open: false, data: null });
     setCurrencyData(null);
@@ -242,6 +317,7 @@ export function useCountryPanel() {
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openEUPanel,
     closeCountryPanel,
   };
 }

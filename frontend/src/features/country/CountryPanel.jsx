@@ -486,6 +486,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
 
   const localTime = getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone));
   const isScope = data.scope === 'state' || data.scope === 'province';
+  const isEU = data.scope === 'eu';
   const bgImage = weather?.image?.url;
 
   return (
@@ -838,8 +839,57 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
+        {/* EU-specific statistics */}
+        {isEU && data.euStats && (
+          <div className="cp-section">
+            <div className="cp-section-label">EU Overview</div>
+            <div className="cp-details-card">
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Member States</span>
+                <span className="cp-detail-val">{data.euStats.memberStates}</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">GDP (Nominal)</span>
+                <span className="cp-detail-val">{data.euStats.gdpTotal}</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">GDP per Capita</span>
+                <span className="cp-detail-val">{data.euStats.gdpPerCapita}</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Eurozone</span>
+                <span className="cp-detail-val">{data.euStats.eurozone} members</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Schengen Area</span>
+                <span className="cp-detail-val">{data.euStats.schengenArea} countries</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Official Languages</span>
+                <span className="cp-detail-val">{data.euStats.officialLanguages}</span>
+              </div>
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Founded</span>
+                <span className="cp-detail-val">{data.euStats.foundedTreaty}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EU member states list */}
+        {isEU && data.euMembers && (
+          <div className="cp-section">
+            <div className="cp-section-label">Member States ({data.euMembers.length})</div>
+            <div className="cp-badges" style={{ flexWrap: 'wrap', gap: '4px' }}>
+              {data.euMembers.map(m => (
+                <span key={m} className="cp-badge cp-badge--accent">{m}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Status badges */}
-        {!isScope && (data.independent != null || data.unMember != null || data.cca2) && (
+        {!isScope && !isEU && (data.independent != null || data.unMember != null || data.cca2) && (
           <div className="cp-section">
             <div className="cp-section-label">Status</div>
             <div className="cp-badges">

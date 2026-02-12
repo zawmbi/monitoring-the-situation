@@ -590,6 +590,7 @@ function App() {
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openEUPanel,
     closeCountryPanel,
   } = useCountryPanel();
 
@@ -620,6 +621,7 @@ function App() {
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
   const [showUSStates, setShowUSStates] = useState(false);
+  const [showCAProvinces, setShowCAProvinces] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
@@ -982,11 +984,11 @@ function App() {
           map.setFeatureState({ source: 'countries', id: hoveredCountryIdRef.current }, { hover: false });
           hoveredCountryIdRef.current = null;
         }
-        if (hoveredStateIdRef.current !== null) {
+        if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
           map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
           hoveredStateIdRef.current = null;
         }
-        if (hoveredProvinceIdRef.current !== null) {
+        if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
           map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
           hoveredProvinceIdRef.current = null;
         }
@@ -1006,14 +1008,14 @@ function App() {
       );
       hoveredCountryIdRef.current = null;
     }
-    if (hoveredStateIdRef.current !== null) {
+    if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
       map.setFeatureState(
         { source: 'us-states', id: hoveredStateIdRef.current },
         { hover: false }
       );
       hoveredStateIdRef.current = null;
     }
-    if (hoveredProvinceIdRef.current !== null) {
+    if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
       map.setFeatureState(
         { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
         { hover: false }
@@ -1077,14 +1079,14 @@ function App() {
       );
       hoveredCountryIdRef.current = null;
     }
-    if (hoveredStateIdRef.current !== null) {
+    if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
       map.setFeatureState(
         { source: 'us-states', id: hoveredStateIdRef.current },
         { hover: false }
       );
       hoveredStateIdRef.current = null;
     }
-    if (hoveredProvinceIdRef.current !== null) {
+    if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
       map.setFeatureState(
         { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
         { hover: false }
@@ -1847,6 +1849,38 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">CA Province Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showCAProvinces}
+                      onChange={() => setShowCAProvinces(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <button
+                    className="settings-eu-btn"
+                    onClick={openEUPanel}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '7px 10px',
+                      border: '1px solid rgba(123, 107, 255, 0.25)',
+                      borderRadius: '6px',
+                      background: 'rgba(123, 107, 255, 0.08)',
+                      color: 'inherit',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(123, 107, 255, 0.18)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(123, 107, 255, 0.08)'; }}
+                  >
+                    <span style={{ fontSize: '1.1em' }}>{'\u{1F1EA}\u{1F1FA}'}</span>
+                    View EU Overview
+                  </button>
                   {[
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'countryFill', label: 'Country Fill Color' },
@@ -2106,7 +2140,11 @@ function App() {
             zoom: 2.0,
           }}
           style={{ width: '100%', height: '100%' }}
-          interactiveLayerIds={showUSStates ? ['countries-fill', 'us-states-fill', 'ca-provinces-fill'] : ['countries-fill', 'ca-provinces-fill']}
+          interactiveLayerIds={[
+            'countries-fill',
+            ...(showUSStates ? ['us-states-fill'] : []),
+            ...(showCAProvinces ? ['ca-provinces-fill'] : []),
+          ]}
           onMove={handleMapMove}
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
@@ -2370,44 +2408,46 @@ function App() {
             </Source>
           )}
 
-          {/* Canadian provinces — borders only to avoid misalignment with world-atlas */}
-          <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
-            {/* Invisible fill for click/hover interactivity */}
-            <Layer
-              id="ca-provinces-fill"
-              type="fill"
-              paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
-            />
-            {/* Province border lines */}
-            <Layer
-              id="ca-provinces-line"
-              type="line"
-              paint={{
-                'line-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
-                  isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
-                ],
-                'line-width': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  1.5,
-                  0.8,
-                ],
-              }}
-            />
-            {/* Selected province highlight — just a brighter border */}
-            <Layer
-              id="ca-provinces-selected-line"
-              type="line"
-              filter={selectedProvinceFilter}
-              paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 2,
-              }}
-            />
-          </Source>
+          {/* Canadian provinces — only shown when toggled on */}
+          {showCAProvinces && (
+            <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
+              {/* Invisible fill for click/hover interactivity */}
+              <Layer
+                id="ca-provinces-fill"
+                type="fill"
+                paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
+              />
+              {/* Province border lines */}
+              <Layer
+                id="ca-provinces-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
+                    isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              {/* Selected province highlight — just a brighter border */}
+              <Layer
+                id="ca-provinces-selected-line"
+                type="line"
+                filter={selectedProvinceFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
+                  'line-width': 2,
+                }}
+              />
+            </Source>
+          )}
 
           {/* UA/RU Frontline Overlay (legacy — hidden when conflict mode is on) */}
           <FrontlineOverlay visible={showFrontline && !conflictMode} />
