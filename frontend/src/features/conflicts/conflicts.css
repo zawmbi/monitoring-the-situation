@@ -1593,6 +1593,235 @@
   line-height: 1;
 }
 
+/* ═══════════════════════════════════════════
+   Live Data — badges, indicators, losses grid
+   ═══════════════════════════════════════════ */
+
+/* ── Live badge (appears next to title) ── */
+
+.conflict-live-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+.conflict-live-badge--loading {
+  color: #ffa726;
+  background: rgba(255, 167, 38, 0.12);
+  border-color: rgba(255, 167, 38, 0.3);
+  animation: live-pulse 1s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ── Live dot (inline in notes) ── */
+
+.conflict-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00e676;
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: live-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.4);
+}
+
+/* ── Section note variant for live data ── */
+
+.conflict-section-note--live {
+  background: rgba(0, 230, 118, 0.04);
+  border-color: rgba(0, 230, 118, 0.12);
+}
+
+/* ── Daily increase chip ── */
+
+.conflict-daily-increase {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.2);
+  border-radius: 3px;
+  padding: 0px 4px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Panel data date ── */
+
+.conflict-panel-data-date {
+  color: rgba(0, 230, 118, 0.6);
+  font-size: 10px;
+}
+
+/* ── Live losses grid (Overview tab) ── */
+
+.conflict-live-losses {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(213, 43, 30, 0.04);
+  border: 1px solid rgba(213, 43, 30, 0.12);
+  border-radius: 8px;
+}
+
+.conflict-live-losses-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.conflict-live-losses-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.conflict-live-loss-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  gap: 2px;
+}
+
+.conflict-live-loss-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ff6b6b;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.conflict-live-loss-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+/* ── Live tab indicator ── */
+
+.conflict-panel-tab--live::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00e676;
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* ── Footer updated text ── */
+
+.conflict-footer-updated {
+  font-size: 9px;
+  color: rgba(0, 230, 118, 0.5);
+  margin-top: 6px;
+}
+
+/* ═══════════════════════════════════════════
+   Live Feed (News) Tab
+   ═══════════════════════════════════════════ */
+
+.conflict-news-loading {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--color-text-muted, #666);
+  font-size: 12px;
+}
+
+.conflict-news-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--color-text-muted, #555);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.conflict-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conflict-news-item {
+  display: block;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+
+.conflict-news-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.conflict-news-item-source {
+  font-size: 9px;
+  font-weight: 700;
+  color: #5baaff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.conflict-news-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #e8e8f0);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.conflict-news-item-summary {
+  font-size: 10px;
+  color: var(--color-text-muted, #666);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.conflict-news-item-time {
+  font-size: 9px;
+  color: var(--color-text-muted, #555);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 600px) {
@@ -1618,5 +1847,9 @@
 
   .conflict-timeline-item {
     grid-template-columns: 60px 1fr;
+  }
+
+  .conflict-live-losses-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

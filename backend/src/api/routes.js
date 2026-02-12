@@ -12,6 +12,7 @@ import { cacheService } from '../services/cache.service.js';
 import { wsHandler } from '../services/websocket.service.js';
 import { stocksService } from '../services/stocks.service.js';
 import { polymarketService } from '../services/polymarket.service.js';
+import { conflictService } from '../services/conflict.service.js';
 
 const router = Router();
 
@@ -300,6 +301,83 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('[API] Search error:', error);
     res.status(500).json({ success: false, error: 'Search failed' });
+  }
+});
+
+// ===========================================
+// CONFLICT DATA (Russia-Ukraine live stats)
+// ===========================================
+
+/**
+ * GET /api/conflict
+ * Get combined live conflict data (latest losses + news)
+ */
+router.get('/conflict', async (req, res) => {
+  try {
+    const data = await conflictService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch conflict data' });
+  }
+});
+
+/**
+ * GET /api/conflict/losses
+ * Get latest Russian losses (UA MOD daily report)
+ */
+router.get('/conflict/losses', async (req, res) => {
+  try {
+    const data = await conflictService.getLatestLosses();
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'Loss data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict losses error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch loss data' });
+  }
+});
+
+/**
+ * GET /api/conflict/losses/history
+ * Get recent loss history for trend analysis
+ * Query params:
+ *   - days: number of days (default 30, max 90)
+ */
+router.get('/conflict/losses/history', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days || '30', 10), 90);
+    const data = await conflictService.getLossesHistory(days);
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'History data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict history error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch loss history' });
+  }
+});
+
+/**
+ * GET /api/conflict/news
+ * Get latest war news from RSS feeds
+ * Query params:
+ *   - limit: number of articles (default 30)
+ */
+router.get('/conflict/news', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '30', 10), 100);
+    const data = await conflictService.getWarNews(limit);
+    res.json({
+      success: true,
+      count: data.items.length,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Conflict news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch war news' });
   }
 });
 
