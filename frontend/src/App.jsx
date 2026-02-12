@@ -932,16 +932,17 @@ function App() {
   // MapLibre style — basemap baked in for reliable globe rendering
   const mapStyle = useMemo(() => {
     let bgColor;
+    // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
       bgColor = useGlobe ? '#0b1a35' : '#3a7ab0';
     } else if (useGlobe) {
-      bgColor = '#081420';
+      bgColor = '#0a1520';
     } else {
-      bgColor = holoMode ? '#040c1e' : '#091828';
+      bgColor = holoMode ? '#040c1e' : '#0c1a28';
     }
 
-    // Positron basemap fully desaturated and darkened — provides terrain
-    // texture as grayscale without injecting its own color palette
+    // Positron basemap desaturated and heavily darkened — provides subtle
+    // terrain texture (rivers, coastlines, mountains) without its own colors
     const basemapUrl = isLightTheme
       ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
       : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
@@ -980,10 +981,10 @@ function App() {
                 'raster-saturation': -0.5,
               }
             : {
-                'raster-opacity': 0.4,
-                'raster-brightness-max': 0.3,
+                'raster-opacity': 0.18,
+                'raster-brightness-max': 0.35,
                 'raster-saturation': -1,
-                'raster-contrast': 0.2,
+                'raster-contrast': 0.15,
               },
         },
         {
@@ -991,10 +992,10 @@ function App() {
           type: 'hillshade',
           source: 'terrain-dem',
           paint: {
-            'hillshade-exaggeration': 0.5,
-            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.4)',
-            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(200,220,255,0.15)',
-            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.2)',
+            'hillshade-exaggeration': 0.3,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.3)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(180,200,230,0.08)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.12)',
             'hillshade-illumination-direction': 315,
           },
         },
@@ -2315,22 +2316,9 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.35 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
               }}
             />
-            {/* Coastline shadow — soft glow that separates land from water */}
-            {!holoMode && (
-              <Layer
-                id="countries-coastline-shadow"
-                type="line"
-                paint={{
-                  'line-color': isLightTheme ? 'rgba(15, 30, 60, 0.3)' : 'rgba(2, 6, 18, 0.5)',
-                  'line-width': 6,
-                  'line-blur': 5,
-                  'line-opacity': visualLayers.countryFill ? 1 : 0,
-                }}
-              />
-            )}
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
             {holoMode && (
               <Layer
@@ -2365,8 +2353,8 @@ function App() {
                   : holoMode
                     ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
-                        ? 'rgba(40, 35, 70, 0.55)'
-                        : 'rgba(160, 175, 220, 0.5)'),
+                        ? 'rgba(30, 25, 50, 0.5)'
+                        : 'rgba(15, 20, 30, 0.7)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
@@ -2384,8 +2372,8 @@ function App() {
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.5,
-                        1.2,
+                        1.8,
+                        0.8,
                       ],
               }}
             />
