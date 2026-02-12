@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { SCOTUS_JUSTICES, SCOTUS_PENDING_CASES, SCOTUS_TERM, SCOTUS_COMPOSITION } from './scotusData';
 import './country.css';
 
 function getCurrentTimeForOffset(offsetHours) {
@@ -475,10 +476,128 @@ function EconomicPopup({ data, onClose }) {
   );
 }
 
+/* ── Supreme Court (SCOTUS) inline panel ── */
+
+const LEAN_COLORS = { conservative: '#ef4444', liberal: '#3b82f6' };
+const LEAN_LABELS = { conservative: 'Conservative', liberal: 'Liberal' };
+
+function SCOTUSPanel({ onClose }) {
+  const [expandedCase, setExpandedCase] = useState(null);
+
+  return (
+    <div className="cp-scotus-popup">
+      <div className="cp-scotus-popup-header">
+        <span className="cp-scotus-popup-title">Supreme Court — {SCOTUS_TERM} Term</span>
+        <button className="cp-close cp-scotus-popup-close" onClick={onClose} aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Composition bar */}
+      <div className="cp-scotus-comp">
+        <div className="cp-scotus-comp-bar">
+          <div
+            className="cp-scotus-comp-fill cp-scotus-comp-fill--con"
+            style={{ width: `${(SCOTUS_COMPOSITION.conservative / 9) * 100}%` }}
+          >
+            {SCOTUS_COMPOSITION.conservative}
+          </div>
+          <div
+            className="cp-scotus-comp-fill cp-scotus-comp-fill--lib"
+            style={{ width: `${(SCOTUS_COMPOSITION.liberal / 9) * 100}%` }}
+          >
+            {SCOTUS_COMPOSITION.liberal}
+          </div>
+        </div>
+        <div className="cp-scotus-comp-legend">
+          <span><span className="cp-scotus-dot" style={{ background: LEAN_COLORS.conservative }} /> Conservative</span>
+          <span><span className="cp-scotus-dot" style={{ background: LEAN_COLORS.liberal }} /> Liberal</span>
+        </div>
+      </div>
+
+      {/* Justices grid */}
+      <div className="cp-scotus-section-label">Current Justices</div>
+      <div className="cp-scotus-justices">
+        {SCOTUS_JUSTICES.map((j) => (
+          <div key={j.name} className="cp-scotus-justice">
+            <div className="cp-scotus-justice-lean" style={{ background: LEAN_COLORS[j.lean] }} />
+            <div className="cp-scotus-justice-info">
+              <div className="cp-scotus-justice-name">
+                {j.name}
+                {j.role === 'Chief Justice' && <span className="cp-scotus-chief">CJ</span>}
+              </div>
+              <div className="cp-scotus-justice-meta">
+                {j.appointedBy} &middot; {j.year} &middot; {LEAN_LABELS[j.lean]}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pending cases */}
+      <div className="cp-scotus-section-label">
+        Pending Cases
+        <span className="cp-scotus-case-count">{SCOTUS_PENDING_CASES.length}</span>
+      </div>
+      <div className="cp-scotus-cases">
+        {SCOTUS_PENDING_CASES.map((c) => {
+          const isOpen = expandedCase === c.id;
+          return (
+            <div key={c.id} className={`cp-scotus-case ${isOpen ? 'cp-scotus-case--open' : ''}`}>
+              <button
+                className="cp-scotus-case-header"
+                onClick={() => setExpandedCase(isOpen ? null : c.id)}
+              >
+                <span className="cp-scotus-case-topic">{c.topic}</span>
+                <span className="cp-scotus-case-name">{c.name}</span>
+                <svg className={`cp-scotus-case-chevron ${isOpen ? 'cp-scotus-case-chevron--open' : ''}`}
+                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {isOpen && (
+                <div className="cp-scotus-case-body">
+                  <div className="cp-scotus-case-question">
+                    <span className="cp-scotus-case-q-label">Question Presented</span>
+                    {c.question}
+                  </div>
+                  <div className="cp-scotus-case-meta-row">
+                    <span>Docket: {c.docket}</span>
+                    {c.argued && <span>Argued: {new Date(c.argued).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                    {!c.argued && <span>Not yet argued</span>}
+                  </div>
+                  <div className="cp-scotus-sides">
+                    <div className="cp-scotus-side cp-scotus-side--pet">
+                      <div className="cp-scotus-side-label">Petitioner — {c.petitioner.side}</div>
+                      <div className="cp-scotus-side-text">{c.petitioner.argument}</div>
+                    </div>
+                    <div className="cp-scotus-side cp-scotus-side--resp">
+                      <div className="cp-scotus-side-label">Respondent — {c.respondent.side}</div>
+                      <div className="cp-scotus-side-text">{c.respondent.argument}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="cp-scotus-footer">
+        Data reflects the {SCOTUS_TERM} term. Decisions pending.
+      </div>
+    </div>
+  );
+}
+
 export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showEconomic, setShowEconomic] = useState(false);
+  const [showSCOTUS, setShowSCOTUS] = useState(false);
   const hasApproval = !!(approvalData && approvalData.approvalHistory?.length > 0);
   const hasEconomic = !!(economicData && (economicData.policyRate != null || economicData.inflation != null));
 
@@ -572,6 +691,23 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           <div className="cp-section">
             <div className="cp-section-label">Head of State / Government</div>
             <div className="cp-loading-line" />
+          </div>
+        )}
+
+        {/* SCOTUS — US only */}
+        {!isScope && data.name === 'United States' && (
+          <div className="cp-section">
+            {!showSCOTUS ? (
+              <button className="cp-scotus-btn" onClick={() => setShowSCOTUS(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21h18M4 18h16M5 18V9M19 18V9M9 18V9M15 18V9M12 2L2 9h20L12 2z" />
+                </svg>
+                <span>Supreme Court ({SCOTUS_TERM})</span>
+                <span className="cp-scotus-btn-badge">{SCOTUS_COMPOSITION.conservative}-{SCOTUS_COMPOSITION.liberal}</span>
+              </button>
+            ) : (
+              <SCOTUSPanel onClose={() => setShowSCOTUS(false)} />
+            )}
           </div>
         )}
 

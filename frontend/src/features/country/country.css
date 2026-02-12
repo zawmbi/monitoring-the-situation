@@ -802,6 +802,393 @@
   line-height: 1.2;
 }
 
+/* ═══════════════════════════════════════════
+   Supreme Court (SCOTUS) Section
+   ═══════════════════════════════════════════ */
+
+/* ── Trigger button ── */
+
+.cp-scotus-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.2px;
+}
+
+.cp-scotus-btn:hover {
+  background: rgba(123, 107, 255, 0.1);
+  border-color: rgba(123, 107, 255, 0.3);
+  color: var(--color-text-primary);
+}
+
+.cp-scotus-btn svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.cp-scotus-btn-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.5px;
+}
+
+/* ── Popup container ── */
+
+.cp-scotus-popup {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow-glow);
+  overflow: hidden;
+  animation: cp-approval-in 0.2s ease-out;
+}
+
+.cp-scotus-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-scotus-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cp-scotus-popup-close {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+}
+
+/* ── Composition bar ── */
+
+.cp-scotus-comp {
+  padding: 10px 12px 6px;
+}
+
+.cp-scotus-comp-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-comp-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  transition: width 0.4s ease;
+}
+
+.cp-scotus-comp-fill--con {
+  background: rgba(239, 68, 68, 0.55);
+  border-radius: 6px 0 0 6px;
+}
+
+.cp-scotus-comp-fill--lib {
+  background: rgba(59, 130, 246, 0.55);
+  border-radius: 0 6px 6px 0;
+}
+
+.cp-scotus-comp-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-scotus-comp-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cp-scotus-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── Section labels ── */
+
+.cp-scotus-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 8px 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-scotus-case-count {
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(123, 107, 255, 0.15);
+  color: var(--color-accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.3;
+}
+
+/* ── Justices grid ── */
+
+.cp-scotus-justices {
+  padding: 0 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cp-scotus-justice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  transition: background 0.12s ease;
+}
+
+.cp-scotus-justice:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-justice-lean {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.cp-scotus-justice-info {
+  min-width: 0;
+}
+
+.cp-scotus-justice-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cp-scotus-chief {
+  font-size: 8px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.cp-scotus-justice-meta {
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ── Pending cases ── */
+
+.cp-scotus-cases {
+  padding: 0 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cp-scotus-case {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.cp-scotus-case:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cp-scotus-case--open {
+  border-color: rgba(123, 107, 255, 0.25);
+}
+
+.cp-scotus-case-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cp-scotus-case-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-case-topic {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+  background: rgba(123, 107, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cp-scotus-case-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+}
+
+.cp-scotus-case-chevron {
+  flex-shrink: 0;
+  opacity: 0.4;
+  transition: transform 0.2s ease;
+}
+
+.cp-scotus-case-chevron--open {
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+
+/* ── Case body ── */
+
+.cp-scotus-case-body {
+  padding: 0 10px 10px;
+  animation: cp-approval-in 0.15s ease-out;
+}
+
+.cp-scotus-case-question {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cp-scotus-case-q-label {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin-bottom: 3px;
+}
+
+.cp-scotus-case-meta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+}
+
+/* ── Petitioner / Respondent sides ── */
+
+.cp-scotus-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cp-scotus-side {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid;
+}
+
+.cp-scotus-side--pet {
+  background: rgba(59, 130, 246, 0.06);
+  border-left-color: rgba(59, 130, 246, 0.5);
+}
+
+.cp-scotus-side--resp {
+  background: rgba(239, 68, 68, 0.06);
+  border-left-color: rgba(239, 68, 68, 0.5);
+}
+
+.cp-scotus-side-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.cp-scotus-side--pet .cp-scotus-side-label {
+  color: #60a5fa;
+}
+
+.cp-scotus-side--resp .cp-scotus-side-label {
+  color: #f87171;
+}
+
+.cp-scotus-side-text {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ── Footer ── */
+
+.cp-scotus-footer {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  padding: 6px 12px 10px;
+  text-align: center;
+  opacity: 0.5;
+  font-style: italic;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
