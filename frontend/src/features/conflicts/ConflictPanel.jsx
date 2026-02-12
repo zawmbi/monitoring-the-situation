@@ -625,8 +625,8 @@ function SanctionsTab() {
           {[
             { t: 'GDP Growth 2024', v: s.russianEconomy.gdpGrowth2024, n: 'war economy boost' },
             { t: 'Inflation', v: s.russianEconomy.inflation2024, n: '' },
-            { t: 'Key Rate', v: s.russianEconomy.keyRate, n: 'CBR record high' },
-            { t: 'Military Budget 2025', v: s.russianEconomy.militarySpending, n: '' },
+            { t: 'Key Rate', v: s.russianEconomy.keyRate, n: 'cut from 21% peak' },
+            { t: 'Military Budget', v: s.russianEconomy.militarySpending, n: '' },
           ].map((r) => (
             <div key={r.t} className="conflict-prod-item">
               <span className="conflict-prod-type">{r.t}</span>
@@ -663,6 +663,7 @@ function CommandTab() {
   const [showDeceased, setShowDeceased] = useState(false);
   return (
     <div className="conflict-tab-body">
+      <div className="conflict-section-note">Military command structure. As of February 2026.</div>
       <div className="conflict-cmd-section">
         <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}>🇷🇺</span>{COMMAND.russia.title}</div>
         <div className="conflict-cmd-personnel">Personnel in theatre: {COMMAND.russia.totalPersonnel}</div>
@@ -758,7 +759,7 @@ function TimelineTab() {
   };
   return (
     <div className="conflict-tab-body">
-      <div className="conflict-section-note">Key events since 24 February 2022.</div>
+      <div className="conflict-section-note">Key events since 24 February 2022. Updated February 2026.</div>
       <div className="conflict-timeline">
         {WAR_TIMELINE.map((evt, i) => (
           <div key={i} className="conflict-timeline-item">
