@@ -905,25 +905,27 @@ function App() {
 
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: GEO_FEATURES.map((f, i) => {
-      const name = f.properties?.name || `Country ${i}`;
-      const isAntarctica = String(f.id).padStart(3, '0') === '010' || name === 'Antarctica';
-      const tariffRate = getUniversalRate(name);
-      return {
-        type: 'Feature',
-        id: i,
-        geometry: f.geometry,
-        properties: {
-          name,
-          originalId: String(f.id),
-          fillColor: isAntarctica
-            ? (isLightTheme ? '#d8dde3' : '#9aabb8')
-            : getCountryFillColor(name, i, isLightTheme),
-          tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
-          tariffRate,
-        },
-      };
-    }),
+    features: GEO_FEATURES
+      .filter((f) => {
+        const name = f.properties?.name || '';
+        return !(String(f.id).padStart(3, '0') === '010' || name === 'Antarctica');
+      })
+      .map((f, i) => {
+        const name = f.properties?.name || `Country ${i}`;
+        const tariffRate = getUniversalRate(name);
+        return {
+          type: 'Feature',
+          id: i,
+          geometry: f.geometry,
+          properties: {
+            name,
+            originalId: String(f.id),
+            fillColor: getCountryFillColor(name, i, isLightTheme),
+            tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
+            tariffRate,
+          },
+        };
+      }),
   }), [isLightTheme]);
 
   const usStatesGeoJSON = useMemo(() => ({
@@ -2325,7 +2327,7 @@ function App() {
           pitchWithRotate={false}
           touchPitch={false}
           renderWorldCopies={!useGlobe}
-          maxBounds={useGlobe ? undefined : [[-Infinity, -63], [Infinity, 85]]}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -50], [Infinity, 85]]}
           maxZoom={8}
           minZoom={useGlobe ? 0.8 : 1}
         >
