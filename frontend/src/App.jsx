@@ -32,6 +32,7 @@ import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
+import { getCountryFillColor } from './features/country/countryColors';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -812,29 +813,6 @@ function App() {
 
   // ---- MapLibre GeoJSON data ----
 
-  const countryColor = useCallback((index) => {
-    // Futuristic palette — blues, purples, pinks, teals
-    const darkPalette = [
-      '#2a3070', '#4a2268', '#602050', '#1e4078', '#3a2878',
-      '#5a2058', '#283880', '#4e2060', '#1a3870', '#682050',
-      '#303880', '#5e1e52', '#382878', '#224068', '#502465',
-      '#1e4a6a', '#422875', '#602852', '#2a3578', '#482468',
-      '#1a4572', '#58205a', '#303080', '#522258', '#244070',
-      '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
-    ];
-    const lightPalette = [
-      '#4a7a3e', '#6b8f42', '#8a6e3a', '#3d6b35', '#7a8548',
-      '#5c7040', '#9b7a3c', '#4e7e44', '#6e6838', '#3a6030',
-      '#87764a', '#527238', '#7c8a4e', '#48703a', '#a0823e',
-      '#5a6e3c', '#6a7a40', '#8b7044', '#3e6832', '#74804a',
-      '#4c6a36', '#96783e', '#5e7c42', '#7e6c3a', '#447034',
-      '#6c8648', '#8e7a40', '#3c6530', '#78724c', '#568038',
-    ];
-    const palette = isLightTheme ? lightPalette : darkPalette;
-    // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
-    return palette[(index * 11) % palette.length];
-  }, [isLightTheme]);
-
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: GEO_FEATURES.map((f, i) => {
@@ -847,13 +825,13 @@ function App() {
         properties: {
           name,
           originalId: String(f.id),
-          fillColor: countryColor(i),
+          fillColor: getCountryFillColor(name, i, isLightTheme),
           tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
           tariffRate,
         },
       };
     }),
-  }), [countryColor, isLightTheme]);
+  }), [isLightTheme]);
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -2212,31 +2190,31 @@ function App() {
               type="line"
               paint={{
                 'line-color': showTariffHeatmap
-                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.7)' : 'rgba(220, 230, 255, 0.55)')
+                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
+                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
-                        ? 'rgba(50, 40, 80, 0.5)'
-                        : 'rgba(140, 160, 200, 0.4)'),
+                        ? 'rgba(40, 35, 70, 0.6)'
+                        : 'rgba(160, 175, 220, 0.55)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.5,
-                      1.2,
+                      2.8,
+                      1.4,
                     ]
                   : holoMode
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.2,
-                        1.4,
+                        2.5,
+                        1.6,
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.2,
-                        1.6,
+                        2.5,
+                        1.8,
                       ],
               }}
             />
