@@ -935,13 +935,13 @@ function App() {
     if (isLightTheme) {
       bgColor = useGlobe ? '#0b1a35' : '#3a7ab0';
     } else if (useGlobe) {
-      bgColor = '#0a2248';
+      bgColor = '#081420';
     } else {
-      bgColor = holoMode ? '#040c1e' : '#0c2850';
+      bgColor = holoMode ? '#040c1e' : '#091828';
     }
 
-    // Use Positron (light) basemap even in dark mode — darken via raster paint
-    // properties to preserve terrain contrast. Dark Matter is uniformly dark.
+    // Positron basemap fully desaturated and darkened — provides terrain
+    // texture as grayscale without injecting its own color palette
     const basemapUrl = isLightTheme
       ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
       : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
@@ -976,14 +976,14 @@ function App() {
           source: 'basemap-tiles',
           paint: isLightTheme
             ? {
-                'raster-opacity': 0.6,
+                'raster-opacity': 0.55,
                 'raster-saturation': -0.5,
               }
             : {
-                'raster-opacity': 0.55,
-                'raster-brightness-max': 0.25,
+                'raster-opacity': 0.4,
+                'raster-brightness-max': 0.3,
                 'raster-saturation': -1,
-                'raster-contrast': 0.3,
+                'raster-contrast': 0.2,
               },
         },
         {
@@ -991,10 +991,10 @@ function App() {
           type: 'hillshade',
           source: 'terrain-dem',
           paint: {
-            'hillshade-exaggeration': 0.7,
-            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.45)' : 'rgba(0,0,15,0.55)',
-            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.35)' : 'rgba(200,220,255,0.25)',
-            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,30,0.3)',
+            'hillshade-exaggeration': 0.5,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.4)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(200,220,255,0.15)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.2)',
             'hillshade-illumination-direction': 315,
           },
         },
@@ -2315,7 +2315,7 @@ function App() {
                       isLightTheme ? '#a8c090' : '#1a3a52',
                       ['get', 'fillColor'],
                     ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.6 : 0),
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.35 : 0),
               }}
             />
             {/* Coastline shadow — soft glow that separates land from water */}
@@ -2324,9 +2324,9 @@ function App() {
                 id="countries-coastline-shadow"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(15, 30, 60, 0.5)' : 'rgba(2, 8, 24, 0.8)',
-                  'line-width': 10,
-                  'line-blur': 8,
+                  'line-color': isLightTheme ? 'rgba(15, 30, 60, 0.3)' : 'rgba(2, 6, 18, 0.5)',
+                  'line-width': 6,
+                  'line-blur': 5,
                   'line-opacity': visualLayers.countryFill ? 1 : 0,
                 }}
               />
