@@ -8,6 +8,11 @@
 import yahooFinance from 'yahoo-finance2';
 import { cacheService } from './cache.service.js';
 
+// Suppress yahoo-finance2 strict validation errors (Yahoo often returns
+// fields that don't match the library's schema, causing throws)
+yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
+const YF_OPTS = { validateResult: false };
+
 const CACHE_TTL = 300; // 5 minutes
 const FOREX_CACHE_TTL = 600; // 10 minutes
 
@@ -423,8 +428,9 @@ const MAJOR_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'CNY'
 // Helper: fetch a Yahoo Finance quote with safe fallback
 async function safeQuote(symbol) {
   try {
-    return await yahooFinance.quote(symbol);
-  } catch {
+    return await yahooFinance.quote(symbol, {}, YF_OPTS);
+  } catch (err) {
+    console.warn(`[Markets] safeQuote failed for ${symbol}: ${err.message}`);
     return null;
   }
 }
@@ -448,7 +454,7 @@ class MarketsService {
     const results = await Promise.all(
       indexDefs.map(async (def) => {
         try {
-          const quote = await yahooFinance.quote(def.symbol);
+          const quote = await yahooFinance.quote(def.symbol, {}, YF_OPTS);
           return {
             symbol: def.symbol,
             name: def.name,
