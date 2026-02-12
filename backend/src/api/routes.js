@@ -13,6 +13,7 @@ import { wsHandler } from '../services/websocket.service.js';
 import { stocksService } from '../services/stocks.service.js';
 import { polymarketService } from '../services/polymarket.service.js';
 import { conflictService } from '../services/conflict.service.js';
+import { tariffService } from '../services/tariff.service.js';
 
 const router = Router();
 
@@ -378,6 +379,46 @@ router.get('/conflict/news', async (req, res) => {
   } catch (error) {
     console.error('[API] Conflict news error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch war news' });
+  }
+});
+
+// ===========================================
+// TARIFF DATA (US trade policy live stats)
+// ===========================================
+
+/**
+ * GET /api/tariffs
+ * Get combined live tariff data (news + rate overrides)
+ */
+router.get('/tariffs', async (req, res) => {
+  try {
+    const data = await tariffService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Tariff error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tariff data' });
+  }
+});
+
+/**
+ * GET /api/tariffs/news
+ * Get latest tariff-related news from RSS feeds
+ * Query params:
+ *   - limit: number of articles (default 30)
+ */
+router.get('/tariffs/news', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '30', 10), 100);
+    const data = await tariffService.getTariffNews(limit);
+    res.json({
+      success: true,
+      count: data.items.length,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Tariff news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tariff news' });
   }
 });
 

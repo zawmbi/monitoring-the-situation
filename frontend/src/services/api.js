@@ -26,6 +26,10 @@ export const api = {
   getConflictLosses: () => api.fetch('/conflict/losses'),
   getConflictLossesHistory: (days = 30) => api.fetch(`/conflict/losses/history?days=${days}`),
   getConflictNews: (limit = 30) => api.fetch(`/conflict/news?limit=${limit}`),
+
+  // Tariffs (US trade policy live data)
+  getTariffLive: () => api.fetch('/tariffs'),
+  getTariffNews: (limit = 30) => api.fetch(`/tariffs/news?limit=${limit}`),
 };
 
 export default api;
