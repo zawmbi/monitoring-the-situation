@@ -1,7 +1,7 @@
 /**
  * Markets Service
- * Fetches stock market indices and forex data per country
- * Uses yahoo-finance2 (no API key required) for stock indices
+ * Fetches stock market indices, top stocks, commodities, and forex data per country
+ * Uses yahoo-finance2 (no API key required) for stock/commodity data
  * Uses Frankfurter API (no API key required) for forex pairs
  */
 
@@ -18,6 +18,7 @@ const COUNTRY_INDICES = {
     { symbol: '^DJI', name: 'Dow Jones', exchange: 'NYSE' },
     { symbol: '^IXIC', name: 'NASDAQ', exchange: 'NASDAQ' },
     { symbol: '^RUT', name: 'Russell 2000', exchange: 'NYSE' },
+    { symbol: '^VIX', name: 'VIX Volatility', exchange: 'CBOE' },
   ],
   GB: [
     { symbol: '^FTSE', name: 'FTSE 100', exchange: 'LSE' },
@@ -40,6 +41,7 @@ const COUNTRY_INDICES = {
   ],
   HK: [
     { symbol: '^HSI', name: 'Hang Seng', exchange: 'HKEX' },
+    { symbol: '^HSCE', name: 'Hang Seng China', exchange: 'HKEX' },
   ],
   IN: [
     { symbol: '^BSESN', name: 'BSE Sensex', exchange: 'BSE' },
@@ -47,15 +49,18 @@ const COUNTRY_INDICES = {
   ],
   AU: [
     { symbol: '^AXJO', name: 'ASX 200', exchange: 'ASX' },
+    { symbol: '^AORD', name: 'All Ordinaries', exchange: 'ASX' },
   ],
   CA: [
     { symbol: '^GSPTSE', name: 'TSX Composite', exchange: 'TSX' },
+    { symbol: '^TX60', name: 'TSX 60', exchange: 'TSX' },
   ],
   BR: [
     { symbol: '^BVSP', name: 'Bovespa', exchange: 'B3' },
   ],
   KR: [
     { symbol: '^KS11', name: 'KOSPI', exchange: 'KRX' },
+    { symbol: '^KQ11', name: 'KOSDAQ', exchange: 'KRX' },
   ],
   RU: [
     { symbol: 'IMOEX.ME', name: 'MOEX Russia', exchange: 'MOEX' },
@@ -186,12 +191,217 @@ const COUNTRY_INDICES = {
   HR: [
     { symbol: '^CRBEX', name: 'CROBEX', exchange: 'ZSE' },
   ],
-  // EU aggregate — show major European indices
   EU: [
     { symbol: '^STOXX50E', name: 'Euro Stoxx 50', exchange: 'STOXX' },
     { symbol: '^STOXX', name: 'STOXX Europe 600', exchange: 'STOXX' },
   ],
 };
+
+// ── Country code → top blue-chip stocks (Yahoo Finance tickers) ──
+const COUNTRY_TOP_STOCKS = {
+  US: [
+    { symbol: 'AAPL', name: 'Apple' },
+    { symbol: 'MSFT', name: 'Microsoft' },
+    { symbol: 'GOOGL', name: 'Alphabet' },
+    { symbol: 'AMZN', name: 'Amazon' },
+    { symbol: 'NVDA', name: 'NVIDIA' },
+    { symbol: 'TSLA', name: 'Tesla' },
+    { symbol: 'META', name: 'Meta' },
+    { symbol: 'JPM', name: 'JPMorgan Chase' },
+  ],
+  CA: [
+    { symbol: 'RY.TO', name: 'Royal Bank' },
+    { symbol: 'TD.TO', name: 'TD Bank' },
+    { symbol: 'SHOP.TO', name: 'Shopify' },
+    { symbol: 'ENB.TO', name: 'Enbridge' },
+    { symbol: 'CNR.TO', name: 'CN Railway' },
+    { symbol: 'CP.TO', name: 'CP Railway' },
+    { symbol: 'BMO.TO', name: 'Bank of Montreal' },
+    { symbol: 'SU.TO', name: 'Suncor Energy' },
+  ],
+  GB: [
+    { symbol: 'SHEL.L', name: 'Shell' },
+    { symbol: 'HSBA.L', name: 'HSBC' },
+    { symbol: 'AZN.L', name: 'AstraZeneca' },
+    { symbol: 'BP.L', name: 'BP' },
+    { symbol: 'ULVR.L', name: 'Unilever' },
+    { symbol: 'RIO.L', name: 'Rio Tinto' },
+    { symbol: 'LSEG.L', name: 'LSE Group' },
+    { symbol: 'GSK.L', name: 'GSK' },
+  ],
+  JP: [
+    { symbol: '7203.T', name: 'Toyota' },
+    { symbol: '6758.T', name: 'Sony' },
+    { symbol: '9984.T', name: 'SoftBank' },
+    { symbol: '6861.T', name: 'Keyence' },
+    { symbol: '8306.T', name: 'MUFG' },
+    { symbol: '9432.T', name: 'NTT' },
+  ],
+  DE: [
+    { symbol: 'SAP.DE', name: 'SAP' },
+    { symbol: 'SIE.DE', name: 'Siemens' },
+    { symbol: 'ALV.DE', name: 'Allianz' },
+    { symbol: 'DTE.DE', name: 'Deutsche Telekom' },
+    { symbol: 'MBG.DE', name: 'Mercedes-Benz' },
+    { symbol: 'BAS.DE', name: 'BASF' },
+  ],
+  FR: [
+    { symbol: 'MC.PA', name: 'LVMH' },
+    { symbol: 'TTE.PA', name: 'TotalEnergies' },
+    { symbol: 'OR.PA', name: "L'Oreal" },
+    { symbol: 'SAN.PA', name: 'Sanofi' },
+    { symbol: 'AIR.PA', name: 'Airbus' },
+    { symbol: 'BNP.PA', name: 'BNP Paribas' },
+  ],
+  CN: [
+    { symbol: 'BABA', name: 'Alibaba' },
+    { symbol: 'PDD', name: 'PDD Holdings' },
+    { symbol: 'JD', name: 'JD.com' },
+    { symbol: 'BIDU', name: 'Baidu' },
+    { symbol: 'NIO', name: 'NIO' },
+    { symbol: 'LI', name: 'Li Auto' },
+  ],
+  HK: [
+    { symbol: '0700.HK', name: 'Tencent' },
+    { symbol: '9988.HK', name: 'Alibaba (HK)' },
+    { symbol: '1299.HK', name: 'AIA Group' },
+    { symbol: '0005.HK', name: 'HSBC (HK)' },
+    { symbol: '3690.HK', name: 'Meituan' },
+  ],
+  IN: [
+    { symbol: 'RELIANCE.NS', name: 'Reliance' },
+    { symbol: 'TCS.NS', name: 'TCS' },
+    { symbol: 'INFY.NS', name: 'Infosys' },
+    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank' },
+    { symbol: 'ICICIBANK.NS', name: 'ICICI Bank' },
+    { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever' },
+  ],
+  AU: [
+    { symbol: 'BHP.AX', name: 'BHP Group' },
+    { symbol: 'CBA.AX', name: 'CommBank' },
+    { symbol: 'CSL.AX', name: 'CSL' },
+    { symbol: 'NAB.AX', name: 'NAB' },
+    { symbol: 'WBC.AX', name: 'Westpac' },
+    { symbol: 'FMG.AX', name: 'Fortescue' },
+  ],
+  BR: [
+    { symbol: 'VALE3.SA', name: 'Vale' },
+    { symbol: 'PETR4.SA', name: 'Petrobras' },
+    { symbol: 'ITUB4.SA', name: 'Itau Unibanco' },
+    { symbol: 'BBDC4.SA', name: 'Bradesco' },
+    { symbol: 'ABEV3.SA', name: 'Ambev' },
+  ],
+  KR: [
+    { symbol: '005930.KS', name: 'Samsung' },
+    { symbol: '000660.KS', name: 'SK Hynix' },
+    { symbol: '373220.KS', name: 'LG Energy' },
+    { symbol: '207940.KS', name: 'Samsung Bio' },
+  ],
+  TW: [
+    { symbol: 'TSM', name: 'TSMC' },
+    { symbol: '2330.TW', name: 'TSMC (TW)' },
+    { symbol: '2317.TW', name: 'Hon Hai' },
+    { symbol: '2454.TW', name: 'MediaTek' },
+  ],
+  CH: [
+    { symbol: 'NESN.SW', name: 'Nestle' },
+    { symbol: 'ROG.SW', name: 'Roche' },
+    { symbol: 'NOVN.SW', name: 'Novartis' },
+    { symbol: 'UBSG.SW', name: 'UBS' },
+  ],
+  NL: [
+    { symbol: 'ASML.AS', name: 'ASML' },
+    { symbol: 'INGA.AS', name: 'ING Group' },
+    { symbol: 'PHIA.AS', name: 'Philips' },
+  ],
+  IT: [
+    { symbol: 'ENEL.MI', name: 'Enel' },
+    { symbol: 'ISP.MI', name: 'Intesa Sanpaolo' },
+    { symbol: 'ENI.MI', name: 'Eni' },
+    { symbol: 'UCG.MI', name: 'UniCredit' },
+  ],
+  ES: [
+    { symbol: 'SAN.MC', name: 'Santander' },
+    { symbol: 'BBVA.MC', name: 'BBVA' },
+    { symbol: 'IBE.MC', name: 'Iberdrola' },
+    { symbol: 'ITX.MC', name: 'Inditex' },
+  ],
+  SE: [
+    { symbol: 'ERIC-B.ST', name: 'Ericsson' },
+    { symbol: 'VOLV-B.ST', name: 'Volvo' },
+    { symbol: 'ATCO-A.ST', name: 'Atlas Copco' },
+  ],
+  NO: [
+    { symbol: 'EQNR.OL', name: 'Equinor' },
+    { symbol: 'DNB.OL', name: 'DNB Bank' },
+    { symbol: 'TEL.OL', name: 'Telenor' },
+  ],
+  DK: [
+    { symbol: 'NOVO-B.CO', name: 'Novo Nordisk' },
+    { symbol: 'MAERSK-B.CO', name: 'Maersk' },
+    { symbol: 'CARL-B.CO', name: 'Carlsberg' },
+  ],
+  MX: [
+    { symbol: 'FEMSAUBD.MX', name: 'FEMSA' },
+    { symbol: 'WALMEX.MX', name: 'Walmex' },
+    { symbol: 'AMXB.MX', name: 'America Movil' },
+  ],
+  SA: [
+    { symbol: '2222.SR', name: 'Saudi Aramco' },
+    { symbol: '1180.SR', name: 'Al Rajhi Bank' },
+    { symbol: '2010.SR', name: 'SABIC' },
+  ],
+  SG: [
+    { symbol: 'D05.SI', name: 'DBS Group' },
+    { symbol: 'O39.SI', name: 'OCBC' },
+    { symbol: 'U11.SI', name: 'UOB' },
+  ],
+  ZA: [
+    { symbol: 'NPN.JO', name: 'Naspers' },
+    { symbol: 'SOL.JO', name: 'Sasol' },
+    { symbol: 'FSR.JO', name: 'FirstRand' },
+  ],
+  RU: [
+    { symbol: 'GAZP.ME', name: 'Gazprom' },
+    { symbol: 'SBER.ME', name: 'Sberbank' },
+    { symbol: 'LKOH.ME', name: 'Lukoil' },
+  ],
+  TR: [
+    { symbol: 'THYAO.IS', name: 'Turkish Airlines' },
+    { symbol: 'GARAN.IS', name: 'Garanti BBVA' },
+    { symbol: 'ASELS.IS', name: 'Aselsan' },
+  ],
+  IL: [
+    { symbol: 'TEVA', name: 'Teva Pharma' },
+    { symbol: 'CHKP', name: 'Check Point' },
+    { symbol: 'NICE', name: 'NICE Ltd' },
+  ],
+  IE: [
+    { symbol: 'CRH', name: 'CRH' },
+    { symbol: 'RYA.L', name: 'Ryanair' },
+    { symbol: 'LSEG.L', name: 'LSE Group' },
+  ],
+  NZ: [
+    { symbol: 'FPH.NZ', name: 'Fisher & Paykel' },
+    { symbol: 'AIR.NZ', name: 'Air New Zealand' },
+    { symbol: 'SPK.NZ', name: 'Spark NZ' },
+  ],
+  PL: [
+    { symbol: 'PKN.WA', name: 'PKN Orlen' },
+    { symbol: 'PZU.WA', name: 'PZU' },
+    { symbol: 'CDR.WA', name: 'CD Projekt' },
+  ],
+};
+
+// ── Global commodities & crypto (shown for all countries) ──
+const COMMODITIES = [
+  { symbol: 'GC=F', name: 'Gold', unit: '/oz' },
+  { symbol: 'CL=F', name: 'Crude Oil (WTI)', unit: '/bbl' },
+  { symbol: 'SI=F', name: 'Silver', unit: '/oz' },
+  { symbol: 'NG=F', name: 'Natural Gas', unit: '/MMBtu' },
+  { symbol: 'BTC-USD', name: 'Bitcoin', unit: '' },
+  { symbol: 'ETH-USD', name: 'Ethereum', unit: '' },
+];
 
 // Country code → primary currency code
 const COUNTRY_CURRENCIES = {
@@ -208,7 +418,16 @@ const COUNTRY_CURRENCIES = {
 };
 
 // Major forex pairs to show relative to the country's currency
-const MAJOR_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CNY'];
+const MAJOR_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'CNY'];
+
+// Helper: fetch a Yahoo Finance quote with safe fallback
+async function safeQuote(symbol) {
+  try {
+    return await yahooFinance.quote(symbol);
+  } catch {
+    return null;
+  }
+}
 
 class MarketsService {
   /**
@@ -268,6 +487,74 @@ class MarketsService {
   }
 
   /**
+   * Get top stocks for a country
+   */
+  async getTopStocks(countryCode) {
+    const code = countryCode.toUpperCase();
+    const cacheKey = `markets:stocks:${code}`;
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const stockDefs = COUNTRY_TOP_STOCKS[code];
+    if (!stockDefs || stockDefs.length === 0) return null;
+
+    const results = await Promise.all(
+      stockDefs.map(async (def) => {
+        const quote = await safeQuote(def.symbol);
+        if (!quote || quote.regularMarketPrice == null) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          price: quote.regularMarketPrice,
+          change: quote.regularMarketChange ?? null,
+          changePercent: quote.regularMarketChangePercent ?? null,
+          marketCap: quote.marketCap ?? null,
+          currency: quote.currency ?? null,
+        };
+      })
+    );
+
+    const data = results.filter(Boolean);
+    if (data.length > 0) {
+      await cacheService.set(cacheKey, data, CACHE_TTL);
+    }
+    return data.length > 0 ? data : null;
+  }
+
+  /**
+   * Get global commodities and crypto prices
+   */
+  async getCommodities() {
+    const cacheKey = 'markets:commodities';
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const results = await Promise.all(
+      COMMODITIES.map(async (def) => {
+        const quote = await safeQuote(def.symbol);
+        if (!quote || quote.regularMarketPrice == null) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          unit: def.unit,
+          price: quote.regularMarketPrice,
+          change: quote.regularMarketChange ?? null,
+          changePercent: quote.regularMarketChangePercent ?? null,
+          currency: quote.currency ?? 'USD',
+        };
+      })
+    );
+
+    const data = results.filter(Boolean);
+    if (data.length > 0) {
+      await cacheService.set(cacheKey, data, CACHE_TTL);
+    }
+    return data.length > 0 ? data : null;
+  }
+
+  /**
    * Get forex rates for a country's currency vs major currencies
    */
   async getForex(countryCode) {
@@ -320,16 +607,20 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    const [indices, forex] = await Promise.all([
+    const [indices, topStocks, commodities, forex] = await Promise.all([
       this.getIndices(code).catch(() => null),
+      this.getTopStocks(code).catch(() => null),
+      this.getCommodities().catch(() => null),
       this.getForex(code).catch(() => null),
     ]);
 
-    if (!indices && !forex) return null;
+    if (!indices && !topStocks && !commodities && !forex) return null;
 
     const data = {
       countryCode: code,
       indices: indices || [],
+      topStocks: topStocks || [],
+      commodities: commodities || [],
       forex: forex || null,
       lastUpdated: new Date().toISOString(),
     };

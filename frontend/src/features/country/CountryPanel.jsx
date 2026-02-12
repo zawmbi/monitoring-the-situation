@@ -770,7 +770,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
-        {/* Markets section (stock indices + forex) */}
+        {/* Markets section (stock indices, top stocks, commodities, forex) */}
         {!isScope && hasMarkets && (
           <div className="cp-section">
             <button
@@ -780,7 +780,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
-              Stock Markets & Forex
+              Financial Markets
               {marketData.indices?.length > 0 && (
                 <span className="cp-markets-badge">
                   {marketData.indices[0].marketState === 'REGULAR' ? 'LIVE' : marketData.indices[0].marketState === 'PRE' ? 'PRE' : 'CLOSED'}
@@ -821,6 +821,56 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                                 {' — '}
                                 {idx.dayHigh?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '--'}
                               </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Stocks */}
+                {marketData.topStocks?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Top Stocks</div>
+                    <div className="cp-stocks-grid">
+                      {marketData.topStocks.map((stock) => (
+                        <div key={stock.symbol} className="cp-stock-row">
+                          <div className="cp-stock-info">
+                            <span className="cp-stock-ticker">{stock.symbol.split('.')[0]}</span>
+                            <span className="cp-stock-name">{stock.name}</span>
+                          </div>
+                          <div className="cp-stock-numbers">
+                            <span className="cp-stock-price">
+                              {stock.price != null ? stock.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
+                            </span>
+                            {stock.changePercent != null && (
+                              <span className={`cp-stock-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                                {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Commodities & Crypto */}
+                {marketData.commodities?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Commodities & Crypto</div>
+                    <div className="cp-commodities-grid">
+                      {marketData.commodities.map((c) => (
+                        <div key={c.symbol} className="cp-commodity-card">
+                          <div className="cp-commodity-name">{c.name}</div>
+                          <div className="cp-commodity-price">
+                            ${c.price != null ? c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
+                            {c.unit && <span className="cp-commodity-unit">{c.unit}</span>}
+                          </div>
+                          {c.changePercent != null && (
+                            <div className={`cp-commodity-change ${c.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                              {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
                             </div>
                           )}
                         </div>
