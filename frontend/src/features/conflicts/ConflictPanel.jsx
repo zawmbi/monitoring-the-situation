@@ -14,7 +14,6 @@ import {
   COMMAND,
   DECEASED_COMMANDERS,
   CONFLICT_SUMMARY,
-  RECENCY_LEGEND,
   TERRITORIAL_CONTROL,
   DRONE_MISSILE_DATA,
   HUMANITARIAN,
@@ -121,22 +120,13 @@ export default function ConflictPanel({ open, onClose }) {
         {tab === 'donate' && <DonateTab />}
       </div>
 
-      <div className="conflict-panel-footer">
-        <div className="conflict-legend-title">Frontline Recency</div>
-        <div className="conflict-legend-items">
-          {RECENCY_LEGEND.map((item) => (
-            <div key={item.label} className="conflict-legend-item">
-              <span className="conflict-legend-swatch" style={{ background: item.color }} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-        {lastUpdated && (
+      {lastUpdated && (
+        <div className="conflict-panel-footer">
           <div className="conflict-footer-updated">
             Live data updated {timeAgo(lastUpdated)}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

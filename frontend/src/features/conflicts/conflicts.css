@@ -700,43 +700,13 @@
   font-style: italic;
 }
 
-/* ── Footer legend ── */
+/* ── Footer ── */
 
 .conflict-panel-footer {
   padding: 10px 16px;
   border-top: 1px solid var(--color-border, #1e1e28);
   background: var(--color-bg-secondary, #141418);
   flex-shrink: 0;
-}
-
-.conflict-legend-title {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted, #666);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.conflict-legend-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.conflict-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  color: var(--color-text-muted, #666);
-}
-
-.conflict-legend-swatch {
-  width: 12px;
-  height: 4px;
-  border-radius: 2px;
-  display: inline-block;
 }
 
 /* ── Stat bars (unused in current layout but available) ── */
