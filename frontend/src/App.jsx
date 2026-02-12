@@ -33,6 +33,9 @@ import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 import { getCountryFillColor } from './features/country/countryColors';
+import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
+import PanelWindow from './components/PanelWindow';
+import MinimizedTray from './components/MinimizedTray';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -1668,6 +1671,7 @@ function App() {
   }, [useGlobe, autoRotate, mapLoaded]);
 
   return (
+    <WindowManagerProvider>
     <>
     <div className="app">
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
@@ -2155,87 +2159,149 @@ function App() {
         )}
 
         {/* Stocks Panel */}
-        <StocksPanel
-          visible={showStocksPanel}
-          stocks={stocks}
-          marketStatus={marketStatus}
-          loading={stocksLoading}
-          error={stocksError}
-          lastUpdated={stocksLastUpdated}
-          onClose={() => setShowStocksPanel(false)}
-          onRefresh={refreshStocks}
-        />
+        {showStocksPanel && (
+          <PanelWindow
+            id="stocks"
+            title="Stocks"
+            onClose={() => setShowStocksPanel(false)}
+            defaultWidth={520}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 60, y: 80 }}
+          >
+            <StocksPanel
+              visible={true}
+              stocks={stocks}
+              marketStatus={marketStatus}
+              loading={stocksLoading}
+              error={stocksError}
+              lastUpdated={stocksLastUpdated}
+              onClose={() => setShowStocksPanel(false)}
+              onRefresh={refreshStocks}
+            />
+          </PanelWindow>
+        )}
 
         {/* Severe Weather Panel */}
-        <SevereWeatherPanel
-          visible={showSeverePanel}
-          events={severeEvents}
-          loading={severeLoading}
-          selectedEventId={selectedSevereEventId}
-          onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
-          onRefresh={refreshSevere}
-          onEventClick={(event) => {
-            setSelectedSevereEventId(event.id);
-            if (event.lon && event.lat && mapRef.current) {
-              mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
-            }
-          }}
-        />
+        {showSeverePanel && (
+          <PanelWindow
+            id="severe-weather"
+            title="Severe Weather"
+            onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 90, y: 80 }}
+          >
+            <SevereWeatherPanel
+              visible={true}
+              events={severeEvents}
+              loading={severeLoading}
+              selectedEventId={selectedSevereEventId}
+              onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+              onRefresh={refreshSevere}
+              onEventClick={(event) => {
+                setSelectedSevereEventId(event.id);
+                if (event.lon && event.lat && mapRef.current) {
+                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
 
         {/* Polymarket Panel */}
-        <PolymarketPanel
-          visible={showPolymarketPanel}
-          markets={polymarkets}
-          loading={polymarketsLoading}
-          error={polymarketsError}
-          lastUpdated={polymarketsLastUpdated}
-          country={polymarketCountry}
-          onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
-          onRefresh={refreshPolymarkets}
-        />
+        {showPolymarketPanel && (
+          <PanelWindow
+            id="polymarket"
+            title="Polymarket"
+            onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
+            defaultWidth={360}
+            defaultHeight={600}
+          >
+            <PolymarketPanel
+              visible={true}
+              markets={polymarkets}
+              loading={polymarketsLoading}
+              error={polymarketsError}
+              lastUpdated={polymarketsLastUpdated}
+              country={polymarketCountry}
+              onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
+              onRefresh={refreshPolymarkets}
+            />
+          </PanelWindow>
+        )}
 
         {/* Tariff Panel */}
         {tariffPanel.open && tariffPanel.country && (
-          <TariffPanel
-            countryName={tariffPanel.country}
-            position={tariffPanel.pos}
-            bounds={
-              mapContainerRef.current
-                ? {
-                    width: mapContainerRef.current.getBoundingClientRect().width,
-                    height: mapContainerRef.current.getBoundingClientRect().height,
-                  }
-                : null
-            }
-            onPositionChange={(pos) => setTariffPanel(prev => ({ ...prev, pos }))}
+          <PanelWindow
+            id="tariff"
+            title={`Tariffs — ${tariffPanel.country}`}
             onClose={() => setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } })}
-          />
+            defaultWidth={360}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={tariffPanel.pos}
+          >
+            <TariffPanel
+              countryName={tariffPanel.country}
+              position={tariffPanel.pos}
+              bounds={
+                mapContainerRef.current
+                  ? {
+                      width: mapContainerRef.current.getBoundingClientRect().width,
+                      height: mapContainerRef.current.getBoundingClientRect().height,
+                    }
+                  : null
+              }
+              onPositionChange={(pos) => setTariffPanel(prev => ({ ...prev, pos }))}
+              onClose={() => setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } })}
+            />
+          </PanelWindow>
         )}
 
         {/* Election Panel */}
         {electionPanel.open && electionPanel.state && (
-          <ElectionPanel
-            stateName={electionPanel.state}
-            position={electionPanel.pos}
-            bounds={
-              mapContainerRef.current
-                ? {
-                    width: mapContainerRef.current.getBoundingClientRect().width,
-                    height: mapContainerRef.current.getBoundingClientRect().height,
-                  }
-                : null
-            }
-            onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
+          <PanelWindow
+            id="election"
+            title={`Election — ${electionPanel.state}`}
             onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
-          />
+            defaultWidth={400}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={electionPanel.pos}
+          >
+            <ElectionPanel
+              stateName={electionPanel.state}
+              position={electionPanel.pos}
+              bounds={
+                mapContainerRef.current
+                  ? {
+                      width: mapContainerRef.current.getBoundingClientRect().width,
+                      height: mapContainerRef.current.getBoundingClientRect().height,
+                    }
+                  : null
+              }
+              onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
+              onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+            />
+          </PanelWindow>
         )}
 
         {/* Conflict panel */}
-        {conflictMode && (
-          <ConflictPanel
-            open={conflictPanelOpen}
+        {conflictMode && conflictPanelOpen && (
+          <PanelWindow
+            id="conflict"
+            title="Ukraine-Russia Conflict"
             onClose={() => setConflictPanelOpen(false)}
-          />
+            defaultWidth={420}
+            defaultHeight={600}
+          >
+            <ConflictPanel
+              open={true}
+              onClose={() => setConflictPanelOpen(false)}
+            />
+          </PanelWindow>
         )}
 
         {/* Election mode map legend */}
@@ -2262,19 +2328,27 @@ function App() {
         )}
 
         {countryPanel.open && countryPanel.data && (
-          <CountryPanel
-            data={countryPanel.data}
+          <PanelWindow
+            id="country"
+            title={countryPanel.data?.name || 'Country'}
             onClose={closeCountryPanel}
-            weather={panelWeather}
-            weatherLoading={panelWeatherLoading}
-            tempUnit={tempUnit}
-            currencyData={currencyData}
-            currencyLoading={currencyLoading}
-            approvalData={approvalData}
-            approvalLoading={approvalLoading}
-            economicData={economicData}
-            economicLoading={economicLoading}
-          />
+            defaultWidth={360}
+            defaultHeight={600}
+          >
+            <CountryPanel
+              data={countryPanel.data}
+              onClose={closeCountryPanel}
+              weather={panelWeather}
+              weatherLoading={panelWeatherLoading}
+              tempUnit={tempUnit}
+              currencyData={currencyData}
+              currencyLoading={currencyLoading}
+              approvalData={approvalData}
+              approvalLoading={approvalLoading}
+              economicData={economicData}
+              economicLoading={economicLoading}
+            />
+          </PanelWindow>
         )}
 
         <MapGL
@@ -2942,7 +3016,9 @@ function App() {
     </div>
     </div>
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    <MinimizedTray />
     </>
+    </WindowManagerProvider>
   );
 }
 
