@@ -764,6 +764,12 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.cp-econ-section-note {
+  font-weight: 500;
+  color: rgba(16, 185, 129, 0.6);
+  letter-spacing: 0.3px;
+}
+
 .cp-econ-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
