@@ -8,7 +8,7 @@ import { fetchCountryProfile } from '../../services/countryInfo';
 import { fetchCurrencyVsUSD } from '../../services/currencyService';
 import { fetchLeaderApproval, hasApprovalData, preloadApprovals } from '../../services/approvalService';
 import { fetchEconomicProfile } from '../../services/economicService';
-import { getLeader, fetchLeaderPhoto } from './worldLeaders';
+import { getLeader, getLeaderLive, fetchLeaderPhoto } from './worldLeaders';
 import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
@@ -96,7 +96,7 @@ export function useCountryPanel() {
     // Resolve abbreviated TopoJSON names to standard names
     const countryName = resolveCountryName(rawName);
 
-    // Look up leader from static data
+    // Look up leader from static/cached data for instant display
     const leaderData = getLeader(countryName);
 
     // Set initial state with loading
@@ -113,20 +113,30 @@ export function useCountryPanel() {
       },
     });
 
-    // Fetch leader photo from Wikipedia API in parallel with country data
+    // Fetch live leader (from Wikidata via backend), photo, and country data in parallel
+    const liveLeaderPromise = getLeaderLive(countryName);
     const photoPromise = leaderData?.wiki
       ? fetchLeaderPhoto(leaderData.wiki)
       : Promise.resolve(null);
 
     // Fetch country data
     try {
-      const [profile, leaderPhotoUrl] = await Promise.all([
+      const [profile, liveLeader, leaderPhotoUrl] = await Promise.all([
         fetchCountryProfile(countryName),
+        liveLeaderPromise,
         photoPromise,
       ]);
 
+      // Prefer live leader data over static
+      const leader = liveLeader || leaderData || {};
+
+      // If the live leader has a different wiki article, fetch their photo too
+      let finalPhoto = leaderPhotoUrl;
+      if (liveLeader?.wiki && liveLeader.wiki !== leaderData?.wiki) {
+        finalPhoto = await fetchLeaderPhoto(liveLeader.wiki).catch(() => leaderPhotoUrl);
+      }
+
       if (profile) {
-        const leader = leaderData || {};
         setCountryPanel(prev => ({
           ...prev,
           data: {
@@ -136,7 +146,7 @@ export function useCountryPanel() {
             populationRaw: profile.populationRaw,
             leader: leader.name || profile.leader || 'Unavailable',
             leaderTitle: leader.title || '',
-            leaderPhoto: leaderPhotoUrl || null,
+            leaderPhoto: finalPhoto || null,
             timezone: profile.timezone || 'UTC',
             timezoneCount: profile.timezoneCount,
             capital: profile.capital,

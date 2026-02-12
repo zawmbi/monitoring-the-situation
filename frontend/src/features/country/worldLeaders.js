@@ -2,7 +2,10 @@
  * World Leaders Data
  * Maps country names to their current head of state/government
  * Photos fetched dynamically from Wikipedia REST API
+ * Live updates via Wikidata (CC0) through backend, falling back to static data below.
  */
+
+import api from '../../services/api';
 
 const WORLD_LEADERS = {
   // ─── Americas ───
@@ -198,6 +201,38 @@ const WORLD_LEADERS = {
 // Cache for fetched Wikipedia thumbnails
 const photoCache = new Map();
 
+// Cache for live leaders fetched from backend (Wikidata)
+let liveLeadersCache = null;
+let liveLeadersFetchedAt = 0;
+const LIVE_LEADERS_TTL = 60 * 60 * 1000; // 1 hour local cache
+
+/**
+ * Fetch all live leaders from the backend (Wikidata source).
+ * Returns the leaders object or null.
+ */
+async function fetchLiveLeaders() {
+  if (liveLeadersCache && Date.now() - liveLeadersFetchedAt < LIVE_LEADERS_TTL) {
+    return liveLeadersCache;
+  }
+
+  try {
+    const res = await api.getWorldLeaders();
+    if (res.success && res.data?.leaders) {
+      liveLeadersCache = res.data.leaders;
+      liveLeadersFetchedAt = Date.now();
+      return liveLeadersCache;
+    }
+  } catch {
+    // Backend unreachable — use static data
+  }
+  return null;
+}
+
+/**
+ * Pre-fetch live leaders on module load (non-blocking).
+ */
+fetchLiveLeaders();
+
 /**
  * Fetch leader photo from Wikipedia REST API
  * Returns an embeddable thumbnail URL
@@ -222,7 +257,27 @@ export async function fetchLeaderPhoto(wikiTitle) {
   }
 }
 
+/**
+ * Get leader data for a country.
+ * Returns static data immediately (synchronous).
+ */
 export function getLeader(countryName) {
+  // Check live cache first (may have been pre-fetched)
+  if (liveLeadersCache?.[countryName]) {
+    return liveLeadersCache[countryName];
+  }
+  return WORLD_LEADERS[countryName] || null;
+}
+
+/**
+ * Get leader data for a country, trying live backend first.
+ * Returns a promise. Falls back to static if backend fails.
+ */
+export async function getLeaderLive(countryName) {
+  const live = await fetchLiveLeaders();
+  if (live?.[countryName]) {
+    return live[countryName];
+  }
   return WORLD_LEADERS[countryName] || null;
 }
 

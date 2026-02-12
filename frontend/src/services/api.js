@@ -30,6 +30,20 @@ export const api = {
   // Tariffs (US trade policy live data)
   getTariffLive: () => api.fetch('/tariffs'),
   getTariffNews: (limit = 30) => api.fetch(`/tariffs/news?limit=${limit}`),
+
+  // Economic data (World Bank live indicators)
+  getEconomicData: (cca2) => api.fetch(`/economic/${cca2}`),
+
+  // World leaders (Wikidata live data)
+  getWorldLeaders: () => api.fetch('/leaders'),
+  getLeaderByCountry: (country) => api.fetch(`/leaders/${encodeURIComponent(country)}`),
+
+  // UCDP conflict events
+  getUCDPEvents: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.fetch(`/ucdp/events${query ? `?${query}` : ''}`);
+  },
+  getUCDPConflicts: () => api.fetch('/ucdp/conflicts'),
 };
 
 export default api;
