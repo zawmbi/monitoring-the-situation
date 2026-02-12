@@ -548,22 +548,6 @@ body {
   100% { opacity: 0.9; }
 }
 
-/* Atmosphere edge glow — soft blue halo around globe center */
-.map-container.globe-mode .maplibregl-map::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 52% 52% at 50% 50%,
-    transparent 70%,
-    rgba(80, 140, 255, 0.06) 78%,
-    rgba(80, 140, 255, 0.12) 84%,
-    rgba(60, 120, 255, 0.05) 90%,
-    transparent 100%
-  );
-}
 
 .map-controls-br {
   position: absolute;
@@ -728,9 +712,12 @@ body {
   transition: opacity 0.35s ease;
 }
 
-.map-container.hide-atmosphere::before,
-.map-container.globe-mode::before {
+.map-container.hide-atmosphere::before {
   opacity: 0;
+}
+
+.map-container.globe-mode::before {
+  display: none;
 }
 
 
