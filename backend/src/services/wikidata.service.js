@@ -185,12 +185,35 @@ class WikidataService {
         // Determine title from position
         const title = this.inferTitle(position, country);
 
-        // Prefer head of government for countries that have both (e.g., UK PM over King)
+        // For presidential systems, the president (Head of State) IS the primary leader.
+        // For parliamentary systems, the PM (Head of Government) is the primary leader.
+        const presidentialCountries = [
+          'Russia', 'Ukraine', 'United States', 'France', 'Brazil', 'Argentina',
+          'Mexico', 'South Korea', 'Indonesia', 'Turkey', 'Iran', 'Egypt',
+          'South Africa', 'Nigeria', 'Kenya', 'Colombia', 'Chile', 'Peru',
+          'Venezuela', 'Philippines', 'Taiwan', 'Ecuador', 'Bolivia',
+          'Paraguay', 'Uruguay', 'Guatemala', 'Honduras', 'El Salvador',
+          'Costa Rica', 'Panama', 'Dominican Republic', 'Cuba', 'Nicaragua',
+          'Rwanda', 'Ghana', 'Senegal', 'Tunisia', 'Algeria', 'Mozambique',
+          'Angola', 'Zimbabwe', 'Zambia', 'Uganda', 'Tanzania', 'Cameroon',
+          'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Tajikistan', 'Kyrgyzstan',
+          'Azerbaijan', 'Belarus', 'Serbia', 'Moldova', 'Cyprus', 'Maldives',
+          'Sri Lanka',
+        ];
+        const isPresidential = presidentialCountries.includes(country);
+
         const existing = leaders[country];
         if (existing) {
-          // If we already have head of government, don't override with head of state
-          if (position === 'Head of State' && existing._pos === 'Head of Government') {
-            continue;
+          if (isPresidential) {
+            // For presidential countries, prefer Head of State over Head of Government
+            if (position === 'Head of Government' && existing._pos === 'Head of State') {
+              continue;
+            }
+          } else {
+            // For parliamentary countries, prefer Head of Government over Head of State
+            if (position === 'Head of State' && existing._pos === 'Head of Government') {
+              continue;
+            }
           }
         }
 

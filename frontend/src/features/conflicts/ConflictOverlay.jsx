@@ -174,31 +174,31 @@ function CityMarker({ city, hideLabel }) {
 
 const INFRA_SVG = {
   airbase: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <path d="M10 2L3 11h4v6h6v-6h4L10 2z" fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth="0.8"/>
     </svg>
   ),
   port: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <path d="M10 2v8M6 10c0 3 1.8 5 4 5s4-2 4-5" stroke={color} strokeWidth="2" strokeLinecap="round"/>
       <line x1="4" y1="17" x2="16" y2="17" stroke={color} strokeWidth="1.5"/>
     </svg>
   ),
   depot: (color) => (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
       <rect x="3" y="6" width="14" height="10" rx="1.5" fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth="0.8"/>
       <path d="M3 6l7-4 7 4" stroke={color} strokeWidth="1.5" fill="none"/>
     </svg>
   ),
   bridge: (color) => (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
       <path d="M2 14c3-6 5-6 8-6s5 0 8 6" stroke={color} strokeWidth="1.8" fill="none"/>
       <line x1="6" y1="8" x2="6" y2="14" stroke={color} strokeWidth="1.5"/>
       <line x1="14" y1="8" x2="14" y2="14" stroke={color} strokeWidth="1.5"/>
     </svg>
   ),
   airdefense: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <circle cx="10" cy="10" r="7" stroke={color} strokeWidth="1.5"/>
       <circle cx="10" cy="10" r="2" fill={color}/>
       <line x1="10" y1="3" x2="10" y2="7" stroke={color} strokeWidth="1.2"/>
@@ -210,7 +210,7 @@ const INFRA_SVG = {
 };
 function InfraMarker({ item, showLabel }) {
   const isUA = item.side === 'ukraine';
-  const color = isUA ? '#82b1ff' : '#ff8a80';
+  const color = isUA ? '#9ec8ff' : '#ff9d91';
   const svgRenderer = INFRA_SVG[item.type];
   return (
     <div className={`conflict-infra conflict-infra--${item.type} conflict-infra--${isUA ? 'ua' : 'ru'}`}
@@ -225,45 +225,45 @@ function InfraMarker({ item, showLabel }) {
 
 const NAVAL_SVG = {
   patrol: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <path d="M3 13c2-1 4-2 7-2s5 1 7 2" stroke={color} strokeWidth="1.5"/>
       <path d="M6 13V8l4-3 4 3v5" stroke={color} strokeWidth="1.2"/>
       <line x1="10" y1="5" x2="10" y2="3" stroke={color} strokeWidth="1"/>
     </svg>
   ),
   anchorage: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <path d="M10 2v8M6 10c0 3 1.8 5 4 5s4-2 4-5" stroke={color} strokeWidth="2" strokeLinecap="round"/>
       <line x1="4" y1="17" x2="16" y2="17" stroke={color} strokeWidth="1.5"/>
     </svg>
   ),
   submarine: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <ellipse cx="10" cy="12" rx="7" ry="3.5" fill={color} opacity="0.3" stroke={color} strokeWidth="1.2"/>
       <line x1="10" y1="8.5" x2="10" y2="5" stroke={color} strokeWidth="1.2"/>
       <line x1="8" y1="6" x2="12" y2="6" stroke={color} strokeWidth="1"/>
     </svg>
   ),
   coastal: (color) => (
-    <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+    <svg viewBox="0 0 20 20" width="22" height="22" fill="none">
       <path d="M10 3L5 9h3v6h4V9h3L10 3z" fill={color} stroke="rgba(0,0,0,0.4)" strokeWidth="0.6"/>
       <line x1="3" y1="17" x2="17" y2="17" stroke={color} strokeWidth="1.5"/>
     </svg>
   ),
   usv: (color) => (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
       <path d="M4 12h12l-2 3H6l-2-3z" fill={color} opacity="0.4" stroke={color} strokeWidth="1"/>
       <circle cx="10" cy="9" r="3" stroke={color} strokeWidth="1.2"/>
       <circle cx="10" cy="9" r="1" fill={color}/>
     </svg>
   ),
   corridor: (color) => (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
       <path d="M4 10h9M13 7l3 3-3 3" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
   wreck: (color) => (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
       <line x1="5" y1="5" x2="15" y2="15" stroke={color} strokeWidth="2" strokeLinecap="round"/>
       <line x1="15" y1="5" x2="5" y2="15" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     </svg>
@@ -272,7 +272,7 @@ const NAVAL_SVG = {
 function NavalMarker({ pos }) {
   const isUA = pos.side === 'ukraine';
   const isWreck = pos.status === 'destroyed';
-  const color = isWreck ? '#888' : isUA ? '#82b1ff' : '#ff8a80';
+  const color = isWreck ? '#888' : isUA ? '#9ec8ff' : '#ff9d91';
   const svgRenderer = NAVAL_SVG[pos.type];
   return (
     <div className={`conflict-naval conflict-naval--${isUA ? 'ua' : 'ru'} ${isWreck ? 'conflict-naval--wreck' : ''}`}
@@ -359,19 +359,26 @@ function BattlePopup({ site, onClose }) {
 
 function NppIcon({ color }) {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.5"/>
-      <circle cx="12" cy="12" r="3" fill={color}/>
-      <path d="M12 9C12 9 15 4.5 18.5 7" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <path d="M14.6 11.5C14.6 11.5 19.5 12 18 16.5" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <path d="M13.2 14.2C13.2 14.2 15 18.5 10.5 19" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <path d="M10.8 14.2C10.8 14.2 5 18.5 3.5 14" stroke={color} strokeWidth="2" strokeLinecap="round" transform="rotate(-120 12 12)"/>
-      <path d="M10.8 14.2C10.8 14.2 5 18.5 3.5 14" stroke={color} strokeWidth="2" strokeLinecap="round" transform="rotate(120 12 12)"/>
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+      {/* Outer circle */}
+      <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="1.2"/>
+      {/* Center dot */}
+      <circle cx="12" cy="12" r="2.5" fill={color}/>
+      {/* Three trefoil blades — proper radiation symbol */}
+      <path d="M12 9.5 A5.5 5.5 0 0 1 16.76 12.5 L12 12.5 Z" fill={color}/>
+      <path d="M12 9.5 A5.5 5.5 0 0 0 7.24 12.5 L12 12.5 Z" fill={color}/>
+      <path d="M16.76 12.5 A5.5 5.5 0 0 1 12 15.5 L12 12.5 Z" fill={color} transform="rotate(120 12 12)"/>
+      <path d="M12 9.5 A5.5 5.5 0 0 1 16.76 12.5 L12 12.5 Z" fill={color} transform="rotate(120 12 12)"/>
+      <path d="M12 9.5 A5.5 5.5 0 0 1 16.76 12.5 L12 12.5 Z" fill={color} transform="rotate(240 12 12)"/>
+      {/* Gap circles to create trefoil cutouts */}
+      <circle cx="12" cy="7.5" r="1.8" fill="rgba(0,0,0,0.9)"/>
+      <circle cx="15.9" cy="14.5" r="1.8" fill="rgba(0,0,0,0.9)"/>
+      <circle cx="8.1" cy="14.5" r="1.8" fill="rgba(0,0,0,0.9)"/>
     </svg>
   );
 }
 function NppMarker({ plant }) {
-  const color = plant.status === 'operational' ? '#66ff66' : plant.status === 'occupied' ? '#ff6b6b' : '#888';
+  const color = plant.status === 'operational' ? '#f0c040' : plant.status === 'occupied' ? '#ff6b6b' : '#888';
   return (
     <div className={`conflict-npp conflict-npp--${plant.status}`} title={`${plant.name}\n${plant.note}`}>
       <span className="conflict-npp-icon conflict-npp-icon--svg"><NppIcon color={color} /></span>
@@ -425,23 +432,23 @@ export function MapLegend({ open, onToggle }) {
           <div className="conflict-map-legend-section">
             <div className="conflict-map-legend-heading">Military</div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{INFRA_SVG.airbase('#82b1ff')}</span>
+              <span className="conflict-map-legend-icon">{INFRA_SVG.airbase('#9ec8ff')}</span>
               <span>Airbase</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{INFRA_SVG.port('#82b1ff')}</span>
+              <span className="conflict-map-legend-icon">{INFRA_SVG.port('#9ec8ff')}</span>
               <span>Port / Naval base</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{INFRA_SVG.airdefense('#82b1ff')}</span>
+              <span className="conflict-map-legend-icon">{INFRA_SVG.airdefense('#9ec8ff')}</span>
               <span>Air defense</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{INFRA_SVG.depot('#82b1ff')}</span>
+              <span className="conflict-map-legend-icon">{INFRA_SVG.depot('#9ec8ff')}</span>
               <span>Supply depot</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{INFRA_SVG.bridge('#ff8a80')}</span>
+              <span className="conflict-map-legend-icon">{INFRA_SVG.bridge('#ff9d91')}</span>
               <span>Bridge</span>
             </div>
           </div>
@@ -452,15 +459,15 @@ export function MapLegend({ open, onToggle }) {
               <span>Battle site</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon"><NppIcon color="#66ff66" /></span>
+              <span className="conflict-map-legend-icon"><NppIcon color="#f0c040" /></span>
               <span>Nuclear power plant</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{NAVAL_SVG.patrol('#ff8a80')}</span>
+              <span className="conflict-map-legend-icon">{NAVAL_SVG.patrol('#ff9d91')}</span>
               <span>Naval patrol</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon">{NAVAL_SVG.usv('#82b1ff')}</span>
+              <span className="conflict-map-legend-icon">{NAVAL_SVG.usv('#9ec8ff')}</span>
               <span>Unmanned surface vehicle</span>
             </div>
           </div>
@@ -524,11 +531,32 @@ export function MapLegend({ open, onToggle }) {
           <div className="conflict-map-legend-section">
             <div className="conflict-map-legend-heading">Coat of Arms</div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+              <span className="conflict-map-legend-icon">
+                <svg viewBox="0 0 100 130" width="16" height="20">
+                  <path d="M10,5 h80 v65 q0,25 -20,40 l-20,15 -20,-15 q-20,-15 -20,-40 z"
+                    fill="#0057B8" stroke="#FFD700" strokeWidth="4"/>
+                  <g transform="translate(50,62)" fill="#FFD700">
+                    <rect x="-3" y="-35" width="6" height="60" rx="2"/>
+                    <rect x="-18" y="-33" width="5" height="40" rx="2"/>
+                    <rect x="13" y="-33" width="5" height="40" rx="2"/>
+                    <rect x="-22" y="6" width="44" height="5" rx="2"/>
+                  </g>
+                </svg>
+              </span>
               <span>Ukraine (Tryzub)</span>
             </div>
             <div className="conflict-map-legend-row">
-              <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+              <span className="conflict-map-legend-icon">
+                <svg viewBox="0 0 100 130" width="16" height="20">
+                  <path d="M10,5 h80 v65 q0,25 -20,40 l-20,15 -20,-15 q-20,-15 -20,-40 z"
+                    fill="#D52B1E" stroke="#FFD700" strokeWidth="4"/>
+                  <g transform="translate(50,60)">
+                    <ellipse cx="0" cy="2" rx="18" ry="14" fill="#FFD700"/>
+                    <circle cx="-14" cy="-16" r="6" fill="#FFD700"/>
+                    <circle cx="14" cy="-16" r="6" fill="#FFD700"/>
+                  </g>
+                </svg>
+              </span>
               <span>Russia (Double-headed eagle)</span>
             </div>
           </div>
@@ -537,6 +565,11 @@ export function MapLegend({ open, onToggle }) {
     </div>
   );
 }
+
+/* ───────────────────────────────────────────
+   Exported symbol renderers for legend reuse
+   ─────────────────────────────────────────── */
+export { INFRA_SVG, NAVAL_SVG, BattleIcon, NppIcon };
 
 /* ───────────────────────────────────────────
    Main overlay
@@ -618,20 +651,24 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
         />
       </Source>
 
-      {/* ══════════ Frontline ══════════ */}
+      {/* ══════════ Frontline — sleek minimal design ══════════ */}
       <Source id="conflict-frontline" type="geojson" data={frontlineGeoJSON}>
+        {/* Soft outer glow */}
         <Layer id="conflict-fl-glow" type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': ['get', 'color'], 'line-width': 14, 'line-opacity': 0.10, 'line-blur': 4 }} />
+          paint={{ 'line-color': 'rgba(255,80,60,0.12)', 'line-width': 10, 'line-blur': 6 }} />
+        {/* UA side — thin blue accent */}
         <Layer id="conflict-fl-ua" type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': UA_BLUE, 'line-width': 2, 'line-offset': -3, 'line-opacity': 0.8 }} />
+          paint={{ 'line-color': UA_BLUE, 'line-width': 1.5, 'line-offset': -2, 'line-opacity': 0.7 }} />
+        {/* Center line — crisp white-hot core */}
         <Layer id="conflict-fl-center" type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': ['get', 'color'], 'line-width': 2.5 }} />
+          paint={{ 'line-color': 'rgba(255,255,255,0.7)', 'line-width': 1 }} />
+        {/* RU side — thin red accent */}
         <Layer id="conflict-fl-ru" type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': RU_RED, 'line-width': 2, 'line-offset': 3, 'line-opacity': 0.8 }} />
+          paint={{ 'line-color': RU_RED, 'line-width': 1.5, 'line-offset': 2, 'line-opacity': 0.7 }} />
       </Source>
 
       {/* ══════════ Sector labels (zoom-gated) ══════════ */}

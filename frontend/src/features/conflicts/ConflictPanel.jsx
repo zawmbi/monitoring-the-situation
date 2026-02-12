@@ -23,6 +23,7 @@ import {
   UA_YELLOW,
   RU_RED,
 } from './conflictData';
+import { INFRA_SVG, NAVAL_SVG, BattleIcon, NppIcon } from './ConflictOverlay';
 import './conflicts.css';
 
 /* ─── Utility: format relative time ─── */
@@ -180,23 +181,23 @@ function MapSymbolLegend() {
         <div className="conflict-panel-legend-heading">Military Infrastructure</div>
         <div className="conflict-panel-legend-grid">
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>✈</span>
+            <span className="conflict-map-legend-icon">{INFRA_SVG.airbase('#9ec8ff')}</span>
             <span>Airbase</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⚓</span>
+            <span className="conflict-map-legend-icon">{INFRA_SVG.port('#9ec8ff')}</span>
             <span>Port / Naval base</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>⊕</span>
+            <span className="conflict-map-legend-icon">{INFRA_SVG.airdefense('#9ec8ff')}</span>
             <span>Air defense</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◆</span>
+            <span className="conflict-map-legend-icon">{INFRA_SVG.depot('#9ec8ff')}</span>
             <span>Supply depot</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⌇</span>
+            <span className="conflict-map-legend-icon">{INFRA_SVG.bridge('#ff9d91')}</span>
             <span>Bridge</span>
           </div>
         </div>
@@ -206,23 +207,23 @@ function MapSymbolLegend() {
         <div className="conflict-panel-legend-heading">Combat & Strategic</div>
         <div className="conflict-panel-legend-grid">
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#ffa500' }}>⚔</span>
+            <span className="conflict-map-legend-icon"><BattleIcon color="#ffa500" /></span>
             <span>Battle site (click for details)</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#66ff66' }}>☢</span>
+            <span className="conflict-map-legend-icon"><NppIcon color="#f0c040" /></span>
             <span>Nuclear power plant</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#ff8a80' }}>⛵</span>
+            <span className="conflict-map-legend-icon">{NAVAL_SVG.patrol('#ff9d91')}</span>
             <span>Naval patrol</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#82b1ff' }}>◈</span>
+            <span className="conflict-map-legend-icon">{NAVAL_SVG.usv('#9ec8ff')}</span>
             <span>Unmanned surface vehicle</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ color: '#ff6b6b' }}>✕</span>
+            <span className="conflict-map-legend-icon">{NAVAL_SVG.wreck('#ff6b6b')}</span>
             <span>Wreck / destroyed vessel</span>
           </div>
         </div>
@@ -298,11 +299,32 @@ function MapSymbolLegend() {
         <div className="conflict-panel-legend-heading">Coat of Arms</div>
         <div className="conflict-panel-legend-grid">
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇺🇦</span>
+            <span className="conflict-map-legend-icon">
+              <svg viewBox="0 0 100 130" width="18" height="23">
+                <path d="M10,5 h80 v65 q0,25 -20,40 l-20,15 -20,-15 q-20,-15 -20,-40 z"
+                  fill="#0057B8" stroke="#FFD700" strokeWidth="4"/>
+                <g transform="translate(50,62)" fill="#FFD700">
+                  <rect x="-3" y="-35" width="6" height="60" rx="2"/>
+                  <rect x="-18" y="-33" width="5" height="40" rx="2"/>
+                  <rect x="13" y="-33" width="5" height="40" rx="2"/>
+                  <rect x="-22" y="6" width="44" height="5" rx="2"/>
+                </g>
+              </svg>
+            </span>
             <span>Ukraine (Tryzub)</span>
           </div>
           <div className="conflict-map-legend-row">
-            <span className="conflict-map-legend-icon" style={{ fontSize: 14 }}>🇷🇺</span>
+            <span className="conflict-map-legend-icon">
+              <svg viewBox="0 0 100 130" width="18" height="23">
+                <path d="M10,5 h80 v65 q0,25 -20,40 l-20,15 -20,-15 q-20,-15 -20,-40 z"
+                  fill="#D52B1E" stroke="#FFD700" strokeWidth="4"/>
+                <g transform="translate(50,60)">
+                  <ellipse cx="0" cy="2" rx="18" ry="14" fill="#FFD700"/>
+                  <circle cx="-14" cy="-16" r="6" fill="#FFD700"/>
+                  <circle cx="14" cy="-16" r="6" fill="#FFD700"/>
+                </g>
+              </svg>
+            </span>
             <span>Russia (Double-headed eagle)</span>
           </div>
         </div>
