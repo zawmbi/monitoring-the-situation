@@ -13,6 +13,7 @@ import {
   NATIONAL_OVERVIEW,
   GENERAL_ELECTION_DATE,
 } from './electionData';
+import InlineMarkets from '../../components/InlineMarkets';
 import './elections.css';
 
 function formatDate(dateStr) {
@@ -484,6 +485,16 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             <DateCountdown label="General Runoff" dateStr={dates.generalRunoff} type="runoff" />
           )}
           <DateCountdown label="General Election" dateStr={GENERAL_ELECTION_DATE} type="general" />
+        </div>
+
+        {/* Prediction Markets */}
+        <div className="el-dates-section">
+          <InlineMarkets
+            keywords={['election', 'midterm', 'senate', 'governor', 'congress', 'house', stateName]}
+            title="Election Markets"
+            enabled={true}
+            maxItems={4}
+          />
         </div>
 
         <div className="el-drag-note">Drag to move</div>

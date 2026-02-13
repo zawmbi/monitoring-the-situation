@@ -18,6 +18,7 @@ import { worldBankService } from '../services/worldbank.service.js';
 import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
 import { marketsService } from '../services/markets.service.js';
+import { kalshiService } from '../services/kalshi.service.js';
 
 const router = Router();
 
@@ -515,6 +516,84 @@ router.get('/markets/:countryCode', async (req, res) => {
   } catch (error) {
     console.error('[API] Markets error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch market data' });
+  }
+});
+
+// ===========================================
+// KALSHI PREDICTION MARKETS
+// ===========================================
+
+/**
+ * GET /api/kalshi
+ * Returns Kalshi prediction markets
+ * Query params:
+ * - topic: comma-separated keywords to filter by
+ * - limit: number of markets to return (default 50)
+ */
+router.get('/kalshi', async (req, res) => {
+  try {
+    const { topic, limit = 50 } = req.query;
+    let markets;
+    if (topic) {
+      const keywords = topic.split(',').map(k => k.trim()).filter(Boolean);
+      markets = await kalshiService.getMarketsByTopic(keywords);
+    } else {
+      markets = await kalshiService.getTopMarkets(parseInt(limit, 10));
+    }
+    res.json({ success: true, count: markets.length, data: markets, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Kalshi error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch Kalshi data' });
+  }
+});
+
+/**
+ * GET /api/predictions
+ * Combined prediction markets from Polymarket + Kalshi, filtered by topic
+ * Query params:
+ * - topic: comma-separated keywords to filter by (required)
+ * - limit: max results per source (default 10)
+ */
+router.get('/predictions', async (req, res) => {
+  try {
+    const { topic, limit = 10 } = req.query;
+    if (!topic) {
+      return res.status(400).json({ success: false, error: 'Query parameter "topic" is required' });
+    }
+
+    const keywords = topic.split(',').map(k => k.trim()).filter(Boolean);
+    const maxResults = parseInt(limit, 10);
+
+    const [polymarketResults, kalshiResults] = await Promise.allSettled([
+      polymarketService.getMarketsByTopic(keywords),
+      kalshiService.getMarketsByTopic(keywords),
+    ]);
+
+    const polymarkets = polymarketResults.status === 'fulfilled'
+      ? polymarketResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'polymarket' }))
+      : [];
+    const kalshiMarkets = kalshiResults.status === 'fulfilled'
+      ? kalshiResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'kalshi' }))
+      : [];
+
+    // Interleave by volume: merge both lists, sort by volume descending
+    const combined = [...polymarkets, ...kalshiMarkets]
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+      .slice(0, maxResults * 2);
+
+    res.json({
+      success: true,
+      count: combined.length,
+      sources: {
+        polymarket: polymarkets.length,
+        kalshi: kalshiMarkets.length,
+      },
+      data: combined,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Predictions error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch prediction markets' });
   }
 });
 

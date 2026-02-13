@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { SCOTUS_JUSTICES, SCOTUS_PENDING_CASES, SCOTUS_TERM, SCOTUS_COMPOSITION } from './scotusData';
+import InlineMarkets from '../../components/InlineMarkets';
 import './country.css';
 
 function getCurrentTimeForOffset(offsetHours) {
@@ -586,6 +587,13 @@ function SCOTUSPanel({ onClose }) {
         })}
       </div>
 
+      <InlineMarkets
+        keywords={['supreme court', 'scotus', 'judicial', 'court ruling']}
+        title="SCOTUS Markets"
+        enabled={true}
+        maxItems={4}
+      />
+
       <div className="cp-scotus-footer">
         Data reflects the {SCOTUS_TERM} term. Decisions pending.
       </div>
@@ -929,6 +937,18 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
         {!isScope && marketLoading && !marketData && (
           <div className="cp-section">
             <div className="cp-loading-line" />
+          </div>
+        )}
+
+        {/* Prediction Markets for this country */}
+        {!isScope && (
+          <div className="cp-section">
+            <InlineMarkets
+              keywords={[data.name]}
+              title={`${data.name} Markets`}
+              enabled={true}
+              maxItems={4}
+            />
           </div>
         )}
 

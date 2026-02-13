@@ -404,6 +404,43 @@ class PolymarketService {
   }
 
   /**
+   * Filter markets by topic keywords
+   */
+  filterByTopic(markets, keywords) {
+    if (!keywords || keywords.length === 0) return markets;
+
+    const normalizedKeywords = keywords.map(k => normalizeText(k));
+
+    return markets.filter(market => {
+      const text = market.searchText || normalizeText(`${market.question} ${market.description} ${market.category}`);
+      const rawText = market.rawSearchText || `${market.question} ${market.description}`;
+
+      return normalizedKeywords.some(keyword => {
+        const escaped = escapeRegex(keyword);
+        const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+        if (regex.test(text) || regex.test(rawText)) return true;
+        if (keyword.length <= 3) return false;
+        return text.includes(keyword);
+      });
+    });
+  }
+
+  /**
+   * Get markets filtered by topic keywords
+   */
+  async getMarketsByTopic(keywords) {
+    const cacheKey = `${CACHE_KEY_PREFIX}:topic:${keywords.sort().join(',')}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const allMarkets = await this.getAllMarkets();
+    const filtered = this.filterByTopic(allMarkets, keywords);
+
+    await cacheService.set(cacheKey, filtered, CACHE_TTL);
+    return filtered;
+  }
+
+  /**
    * Get top markets (by volume)
    */
   async getTopMarkets(limit = 50) {
