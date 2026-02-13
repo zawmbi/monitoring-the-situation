@@ -165,9 +165,10 @@
   gap: 4px;
 }
 
-/* ── Market card ── */
+/* ── Market card (now an <a> link) ── */
 
 .im-card {
+  display: block;
   background: var(--panel-card-bg);
   border: 1px solid var(--panel-card-border);
   border-radius: 6px;
@@ -177,6 +178,8 @@
   text-align: left;
   width: 100%;
   font-family: inherit;
+  text-decoration: none;
+  color: inherit;
 }
 
 .im-card:hover {
@@ -184,9 +187,9 @@
   border-color: rgba(var(--accent-rgb), 0.3);
 }
 
-.im-card-expanded {
-  background: rgba(var(--accent-rgb), 0.06);
-  border-color: rgba(var(--accent-rgb), 0.35);
+.im-card:hover .im-external {
+  opacity: 1;
+  color: var(--color-accent);
 }
 
 .im-card-header {
@@ -234,6 +237,16 @@
   color: var(--color-text-primary);
   line-height: 1.3;
   margin-bottom: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.im-external {
+  flex-shrink: 0;
+  opacity: 0.3;
+  margin-top: 2px;
+  transition: opacity 0.15s, color 0.15s;
 }
 
 /* ── Outcomes ── */
@@ -283,43 +296,6 @@
   width: 28px;
   text-align: right;
   flex-shrink: 0;
-}
-
-/* ── Expanded detail ── */
-
-.im-card-detail {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--color-border);
-}
-
-.im-description {
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--color-text-secondary);
-  margin: 0 0 6px 0;
-  max-height: 50px;
-  overflow-y: auto;
-}
-
-.im-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-accent);
-  text-decoration: none;
-  padding: 3px 8px;
-  background: rgba(var(--accent-rgb), 0.08);
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.im-link:hover {
-  background: rgba(var(--accent-rgb), 0.16);
-  border-color: rgba(var(--accent-rgb), 0.4);
 }
 
 /* ── Footer ── */

@@ -1,21 +1,26 @@
 /**
  * useMarketsByTopic Hook
  * Fetches combined prediction markets (Polymarket + Kalshi) by topic keywords
- * Uses required keywords (must match) + optional boost keywords (improve ranking)
- * Auto-refreshes every 5 minutes
+ * Uses stale-while-revalidate: keeps showing old data during refresh
+ * Auto-refreshes every 90 seconds for live feel
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], enabled = true) {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const isMounted = useRef(true);
 
-  // Stable key for required + boost keywords
   const requireKey = [...requiredKeywords].sort().join(',');
   const boostKey = [...boostKeywords].sort().join(',');
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   const fetchMarkets = useCallback(async () => {
     if (!enabled || !requireKey) {
@@ -24,7 +29,7 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
     }
 
     setLoading(true);
-    setError(null);
+    // Don't clear error or markets — stale-while-revalidate
 
     try {
       const params = new URLSearchParams();
@@ -41,31 +46,34 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
 
       clearTimeout(timeout);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch predictions: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`${response.status}`);
 
       const result = await response.json();
+
+      if (!isMounted.current) return;
 
       if (result.success && Array.isArray(result.data)) {
         setMarkets(result.data);
         setLastUpdated(new Date());
-      } else {
-        throw new Error('Invalid response format');
+        setError(null);
       }
     } catch (err) {
-      console.error('[useMarketsByTopic] Error:', err);
-      setError(err);
-      setMarkets([]);
+      if (!isMounted.current) return;
+      // On error, keep showing stale data (don't clear markets)
+      // Only set error if we have no data to show
+      if (markets.length === 0) {
+        setError(err);
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   }, [requireKey, boostKey, enabled]);
 
   useEffect(() => {
     if (enabled && requireKey) {
       fetchMarkets();
-      const interval = setInterval(fetchMarkets, 5 * 60 * 1000);
+      // Live update every 90 seconds
+      const interval = setInterval(fetchMarkets, 90 * 1000);
       return () => clearInterval(interval);
     }
   }, [fetchMarkets, enabled, requireKey]);
