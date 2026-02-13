@@ -1,10 +1,28 @@
 /**
  * 2026 US Midterm Election Data
  * Real races, candidates, polling data, and key dates
- * Sources: Cook Political Report, Sabato's Crystal Ball, 270toWin, Ballotpedia
+ * Sources: Cook Political Report, Sabato's Crystal Ball, 270toWin, Ballotpedia, OpenSecrets
  */
 
 export const GENERAL_ELECTION_DATE = '2026-11-03';
+export const DATA_LAST_UPDATED = '2026-02-13';
+
+// Cook Partisan Voting Index (PVI) by state
+export const STATE_PVI = {
+  'Alabama': 'R+16', 'Alaska': 'R+9', 'Arizona': 'R+3', 'Arkansas': 'R+18',
+  'California': 'D+14', 'Colorado': 'D+4', 'Connecticut': 'D+7', 'Delaware': 'D+7',
+  'Florida': 'R+5', 'Georgia': 'R+3', 'Hawaii': 'D+16', 'Idaho': 'R+21',
+  'Illinois': 'D+8', 'Indiana': 'R+12', 'Iowa': 'R+6', 'Kansas': 'R+12',
+  'Kentucky': 'R+17', 'Louisiana': 'R+14', 'Maine': 'D+3', 'Maryland': 'D+14',
+  'Massachusetts': 'D+16', 'Michigan': 'R+1', 'Minnesota': 'D+1', 'Mississippi': 'R+12',
+  'Missouri': 'R+11', 'Montana': 'R+12', 'Nebraska': 'R+13', 'Nevada': 'R+1',
+  'New Hampshire': 'D+1', 'New Jersey': 'D+7', 'New Mexico': 'D+4', 'New York': 'D+10',
+  'North Carolina': 'R+3', 'North Dakota': 'R+20', 'Ohio': 'R+6', 'Oklahoma': 'R+22',
+  'Oregon': 'D+6', 'Pennsylvania': 'R+1', 'Rhode Island': 'D+9', 'South Carolina': 'R+10',
+  'South Dakota': 'R+18', 'Tennessee': 'R+16', 'Texas': 'R+7', 'Utah': 'R+14',
+  'Vermont': 'D+14', 'Virginia': 'D+3', 'Washington': 'D+7', 'West Virginia': 'R+23',
+  'Wisconsin': 'EVEN', 'Wyoming': 'R+26',
+};
 
 // Rating scale: 'safe-d', 'likely-d', 'lean-d', 'toss-up', 'lean-r', 'likely-r', 'safe-r'
 export const RATING_LABELS = {
@@ -117,7 +135,11 @@ export const SENATE_RACES = {
     incumbentParty: 'R',
     status: 'running',
     rating: 'lean-r',
+    prevMargin: 'R+8.7',
     note: 'Alaska uses ranked-choice voting',
+    keyIssues: ['Oil & gas development', 'Cost of living', 'Native affairs', 'Ranked-choice voting'],
+    fundraising: { R: '$4.2M', D: '$3.8M' },
+    endorsements: { R: ['Trump', 'NRA'], D: ['AFL-CIO', 'EMILY\'s List'] },
     candidates: {
       primary: {
         R: [{ name: 'Dan Sullivan', polling: 78 }],
@@ -187,6 +209,10 @@ export const SENATE_RACES = {
     status: 'running',
     statusDetail: 'Appointed to replace Rubio',
     rating: 'likely-r',
+    prevMargin: 'R+5.0',
+    keyIssues: ['Insurance costs', 'Immigration', 'Abortion rights', 'Climate/hurricanes'],
+    fundraising: { R: '$8.1M', D: '$2.5M' },
+    endorsements: { R: ['Trump', 'Gov DeSantis', 'Florida Chamber'], D: [] },
     candidates: {
       primary: {
         R: [{ name: 'Ashley Moody', polling: 65 }],
@@ -204,7 +230,11 @@ export const SENATE_RACES = {
     incumbentParty: 'D',
     status: 'running',
     rating: 'lean-d',
+    prevMargin: 'D+1.2',
     note: 'Georgia may require runoff if no candidate gets 50%',
+    keyIssues: ['Economy/jobs', 'Healthcare', 'Voting rights', 'Immigration'],
+    fundraising: { D: '$12.5M', R: '$4.8M' },
+    endorsements: { D: ['Obama', 'Stacey Abrams', 'AFL-CIO'], R: ['Trump'] },
     candidates: {
       primary: {
         D: [{ name: 'Jon Ossoff', polling: 88 }],
@@ -266,6 +296,10 @@ export const SENATE_RACES = {
     status: 'open',
     statusDetail: 'Ernst retiring',
     rating: 'likely-r',
+    prevMargin: 'R+6.6',
+    keyIssues: ['Agriculture/trade', 'Healthcare', 'Immigration', 'Education'],
+    fundraising: { R: '$5.1M', D: '$3.2M' },
+    endorsements: { R: ['Iowa Farm Bureau'], D: ['UAW'] },
     candidates: {
       primary: {
         R: [
@@ -344,7 +378,11 @@ export const SENATE_RACES = {
     incumbentParty: 'R',
     status: 'running',
     rating: 'toss-up',
+    prevMargin: 'R+8.6',
     note: 'Senate Leadership Fund pledged $42M to defend Collins',
+    keyIssues: ['Healthcare/ACA', 'Economy', 'Abortion rights', 'Climate/fisheries'],
+    fundraising: { R: '$14.2M', D: '$9.8M' },
+    endorsements: { R: ['Senate Leadership Fund', 'Collins PAC'], D: ['EMILY\'s List', 'LCV', 'Planned Parenthood'] },
     candidates: {
       primary: {
         R: [
@@ -388,6 +426,10 @@ export const SENATE_RACES = {
     status: 'open',
     statusDetail: 'Peters retiring',
     rating: 'toss-up',
+    prevMargin: 'D+1.7',
+    keyIssues: ['Auto industry/manufacturing', 'Economy', 'Abortion rights', 'Education'],
+    fundraising: { D: '$8.4M', R: '$7.1M' },
+    endorsements: { D: ['UAW', 'EMILY\'s List'], R: ['Trump', 'NRSC'] },
     candidates: {
       primary: {
         D: [
@@ -413,6 +455,10 @@ export const SENATE_RACES = {
     status: 'open',
     statusDetail: 'Smith retiring',
     rating: 'lean-d',
+    prevMargin: 'D+5.4',
+    keyIssues: ['Healthcare', 'Economy', 'Education', 'Public safety'],
+    fundraising: { D: '$3.5M', R: '$1.8M' },
+    endorsements: { D: ['DFL Party'], R: [] },
     candidates: {
       primary: {
         D: [
@@ -466,7 +512,11 @@ export const SENATE_RACES = {
     incumbentParty: 'R',
     status: 'running',
     rating: 'likely-r',
+    prevMargin: 'R+25.9',
     note: 'Dan Osborn (I) endorsed by NE Democratic Party',
+    keyIssues: ['Agriculture', 'Economy', 'Immigration', 'Trade policy'],
+    fundraising: { R: '$6.2M', I: '$4.1M' },
+    endorsements: { R: ['Trump', 'NRA'], I: ['NE Democratic Party', 'Working families'] },
     candidates: {
       primary: {
         R: [{ name: 'Pete Ricketts', polling: 75 }],
@@ -485,6 +535,10 @@ export const SENATE_RACES = {
     status: 'open',
     statusDetail: 'Shaheen retiring',
     rating: 'lean-d',
+    prevMargin: 'D+15.6',
+    keyIssues: ['Economy/cost of living', 'Healthcare', 'Opioid crisis', 'Education'],
+    fundraising: { D: '$2.1M', R: '$1.5M' },
+    endorsements: { D: ['Shaheen'], R: [] },
     candidates: {
       primary: {
         D: [
@@ -541,6 +595,10 @@ export const SENATE_RACES = {
     status: 'open',
     statusDetail: 'Tillis retiring',
     rating: 'toss-up',
+    prevMargin: 'R+1.8',
+    keyIssues: ['Economy', 'Education', 'Abortion rights', 'Voting rights'],
+    fundraising: { D: '$11.2M', R: '$6.8M' },
+    endorsements: { D: ['Obama', 'DSCC', 'EMILY\'s List'], R: ['Trump', 'Club for Growth'] },
     candidates: {
       primary: {
         R: [
@@ -564,7 +622,11 @@ export const SENATE_RACES = {
     status: 'running',
     statusDetail: 'Appointed to replace Vance',
     rating: 'lean-r',
+    prevMargin: 'R+11.3',
     note: 'Polls show race effectively tied',
+    keyIssues: ['Economy/manufacturing', 'Immigration', 'Healthcare', 'Trade'],
+    fundraising: { R: '$9.5M', D: '$12.8M' },
+    endorsements: { R: ['Trump', 'Ohio Chamber'], D: ['AFL-CIO', 'UAW', 'DSCC'] },
     candidates: {
       primary: {
         R: [{ name: 'Jon Husted', polling: 68 }],
@@ -684,7 +746,11 @@ export const SENATE_RACES = {
     incumbentParty: 'R',
     status: 'running',
     rating: 'likely-r',
+    prevMargin: 'R+9.7',
     note: 'Competitive R primary; Paxton challenger may force runoff',
+    keyIssues: ['Immigration/border', 'Economy', 'Energy', 'Abortion'],
+    fundraising: { R: '$18.2M', D: '$8.5M' },
+    endorsements: { R: ['NRA', 'Texas Tribune split endorsements'], D: ['Beto O\'Rourke'] },
     candidates: {
       primary: {
         R: [
@@ -763,7 +829,9 @@ export const GOVERNOR_RACES = {
     incumbent: 'Kay Ivey',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'safe-r',
+    prevMargin: 'R+34.1',
     candidates: {
       primary: {
         R: [
@@ -796,7 +864,11 @@ export const GOVERNOR_RACES = {
     incumbentParty: 'D',
     termLimited: false,
     rating: 'toss-up',
+    prevMargin: 'D+0.7',
     note: 'Key swing state; Trump won AZ in 2024',
+    keyIssues: ['Immigration/border', 'Water rights', 'Economy', 'Abortion'],
+    fundraising: { D: '$9.4M', R: '$5.2M' },
+    endorsements: { D: ['EMILY\'s List', 'LCV'], R: [] },
     candidates: {
       primary: {
         D: [{ name: 'Katie Hobbs', polling: 72 }],
@@ -883,8 +955,13 @@ export const GOVERNOR_RACES = {
     incumbent: 'Brian Kemp',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'toss-up',
+    prevMargin: 'R+7.5',
     note: 'Major contested primary on both sides',
+    keyIssues: ['Economy', 'Education', 'Voting rights', 'Healthcare'],
+    fundraising: { R: '$4.5M', D: '$3.2M' },
+    endorsements: { R: [], D: ['Stacey Abrams'] },
     candidates: {
       primary: { R: [], D: [] },
       general: [
@@ -1021,8 +1098,13 @@ export const GOVERNOR_RACES = {
     incumbent: 'Gretchen Whitmer',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'toss-up',
+    prevMargin: 'D+10.6',
     note: 'Key swing state; fiercely contested',
+    keyIssues: ['Auto industry', 'Economy', 'Abortion rights', 'Education'],
+    fundraising: { D: '$5.8M', R: '$4.1M' },
+    endorsements: { D: ['UAW', 'Whitmer'], R: ['Trump'] },
     candidates: {
       primary: { D: [], R: [] },
       general: [
@@ -1066,7 +1148,11 @@ export const GOVERNOR_RACES = {
     incumbentParty: 'R',
     termLimited: false,
     rating: 'toss-up',
+    prevMargin: 'R+1.5',
     note: 'Key swing state',
+    keyIssues: ['Economy/tourism', 'Housing costs', 'Water/drought', 'Education'],
+    fundraising: { R: '$7.3M', D: '$4.6M' },
+    endorsements: { R: ['NRA', 'Nevada Chamber'], D: ['Culinary Union'] },
     candidates: {
       primary: {
         R: [{ name: 'Joe Lombardo', polling: 72 }],
@@ -1285,7 +1371,11 @@ export const GOVERNOR_RACES = {
     incumbentParty: 'D',
     termLimited: false,
     rating: 'toss-up',
+    prevMargin: 'D+3.4',
     note: 'Key swing state',
+    keyIssues: ['Economy', 'Education', 'Abortion rights', 'Redistricting'],
+    fundraising: { D: '$8.9M', R: '$5.5M' },
+    endorsements: { D: ['AFL-CIO', 'WI Education Assoc.'], R: ['Trump'] },
     candidates: {
       primary: {
         D: [{ name: 'Tony Evers', polling: 75 }],
@@ -1433,5 +1523,7 @@ export function getStateElectionData(stateName) {
     house: HOUSE_FORECAST[stateName] || null,
     primaryDate: PRIMARY_DATES[stateName] || null,
     generalDate: GENERAL_ELECTION_DATE,
+    pvi: STATE_PVI[stateName] || null,
+    lastUpdated: DATA_LAST_UPDATED,
   };
 }

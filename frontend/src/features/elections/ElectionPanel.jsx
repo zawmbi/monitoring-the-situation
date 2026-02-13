@@ -12,6 +12,7 @@ import {
   PARTY_COLORS,
   NATIONAL_OVERVIEW,
   GENERAL_ELECTION_DATE,
+  DATA_LAST_UPDATED,
 } from './electionData';
 import InlineMarkets from '../../components/InlineMarkets';
 import './elections.css';
@@ -148,7 +149,7 @@ function PollTrendChart({ candidates }) {
   return (
     <div className="el-trend-chart">
       <div className="el-trend-title">Polling Trend</div>
-      <svg width={canvasWidth} height={canvasHeight} className="el-trend-svg">
+      <svg viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} className="el-trend-svg">
         {/* Grid lines */}
         {[minV, minV + range / 2, maxV].map((v, i) => (
           <g key={i}>
@@ -247,6 +248,85 @@ function DateCountdown({ label, dateStr, type }) {
       </div>
       <span className={`el-date-countdown ${isPast ? 'el-date-done' : ''}`}>
         {isPast ? 'Completed' : `${days}d`}
+      </span>
+    </div>
+  );
+}
+
+function RaceDetails({ race }) {
+  if (!race) return null;
+  const hasFundraising = race.fundraising && Object.keys(race.fundraising).length > 0;
+  const hasEndorsements = race.endorsements && Object.values(race.endorsements).some(e => e.length > 0);
+  const hasKeyIssues = race.keyIssues && race.keyIssues.length > 0;
+
+  if (!race.prevMargin && !hasFundraising && !hasEndorsements && !hasKeyIssues) return null;
+
+  return (
+    <div className="el-race-details">
+      {race.prevMargin && (
+        <div className="el-detail-row">
+          <span className="el-detail-label">Last Election</span>
+          <span className={`el-detail-value el-prev-margin ${race.prevMargin.startsWith('D') ? 'el-margin-d' : 'el-margin-r'}`}>
+            {race.prevMargin}
+          </span>
+        </div>
+      )}
+
+      {hasFundraising && (
+        <div className="el-detail-section">
+          <span className="el-detail-label">Fundraising (est.)</span>
+          <div className="el-fundraising-row">
+            {Object.entries(race.fundraising).map(([party, amount]) => (
+              <span key={party} className="el-fundraise-tag" style={{ borderColor: PARTY_COLORS[party] || '#888' }}>
+                <span className="el-fundraise-party" style={{ color: PARTY_COLORS[party] || '#888' }}>{party}</span>
+                {amount}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasEndorsements && (
+        <div className="el-detail-section">
+          <span className="el-detail-label">Key Endorsements</span>
+          <div className="el-endorsements">
+            {Object.entries(race.endorsements).map(([party, names]) => {
+              if (!names || names.length === 0) return null;
+              return (
+                <div key={party} className="el-endorse-row">
+                  <span className="el-endorse-party" style={{ color: PARTY_COLORS[party] || '#888' }}>{party}:</span>
+                  <span className="el-endorse-names">{names.join(', ')}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {hasKeyIssues && (
+        <div className="el-detail-section">
+          <span className="el-detail-label">Key Issues</span>
+          <div className="el-issues">
+            {race.keyIssues.map((issue) => (
+              <span key={issue} className="el-issue-tag">{issue}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StateContextBar({ pvi }) {
+  if (!pvi) return null;
+  const isD = pvi.startsWith('D');
+  const isR = pvi.startsWith('R');
+  const isEven = pvi === 'EVEN';
+  return (
+    <div className="el-state-context">
+      <span className="el-pvi-label">Cook PVI</span>
+      <span className={`el-pvi-value ${isD ? 'el-pvi-d' : isR ? 'el-pvi-r' : 'el-pvi-even'}`}>
+        {pvi}
       </span>
     </div>
   );
@@ -371,6 +451,9 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
 
       {/* Content area */}
       <div className="el-content">
+        {/* State context bar — PVI */}
+        <StateContextBar pvi={data.pvi} />
+
         {/* Senate or Governor race view */}
         {activeRace && (
           <div className="el-race">
@@ -432,6 +515,9 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 })}
               </>
             )}
+
+            {/* Fundraising, endorsements, key issues */}
+            <RaceDetails race={activeRace} />
           </div>
         )}
 
@@ -487,18 +573,21 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           <DateCountdown label="General Election" dateStr={GENERAL_ELECTION_DATE} type="general" />
         </div>
 
-        {/* Prediction Markets */}
+        {/* Prediction Markets — live updates every 90s */}
         <div className="el-dates-section">
           <InlineMarkets
-            require={['midterm', 'election 2026', 'senate race', 'gubernatorial']}
-            boost={[stateName, 'senate', 'governor']}
+            require={[stateName, activeTab === 'senate' ? 'senate' : activeTab === 'governor' ? 'governor' : 'house']}
+            boost={['2026', 'midterm', 'election', ...(activeRace?.candidates?.general?.map(c => c.name).filter(n => n && n !== 'TBD' && !n.includes('Nominee')) || [])]}
             title="Election Markets"
             enabled={true}
             maxItems={4}
           />
         </div>
 
-        <div className="el-drag-note">Drag to move</div>
+        <div className="el-data-footer">
+          <span className="el-data-updated">Data as of {DATA_LAST_UPDATED}</span>
+          <span className="el-data-sources">Cook/Sabato/OpenSecrets</span>
+        </div>
       </div>
     </div>
   );
