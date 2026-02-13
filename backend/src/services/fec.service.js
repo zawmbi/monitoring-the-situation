@@ -186,6 +186,54 @@ class FECService {
   }
 
   /**
+   * Get House candidates for a specific district in the 2026 cycle
+   */
+  async getHouseCandidates(stateCode, district) {
+    if (!stateCode || !district) return [];
+
+    const cacheKey = `${CACHE_KEY_PREFIX}:house:${stateCode}:${district}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    if (this._memCache[cacheKey] && (Date.now() - (this._memCacheTime[cacheKey] || 0)) < 30 * 60 * 1000) {
+      return this._memCache[cacheKey];
+    }
+
+    const data = await this._fetch('/candidates/search/', {
+      state: stateCode,
+      office: 'H',
+      district: String(district).padStart(2, '0'),
+      election_year: '2026',
+      sort: '-total_receipts',
+      per_page: '20',
+      is_active_candidate: 'true',
+    });
+
+    if (!data || !Array.isArray(data.results)) return [];
+
+    const candidates = data.results.map(c => ({
+      name: c.name ? this._formatName(c.name) : 'Unknown',
+      party: this._normalizeParty(c.party),
+      incumbentChallenge: c.incumbent_challenge || 'unknown',
+      totalReceipts: c.total_receipts || 0,
+      totalDisbursements: c.total_disbursements || 0,
+      cashOnHand: c.cash_on_hand_end_period || 0,
+      candidateId: c.candidate_id,
+      state: stateCode,
+      district: c.district,
+      office: 'house',
+    }));
+
+    if (candidates.length > 0) {
+      await cacheService.set(cacheKey, candidates, CACHE_TTL);
+      this._memCache[cacheKey] = candidates;
+      this._memCacheTime[cacheKey] = Date.now();
+    }
+
+    return candidates;
+  }
+
+  /**
    * FEC names are "LAST, FIRST M" — convert to "First Last"
    */
   _formatName(fecName) {

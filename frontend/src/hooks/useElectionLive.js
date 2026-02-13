@@ -114,10 +114,31 @@ export function useElectionLive(stateName) {
       };
     }
 
+    // Merge House district data
+    let houseDistricts = staticData.houseDistricts || [];
+    if (houseDistricts.length > 0) {
+      houseDistricts = houseDistricts.map(d => {
+        const distKey = `${state}:house:${d.code}`;
+        const distLive = marketRatings[distKey];
+        if (!distLive) return d;
+        return {
+          ...d,
+          liveRating: distLive.derivedRating,
+          dWinProb: distLive.dWinProb,
+          rWinProb: distLive.rWinProb,
+          marketUrl: distLive.marketUrl,
+          marketSource: distLive.marketSource,
+          marketVolume: distLive.marketVolume,
+          marketOutcomes: distLive.outcomes,
+        };
+      });
+    }
+
     return {
       ...staticData,
       senate,
       governor,
+      houseDistricts,
       live: {
         timestamp: liveData.timestamp,
         fecConfigured: liveData.fecConfigured,

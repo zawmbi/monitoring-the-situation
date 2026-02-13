@@ -13,6 +13,7 @@ import {
   NATIONAL_OVERVIEW,
   GENERAL_ELECTION_DATE,
   DATA_LAST_UPDATED,
+  REDISTRICTING_STATUS_COLORS,
 } from './electionData';
 import { useElectionLive } from '../../hooks/useElectionLive';
 import InlineMarkets from '../../components/InlineMarkets';
@@ -265,11 +266,111 @@ function HouseMapMini({ house }) {
         {comp > 0 && <span><span className="el-house-dot" style={{ background: '#a67bc2' }} />{comp} Comp</span>}
         <span><span className="el-house-dot" style={{ background: PARTY_COLORS.R }} />{rSeats} R</span>
       </div>
-      {house.tossUpDistricts && house.tossUpDistricts.length > 0 && (
-        <div className="el-house-tossups">
-          <span className="el-house-tossup-label">Competitive:</span>
-          {house.tossUpDistricts.map((d) => (
-            <span key={d} className="el-house-district-tag">{d}</span>
+    </div>
+  );
+}
+
+function HouseDistrictRace({ district, electionView }) {
+  if (!district) return null;
+  const race = district;
+  return (
+    <div className="el-race">
+      <div className="el-race-meta">
+        <RatingBadge rating={race.liveRating || race.rating} />
+        {race.liveRating && race.liveRating !== race.rating && (
+          <span className="el-rating-shift" title={`Static: ${RATING_LABELS[race.rating]}`}>
+            (was {RATING_LABELS[race.rating]})
+          </span>
+        )}
+        {race.status === 'open' && <span className="el-open-badge">Open Seat</span>}
+        {race.pvi && <span className="el-pvi-mini">{race.pvi}</span>}
+      </div>
+      <MarketProbBar race={race} />
+      {race.incumbent && (
+        <div className="el-incumbent-row">
+          <span className="el-incumbent-label">Incumbent:</span>
+          <span className="el-incumbent-name">
+            {race.incumbent}
+            <span className="el-party-tag" style={{ background: PARTY_COLORS[race.incumbentParty] }}>
+              {race.incumbentParty}
+            </span>
+          </span>
+        </div>
+      )}
+      {race.statusDetail && <div className="el-status-detail">{race.statusDetail}</div>}
+      {race.note && <div className="el-note">{race.note}</div>}
+      {electionView === 'general' && (
+        <>
+          <div className="el-section-title">General Election Polling</div>
+          <PollBar candidates={race.candidates.general} partyColors={PARTY_COLORS} />
+          <PollTrendChart candidates={race.candidates.general} />
+        </>
+      )}
+      {electionView === 'primary' && race.candidates.primary && (
+        <>
+          {Object.entries(race.candidates.primary).map(([party, cands]) => {
+            if (!cands || cands.length === 0) return null;
+            return (
+              <div key={party} className="el-primary-section">
+                <div className="el-section-title">
+                  <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
+                  {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party} Primary
+                </div>
+                <PrimaryView party={party} candidates={cands} />
+              </div>
+            );
+          })}
+        </>
+      )}
+      <RaceDetails race={race} />
+    </div>
+  );
+}
+
+function RedistrictingPanel({ redistricting }) {
+  if (!redistricting) return null;
+  const statusColor = REDISTRICTING_STATUS_COLORS[redistricting.status] || '#888';
+  return (
+    <div className="el-redistricting">
+      <div className="el-redistricting-header">
+        <div className="el-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="9" y1="21" x2="9" y2="9" />
+          </svg>
+          Redistricting
+        </div>
+        <span className="el-redistricting-status" style={{ color: statusColor, borderColor: statusColor }}>
+          {redistricting.statusLabel}
+        </span>
+      </div>
+      <div className="el-redistricting-meta">
+        <div className="el-redistricting-row">
+          <span className="el-detail-label">Map Drawn By</span>
+          <span className="el-detail-value">{redistricting.mapDrawnBy}</span>
+        </div>
+        <div className="el-redistricting-row">
+          <span className="el-detail-label">Net Impact</span>
+          <span className="el-detail-value">{redistricting.impact}</span>
+        </div>
+      </div>
+      {redistricting.note && <div className="el-note">{redistricting.note}</div>}
+      {redistricting.courtCases && redistricting.courtCases.length > 0 && (
+        <div className="el-court-cases">
+          <div className="el-court-cases-title">Court Cases</div>
+          {redistricting.courtCases.map((c, i) => (
+            <div key={i} className="el-court-case">
+              <div className="el-court-case-header">
+                <span className="el-court-case-name">{c.name}</span>
+                <span className={`el-court-case-status el-court-status-${c.status}`}>
+                  {c.status === 'decided' ? 'Decided' : c.status === 'pending' ? 'Pending' : c.status}
+                </span>
+              </div>
+              <div className="el-court-case-court">{c.court}</div>
+              {c.date && <div className="el-court-case-date">{formatDate(c.date)}</div>}
+              <div className="el-court-case-summary">{c.summary}</div>
+            </div>
           ))}
         </div>
       )}
@@ -434,15 +535,17 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const dragOffset = useRef({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState('senate');
   const [electionView, setElectionView] = useState('general'); // 'primary' | 'general'
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   const { getStateData, isLive, lastUpdated: liveUpdated } = useElectionLive(stateName);
   const data = getStateData(stateName);
 
-  // Auto-select first available tab
+  // Auto-select first available tab and reset district
   useEffect(() => {
     if (data.senate) setActiveTab('senate');
     else if (data.governor) setActiveTab('governor');
     else setActiveTab('house');
+    setSelectedDistrict(null);
   }, [stateName]);
 
   const clampPos = (x, y) => {
@@ -487,14 +590,21 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const senate = data.senate;
   const governor = data.governor;
   const house = data.house;
+  const houseDistricts = data.houseDistricts || [];
+  const redistricting = data.redistricting;
   const dates = data.primaryDate;
 
   const tabs = [];
   if (senate) tabs.push({ id: 'senate', label: 'Senate' });
   if (governor) tabs.push({ id: 'governor', label: 'Governor' });
-  tabs.push({ id: 'house', label: 'House' });
+  tabs.push({ id: 'house', label: `House${houseDistricts.length > 0 ? ` (${houseDistricts.length})` : ''}` });
 
-  const activeRace = activeTab === 'senate' ? senate : activeTab === 'governor' ? governor : null;
+  const activeDistrict = selectedDistrict
+    ? houseDistricts.find(d => d.code === selectedDistrict) || null
+    : null;
+  const activeRace = activeTab === 'senate' ? senate
+    : activeTab === 'governor' ? governor
+    : activeDistrict;
 
   return (
     <div
@@ -529,8 +639,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         ))}
       </div>
 
-      {/* Primary / General toggle */}
-      {activeRace && (
+      {/* Primary / General toggle — show for Senate/Governor and House with selected district */}
+      {(activeTab !== 'house' && activeRace) || (activeTab === 'house' && activeDistrict) ? (
         <div className="el-view-toggle">
           <button
             className={`el-view-btn ${electionView === 'primary' ? 'active' : ''}`}
@@ -545,7 +655,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             General
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Content area */}
       <div className="el-content">
@@ -634,37 +744,82 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         {/* House view */}
         {activeTab === 'house' && (
           <div className="el-race">
-            <div className="el-section-title">House Forecast</div>
+            <div className="el-section-title">House Delegation</div>
             <HouseMapMini house={house} />
 
-            {/* National context */}
-            <div className="el-national-context">
-              <div className="el-section-title">National House Overview</div>
-              <div className="el-national-row">
-                <span>Current:</span>
-                <strong>
-                  <span style={{ color: PARTY_COLORS.R }}>{NATIONAL_OVERVIEW.house.current.R} R</span>
-                  {' - '}
-                  <span style={{ color: PARTY_COLORS.D }}>{NATIONAL_OVERVIEW.house.current.D} D</span>
-                </strong>
+            {/* Competitive District Selector */}
+            {houseDistricts.length > 0 && (
+              <div className="el-district-selector">
+                <div className="el-section-title">Competitive Districts</div>
+                <div className="el-district-tags">
+                  {houseDistricts.map((d) => {
+                    const isActive = selectedDistrict === d.code;
+                    const ratingColor = RATING_COLORS[d.rating] || '#666';
+                    return (
+                      <button
+                        key={d.code}
+                        className={`el-district-tag-btn ${isActive ? 'active' : ''}`}
+                        style={isActive ? { borderColor: ratingColor, background: `${ratingColor}22` } : {}}
+                        onClick={() => setSelectedDistrict(isActive ? null : d.code)}
+                      >
+                        <span className="el-district-tag-dot" style={{ background: ratingColor }} />
+                        {d.code}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="el-national-row">
-                <span>Toss-Up Seats:</span>
-                <strong>{NATIONAL_OVERVIEW.house.totalTossUps} ({NATIONAL_OVERVIEW.house.rTossUps} R, {NATIONAL_OVERVIEW.house.dTossUps} D)</strong>
+            )}
+
+            {/* Selected district detail */}
+            {activeDistrict && (
+              <div className="el-district-detail">
+                <div className="el-district-detail-header">
+                  <span className="el-district-detail-code">{activeDistrict.code}</span>
+                  <button className="el-district-close" onClick={() => setSelectedDistrict(null)} title="Close district">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                <HouseDistrictRace district={activeDistrict} electionView={electionView} />
               </div>
-              <div className="el-national-row">
-                <span>D Need for Majority:</span>
-                <strong>Net +{NATIONAL_OVERVIEW.house.dNeedForMajority}</strong>
+            )}
+
+            {/* Show overview when no district selected */}
+            {!activeDistrict && (
+              <div className="el-national-context">
+                <div className="el-section-title">National House Overview</div>
+                <div className="el-national-row">
+                  <span>Current:</span>
+                  <strong>
+                    <span style={{ color: PARTY_COLORS.R }}>{NATIONAL_OVERVIEW.house.current.R} R</span>
+                    {' - '}
+                    <span style={{ color: PARTY_COLORS.D }}>{NATIONAL_OVERVIEW.house.current.D} D</span>
+                  </strong>
+                </div>
+                <div className="el-national-row">
+                  <span>Toss-Up Seats:</span>
+                  <strong>{NATIONAL_OVERVIEW.house.totalTossUps} ({NATIONAL_OVERVIEW.house.rTossUps} R, {NATIONAL_OVERVIEW.house.dTossUps} D)</strong>
+                </div>
+                <div className="el-national-row">
+                  <span>D Need for Majority:</span>
+                  <strong>Net +{NATIONAL_OVERVIEW.house.dNeedForMajority}</strong>
+                </div>
+                <div className="el-national-row">
+                  <span>Generic Ballot:</span>
+                  <strong>
+                    <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
+                    {' - '}
+                    <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
+                  </strong>
+                </div>
               </div>
-              <div className="el-national-row">
-                <span>Generic Ballot:</span>
-                <strong>
-                  <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
-                  {' - '}
-                  <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
-                </strong>
-              </div>
-            </div>
+            )}
+
+            {/* Redistricting Section */}
+            <RedistrictingPanel redistricting={redistricting} />
           </div>
         )}
 
@@ -691,11 +846,15 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               const b = ['2026', 'election', 'midterm'];
               if (activeTab === 'senate') b.push('senate', 'senator');
               else if (activeTab === 'governor') b.push('governor', 'gubernatorial');
-              else b.push('house', 'congress', 'representative');
+              else {
+                b.push('house', 'congress', 'representative');
+                if (activeDistrict) b.push(activeDistrict.code, `district ${activeDistrict.district}`);
+              }
               if (electionView === 'primary') b.push('primary');
-              const cands = electionView === 'primary' && activeRace?.candidates?.primary
-                ? Object.values(activeRace.candidates.primary).flat()
-                : activeRace?.candidates?.general || [];
+              const raceForMarkets = activeTab === 'house' && activeDistrict ? activeDistrict : activeRace;
+              const cands = electionView === 'primary' && raceForMarkets?.candidates?.primary
+                ? Object.values(raceForMarkets.candidates.primary).flat()
+                : raceForMarkets?.candidates?.general || [];
               for (const c of cands) {
                 if (c.name && c.name !== 'TBD' && !c.name.includes('Nominee')) {
                   const parts = c.name.split(' ');
@@ -707,16 +866,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             })()}
             filter={(market) => {
               const t = (market.question || '').toLowerCase() + ' ' + (market.description || '').toLowerCase();
-              // Must mention the race type
               const racePatterns = activeTab === 'senate'
                 ? /senat/i : activeTab === 'governor'
-                ? /govern|gubern/i : /house|congress|representative/i;
+                ? /govern|gubern/i : /house|congress|representative|district/i;
               if (!racePatterns.test(t)) return false;
-              // Reject wrong election cycles
               if (/202[0-4]|2028|2030|2032/i.test(t) && !/2026/i.test(t)) return false;
               return true;
             }}
-            title={`${activeTab === 'senate' ? 'Senate' : activeTab === 'governor' ? 'Governor' : 'House'} Markets`}
+            title={`${activeTab === 'senate' ? 'Senate' : activeTab === 'governor' ? 'Governor' : activeDistrict ? activeDistrict.code : 'House'} Markets`}
             enabled={true}
             maxItems={4}
           />

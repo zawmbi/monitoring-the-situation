@@ -1578,6 +1578,706 @@ export const GOVERNOR_RACES = {
   },
 };
 
+// Competitive House district races — detailed per-district data
+// Only includes competitive/toss-up districts; safe seats are in HOUSE_FORECAST
+export const HOUSE_DISTRICTS = {
+  'AZ-01': {
+    state: 'Arizona', district: 1, pvi: 'R+2',
+    incumbent: null, incumbentParty: null,
+    status: 'open', statusDetail: 'David Schweikert retired',
+    rating: 'toss-up',
+    note: 'Trump endorsed Abe Swoboda; James McCain (son of John) running as D',
+    keyIssues: ['Immigration/border', 'Water', 'Cost of living', 'Veterans'],
+    endorsements: { R: ['Trump (Swoboda)'], D: ['VoteVets (McCain)'] },
+    candidates: {
+      primary: {
+        R: [
+          { name: 'Abe Swoboda', polling: 42 },
+          { name: 'Blake Masters', polling: 28 },
+        ],
+        D: [
+          { name: 'Amish Shah', polling: 38 },
+          { name: 'James McCain', polling: 32 },
+        ],
+      },
+      general: [
+        { name: 'Abe Swoboda', party: 'R', polling: 47 },
+        { name: 'Amish Shah', party: 'D', polling: 46 },
+      ],
+    },
+  },
+  'AZ-06': {
+    state: 'Arizona', district: 6, pvi: 'R+3',
+    incumbent: 'Juan Ciscomani', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    note: 'Ciscomani won by 5pts in 2024; Mendoza strong D recruit',
+    keyIssues: ['Immigration/border', 'Economy', 'Water', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Juan Ciscomani', polling: 78 }],
+        D: [{ name: 'JoAnna Mendoza', polling: 65 }],
+      },
+      general: [
+        { name: 'Juan Ciscomani', party: 'R', polling: 50 },
+        { name: 'JoAnna Mendoza', party: 'D', polling: 46 },
+      ],
+    },
+  },
+  'CA-13': {
+    state: 'California', district: 13, pvi: 'R+3',
+    incumbent: 'Adam Gray', incumbentParty: 'D',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Gray flipped this seat in 2024; top GOP target in CA',
+    keyIssues: ['Agriculture/water', 'Economy', 'Immigration', 'Healthcare'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Adam Gray', polling: 48 }],
+        R: [{ name: 'Kevin Lincoln', polling: 42 }],
+      },
+      general: [
+        { name: 'Adam Gray', party: 'D', polling: 48 },
+        { name: 'Kevin Lincoln', party: 'R', polling: 47 },
+      ],
+    },
+  },
+  'CA-22': {
+    state: 'California', district: 22, pvi: 'R+5',
+    incumbent: 'David Valadao', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    note: 'Valadao one of few Rs who voted to impeach Trump; survived primary challenges',
+    keyIssues: ['Agriculture/water', 'Immigration', 'Economy', 'Healthcare'],
+    candidates: {
+      primary: {
+        R: [{ name: 'David Valadao', polling: 55 }],
+        D: [{ name: 'Jasmeet Bains', polling: 58 }],
+      },
+      general: [
+        { name: 'David Valadao', party: 'R', polling: 51 },
+        { name: 'Jasmeet Bains', party: 'D', polling: 45 },
+      ],
+    },
+  },
+  'CA-27': {
+    state: 'California', district: 27, pvi: 'R+4',
+    incumbent: 'Mike Garcia', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    keyIssues: ['Economy', 'Aerospace/defense', 'Immigration', 'Wildfires'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Mike Garcia', polling: 62 }],
+        D: [{ name: 'George Whitesides', polling: 55 }],
+      },
+      general: [
+        { name: 'Mike Garcia', party: 'R', polling: 51 },
+        { name: 'George Whitesides', party: 'D', polling: 46 },
+      ],
+    },
+  },
+  'CA-45': {
+    state: 'California', district: 45, pvi: 'D+1',
+    incumbent: 'Derek Tran', incumbentParty: 'D',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Tran flipped this seat from Michelle Steel in 2024; rematch expected',
+    keyIssues: ['Economy', 'Healthcare', 'Immigration', 'Education'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Derek Tran', polling: 52 }],
+        R: [{ name: 'Michelle Steel', polling: 60 }],
+      },
+      general: [
+        { name: 'Derek Tran', party: 'D', polling: 49 },
+        { name: 'Michelle Steel', party: 'R', polling: 48 },
+      ],
+    },
+  },
+  'CO-08': {
+    state: 'Colorado', district: 8, pvi: 'D+2',
+    incumbent: 'Gabe Evans', incumbentParty: 'R',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Evans flipped this Biden+4 district in 2024; top D target',
+    keyIssues: ['Immigration', 'Cost of living', 'Oil & gas', 'Healthcare'],
+    endorsements: { D: ['DCCC priority'] },
+    candidates: {
+      primary: {
+        R: [{ name: 'Gabe Evans', polling: 72 }],
+        D: [
+          { name: 'Yadira Caraveo', polling: 38 },
+          { name: 'Manny Rutinel', polling: 32 },
+        ],
+      },
+      general: [
+        { name: 'Gabe Evans', party: 'R', polling: 48 },
+        { name: 'D Nominee', party: 'D', polling: 47 },
+      ],
+    },
+  },
+  'IA-01': {
+    state: 'Iowa', district: 1, pvi: 'R+4',
+    incumbent: 'Mariannette Miller-Meeks', incumbentParty: 'R',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Jan 2026 poll: Bohannan 43%, Miller-Meeks 39%. Rematch from 2020 6-vote margin',
+    keyIssues: ['Agriculture', 'Healthcare', 'Economy', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Mariannette Miller-Meeks', polling: 75 }],
+        D: [{ name: 'Christina Bohannan', polling: 68 }],
+      },
+      general: [
+        { name: 'Mariannette Miller-Meeks', party: 'R', polling: 39 },
+        { name: 'Christina Bohannan', party: 'D', polling: 43 },
+      ],
+    },
+  },
+  'IA-03': {
+    state: 'Iowa', district: 3, pvi: 'R+3',
+    incumbent: 'Zach Nunn', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    keyIssues: ['Agriculture', 'Economy', 'Tariffs/trade', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Zach Nunn', polling: 70 }],
+        D: [{ name: 'Lanon Baccam', polling: 60 }],
+      },
+      general: [
+        { name: 'Zach Nunn', party: 'R', polling: 50 },
+        { name: 'Lanon Baccam', party: 'D', polling: 46 },
+      ],
+    },
+  },
+  'ME-02': {
+    state: 'Maine', district: 2, pvi: 'R+6',
+    incumbent: null, incumbentParty: null,
+    status: 'open', statusDetail: 'Jared Golden did not seek re-election',
+    rating: 'lean-r',
+    note: 'LePage (former governor) leads; Baldacci name well-known in ME',
+    keyIssues: ['Economy', 'Healthcare', 'Fisheries/climate', 'Veterans'],
+    candidates: {
+      primary: {
+        R: [
+          { name: 'Paul LePage', polling: 49 },
+          { name: 'Austin Theriault', polling: 28 },
+        ],
+        D: [{ name: 'Joe Baldacci', polling: 55 }],
+      },
+      general: [
+        { name: 'Paul LePage', party: 'R', polling: 49 },
+        { name: 'Joe Baldacci', party: 'D', polling: 44 },
+      ],
+    },
+  },
+  'MI-07': {
+    state: 'Michigan', district: 7, pvi: 'R+3',
+    incumbent: 'Tom Barrett', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    keyIssues: ['Auto industry', 'Economy', 'Agriculture', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Tom Barrett', polling: 72 }],
+        D: [{ name: 'Curtis Hertel Jr', polling: 55 }],
+      },
+      general: [
+        { name: 'Tom Barrett', party: 'R', polling: 50 },
+        { name: 'Curtis Hertel Jr', party: 'D', polling: 46 },
+      ],
+    },
+  },
+  'MI-08': {
+    state: 'Michigan', district: 8, pvi: 'D+2',
+    incumbent: 'Kristen McDonald Rivet', incumbentParty: 'D',
+    status: 'running',
+    rating: 'lean-d',
+    keyIssues: ['Auto industry', 'Economy', 'Healthcare', 'Education'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Kristen McDonald Rivet', polling: 70 }],
+        R: [{ name: 'Amir Hassan', polling: 55 }],
+      },
+      general: [
+        { name: 'Kristen McDonald Rivet', party: 'D', polling: 51 },
+        { name: 'Amir Hassan', party: 'R', polling: 45 },
+      ],
+    },
+  },
+  'MN-02': {
+    state: 'Minnesota', district: 2, pvi: 'D+1',
+    incumbent: null, incumbentParty: null,
+    status: 'open', statusDetail: 'Angie Craig running for Senate',
+    rating: 'toss-up',
+    keyIssues: ['Economy', 'Healthcare', 'Education', 'Public safety'],
+    candidates: {
+      primary: {
+        D: [
+          { name: 'Joe Teirab', polling: 35 },
+          { name: 'Alec Paulson', polling: 28 },
+        ],
+        R: [
+          { name: 'Tayler Rahimi', polling: 40 },
+          { name: 'Tyler Kistner', polling: 32 },
+        ],
+      },
+      general: [
+        { name: 'D Nominee', party: 'D', polling: 47 },
+        { name: 'R Nominee', party: 'R', polling: 47 },
+      ],
+    },
+  },
+  'NE-02': {
+    state: 'Nebraska', district: 2, pvi: 'EVEN',
+    incumbent: null, incumbentParty: null,
+    status: 'open', statusDetail: 'Don Bacon retired',
+    rating: 'toss-up',
+    note: 'Omaha-area blue dot in red state; Biden won this district in 2020',
+    keyIssues: ['Economy', 'Healthcare', 'Immigration', 'Education'],
+    candidates: {
+      primary: {
+        D: [{ name: 'John Cavanaugh', polling: 55 }],
+        R: [{ name: 'Brinker Harding', polling: 42 }],
+      },
+      general: [
+        { name: 'John Cavanaugh', party: 'D', polling: 49 },
+        { name: 'Brinker Harding', party: 'R', polling: 47 },
+      ],
+    },
+  },
+  'NC-01': {
+    state: 'North Carolina', district: 1, pvi: 'D+3',
+    incumbent: 'Don Davis', incumbentParty: 'D',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Redistricted from D+12 to D+3; Trump endorsed Buckhout',
+    keyIssues: ['Economy', 'Healthcare', 'Military/veterans', 'Education'],
+    endorsements: { R: ['Trump (Buckhout)'], D: ['CBC'] },
+    candidates: {
+      primary: {
+        D: [{ name: 'Don Davis', polling: 72 }],
+        R: [{ name: 'Laurie Buckhout', polling: 58 }],
+      },
+      general: [
+        { name: 'Don Davis', party: 'D', polling: 48 },
+        { name: 'Laurie Buckhout', party: 'R', polling: 47 },
+      ],
+    },
+  },
+  'NY-17': {
+    state: 'New York', district: 17, pvi: 'D+3',
+    incumbent: 'Mike Lawler', incumbentParty: 'R',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Lawler is top D target nationally; crowded D primary field',
+    keyIssues: ['Economy/taxes', 'Healthcare', 'Immigration', 'Environment'],
+    fundraising: { R: '$8.2M', D: '$5.5M' },
+    candidates: {
+      primary: {
+        R: [{ name: 'Mike Lawler', polling: 78 }],
+        D: [
+          { name: 'Mondaire Jones', polling: 32 },
+          { name: 'Liz Whitmer Gereghty', polling: 28 },
+          { name: 'TBD', polling: null },
+        ],
+      },
+      general: [
+        { name: 'Mike Lawler', party: 'R', polling: 48 },
+        { name: 'D Nominee', party: 'D', polling: 47 },
+      ],
+    },
+  },
+  'NY-19': {
+    state: 'New York', district: 19, pvi: 'D+2',
+    incumbent: 'Josh Riley', incumbentParty: 'D',
+    status: 'running',
+    rating: 'lean-d',
+    note: 'Riley won in 2024; Molinaro may attempt rematch',
+    keyIssues: ['Economy', 'Agriculture', 'Healthcare', 'Infrastructure'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Josh Riley', polling: 72 }],
+        R: [{ name: 'Marc Molinaro', polling: 55 }],
+      },
+      general: [
+        { name: 'Josh Riley', party: 'D', polling: 50 },
+        { name: 'Marc Molinaro', party: 'R', polling: 46 },
+      ],
+    },
+  },
+  'OH-09': {
+    state: 'Ohio', district: 9, pvi: 'R+3',
+    incumbent: 'Marcy Kaptur', incumbentParty: 'D',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Redistricted from D+4 to R+3; Kaptur is longest-serving woman in House',
+    keyIssues: ['Manufacturing', 'Economy', 'Healthcare', 'Great Lakes/water'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Marcy Kaptur', polling: 68 }],
+        R: [
+          { name: 'Derek Merrin', polling: 42 },
+          { name: 'Craig Riedel', polling: 28 },
+        ],
+      },
+      general: [
+        { name: 'Marcy Kaptur', party: 'D', polling: 47 },
+        { name: 'Derek Merrin', party: 'R', polling: 48 },
+      ],
+    },
+  },
+  'OH-13': {
+    state: 'Ohio', district: 13, pvi: 'D+3',
+    incumbent: 'Emilia Sykes', incumbentParty: 'D',
+    status: 'running',
+    rating: 'lean-d',
+    keyIssues: ['Manufacturing', 'Economy', 'Healthcare', 'Education'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Emilia Sykes', polling: 72 }],
+        R: [{ name: 'Kevin Coughlin', polling: 55 }],
+      },
+      general: [
+        { name: 'Emilia Sykes', party: 'D', polling: 51 },
+        { name: 'Kevin Coughlin', party: 'R', polling: 45 },
+      ],
+    },
+  },
+  'PA-01': {
+    state: 'Pennsylvania', district: 1, pvi: 'R+2',
+    incumbent: 'Brian Fitzpatrick', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    note: 'Fitzpatrick is a moderate R in a Biden+1 district',
+    keyIssues: ['Economy', 'Healthcare', 'Environment', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Brian Fitzpatrick', polling: 72 }],
+        D: [{ name: 'Ashley Ehasz', polling: 55 }],
+      },
+      general: [
+        { name: 'Brian Fitzpatrick', party: 'R', polling: 51 },
+        { name: 'Ashley Ehasz', party: 'D', polling: 45 },
+      ],
+    },
+  },
+  'PA-07': {
+    state: 'Pennsylvania', district: 7, pvi: 'R+2',
+    incumbent: 'Ryan Mackenzie', incumbentParty: 'R',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Mackenzie flipped this Biden+4 seat in 2024; DCCC priority',
+    keyIssues: ['Economy', 'Healthcare', 'Immigration', 'Education'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Ryan Mackenzie', polling: 70 }],
+        D: [{ name: 'Susan Wild', polling: 58 }],
+      },
+      general: [
+        { name: 'Ryan Mackenzie', party: 'R', polling: 49 },
+        { name: 'Susan Wild', party: 'D', polling: 47 },
+      ],
+    },
+  },
+  'PA-10': {
+    state: 'Pennsylvania', district: 10, pvi: 'R+6',
+    incumbent: 'Scott Perry', incumbentParty: 'R',
+    status: 'running',
+    rating: 'lean-r',
+    note: 'Perry chaired Freedom Caucus; Stelson came within 2pts in 2024',
+    keyIssues: ['Economy', 'Immigration', 'Military', 'Healthcare'],
+    candidates: {
+      primary: {
+        R: [{ name: 'Scott Perry', polling: 68 }],
+        D: [{ name: 'Janelle Stelson', polling: 62 }],
+      },
+      general: [
+        { name: 'Scott Perry', party: 'R', polling: 50 },
+        { name: 'Janelle Stelson', party: 'D', polling: 47 },
+      ],
+    },
+  },
+  'TX-28': {
+    state: 'Texas', district: 28, pvi: 'D+5',
+    incumbent: 'Henry Cuellar', incumbentParty: 'D',
+    status: 'running',
+    rating: 'lean-d',
+    note: 'Cuellar is conservative D; GOP targets him every cycle',
+    keyIssues: ['Immigration/border', 'Energy', 'Economy', 'Trade'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Henry Cuellar', polling: 55 }],
+        R: [{ name: 'Tano Tijerina', polling: 45 }],
+      },
+      general: [
+        { name: 'Henry Cuellar', party: 'D', polling: 52 },
+        { name: 'Tano Tijerina', party: 'R', polling: 44 },
+      ],
+    },
+  },
+  'TX-34': {
+    state: 'Texas', district: 34, pvi: 'D+7',
+    incumbent: 'Vicente Gonzalez', incumbentParty: 'D',
+    status: 'running',
+    rating: 'lean-d',
+    note: 'Redistricted; Flores attempted to flip in 2022 special but lost general',
+    keyIssues: ['Immigration/border', 'Economy', 'Healthcare', 'Trade'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Vicente Gonzalez', polling: 62 }],
+        R: [{ name: 'Mayra Flores', polling: 58 }],
+      },
+      general: [
+        { name: 'Vicente Gonzalez', party: 'D', polling: 52 },
+        { name: 'Mayra Flores', party: 'R', polling: 44 },
+      ],
+    },
+  },
+  'WA-03': {
+    state: 'Washington', district: 3, pvi: 'R+5',
+    incumbent: 'Marie Gluesenkamp Perez', incumbentParty: 'D',
+    status: 'running',
+    rating: 'toss-up',
+    note: 'Gluesenkamp Perez is a blue-collar D in deep-red turf; top R target',
+    keyIssues: ['Economy', 'Trade/tariffs', 'Timber/environment', 'Healthcare'],
+    candidates: {
+      primary: {
+        D: [{ name: 'Marie Gluesenkamp Perez', polling: 68 }],
+        R: [
+          { name: 'John Braun', polling: 38 },
+          { name: 'Joe Kent', polling: 30 },
+        ],
+      },
+      general: [
+        { name: 'Marie Gluesenkamp Perez', party: 'D', polling: 48 },
+        { name: 'John Braun', party: 'R', polling: 47 },
+      ],
+    },
+  },
+};
+
+// Redistricting status by state — court cases, status, and impact on House
+export const REDISTRICTING = {
+  'Texas': {
+    status: 'new-map',
+    statusLabel: 'New Map in Effect',
+    mapDrawnBy: 'R Legislature',
+    impact: 'R+5 target',
+    note: 'SCOTUS allowed new R-drawn map 6-3; eliminates 5 D-held seats',
+    courtCases: [
+      {
+        name: 'LULAC v. Abbott',
+        court: 'U.S. Supreme Court',
+        status: 'decided',
+        date: '2025-12-15',
+        summary: 'SCOTUS allowed Texas to implement new congressional map; VRA Section 2 challenge rejected 6-3',
+      },
+    ],
+  },
+  'Alabama': {
+    status: 'settled',
+    statusLabel: 'Map Settled',
+    mapDrawnBy: 'Court-Ordered',
+    impact: 'D+1 (new majority-minority district)',
+    note: 'Allen v. Milligan landmark VRA case settled; 2nd majority-Black district created',
+    courtCases: [
+      {
+        name: 'Allen v. Milligan',
+        court: 'U.S. Supreme Court',
+        status: 'decided',
+        date: '2023-06-08',
+        summary: 'SCOTUS upheld VRA Section 2; ordered 2nd majority-minority district',
+      },
+      {
+        name: 'Stone v. Allen',
+        court: '11th Circuit',
+        status: 'pending',
+        date: null,
+        summary: 'State senate redistricting challenge; appeal pending',
+      },
+    ],
+  },
+  'Louisiana': {
+    status: 'litigation',
+    statusLabel: 'Active Litigation',
+    mapDrawnBy: 'Court-Ordered',
+    impact: 'Potentially D+1',
+    note: 'Most consequential VRA case of 2026; SCOTUS decision expected June 2026',
+    courtCases: [
+      {
+        name: 'Louisiana v. Callais',
+        court: 'U.S. Supreme Court',
+        status: 'pending',
+        date: '2026-06-01',
+        summary: 'Challenge to court-ordered 2nd majority-Black district; could reshape VRA precedent nationwide',
+      },
+    ],
+  },
+  'New York': {
+    status: 'litigation',
+    statusLabel: 'Partial Redraw',
+    mapDrawnBy: 'Bipartisan Commission',
+    impact: 'D+1 potential',
+    note: 'CD-11 (Staten Island) ordered redrawn by state court; appeal pending',
+    courtCases: [
+      {
+        name: 'NY CD-11 Challenge',
+        court: 'NY Court of Appeals',
+        status: 'pending',
+        date: null,
+        summary: 'State court ordered CD-11 redrawn for 2026; may shift SI district from Safe R to Lean R',
+      },
+    ],
+  },
+  'North Carolina': {
+    status: 'new-map',
+    statusLabel: 'New R Map',
+    mapDrawnBy: 'R Legislature',
+    impact: 'R+3 (reduced D seats)',
+    note: 'R-drawn map in effect since 2024; CD-1 targeted from D+12 to D+3',
+    courtCases: [
+      {
+        name: 'Harper v. Hall',
+        court: 'NC Supreme Court',
+        status: 'decided',
+        date: '2023-04-28',
+        summary: 'R-majority NC Supreme Court reversed prior ruling; allowed partisan gerrymander',
+      },
+    ],
+  },
+  'Ohio': {
+    status: 'new-map',
+    statusLabel: 'New Bipartisan Map',
+    mapDrawnBy: 'Bipartisan Commission',
+    impact: 'D+1-2 vs old map',
+    note: 'Voter-approved bipartisan commission drew new map for 2026; OH-09 shifted to Toss-Up',
+    courtCases: [
+      {
+        name: 'League of Women Voters v. Ohio',
+        court: 'Ohio Supreme Court',
+        status: 'decided',
+        date: '2024-03-15',
+        summary: 'Court upheld new bipartisan redistricting commission process',
+      },
+    ],
+  },
+  'Florida': {
+    status: 'pending',
+    statusLabel: 'Possible Redraw',
+    mapDrawnBy: 'R Legislature',
+    impact: 'Uncertain',
+    note: 'DeSantis plans special session April 2026 to redraw maps; could target D seats',
+    courtCases: [
+      {
+        name: "Cubanos Pa'Lante v. Florida",
+        court: 'FL Supreme Court',
+        status: 'pending',
+        date: null,
+        summary: 'Challenge to DeSantis-drawn congressional map; Fair Districts amendment claims',
+      },
+    ],
+  },
+  'Georgia': {
+    status: 'litigation',
+    statusLabel: 'Active Litigation',
+    mapDrawnBy: 'R Legislature',
+    impact: 'Potentially D+1',
+    note: 'VRA challenge to congressional and legislative maps at 11th Circuit',
+    courtCases: [
+      {
+        name: 'Pendergrass v. Raffensperger',
+        court: '11th Circuit',
+        status: 'pending',
+        date: null,
+        summary: 'VRA Section 2 challenge seeking additional majority-minority districts',
+      },
+    ],
+  },
+  'South Carolina': {
+    status: 'settled',
+    statusLabel: 'Map Upheld',
+    mapDrawnBy: 'R Legislature',
+    impact: 'Neutral',
+    note: 'SCOTUS ruled in favor of R-drawn map; racial gerrymandering claim rejected',
+    courtCases: [
+      {
+        name: 'Alexander v. SC NAACP',
+        court: 'U.S. Supreme Court',
+        status: 'decided',
+        date: '2024-05-23',
+        summary: 'SCOTUS reversed lower court; ruled CD-1 map was partisan not racial gerrymander',
+      },
+    ],
+  },
+  'California': {
+    status: 'settled',
+    statusLabel: 'Maps Upheld',
+    mapDrawnBy: 'Independent Commission',
+    impact: 'Neutral',
+    note: 'Prop 50 citizen-drawn maps upheld by SCOTUS Feb 4, 2026',
+    courtCases: [
+      {
+        name: 'CA Prop 50 Challenge',
+        court: 'U.S. Supreme Court',
+        status: 'decided',
+        date: '2026-02-04',
+        summary: 'SCOTUS upheld independent commission redistricting maps',
+      },
+    ],
+  },
+  'Missouri': {
+    status: 'litigation',
+    statusLabel: 'Active Litigation',
+    mapDrawnBy: 'R Legislature',
+    impact: 'Potentially D+1',
+    note: 'HB 1 map veto referendum litigation; ruling imminent',
+    courtCases: [
+      {
+        name: 'MO HB 1 Map Challenge',
+        court: 'MO Supreme Court',
+        status: 'pending',
+        date: null,
+        summary: 'Challenge to R-drawn HB 1 congressional map; veto referendum dispute',
+      },
+    ],
+  },
+  'Utah': {
+    status: 'new-map',
+    statusLabel: 'Court-Ordered Map',
+    mapDrawnBy: 'Court-Ordered',
+    impact: 'D+1 potential',
+    note: 'Court ordered fair map after voters passed redistricting reform; federal challenge pending',
+    courtCases: [
+      {
+        name: 'League of Women Voters v. Utah',
+        court: 'Utah Supreme Court',
+        status: 'decided',
+        date: '2024-12-10',
+        summary: 'Court ruled legislature violated voter-approved redistricting reform',
+      },
+    ],
+  },
+  'Virginia': {
+    status: 'settled',
+    statusLabel: 'Map Stable',
+    mapDrawnBy: 'Court-Drawn (2022)',
+    impact: 'Neutral',
+    note: 'Constitutional amendment for independent commission was blocked by court',
+    courtCases: [],
+  },
+};
+
+// Helper: get redistricting case status badge color
+export const REDISTRICTING_STATUS_COLORS = {
+  'new-map': '#f5c542',
+  'litigation': '#ff6b6b',
+  'settled': '#4ade80',
+  'pending': '#ff8c6b',
+};
+
 // Aggregated House forecast by state
 // Shows number of competitive districts and overall state delegation lean
 export const HOUSE_FORECAST = {
@@ -1683,6 +2383,15 @@ export function getElectionColor(stateName) {
 }
 
 /**
+ * Get all competitive House districts for a state
+ */
+export function getStateHouseDistricts(stateName) {
+  return Object.entries(HOUSE_DISTRICTS)
+    .filter(([, d]) => d.state === stateName)
+    .map(([code, data]) => ({ code, ...data }));
+}
+
+/**
  * Check if a state has any election races
  */
 export function hasElectionRaces(stateName) {
@@ -1697,6 +2406,8 @@ export function getStateElectionData(stateName) {
     senate: SENATE_RACES[stateName] || null,
     governor: GOVERNOR_RACES[stateName] || null,
     house: HOUSE_FORECAST[stateName] || null,
+    houseDistricts: getStateHouseDistricts(stateName),
+    redistricting: REDISTRICTING[stateName] || null,
     primaryDate: PRIMARY_DATES[stateName] || null,
     generalDate: GENERAL_ELECTION_DATE,
     pvi: STATE_PVI[stateName] || null,

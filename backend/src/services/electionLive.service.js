@@ -36,6 +36,35 @@ const GOVERNOR_STATES = [
   'South Dakota', 'Tennessee', 'Texas', 'Vermont', 'Wisconsin', 'Wyoming',
 ];
 
+// Competitive House districts to track in live markets
+const HOUSE_DISTRICTS = [
+  { state: 'Arizona', district: 1, code: 'AZ-01' },
+  { state: 'Arizona', district: 6, code: 'AZ-06' },
+  { state: 'California', district: 13, code: 'CA-13' },
+  { state: 'California', district: 22, code: 'CA-22' },
+  { state: 'California', district: 27, code: 'CA-27' },
+  { state: 'California', district: 45, code: 'CA-45' },
+  { state: 'Colorado', district: 8, code: 'CO-08' },
+  { state: 'Iowa', district: 1, code: 'IA-01' },
+  { state: 'Iowa', district: 3, code: 'IA-03' },
+  { state: 'Maine', district: 2, code: 'ME-02' },
+  { state: 'Michigan', district: 7, code: 'MI-07' },
+  { state: 'Michigan', district: 8, code: 'MI-08' },
+  { state: 'Minnesota', district: 2, code: 'MN-02' },
+  { state: 'Nebraska', district: 2, code: 'NE-02' },
+  { state: 'North Carolina', district: 1, code: 'NC-01' },
+  { state: 'New York', district: 17, code: 'NY-17' },
+  { state: 'New York', district: 19, code: 'NY-19' },
+  { state: 'Ohio', district: 9, code: 'OH-09' },
+  { state: 'Ohio', district: 13, code: 'OH-13' },
+  { state: 'Pennsylvania', district: 1, code: 'PA-01' },
+  { state: 'Pennsylvania', district: 7, code: 'PA-07' },
+  { state: 'Pennsylvania', district: 10, code: 'PA-10' },
+  { state: 'Texas', district: 28, code: 'TX-28' },
+  { state: 'Texas', district: 34, code: 'TX-34' },
+  { state: 'Washington', district: 3, code: 'WA-03' },
+];
+
 const STATE_CODES = {
   'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
   'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
@@ -100,7 +129,7 @@ class ElectionLiveService {
    * Try to match a market to a specific state + race type.
    * Returns a match score (0 = no match).
    */
-  _matchMarketToRace(market, stateName, raceType) {
+  _matchMarketToRace(market, stateName, raceType, districtNum = null) {
     const text = normalizeText(`${market.question} ${market.description} ${market.rawSearchText || ''}`);
 
     // Must mention the state
@@ -115,8 +144,18 @@ class ElectionLiveService {
       ? /\bsenat/.test(text)
       : raceType === 'governor'
         ? /\bgovern|\bgubern/.test(text)
-        : /\bhouse\b|\bcongress/.test(text);
+        : /\bhouse\b|\bcongress|\bdistrict\b|\bcd\b/.test(text);
     if (!hasRaceType) return 0;
+
+    // For House races, must mention the district number
+    if (raceType === 'house' && districtNum != null) {
+      const distStr = String(districtNum);
+      const hasDistrict = text.includes(`district ${distStr}`) ||
+        text.includes(`cd ${distStr}`) ||
+        text.includes(`${stateCode} ${distStr}`) ||
+        new RegExp(`\\b${stateCode} ?0?${distStr}\\b`).test(text);
+      if (!hasDistrict) return 0;
+    }
 
     // Filter out wrong years
     if (/202[0-4]|2028|2030|2032/.test(text) && !/2026/.test(text)) return 0;
@@ -125,6 +164,7 @@ class ElectionLiveService {
     let score = 1;
     if (/2026/.test(text)) score += 2;
     if (text.includes(stateNameLower)) score += 1; // Full state name > abbreviation
+    if (districtNum != null && text.includes(`district ${String(districtNum)}`)) score += 1;
     score += Math.log10(Math.max(market.volume || 1, 1)); // Volume bonus
 
     return score;
@@ -179,12 +219,13 @@ class ElectionLiveService {
     const allRaces = [
       ...SENATE_STATES.map(s => ({ state: s, type: 'senate' })),
       ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor' })),
+      ...HOUSE_DISTRICTS.map(d => ({ state: d.state, type: 'house', district: d.district, code: d.code })),
     ];
 
     for (const race of allRaces) {
       // Score all markets against this race
       const scored = allMarkets
-        .map(m => ({ market: m, score: this._matchMarketToRace(m, race.state, race.type) }))
+        .map(m => ({ market: m, score: this._matchMarketToRace(m, race.state, race.type, race.district || null) }))
         .filter(s => s.score > 0)
         .sort((a, b) => b.score - a.score);
 
@@ -194,10 +235,11 @@ class ElectionLiveService {
       const dProb = this._extractDemProbability(bestMatch);
       const derivedRating = probabilityToRating(dProb);
 
-      const key = `${race.state}:${race.type}`;
+      const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
       results[key] = {
         state: race.state,
         raceType: race.type,
+        district: race.code || null,
         derivedRating,
         dWinProb: dProb != null ? Math.round(dProb * 100) : null,
         rWinProb: dProb != null ? Math.round((1 - dProb) * 100) : null,
@@ -315,9 +357,19 @@ class ElectionLiveService {
     const governorKey = `${stateName}:governor`;
     const stateCode = STATE_CODES[stateName] || '';
 
+    // Collect House district ratings for this state
+    const houseRatings = {};
+    for (const [key, val] of Object.entries(all.marketRatings)) {
+      if (key.startsWith(`${stateName}:house:`)) {
+        const distCode = val.district || key.split(':')[2];
+        houseRatings[distCode] = val;
+      }
+    }
+
     return {
       senate: all.marketRatings[senateKey] || null,
       governor: all.marketRatings[governorKey] || null,
+      house: houseRatings,
       fec: all.fecData[stateCode] || null,
       timestamp: all.timestamp,
     };
