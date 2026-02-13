@@ -159,11 +159,18 @@ class PolymarketService {
       const url = `${this.baseUrl}/events?limit=100&active=true&closed=false&order=volume&ascending=false`;
       console.log('[Polymarket] Fetching from:', url);
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/json',
+          'User-Agent': 'MonitoringTheSituation/1.0',
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       console.log('[Polymarket] Response status:', response.status);
 

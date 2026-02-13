@@ -36,9 +36,18 @@ class KalshiService {
       const url = `${this.baseUrl}/events?limit=${limit}&status=open&with_nested_markets=true`;
       console.log('[Kalshi] Fetching from:', url);
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'MonitoringTheSituation/1.0',
+        },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const text = await response.text();
@@ -70,19 +79,30 @@ class KalshiService {
 
       if (totalVolume < MIN_VOLUME) continue;
 
+      // Helper to extract price from a Kalshi market (handles both old cents and new dollars fields)
+      function extractPrice(m) {
+        // Prefer _dollars fields (string like "0.5600")
+        if (m.last_price_dollars != null) return parseFloat(m.last_price_dollars);
+        if (m.yes_ask_dollars != null) return parseFloat(m.yes_ask_dollars);
+        // Fallback to legacy cent fields
+        if (m.last_price != null) return m.last_price / 100;
+        if (m.yes_ask != null) return m.yes_ask / 100;
+        return null;
+      }
+
       // Build outcomes from nested markets
       const outcomes = markets
         .filter(m => m.status === 'open' || m.status === 'active')
         .slice(0, 6)
         .map(m => ({
           name: m.title || m.subtitle || m.ticker || 'Yes',
-          price: m.last_price != null ? m.last_price / 100 : (m.yes_ask != null ? m.yes_ask / 100 : null),
+          price: extractPrice(m),
         }));
 
       // For simple yes/no markets with a single sub-market
       if (markets.length === 1 && outcomes.length === 1) {
         const m = markets[0];
-        const yesPrice = m.last_price != null ? m.last_price / 100 : (m.yes_ask != null ? m.yes_ask / 100 : 0.5);
+        const yesPrice = extractPrice(m) ?? 0.5;
         outcomes.length = 0;
         outcomes.push(
           { name: 'Yes', price: yesPrice },
@@ -108,7 +128,7 @@ class KalshiService {
         category: event.category || 'Other',
         active: true,
         closed: false,
-        endDate: event.close_date || markets[0]?.close_time || null,
+        endDate: event.close_date || event.expected_expiration_time || markets[0]?.close_time || markets[0]?.expiration_time || null,
         url: `https://kalshi.com/markets/${event.event_ticker}`,
         source: 'kalshi',
         searchText: normalizeText(searchParts.join(' ')),

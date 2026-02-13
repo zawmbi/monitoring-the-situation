@@ -32,7 +32,14 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
       if (boostKey) params.set('boost', boostKey);
       params.set('limit', '8');
 
-      const response = await fetch(`/api/predictions?${params.toString()}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+
+      const response = await fetch(`/api/predictions?${params.toString()}`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch predictions: ${response.status}`);

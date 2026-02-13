@@ -148,7 +148,16 @@ export default function InlineMarkets({ require: requiredKeywords, boost: boostK
           )}
 
           {error && !loading && count === 0 && (
-            <div className="im-empty im-error">Failed to load markets</div>
+            <div className="im-empty">
+              <span style={{ opacity: 0.6 }}>Markets unavailable</span>
+              <button
+                className="im-refresh-btn"
+                onClick={refresh}
+                style={{ width: 'auto', padding: '3px 10px', fontSize: '10px' }}
+              >
+                Retry
+              </button>
+            </div>
           )}
 
           {!loading && !error && count === 0 && (
