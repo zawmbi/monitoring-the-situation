@@ -604,6 +604,7 @@ function SCOTUSPanel({ onClose }) {
 
 export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading, marketData, marketLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
+  useEffect(() => { setLeaderImgError(false); }, [data?.name, data?.leaderPhoto]);
   const [showApproval, setShowApproval] = useState(false);
   const [showEconomic, setShowEconomic] = useState(false);
   const [showSCOTUS, setShowSCOTUS] = useState(false);
@@ -625,6 +626,9 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
       <div className="cp-header">
         <div className="cp-header-left">
           {data.flag && <span className="cp-flag-emoji">{data.flag}</span>}
+          {!data.flag && data.flagUrl && (
+            <img className="cp-flag-img" src={data.flagUrl} alt="" />
+          )}
           <div>
             <h3 className="cp-title">{data.name}</h3>
             {data.officialName && data.officialName !== data.name && (
@@ -646,12 +650,21 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           <div className="cp-section">
             <div className="cp-section-label">{data.leaderTitle || 'Leader'}</div>
             <div className="cp-leader-card">
-              <div className="cp-leader-photo cp-leader-photo--placeholder">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </div>
+              {data.leaderPhoto && !leaderImgError ? (
+                <img
+                  className="cp-leader-photo"
+                  src={data.leaderPhoto}
+                  alt={data.leader}
+                  onError={() => setLeaderImgError(true)}
+                />
+              ) : (
+                <div className="cp-leader-photo cp-leader-photo--placeholder">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+              )}
               <div className="cp-leader-info">
                 <div className="cp-leader-name">{data.leader}</div>
                 <div className="cp-leader-title">
@@ -967,17 +980,16 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
-        {/* Prediction Markets for this country */}
-        {!isScope && (
-          <div className="cp-section">
-            <InlineMarkets
-              require={[data.name]}
-              title={`${data.name} Markets`}
-              enabled={true}
-              maxItems={4}
-            />
-          </div>
-        )}
+        {/* Prediction Markets */}
+        <div className="cp-section">
+          <InlineMarkets
+            require={[data.name]}
+            boost={isScope ? [data.region || '', data.leader || ''] : []}
+            title={`${data.name} Markets`}
+            enabled={true}
+            maxItems={4}
+          />
+        </div>
 
         {/* Weather section */}
         {(weather || weatherLoading) && (

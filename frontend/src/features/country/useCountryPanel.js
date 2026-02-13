@@ -14,6 +14,20 @@ import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
 
+// Helper to compute Wikimedia flag image URL from state/province name
+function getFlagUrl(name) {
+  const exceptions = {
+    'Georgia': 'Flag_of_Georgia_(U.S._state).svg',
+    'District of Columbia': 'Flag_of_the_District_of_Columbia.svg',
+    'Puerto Rico': 'Flag_of_Puerto_Rico.svg',
+    'Newfoundland and Labrador': 'Flag_of_Newfoundland_and_Labrador.svg',
+    'Northwest Territories': 'Flag_of_the_Northwest_Territories.svg',
+    'Prince Edward Island': 'Flag_of_Prince_Edward_Island.svg',
+  };
+  const file = exceptions[name] || `Flag_of_${name.replace(/ /g, '_')}.svg`;
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${file}`;
+}
+
 // Kick off Wikipedia approval data preload on module init
 preloadApprovals();
 
@@ -242,13 +256,27 @@ export function useCountryPanel() {
         leader: info?.governor || '',
         leaderTitle: info?.leaderTitle || 'Governor',
         leaderParty: info?.governorParty || null,
+        leaderPhoto: null,
         largestCity: info?.largestCity || null,
         statehood: info?.statehood || null,
         nickname: info?.nickname || null,
+        flagUrl: getFlagUrl(stateName),
         scope: 'state',
         loading: false,
       },
     });
+
+    // Fetch leader photo asynchronously from Wikipedia
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== stateName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
   };
 
   const openProvincePanel = (provinceName) => {
@@ -268,14 +296,28 @@ export function useCountryPanel() {
         leader: info?.premier || '',
         leaderTitle: 'Premier',
         leaderParty: info?.premierParty || null,
+        leaderPhoto: null,
         largestCity: info?.largestCity || null,
         confederation: info?.confederation || null,
         regionType: info?.type || 'Province',
         nickname: info?.nickname || null,
+        flagUrl: getFlagUrl(provinceName),
         scope: 'province',
         loading: false,
       },
     });
+
+    // Fetch leader photo asynchronously from Wikipedia
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== provinceName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
   };
 
   const openEUPanel = () => {
