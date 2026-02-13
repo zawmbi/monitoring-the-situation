@@ -155,7 +155,6 @@ function PollTrendChart({ candidates }) {
   return (
     <div className="el-trend-chart">
       <div className="el-trend-title">Polling Trend</div>
-      <div className="el-trend-wrap">
         <svg viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} className="el-trend-svg" onMouseLeave={() => setHover(null)}>
           {/* Grid lines */}
           {gridSteps.map((v, i) => (
@@ -225,7 +224,6 @@ function PollTrendChart({ candidates }) {
             );
           })()}
         </svg>
-      </div>
     </div>
   );
 }
@@ -620,20 +618,13 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         {/* Prediction Markets — live updates every 90s */}
         <div className="el-dates-section">
           <InlineMarkets
-            require={(() => {
-              const r = [stateName, '2026'];
-              if (activeTab === 'senate') r.push('senate');
-              else if (activeTab === 'governor') r.push('governor');
-              else r.push('house');
-              return r;
-            })()}
+            require={[stateName]}
             boost={(() => {
-              const b = ['election'];
-              if (activeTab === 'senate') b.push('senator');
-              else if (activeTab === 'governor') b.push('gubernatorial');
-              else b.push('congress', 'representative');
+              const b = ['2026', 'election', 'midterm'];
+              if (activeTab === 'senate') b.push('senate', 'senator');
+              else if (activeTab === 'governor') b.push('governor', 'gubernatorial');
+              else b.push('house', 'congress', 'representative');
               if (electionView === 'primary') b.push('primary');
-              // Add candidate names for relevance
               const cands = electionView === 'primary' && activeRace?.candidates?.primary
                 ? Object.values(activeRace.candidates.primary).flat()
                 : activeRace?.candidates?.general || [];
@@ -646,7 +637,17 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               }
               return b;
             })()}
-            matchAll
+            filter={(market) => {
+              const t = (market.question || '').toLowerCase() + ' ' + (market.description || '').toLowerCase();
+              // Must mention the race type
+              const racePatterns = activeTab === 'senate'
+                ? /senat/i : activeTab === 'governor'
+                ? /govern|gubern/i : /house|congress|representative/i;
+              if (!racePatterns.test(t)) return false;
+              // Reject wrong election cycles
+              if (/202[0-4]|2028|2030|2032/i.test(t) && !/2026/i.test(t)) return false;
+              return true;
+            }}
             title={`${activeTab === 'senate' ? 'Senate' : activeTab === 'governor' ? 'Governor' : 'House'} Markets`}
             enabled={true}
             maxItems={4}
