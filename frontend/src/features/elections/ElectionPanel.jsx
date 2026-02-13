@@ -164,14 +164,14 @@ function PollTrendChart({ candidates }) {
                 x1={padL} y1={toY(v)} x2={canvasWidth - padR} y2={toY(v)}
                 stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"
               />
-              <text x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
+              <text className="el-axis-y" x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
                 {Math.round(v)}%
               </text>
             </g>
           ))}
           {/* Month labels */}
           {months.map((m, i) => (
-            <text key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
+            <text className="el-axis-x" key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
               {m}
             </text>
           ))}

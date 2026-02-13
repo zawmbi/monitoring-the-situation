@@ -455,6 +455,12 @@
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
 
+/* 2x axis labels in fullscreen / maximized mode */
+.pw--maximized .el-axis-x,
+.pw--maximized .el-axis-y {
+  font-size: 16px;
+}
+
 /* ── House mini map ── */
 
 .el-house-mini {
