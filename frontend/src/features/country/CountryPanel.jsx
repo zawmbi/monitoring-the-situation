@@ -641,7 +641,33 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
 
       {/* Scrollable content */}
       <div className="cp-content">
-        {/* Leader section */}
+        {/* State/Province leader + nickname */}
+        {isScope && data.leader && (
+          <div className="cp-section">
+            <div className="cp-section-label">{data.leaderTitle || 'Leader'}</div>
+            <div className="cp-leader-card">
+              <div className="cp-leader-photo cp-leader-photo--placeholder">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div className="cp-leader-info">
+                <div className="cp-leader-name">{data.leader}</div>
+                <div className="cp-leader-title">
+                  {data.leaderTitle || 'Governor'}
+                  {data.leaderParty && (
+                    <span className={`cp-party-badge cp-party-badge--${data.leaderParty === 'D' ? 'dem' : data.leaderParty === 'R' ? 'rep' : 'other'}`}>
+                      {data.leaderParty}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Country leader section */}
         {!isScope && data.leader && data.leader !== 'Unavailable' && data.leader !== 'Loading...' && (
           <div className="cp-section">
             <div className="cp-section-label">Head of State / Government</div>
@@ -1002,10 +1028,18 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
-        {/* Country details */}
+        {/* Country / State / Province details */}
         <div className="cp-section">
-          <div className="cp-section-label">{isScope ? 'Details' : 'Country Details'}</div>
+          <div className="cp-section-label">
+            {data.scope === 'state' ? 'State Details' : data.scope === 'province' ? `${data.regionType || 'Province'} Details` : 'Country Details'}
+          </div>
           <div className="cp-details-card">
+            {data.nickname && isScope && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Nickname</span>
+                <span className="cp-detail-val cp-detail-val--italic">{data.nickname}</span>
+              </div>
+            )}
             {data.population && data.population !== 'Loading...' && (
               <div className="cp-detail-row">
                 <span className="cp-detail-key">Population</span>
@@ -1024,10 +1058,40 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 <span className="cp-detail-val">{data.capital}</span>
               </div>
             )}
+            {isScope && data.largestCity && data.largestCity !== data.capital && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Largest City</span>
+                <span className="cp-detail-val">{data.largestCity}</span>
+              </div>
+            )}
             <div className="cp-detail-row">
               <span className="cp-detail-key">Local Time</span>
               <span className="cp-detail-val">{localTime} ({data.timezone})</span>
             </div>
+            {isScope && data.area && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Area</span>
+                <span className="cp-detail-val">{formatArea(data.area)}</span>
+              </div>
+            )}
+            {isScope && data.populationRaw && data.area && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Pop. Density</span>
+                <span className="cp-detail-val">{formatPopDensity(data.populationRaw, data.area)}</span>
+              </div>
+            )}
+            {data.scope === 'state' && data.statehood && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Statehood</span>
+                <span className="cp-detail-val">{data.statehood}</span>
+              </div>
+            )}
+            {data.scope === 'province' && data.confederation && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Confederation</span>
+                <span className="cp-detail-val">{data.confederation}</span>
+              </div>
+            )}
             {!isScope && data.languages && data.languages.length > 0 && (
               <div className="cp-detail-row">
                 <span className="cp-detail-key">Language{data.languages.length > 1 ? 's' : ''}</span>

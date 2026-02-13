@@ -9,6 +9,8 @@ import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
 import canadaProvinces from './canadaProvinces.json';
 import CAPITAL_COORDS from './capitalCoords';
+import US_STATE_INFO from './usStateInfo';
+import CA_PROVINCE_INFO from './caProvinceInfo';
 import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
 import { useFlights } from './hooks/useFlights';
@@ -1290,7 +1292,12 @@ function App() {
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
         setViewMode('region');
-        setSelectedCapital(null);
+        const stateInfo = US_STATE_INFO[name];
+        if (stateInfo?.capitalCoords) {
+          setSelectedCapital({ name: stateInfo.capital, lat: stateInfo.capitalCoords[0], lon: stateInfo.capitalCoords[1] });
+        } else {
+          setSelectedCapital(null);
+        }
 
         if (mapContainerRef.current && point) {
           const mapRect = mapContainerRef.current.getBoundingClientRect();
@@ -1313,7 +1320,12 @@ function App() {
       } else if (sourceId === 'ca-provinces') {
         setSelectedRegion({ type: 'province', id: originalId, name });
         setViewMode('region');
-        setSelectedCapital(null);
+        const provInfo = CA_PROVINCE_INFO[name] || CA_PROVINCE_INFO[name.replace(' Territory', '')];
+        if (provInfo?.capitalCoords) {
+          setSelectedCapital({ name: provInfo.capital, lat: provInfo.capitalCoords[0], lon: provInfo.capitalCoords[1] });
+        } else {
+          setSelectedCapital(null);
+        }
 
         if (mapContainerRef.current && point) {
           const mapRect = mapContainerRef.current.getBoundingClientRect();

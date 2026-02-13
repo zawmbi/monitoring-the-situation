@@ -227,6 +227,7 @@ export function useCountryPanel() {
 
   const openStatePanel = (stateName) => {
     const info = US_STATE_INFO[stateName];
+    const pop = info?.population;
     setCountryPanel({
       open: true,
       data: {
@@ -235,15 +236,24 @@ export function useCountryPanel() {
         region: 'United States',
         subregion: info?.abbr || '',
         timezone: info?.timezone || 'UTC-5',
-        population: '',
-        leader: '',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.governor || '',
+        leaderTitle: info?.leaderTitle || 'Governor',
+        leaderParty: info?.governorParty || null,
+        largestCity: info?.largestCity || null,
+        statehood: info?.statehood || null,
+        nickname: info?.nickname || null,
         scope: 'state',
+        loading: false,
       },
     });
   };
 
   const openProvincePanel = (provinceName) => {
     const info = CA_PROVINCE_INFO[provinceName] || CA_PROVINCE_INFO[provinceName.replace(' Territory', '')];
+    const pop = info?.population;
     setCountryPanel({
       open: true,
       data: {
@@ -252,9 +262,18 @@ export function useCountryPanel() {
         region: 'Canada',
         subregion: info?.abbr || '',
         timezone: info?.timezone || 'UTC-5',
-        population: '',
-        leader: '',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.premier || '',
+        leaderTitle: 'Premier',
+        leaderParty: info?.premierParty || null,
+        largestCity: info?.largestCity || null,
+        confederation: info?.confederation || null,
+        regionType: info?.type || 'Province',
+        nickname: info?.nickname || null,
         scope: 'province',
+        loading: false,
       },
     });
   };
