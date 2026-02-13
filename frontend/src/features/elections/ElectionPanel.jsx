@@ -514,6 +514,263 @@ function LiveIndicator({ isLive }) {
   );
 }
 
+function SuperPACPanel({ expenditures }) {
+  if (!expenditures || expenditures.expenditureCount === 0) return null;
+
+  return (
+    <div className="el-superpac">
+      <div className="el-superpac-header">
+        <div className="el-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Outside Spending (Super PACs)
+        </div>
+        <span className="el-superpac-total">{expenditures.totalOutsideSpending}</span>
+      </div>
+
+      {/* Party spending breakdown */}
+      {expenditures.byParty && (
+        <div className="el-superpac-parties">
+          {expenditures.byParty.D && (expenditures.byParty.D.supportSpending || expenditures.byParty.D.opposeSpending) && (
+            <div className="el-superpac-party-row">
+              <span className="el-superpac-party-label" style={{ color: PARTY_COLORS.D }}>D</span>
+              <div className="el-superpac-party-amounts">
+                {expenditures.byParty.D.supportSpending && (
+                  <span className="el-superpac-for">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    {expenditures.byParty.D.supportSpending}
+                  </span>
+                )}
+                {expenditures.byParty.D.opposeSpending && (
+                  <span className="el-superpac-against">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    {expenditures.byParty.D.opposeSpending}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {expenditures.byParty.R && (expenditures.byParty.R.supportSpending || expenditures.byParty.R.opposeSpending) && (
+            <div className="el-superpac-party-row">
+              <span className="el-superpac-party-label" style={{ color: PARTY_COLORS.R }}>R</span>
+              <div className="el-superpac-party-amounts">
+                {expenditures.byParty.R.supportSpending && (
+                  <span className="el-superpac-for">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    {expenditures.byParty.R.supportSpending}
+                  </span>
+                )}
+                {expenditures.byParty.R.opposeSpending && (
+                  <span className="el-superpac-against">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    {expenditures.byParty.R.opposeSpending}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Top spending committees */}
+      {expenditures.topCommittees && expenditures.topCommittees.length > 0 && (
+        <div className="el-superpac-committees">
+          <div className="el-superpac-committees-title">Top Spenders</div>
+          {expenditures.topCommittees.slice(0, 5).map((c, i) => (
+            <div key={i} className="el-superpac-committee">
+              <span className="el-superpac-committee-name">{c.committee}</span>
+              <span className="el-superpac-committee-amount">{c.formattedTotal}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpcomingElections({ elections }) {
+  if (!elections || elections.length === 0) return null;
+
+  // Show only future elections
+  const now = new Date();
+  const upcoming = elections.filter(e => {
+    if (!e.electionDay) return false;
+    return new Date(e.electionDay + 'T00:00:00') >= now;
+  }).slice(0, 5);
+
+  if (upcoming.length === 0) return null;
+
+  return (
+    <div className="el-upcoming-elections">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Upcoming Elections (Google Civic)
+      </div>
+      {upcoming.map((e, i) => (
+        <div key={i} className="el-upcoming-election-row">
+          <span className="el-upcoming-election-name">{e.name}</span>
+          <span className="el-upcoming-election-date">{formatDate(e.electionDay)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VoterInfoLookup() {
+  const [address, setAddress] = useState('');
+  const [voterInfo, setVoterInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const lookup = async () => {
+    if (!address.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch(`/api/civic/voterinfo?address=${encodeURIComponent(address.trim())}`);
+      const data = await resp.json();
+      if (data.success && data.data) {
+        setVoterInfo(data.data);
+      } else {
+        setError(data.error || 'No info found');
+        setVoterInfo(null);
+      }
+    } catch {
+      setError('Lookup failed');
+      setVoterInfo(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="el-voter-lookup">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        Polling Place Lookup
+      </div>
+      <div className="el-voter-lookup-input-row">
+        <input
+          className="el-voter-lookup-input"
+          type="text"
+          placeholder="Enter your address..."
+          value={address}
+          onChange={e => setAddress(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && lookup()}
+        />
+        <button className="el-voter-lookup-btn" onClick={lookup} disabled={loading || !address.trim()}>
+          {loading ? '...' : 'Look Up'}
+        </button>
+      </div>
+
+      {error && <div className="el-voter-lookup-error">{error}</div>}
+
+      {voterInfo && (
+        <div className="el-voter-results">
+          {/* Polling locations */}
+          {voterInfo.pollingLocations && voterInfo.pollingLocations.length > 0 && (
+            <div className="el-voter-section">
+              <div className="el-voter-section-title">Polling Places</div>
+              {voterInfo.pollingLocations.map((loc, i) => (
+                <div key={i} className="el-voter-location">
+                  <span className="el-voter-location-name">{loc.name}</span>
+                  <span className="el-voter-location-addr">{loc.address}</span>
+                  {loc.hours && <span className="el-voter-location-hours">{loc.hours}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Early vote sites */}
+          {voterInfo.earlyVoteSites && voterInfo.earlyVoteSites.length > 0 && (
+            <div className="el-voter-section">
+              <div className="el-voter-section-title">Early Voting</div>
+              {voterInfo.earlyVoteSites.map((loc, i) => (
+                <div key={i} className="el-voter-location">
+                  <span className="el-voter-location-name">{loc.name}</span>
+                  <span className="el-voter-location-addr">{loc.address}</span>
+                  {loc.hours && <span className="el-voter-location-hours">{loc.hours}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Drop-off locations */}
+          {voterInfo.dropOffLocations && voterInfo.dropOffLocations.length > 0 && (
+            <div className="el-voter-section">
+              <div className="el-voter-section-title">Drop-off Locations</div>
+              {voterInfo.dropOffLocations.map((loc, i) => (
+                <div key={i} className="el-voter-location">
+                  <span className="el-voter-location-name">{loc.name}</span>
+                  <span className="el-voter-location-addr">{loc.address}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Contests on ballot */}
+          {voterInfo.contests && voterInfo.contests.length > 0 && (
+            <div className="el-voter-section">
+              <div className="el-voter-section-title">Ballot Contests</div>
+              {voterInfo.contests.slice(0, 8).map((c, i) => (
+                <div key={i} className="el-voter-contest">
+                  <span className="el-voter-contest-office">
+                    {c.referendumTitle || c.office || c.type}
+                  </span>
+                  {c.candidates && c.candidates.length > 0 && (
+                    <div className="el-voter-contest-candidates">
+                      {c.candidates.map((cand, j) => (
+                        <span key={j} className="el-voter-contest-candidate">
+                          {cand.name}
+                          {cand.party && <span className="el-voter-contest-party"> ({cand.party})</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {c.referendumText && (
+                    <span className="el-voter-contest-ref-text">{c.referendumText}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* State election links */}
+          {voterInfo.state && voterInfo.state.length > 0 && voterInfo.state[0].electionInfoUrl && (
+            <div className="el-voter-links">
+              {voterInfo.state[0].electionInfoUrl && (
+                <a href={voterInfo.state[0].electionInfoUrl} target="_blank" rel="noopener noreferrer" className="el-voter-link">
+                  Election Info
+                </a>
+              )}
+              {voterInfo.state[0].electionRegistrationUrl && (
+                <a href={voterInfo.state[0].electionRegistrationUrl} target="_blank" rel="noopener noreferrer" className="el-voter-link">
+                  Register to Vote
+                </a>
+              )}
+              {voterInfo.state[0].absenteeVotingInfoUrl && (
+                <a href={voterInfo.state[0].absenteeVotingInfoUrl} target="_blank" rel="noopener noreferrer" className="el-voter-link">
+                  Absentee Voting
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StateContextBar({ pvi }) {
   if (!pvi) return null;
   const isD = pvi.startsWith('D');
@@ -593,11 +850,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const houseDistricts = data.houseDistricts || [];
   const redistricting = data.redistricting;
   const dates = data.primaryDate;
+  const independentExpenditures = data.independentExpenditures || null;
+  const upcomingElections = data.upcomingElections || [];
 
   const tabs = [];
   if (senate) tabs.push({ id: 'senate', label: 'Senate' });
   if (governor) tabs.push({ id: 'governor', label: 'Governor' });
   tabs.push({ id: 'house', label: `House${houseDistricts.length > 0 ? ` (${houseDistricts.length})` : ''}` });
+  tabs.push({ id: 'info', label: 'Info' });
 
   const activeDistrict = selectedDistrict
     ? houseDistricts.find(d => d.code === selectedDistrict) || null
@@ -738,6 +998,11 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
 
             {/* Fundraising, endorsements, key issues */}
             <RaceDetails race={activeRace} />
+
+            {/* Super PAC spending — Senate only */}
+            {activeTab === 'senate' && independentExpenditures && (
+              <SuperPACPanel expenditures={independentExpenditures} />
+            )}
           </div>
         )}
 
@@ -823,6 +1088,63 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           </div>
         )}
 
+        {/* Info tab — voter lookup, upcoming elections, data sources */}
+        {activeTab === 'info' && (
+          <div className="el-race">
+            <UpcomingElections elections={upcomingElections} />
+            <VoterInfoLookup />
+
+            <div className="el-info-sources">
+              <div className="el-section-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                Data Sources
+              </div>
+              <div className="el-info-source-list">
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Prediction Markets</span>
+                  <span className="el-info-source-desc">Polymarket + Kalshi (live)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">FEC OpenData</span>
+                  <span className="el-info-source-desc">Candidates, fundraising, super PACs</span>
+                </div>
+                {data.live?.civicConfigured && (
+                  <div className="el-info-source-row">
+                    <span className="el-info-source-name">Google Civic</span>
+                    <span className="el-info-source-desc">Elections, polling places, ballot info</span>
+                  </div>
+                )}
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Cook/Sabato</span>
+                  <span className="el-info-source-desc">Race ratings, PVI (static)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">OpenSecrets</span>
+                  <span className="el-info-source-desc">Fundraising estimates (static)</span>
+                </div>
+              </div>
+              <div className="el-info-api-status">
+                <span className="el-info-api-item">
+                  <span className={`el-info-api-dot ${isLive ? 'el-info-api-on' : ''}`} />
+                  Markets: {isLive ? 'Connected' : 'Offline'}
+                </span>
+                <span className="el-info-api-item">
+                  <span className={`el-info-api-dot ${data.live?.fecConfigured ? 'el-info-api-on' : ''}`} />
+                  FEC: {data.live?.fecConfigured ? 'Connected' : 'Demo Key'}
+                </span>
+                <span className="el-info-api-item">
+                  <span className={`el-info-api-dot ${data.live?.civicConfigured ? 'el-info-api-on' : ''}`} />
+                  Civic: {data.live?.civicConfigured ? 'Connected' : 'Not configured'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Key Dates */}
         <div className="el-dates-section">
           <div className="el-section-title">Key Dates</div>
@@ -838,8 +1160,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           <DateCountdown label="General Election" dateStr={GENERAL_ELECTION_DATE} type="general" />
         </div>
 
-        {/* Prediction Markets — live updates every 90s */}
-        <div className="el-dates-section">
+        {/* Prediction Markets — live updates every 90s (not on info tab) */}
+        {activeTab !== 'info' && <div className="el-dates-section">
           <InlineMarkets
             require={[stateName]}
             boost={(() => {
@@ -877,7 +1199,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             enabled={true}
             maxItems={4}
           />
-        </div>
+        </div>}
 
         <div className="el-data-footer">
           <span className="el-data-updated">
@@ -886,7 +1208,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Markets + Static' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? 'Markets + FEC + Static' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>

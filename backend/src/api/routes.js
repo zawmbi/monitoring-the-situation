@@ -685,4 +685,87 @@ router.get('/elections/live/:state', async (req, res) => {
   }
 });
 
+// ===========================================
+// GOOGLE CIVIC INFORMATION
+// ===========================================
+
+/**
+ * GET /api/civic/elections
+ * List upcoming elections from Google Civic API
+ */
+router.get('/civic/elections', async (req, res) => {
+  try {
+    const { default: googleCivicService } = await import('../services/googleCivic.service.js');
+    if (!googleCivicService.isConfigured) {
+      return res.json({ success: true, data: [], configured: false, timestamp: new Date().toISOString() });
+    }
+    const data = await googleCivicService.getUpcomingElections();
+    res.json({ success: true, data, configured: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Civic elections error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch election list' });
+  }
+});
+
+/**
+ * GET /api/civic/voterinfo
+ * Get voter info (polling places, contests) for a given address
+ * Query params:
+ *   - address: street address (required)
+ *   - electionId: specific election ID (optional)
+ */
+router.get('/civic/voterinfo', async (req, res) => {
+  try {
+    const { default: googleCivicService } = await import('../services/googleCivic.service.js');
+    if (!googleCivicService.isConfigured) {
+      return res.json({ success: false, error: 'Google Civic API not configured', configured: false });
+    }
+    const { address, electionId } = req.query;
+    if (!address) {
+      return res.status(400).json({ success: false, error: 'Address parameter required' });
+    }
+    const data = await googleCivicService.getVoterInfo(address, electionId || null);
+    if (!data) {
+      return res.status(404).json({ success: false, error: 'No voter info found for address' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Civic voterinfo error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch voter info' });
+  }
+});
+
+// ===========================================
+// FEC INDEPENDENT EXPENDITURES (Super PAC)
+// ===========================================
+
+/**
+ * GET /api/fec/expenditures/:state
+ * Get independent expenditure (super PAC spending) summary for a state's Senate race
+ * Query params:
+ *   - office: S (senate, default) or H (house)
+ *   - district: district number (required for House)
+ */
+router.get('/fec/expenditures/:state', async (req, res) => {
+  try {
+    const { default: fecService } = await import('../services/fec.service.js');
+    const stateCode = req.params.state.toUpperCase();
+    const office = (req.query.office || 'S').toUpperCase();
+    const district = req.query.district || null;
+
+    if (office === 'H' && !district) {
+      return res.status(400).json({ success: false, error: 'District required for House races' });
+    }
+
+    const data = await fecService.getRaceExpenditures(stateCode, office, district);
+    if (!data) {
+      return res.json({ success: true, data: null, timestamp: new Date().toISOString() });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] FEC expenditures error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch expenditure data' });
+  }
+});
+
 export default router;

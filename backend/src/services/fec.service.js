@@ -251,6 +251,215 @@ class FECService {
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
 
+  /**
+   * Get independent expenditures (super PAC spending) for a candidate
+   * Endpoint: /schedules/schedule_e/
+   * Returns spending for/against a candidate by outside groups
+   */
+  async getIndependentExpenditures(candidateId) {
+    if (!candidateId) return [];
+
+    const cacheKey = `${CACHE_KEY_PREFIX}:ie:${candidateId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    if (this._memCache[cacheKey] && (Date.now() - (this._memCacheTime[cacheKey] || 0)) < 30 * 60 * 1000) {
+      return this._memCache[cacheKey];
+    }
+
+    const data = await this._fetch('/schedules/schedule_e/', {
+      candidate_id: candidateId,
+      cycle: '2026',
+      sort: '-expenditure_amount',
+      per_page: '20',
+    });
+
+    if (!data || !Array.isArray(data.results)) return [];
+
+    const expenditures = data.results.map(e => ({
+      committee: e.committee_name || 'Unknown Committee',
+      committeeId: e.committee_id,
+      amount: e.expenditure_amount || 0,
+      supportOppose: e.support_oppose_indicator === 'S' ? 'support' : 'oppose',
+      description: e.expenditure_description || null,
+      date: e.expenditure_date || null,
+      candidateName: e.candidate_name ? this._formatName(e.candidate_name) : null,
+    }));
+
+    if (expenditures.length > 0) {
+      await cacheService.set(cacheKey, expenditures, CACHE_TTL);
+      this._memCache[cacheKey] = expenditures;
+      this._memCacheTime[cacheKey] = Date.now();
+    }
+
+    return expenditures;
+  }
+
+  /**
+   * Get aggregated independent expenditure totals for a race (state + office)
+   * Fetches top spending committees and total for/against by party
+   */
+  async getRaceExpenditures(stateCode, office = 'S', district = null) {
+    if (!stateCode) return null;
+
+    const distKey = district ? `:${district}` : '';
+    const cacheKey = `${CACHE_KEY_PREFIX}:ie:race:${stateCode}:${office}${distKey}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    if (this._memCache[cacheKey] && (Date.now() - (this._memCacheTime[cacheKey] || 0)) < 30 * 60 * 1000) {
+      return this._memCache[cacheKey];
+    }
+
+    const params = {
+      cycle: '2026',
+      sort: '-expenditure_amount',
+      per_page: '100',
+      is_notice: 'false',
+    };
+
+    // Get candidates for this race first to filter expenditures
+    let candidates;
+    if (office === 'S') {
+      candidates = await this.getSenateCandidatesByCode(stateCode);
+    } else if (office === 'H' && district) {
+      candidates = await this.getHouseCandidates(stateCode, district);
+    } else {
+      return null;
+    }
+
+    if (!candidates || candidates.length === 0) return null;
+
+    // Fetch IEs for top candidates (limit API calls)
+    const topCandidates = candidates.slice(0, 6);
+    const allIEs = [];
+
+    for (const cand of topCandidates) {
+      const ies = await this.getIndependentExpenditures(cand.candidateId);
+      for (const ie of ies) {
+        allIEs.push({ ...ie, candidateParty: cand.party, candidateName: cand.name });
+      }
+    }
+
+    // Aggregate by committee
+    const byCommittee = {};
+    for (const ie of allIEs) {
+      const key = ie.committeeId || ie.committee;
+      if (!byCommittee[key]) {
+        byCommittee[key] = { committee: ie.committee, committeeId: ie.committeeId, totalSpent: 0, support: {}, oppose: {} };
+      }
+      byCommittee[key].totalSpent += ie.amount;
+      const bucket = ie.supportOppose === 'support' ? byCommittee[key].support : byCommittee[key].oppose;
+      const party = ie.candidateParty || '?';
+      bucket[party] = (bucket[party] || 0) + ie.amount;
+    }
+
+    // Sort by total spending
+    const topCommittees = Object.values(byCommittee)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10)
+      .map(c => ({
+        committee: c.committee,
+        totalSpent: c.totalSpent,
+        formattedTotal: this._formatMoney(c.totalSpent),
+        supportingParties: Object.entries(c.support).map(([p, amt]) => ({ party: p, amount: this._formatMoney(amt) })),
+        opposingParties: Object.entries(c.oppose).map(([p, amt]) => ({ party: p, amount: this._formatMoney(amt) })),
+      }));
+
+    // Aggregate totals
+    let totalForD = 0, totalAgainstD = 0, totalForR = 0, totalAgainstR = 0;
+    for (const ie of allIEs) {
+      if (ie.candidateParty === 'D') {
+        if (ie.supportOppose === 'support') totalForD += ie.amount;
+        else totalAgainstD += ie.amount;
+      } else if (ie.candidateParty === 'R') {
+        if (ie.supportOppose === 'support') totalForR += ie.amount;
+        else totalAgainstR += ie.amount;
+      }
+    }
+
+    const result = {
+      topCommittees,
+      totalOutsideSpending: this._formatMoney(allIEs.reduce((s, ie) => s + ie.amount, 0)),
+      totalOutsideSpendingRaw: allIEs.reduce((s, ie) => s + ie.amount, 0),
+      byParty: {
+        D: {
+          supportSpending: this._formatMoney(totalForD),
+          opposeSpending: this._formatMoney(totalAgainstD),
+        },
+        R: {
+          supportSpending: this._formatMoney(totalForR),
+          opposeSpending: this._formatMoney(totalAgainstR),
+        },
+      },
+      expenditureCount: allIEs.length,
+    };
+
+    if (allIEs.length > 0) {
+      await cacheService.set(cacheKey, result, CACHE_TTL);
+      this._memCache[cacheKey] = result;
+      this._memCacheTime[cacheKey] = Date.now();
+    }
+
+    return result;
+  }
+
+  /**
+   * Get Senate candidates by state code (2-letter) instead of state name
+   */
+  async getSenateCandidatesByCode(stateCode) {
+    if (!stateCode) return [];
+
+    const cacheKey = `${CACHE_KEY_PREFIX}:senate:${stateCode}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    if (this._memCache[cacheKey] && (Date.now() - (this._memCacheTime[cacheKey] || 0)) < 30 * 60 * 1000) {
+      return this._memCache[cacheKey];
+    }
+
+    const data = await this._fetch('/candidates/search/', {
+      state: stateCode,
+      office: 'S',
+      election_year: '2026',
+      sort: '-total_receipts',
+      per_page: '20',
+      is_active_candidate: 'true',
+    });
+
+    if (!data || !Array.isArray(data.results)) return [];
+
+    const candidates = data.results.map(c => ({
+      name: c.name ? this._formatName(c.name) : 'Unknown',
+      party: this._normalizeParty(c.party),
+      incumbentChallenge: c.incumbent_challenge || 'unknown',
+      totalReceipts: c.total_receipts || 0,
+      totalDisbursements: c.total_disbursements || 0,
+      cashOnHand: c.cash_on_hand_end_period || 0,
+      candidateId: c.candidate_id,
+      state: stateCode,
+      office: 'senate',
+    }));
+
+    if (candidates.length > 0) {
+      await cacheService.set(cacheKey, candidates, CACHE_TTL);
+      this._memCache[cacheKey] = candidates;
+      this._memCacheTime[cacheKey] = Date.now();
+    }
+
+    return candidates;
+  }
+
+  /**
+   * Format dollar amount for display
+   */
+  _formatMoney(num) {
+    if (!num || num === 0) return null;
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+    return `$${num.toFixed(0)}`;
+  }
+
   _normalizeParty(party) {
     if (!party) return '?';
     const p = party.toUpperCase();

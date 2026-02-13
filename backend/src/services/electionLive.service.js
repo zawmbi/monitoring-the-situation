@@ -12,6 +12,7 @@ import { cacheService } from './cache.service.js';
 import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { fecService } from './fec.service.js';
+import { googleCivicService } from './googleCivic.service.js';
 
 const CACHE_KEY = 'elections:live';
 const CACHE_TTL = 900; // 15 minutes
@@ -283,14 +284,16 @@ class ElectionLiveService {
     console.log('[ElectionLive] Fetching live election data...');
 
     try {
-      // Fetch market data and FEC data in parallel
-      const [allMarkets, fecData] = await Promise.allSettled([
+      // Fetch market data, FEC data, and Google Civic elections in parallel
+      const [allMarkets, fecData, civicElections] = await Promise.allSettled([
         this._fetchAllElectionMarkets(),
         fecService.isConfigured ? fecService.getAllSenateCandidates() : Promise.resolve({}),
+        googleCivicService.isConfigured ? googleCivicService.getUpcomingElections() : Promise.resolve([]),
       ]);
 
       const markets = allMarkets.status === 'fulfilled' ? allMarkets.value : [];
       const fecCandidates = fecData.status === 'fulfilled' ? fecData.value : {};
+      const upcomingElections = civicElections.status === 'fulfilled' ? civicElections.value : [];
 
       // Derive ratings from market probabilities
       const marketRatings = this._deriveRatingsFromMarkets(markets);
@@ -322,11 +325,27 @@ class ElectionLiveService {
         };
       }
 
+      // Fetch independent expenditures for key competitive Senate races
+      const ieResults = {};
+      const keyStates = ['GA', 'NC', 'MI', 'PA', 'OH', 'TX', 'AZ', 'NV', 'WI', 'NH', 'ME', 'CO', 'VA', 'IA', 'AK'];
+      if (fecService.isConfigured) {
+        const iePromises = keyStates.map(async (sc) => {
+          try {
+            const ie = await fecService.getRaceExpenditures(sc, 'S');
+            if (ie && ie.expenditureCount > 0) ieResults[sc] = ie;
+          } catch (e) { /* skip */ }
+        });
+        await Promise.allSettled(iePromises);
+      }
+
       const result = {
         marketRatings,
         fecData: fecSummaries,
+        independentExpenditures: ieResults,
+        upcomingElections,
         marketCount: markets.length,
         fecConfigured: fecService.isConfigured,
+        civicConfigured: googleCivicService.isConfigured,
         timestamp: new Date().toISOString(),
       };
 
@@ -371,6 +390,8 @@ class ElectionLiveService {
       governor: all.marketRatings[governorKey] || null,
       house: houseRatings,
       fec: all.fecData[stateCode] || null,
+      independentExpenditures: (all.independentExpenditures || {})[stateCode] || null,
+      upcomingElections: all.upcomingElections || [],
       timestamp: all.timestamp,
     };
   }
