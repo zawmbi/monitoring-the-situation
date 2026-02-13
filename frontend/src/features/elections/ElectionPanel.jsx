@@ -576,9 +576,28 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         {/* Prediction Markets — live updates every 90s */}
         <div className="el-dates-section">
           <InlineMarkets
-            require={[stateName, activeTab === 'senate' ? 'senate' : activeTab === 'governor' ? 'governor' : 'house']}
-            boost={['2026', 'midterm', 'election', ...(activeRace?.candidates?.general?.map(c => c.name).filter(n => n && n !== 'TBD' && !n.includes('Nominee')) || [])]}
-            title="Election Markets"
+            require={[stateName]}
+            boost={(() => {
+              const b = ['2026', 'election'];
+              if (activeTab === 'senate') b.push('senate', 'senator');
+              else if (activeTab === 'governor') b.push('governor', 'gubernatorial');
+              else b.push('house', 'congress', 'representative');
+              if (electionView === 'primary') b.push('primary');
+              // Add candidate names for relevance
+              const cands = electionView === 'primary' && activeRace?.candidates?.primary
+                ? Object.values(activeRace.candidates.primary).flat()
+                : activeRace?.candidates?.general || [];
+              for (const c of cands) {
+                if (c.name && c.name !== 'TBD' && !c.name.includes('Nominee')) {
+                  // Use last name for better matching
+                  const parts = c.name.split(' ');
+                  if (parts.length > 1) b.push(parts[parts.length - 1]);
+                  else b.push(c.name);
+                }
+              }
+              return b;
+            })()}
+            title={`${activeTab === 'senate' ? 'Senate' : activeTab === 'governor' ? 'Governor' : 'House'} Markets`}
             enabled={true}
             maxItems={4}
           />
