@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], enabled = true) {
+export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], enabled = true, matchAll = false) {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +35,7 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
       const params = new URLSearchParams();
       params.set('q', requireKey);
       if (boostKey) params.set('boost', boostKey);
+      if (matchAll) params.set('matchAll', 'true');
       params.set('limit', '8');
 
       const controller = new AbortController();
@@ -67,7 +68,7 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [requireKey, boostKey, enabled]);
+  }, [requireKey, boostKey, enabled, matchAll]);
 
   useEffect(() => {
     if (enabled && requireKey) {

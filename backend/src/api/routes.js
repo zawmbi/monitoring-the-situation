@@ -559,7 +559,7 @@ router.get('/kalshi', async (req, res) => {
  */
 router.get('/predictions', async (req, res) => {
   try {
-    const { q: requireParam, boost: boostParam, limit = 8 } = req.query;
+    const { q: requireParam, boost: boostParam, limit = 8, matchAll: matchAllParam } = req.query;
     if (!requireParam) {
       return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
     }
@@ -567,10 +567,11 @@ router.get('/predictions', async (req, res) => {
     const requiredKeywords = requireParam.split(',').map(k => k.trim()).filter(Boolean);
     const boostKeywords = boostParam ? boostParam.split(',').map(k => k.trim()).filter(Boolean) : [];
     const maxResults = parseInt(limit, 10);
+    const matchAll = matchAllParam === 'true' || matchAllParam === '1';
 
     const [polymarketResults, kalshiResults] = await Promise.allSettled([
-      polymarketService.getMarketsByTopic(requiredKeywords, boostKeywords),
-      kalshiService.getMarketsByTopic(requiredKeywords, boostKeywords),
+      polymarketService.getMarketsByTopic(requiredKeywords, boostKeywords, matchAll),
+      kalshiService.getMarketsByTopic(requiredKeywords, boostKeywords, matchAll),
     ]);
 
     const polymarkets = polymarketResults.status === 'fulfilled'

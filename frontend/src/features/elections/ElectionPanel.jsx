@@ -164,14 +164,14 @@ function PollTrendChart({ candidates }) {
                 x1={padL} y1={toY(v)} x2={canvasWidth - padR} y2={toY(v)}
                 stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"
               />
-              <text className="el-axis-y" x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
+              <text x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
                 {Math.round(v)}%
               </text>
             </g>
           ))}
           {/* Month labels */}
           {months.map((m, i) => (
-            <text className="el-axis-x" key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
+            <text key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
               {m}
             </text>
           ))}
@@ -620,12 +620,18 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         {/* Prediction Markets — live updates every 90s */}
         <div className="el-dates-section">
           <InlineMarkets
-            require={[stateName]}
+            require={(() => {
+              const r = [stateName, '2026'];
+              if (activeTab === 'senate') r.push('senate');
+              else if (activeTab === 'governor') r.push('governor');
+              else r.push('house');
+              return r;
+            })()}
             boost={(() => {
-              const b = ['2026', 'election'];
-              if (activeTab === 'senate') b.push('senate', 'senator');
-              else if (activeTab === 'governor') b.push('governor', 'gubernatorial');
-              else b.push('house', 'congress', 'representative');
+              const b = ['election'];
+              if (activeTab === 'senate') b.push('senator');
+              else if (activeTab === 'governor') b.push('gubernatorial');
+              else b.push('congress', 'representative');
               if (electionView === 'primary') b.push('primary');
               // Add candidate names for relevance
               const cands = electionView === 'primary' && activeRace?.candidates?.primary
@@ -633,7 +639,6 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 : activeRace?.candidates?.general || [];
               for (const c of cands) {
                 if (c.name && c.name !== 'TBD' && !c.name.includes('Nominee')) {
-                  // Use last name for better matching
                   const parts = c.name.split(' ');
                   if (parts.length > 1) b.push(parts[parts.length - 1]);
                   else b.push(c.name);
@@ -641,6 +646,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               }
               return b;
             })()}
+            matchAll
             title={`${activeTab === 'senate' ? 'Senate' : activeTab === 'governor' ? 'Governor' : 'House'} Markets`}
             enabled={true}
             maxItems={4}

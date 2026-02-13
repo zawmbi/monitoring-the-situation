@@ -74,8 +74,8 @@ function MarketCard({ market }) {
   );
 }
 
-export default function InlineMarkets({ require: requiredKeywords, boost: boostKeywords = [], title, enabled = true, maxItems = 6 }) {
-  const { markets, loading, error, lastUpdated, refresh } = useMarketsByTopic(requiredKeywords, boostKeywords, enabled);
+export default function InlineMarkets({ require: requiredKeywords, boost: boostKeywords = [], title, enabled = true, maxItems = 6, matchAll = false }) {
+  const { markets, loading, error, lastUpdated, refresh } = useMarketsByTopic(requiredKeywords, boostKeywords, enabled, matchAll);
   const [collapsed, setCollapsed] = useState(false);
 
   if (!enabled) return null;

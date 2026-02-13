@@ -228,7 +228,7 @@ class PolymarketService {
     });
   }
 
-  scoreMarket(market, requiredKeywords, boostKeywords = []) {
+  scoreMarket(market, requiredKeywords, boostKeywords = [], matchAll = false) {
     const text = market.searchText || normalizeText(`${market.question} ${market.description}`);
     const rawText = market.rawSearchText || `${market.question} ${market.description}`;
     const titleText = normalizeText(market.question || '');
@@ -243,6 +243,7 @@ class PolymarketService {
 
     const reqMatches = requiredKeywords.filter(k => matches(normalizeText(k)));
     if (reqMatches.length === 0) return 0;
+    if (matchAll && reqMatches.length < requiredKeywords.length) return 0;
 
     let score = 0;
     for (const k of reqMatches) score += matchesTitle(normalizeText(k)) ? 3 : 2;
@@ -252,10 +253,10 @@ class PolymarketService {
     return score;
   }
 
-  filterByTopic(markets, requiredKeywords, boostKeywords = []) {
+  filterByTopic(markets, requiredKeywords, boostKeywords = [], matchAll = false) {
     if (!requiredKeywords?.length) return [];
     return markets
-      .map(m => ({ ...m, _score: this.scoreMarket(m, requiredKeywords, boostKeywords) }))
+      .map(m => ({ ...m, _score: this.scoreMarket(m, requiredKeywords, boostKeywords, matchAll) }))
       .filter(m => m._score > 0)
       .sort((a, b) => b._score - a._score || b.volume - a.volume)
       .map(({ _score, ...m }) => m);
@@ -294,9 +295,9 @@ class PolymarketService {
     return this.filterByCountry(allMarkets, countryName);
   }
 
-  async getMarketsByTopic(requiredKeywords, boostKeywords = []) {
+  async getMarketsByTopic(requiredKeywords, boostKeywords = [], matchAll = false) {
     const allMarkets = await this.getAllMarkets();
-    return this.filterByTopic(allMarkets, requiredKeywords, boostKeywords);
+    return this.filterByTopic(allMarkets, requiredKeywords, boostKeywords, matchAll);
   }
 
   async getTopMarkets(limit = 50) {
