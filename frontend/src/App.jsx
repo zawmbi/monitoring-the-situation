@@ -9,12 +9,12 @@ import usData from 'us-atlas/states-10m.json';
 import countries from 'world-countries';
 import canadaProvinces from './canadaProvinces.json';
 import CAPITAL_COORDS from './capitalCoords';
+import US_STATE_INFO from './usStateInfo';
+import CA_PROVINCE_INFO from './caProvinceInfo';
 import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
 import { useFlights } from './hooks/useFlights';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
-import { PolymarketPanel } from './features/polymarket/PolymarketPanel';
-import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
 import { useCountryPanel } from './features/country/useCountryPanel';
 import { useWeather } from './hooks/useWeather';
@@ -688,9 +688,6 @@ function App() {
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
   const [newsPanelPosition, setNewsPanelPosition] = useState(null);
 
-  // Polymarket panel visibility and state
-  const [showPolymarketPanel, setShowPolymarketPanel] = useState(false);
-  const [polymarketCountry, setPolymarketCountry] = useState(null);
 
   // Tooltip state
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
@@ -708,13 +705,6 @@ function App() {
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
-  const {
-    markets: polymarkets,
-    loading: polymarketsLoading,
-    error: polymarketsError,
-    lastUpdated: polymarketsLastUpdated,
-    refresh: refreshPolymarkets,
-  } = usePolymarket(polymarketCountry, showPolymarketPanel);
   const {
     events: severeEvents,
     loading: severeLoading,
@@ -1298,12 +1288,16 @@ function App() {
           }
 
           openCountryPanel(name);
-          setPolymarketCountry(name);
         }
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
         setViewMode('region');
-        setSelectedCapital(null);
+        const stateInfo = US_STATE_INFO[name];
+        if (stateInfo?.capitalCoords) {
+          setSelectedCapital({ name: stateInfo.capital, lat: stateInfo.capitalCoords[0], lon: stateInfo.capitalCoords[1] });
+        } else {
+          setSelectedCapital(null);
+        }
 
         if (mapContainerRef.current && point) {
           const mapRect = mapContainerRef.current.getBoundingClientRect();
@@ -1326,7 +1320,12 @@ function App() {
       } else if (sourceId === 'ca-provinces') {
         setSelectedRegion({ type: 'province', id: originalId, name });
         setViewMode('region');
-        setSelectedCapital(null);
+        const provInfo = CA_PROVINCE_INFO[name] || CA_PROVINCE_INFO[name.replace(' Territory', '')];
+        if (provInfo?.capitalCoords) {
+          setSelectedCapital({ name: provInfo.capital, lat: provInfo.capitalCoords[0], lon: provInfo.capitalCoords[1] });
+        } else {
+          setSelectedCapital(null);
+        }
 
         if (mapContainerRef.current && point) {
           const mapRect = mapContainerRef.current.getBoundingClientRect();
@@ -1784,20 +1783,6 @@ function App() {
                         <span className="slider" />
                       </label>
                     ))}
-                    <label className="switch switch-stocks">
-                      <span className="switch-label">Betting Markets</span>
-                      <input
-                        type="checkbox"
-                        checked={showPolymarketPanel}
-                        onChange={() => {
-                          setShowPolymarketPanel(prev => {
-                            if (!prev) setPolymarketCountry(null);
-                            return !prev;
-                          });
-                        }}
-                      />
-                      <span className="slider" />
-                    </label>
                   </div>
                 </div>
 
@@ -2162,28 +2147,6 @@ function App() {
                   mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
                 }
               }}
-            />
-          </PanelWindow>
-        )}
-
-        {/* Polymarket Panel */}
-        {showPolymarketPanel && (
-          <PanelWindow
-            id="polymarket"
-            title="Polymarket"
-            onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
-            defaultWidth={360}
-            defaultHeight={600}
-          >
-            <PolymarketPanel
-              visible={true}
-              markets={polymarkets}
-              loading={polymarketsLoading}
-              error={polymarketsError}
-              lastUpdated={polymarketsLastUpdated}
-              country={polymarketCountry}
-              onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
-              onRefresh={refreshPolymarkets}
             />
           </PanelWindow>
         )}

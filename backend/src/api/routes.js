@@ -18,6 +18,7 @@ import { worldBankService } from '../services/worldbank.service.js';
 import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
 import { marketsService } from '../services/markets.service.js';
+import { kalshiService } from '../services/kalshi.service.js';
 
 const router = Router();
 
@@ -519,6 +520,89 @@ router.get('/markets/:countryCode', async (req, res) => {
 });
 
 // ===========================================
+// KALSHI PREDICTION MARKETS
+// ===========================================
+
+/**
+ * GET /api/kalshi
+ * Returns Kalshi prediction markets
+ * Query params:
+ * - q: comma-separated keywords (at least one must match)
+ * - boost: comma-separated keywords (improve relevance)
+ * - limit: number of markets to return (default 50)
+ */
+router.get('/kalshi', async (req, res) => {
+  try {
+    const { q: requireParam, boost: boostParam, limit = 50 } = req.query;
+    let markets;
+    if (requireParam) {
+      const required = requireParam.split(',').map(k => k.trim()).filter(Boolean);
+      const boost = boostParam ? boostParam.split(',').map(k => k.trim()).filter(Boolean) : [];
+      markets = await kalshiService.getMarketsByTopic(required, boost);
+    } else {
+      markets = await kalshiService.getTopMarkets(parseInt(limit, 10));
+    }
+    res.json({ success: true, count: markets.length, data: markets, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Kalshi error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch Kalshi data' });
+  }
+});
+
+/**
+ * GET /api/predictions
+ * Combined prediction markets from Polymarket + Kalshi, filtered by topic
+ * Query params:
+ * - q: comma-separated required keywords (at least one MUST match)
+ * - boost: comma-separated keywords (improve relevance score) — optional
+ * - limit: max results per source (default 8)
+ */
+router.get('/predictions', async (req, res) => {
+  try {
+    const { q: requireParam, boost: boostParam, limit = 8, matchAll: matchAllParam } = req.query;
+    if (!requireParam) {
+      return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
+    }
+
+    const requiredKeywords = requireParam.split(',').map(k => k.trim()).filter(Boolean);
+    const boostKeywords = boostParam ? boostParam.split(',').map(k => k.trim()).filter(Boolean) : [];
+    const maxResults = parseInt(limit, 10);
+    const matchAll = matchAllParam === 'true' || matchAllParam === '1';
+
+    const [polymarketResults, kalshiResults] = await Promise.allSettled([
+      polymarketService.getMarketsByTopic(requiredKeywords, boostKeywords, matchAll),
+      kalshiService.getMarketsByTopic(requiredKeywords, boostKeywords, matchAll),
+    ]);
+
+    const polymarkets = polymarketResults.status === 'fulfilled'
+      ? polymarketResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'polymarket' }))
+      : [];
+    const kalshiMarkets = kalshiResults.status === 'fulfilled'
+      ? kalshiResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'kalshi' }))
+      : [];
+
+    // Merge both lists, sort by volume descending
+    const combined = [...polymarkets, ...kalshiMarkets]
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+      .slice(0, maxResults * 2);
+
+    res.json({
+      success: true,
+      count: combined.length,
+      sources: {
+        polymarket: polymarkets.length,
+        kalshi: kalshiMarkets.length,
+      },
+      data: combined,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Predictions error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch prediction markets' });
+  }
+});
+
+// ===========================================
 // UCDP CONFLICT EVENTS (Global conflict data)
 // ===========================================
 
@@ -562,6 +646,125 @@ router.get('/ucdp/conflicts', async (req, res) => {
   } catch (error) {
     console.error('[API] UCDP conflicts error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch active conflicts' });
+  }
+});
+
+// ===========================================
+// ELECTIONS LIVE DATA
+// ===========================================
+
+/**
+ * GET /api/elections/live
+ * Combined live election data: market-derived ratings + FEC candidates/fundraising
+ * Auto-refreshes every 15 minutes in the background
+ */
+router.get('/elections/live', async (req, res) => {
+  try {
+    const { default: electionLiveService } = await import('../services/electionLive.service.js');
+    const data = await electionLiveService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Elections live error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch live election data' });
+  }
+});
+
+/**
+ * GET /api/elections/live/:state
+ * Live election data for a specific state
+ */
+router.get('/elections/live/:state', async (req, res) => {
+  try {
+    const { default: electionLiveService } = await import('../services/electionLive.service.js');
+    const stateName = req.params.state;
+    const data = await electionLiveService.getStateData(stateName);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Elections state error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch state election data' });
+  }
+});
+
+// ===========================================
+// GOOGLE CIVIC INFORMATION
+// ===========================================
+
+/**
+ * GET /api/civic/elections
+ * List upcoming elections from Google Civic API
+ */
+router.get('/civic/elections', async (req, res) => {
+  try {
+    const { default: googleCivicService } = await import('../services/googleCivic.service.js');
+    if (!googleCivicService.isConfigured) {
+      return res.json({ success: true, data: [], configured: false, timestamp: new Date().toISOString() });
+    }
+    const data = await googleCivicService.getUpcomingElections();
+    res.json({ success: true, data, configured: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Civic elections error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch election list' });
+  }
+});
+
+/**
+ * GET /api/civic/voterinfo
+ * Get voter info (polling places, contests) for a given address
+ * Query params:
+ *   - address: street address (required)
+ *   - electionId: specific election ID (optional)
+ */
+router.get('/civic/voterinfo', async (req, res) => {
+  try {
+    const { default: googleCivicService } = await import('../services/googleCivic.service.js');
+    if (!googleCivicService.isConfigured) {
+      return res.json({ success: false, error: 'Google Civic API not configured', configured: false });
+    }
+    const { address, electionId } = req.query;
+    if (!address) {
+      return res.status(400).json({ success: false, error: 'Address parameter required' });
+    }
+    const data = await googleCivicService.getVoterInfo(address, electionId || null);
+    if (!data) {
+      return res.status(404).json({ success: false, error: 'No voter info found for address' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Civic voterinfo error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch voter info' });
+  }
+});
+
+// ===========================================
+// FEC INDEPENDENT EXPENDITURES (Super PAC)
+// ===========================================
+
+/**
+ * GET /api/fec/expenditures/:state
+ * Get independent expenditure (super PAC spending) summary for a state's Senate race
+ * Query params:
+ *   - office: S (senate, default) or H (house)
+ *   - district: district number (required for House)
+ */
+router.get('/fec/expenditures/:state', async (req, res) => {
+  try {
+    const { default: fecService } = await import('../services/fec.service.js');
+    const stateCode = req.params.state.toUpperCase();
+    const office = (req.query.office || 'S').toUpperCase();
+    const district = req.query.district || null;
+
+    if (office === 'H' && !district) {
+      return res.status(400).json({ success: false, error: 'District required for House races' });
+    }
+
+    const data = await fecService.getRaceExpenditures(stateCode, office, district);
+    if (!data) {
+      return res.json({ success: true, data: null, timestamp: new Date().toISOString() });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] FEC expenditures error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch expenditure data' });
   }
 });
 
