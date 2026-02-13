@@ -527,13 +527,13 @@ router.get('/markets/:countryCode', async (req, res) => {
  * GET /api/kalshi
  * Returns Kalshi prediction markets
  * Query params:
- * - require: comma-separated keywords (at least one must match)
+ * - q: comma-separated keywords (at least one must match)
  * - boost: comma-separated keywords (improve relevance)
  * - limit: number of markets to return (default 50)
  */
 router.get('/kalshi', async (req, res) => {
   try {
-    const { require: requireParam, boost: boostParam, limit = 50 } = req.query;
+    const { q: requireParam, boost: boostParam, limit = 50 } = req.query;
     let markets;
     if (requireParam) {
       const required = requireParam.split(',').map(k => k.trim()).filter(Boolean);
@@ -553,15 +553,15 @@ router.get('/kalshi', async (req, res) => {
  * GET /api/predictions
  * Combined prediction markets from Polymarket + Kalshi, filtered by topic
  * Query params:
- * - require: comma-separated keywords (at least one MUST match) — required
+ * - q: comma-separated required keywords (at least one MUST match)
  * - boost: comma-separated keywords (improve relevance score) — optional
  * - limit: max results per source (default 8)
  */
 router.get('/predictions', async (req, res) => {
   try {
-    const { require: requireParam, boost: boostParam, limit = 8 } = req.query;
+    const { q: requireParam, boost: boostParam, limit = 8 } = req.query;
     if (!requireParam) {
-      return res.status(400).json({ success: false, error: 'Query parameter "require" is required' });
+      return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
     }
 
     const requiredKeywords = requireParam.split(',').map(k => k.trim()).filter(Boolean);

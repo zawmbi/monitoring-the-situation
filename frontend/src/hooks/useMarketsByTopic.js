@@ -28,7 +28,7 @@ export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], ena
 
     try {
       const params = new URLSearchParams();
-      params.set('require', requireKey);
+      params.set('q', requireKey);
       if (boostKey) params.set('boost', boostKey);
       params.set('limit', '8');
 
