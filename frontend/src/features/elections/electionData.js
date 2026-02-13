@@ -119,12 +119,13 @@ export const SENATE_RACES = {
     candidates: {
       primary: {
         R: [
-          { name: 'Katie Britt Ally TBD', polling: null },
+          { name: 'Katie Boyd Britt', polling: 52 },
+          { name: 'Mo Brooks', polling: 28 },
         ],
         D: [],
       },
       general: [
-        { name: 'TBD', party: 'R', polling: 62 },
+        { name: 'R Nominee', party: 'R', polling: 62 },
         { name: 'TBD', party: 'D', polling: 34 },
       ],
     },
@@ -462,9 +463,12 @@ export const SENATE_RACES = {
     candidates: {
       primary: {
         D: [
-          { name: 'TBD', polling: null },
+          { name: 'Ken Martin', polling: 28 },
         ],
-        R: [],
+        R: [
+          { name: 'Jim Schultz', polling: 30 },
+          { name: 'Joe Fraser', polling: 18 },
+        ],
       },
       general: [
         { name: 'D Nominee', party: 'D', polling: 51 },
@@ -542,10 +546,12 @@ export const SENATE_RACES = {
     candidates: {
       primary: {
         D: [
-          { name: 'TBD', polling: null },
+          { name: 'Maggie Goodlander', polling: 35 },
+          { name: 'Colin Van Ostern', polling: 22 },
         ],
         R: [
-          { name: 'TBD', polling: null },
+          { name: 'Chuck Morse', polling: 30 },
+          { name: 'Don Bolduc', polling: 24 },
         ],
       },
       general: [
@@ -812,7 +818,10 @@ export const SENATE_RACES = {
     rating: 'safe-r',
     candidates: {
       primary: {
-        R: [{ name: 'TBD', polling: null }],
+        R: [
+          { name: 'Harriet Hageman', polling: 45 },
+          { name: 'Tim Salazar', polling: 18 },
+        ],
         D: [],
       },
       general: [
@@ -836,7 +845,8 @@ export const GOVERNOR_RACES = {
       primary: {
         R: [
           { name: 'Tommy Tuberville', polling: 35 },
-          { name: 'TBD', polling: 20 },
+          { name: 'Tim James', polling: 22 },
+          { name: 'Wes Allen', polling: 18 },
         ],
         D: [],
       },
@@ -850,9 +860,19 @@ export const GOVERNOR_RACES = {
     incumbent: 'Mike Dunleavy',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'lean-r',
+    keyIssues: ['Oil & gas development', 'Cost of living', 'Native affairs', 'PFD'],
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Nancy Dahlstrom', polling: 32 },
+          { name: 'Mike Dunleavy Jr', polling: 22 },
+        ],
+        D: [
+          { name: 'Les Gara', polling: 38 },
+        ],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 50 },
         { name: 'D Nominee', party: 'D', polling: 44 },
@@ -900,9 +920,22 @@ export const GOVERNOR_RACES = {
     incumbent: 'Gavin Newsom',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'safe-d',
+    note: 'Top-two jungle primary; Newsom term-limited',
+    keyIssues: ['Housing costs', 'Homelessness', 'Wildfires/climate', 'Immigration'],
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Toni Atkins', polling: 28 },
+          { name: 'Rob Bonta', polling: 22 },
+          { name: 'Betty Yee', polling: 16 },
+        ],
+        R: [
+          { name: 'Steve Garvey', polling: 20 },
+          { name: 'Nathan Hochman', polling: 14 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 58 },
         { name: 'R Nominee', party: 'R', polling: 36 },
@@ -913,9 +946,18 @@ export const GOVERNOR_RACES = {
     incumbent: 'Jared Polis',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'safe-d',
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Phil Weiser', polling: 30 },
+          { name: 'Jena Griswold', polling: 28 },
+        ],
+        R: [
+          { name: 'Heidi Ganahl', polling: 35 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 55 },
         { name: 'R Nominee', party: 'R', polling: 40 },
@@ -942,9 +984,27 @@ export const GOVERNOR_RACES = {
     incumbent: 'Ron DeSantis',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'likely-r',
+    prevMargin: 'R+19.4',
+    note: 'Crowded GOP primary with multiple high-profile candidates',
+    keyIssues: ['Insurance costs', 'Immigration', 'Economy', 'Education', 'Abortion'],
+    fundraising: { R: '$22.5M', D: '$6.8M' },
+    endorsements: { R: ['DeSantis allies split', 'Trump endorsement pending'], D: ['EMILY\'s List'] },
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Jimmy Patronis', polling: 28 },
+          { name: 'Byron Donalds', polling: 24 },
+          { name: 'Jeanette Nuñez', polling: 18 },
+          { name: 'Daniel Davis', polling: 14 },
+        ],
+        D: [
+          { name: 'Nikki Fried', polling: 38 },
+          { name: 'Debbie Mucarsel-Powell', polling: 28 },
+          { name: 'Anna Eskamani', polling: 22 },
+        ],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 54 },
         { name: 'D Nominee', party: 'D', polling: 42 },
@@ -958,12 +1018,23 @@ export const GOVERNOR_RACES = {
     status: 'open',
     rating: 'toss-up',
     prevMargin: 'R+7.5',
-    note: 'Major contested primary on both sides',
-    keyIssues: ['Economy', 'Education', 'Voting rights', 'Healthcare'],
-    fundraising: { R: '$4.5M', D: '$3.2M' },
-    endorsements: { R: [], D: ['Stacey Abrams'] },
+    note: 'Major contested primary on both sides; Kemp term-limited',
+    keyIssues: ['Economy', 'Education', 'Voting rights', 'Healthcare', 'Immigration'],
+    fundraising: { R: '$6.5M', D: '$5.2M' },
+    endorsements: { R: ['Kemp allies'], D: ['Stacey Abrams', 'DSCC'] },
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Burt Jones', polling: 34 },
+          { name: 'Brad Raffensperger', polling: 22 },
+          { name: 'Tyler Harper', polling: 16 },
+        ],
+        D: [
+          { name: 'Stacey Abrams', polling: 42 },
+          { name: 'Jason Carter', polling: 28 },
+          { name: 'Bee Nguyen', polling: 18 },
+        ],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 48 },
         { name: 'D Nominee', party: 'D', polling: 47 },
@@ -1038,10 +1109,21 @@ export const GOVERNOR_RACES = {
     incumbent: 'Laura Kelly',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'lean-r',
     note: 'Dem governor in red state; open seat favors R',
+    keyIssues: ['Economy', 'Education', 'Abortion rights', 'Agriculture'],
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        R: [
+          { name: 'Derek Schmidt', polling: 35 },
+          { name: 'Kris Kobach', polling: 30 },
+        ],
+        D: [
+          { name: 'Sharice Davids', polling: 40 },
+          { name: 'TBD', polling: null },
+        ],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 52 },
         { name: 'D Nominee', party: 'D', polling: 43 },
@@ -1052,10 +1134,21 @@ export const GOVERNOR_RACES = {
     incumbent: 'Janet Mills',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'lean-d',
-    note: 'Mills running for Senate instead',
+    note: 'Mills running for Senate instead; open seat',
+    keyIssues: ['Economy', 'Healthcare', 'Climate/fisheries', 'Housing costs'],
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Aaron Frey', polling: 30 },
+          { name: 'Mike Tipping', polling: 22 },
+        ],
+        R: [
+          { name: 'Paul LePage', polling: 38 },
+          { name: 'Shawn Moody', polling: 24 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 50 },
         { name: 'R Nominee', party: 'R', polling: 44 },
@@ -1101,12 +1194,23 @@ export const GOVERNOR_RACES = {
     status: 'open',
     rating: 'toss-up',
     prevMargin: 'D+10.6',
-    note: 'Key swing state; fiercely contested',
+    note: 'Key swing state; Whitmer term-limited, fiercely contested',
     keyIssues: ['Auto industry', 'Economy', 'Abortion rights', 'Education'],
     fundraising: { D: '$5.8M', R: '$4.1M' },
     endorsements: { D: ['UAW', 'Whitmer'], R: ['Trump'] },
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Jocelyn Benson', polling: 32 },
+          { name: 'Dana Nessel', polling: 26 },
+          { name: 'Garlin Gilchrist', polling: 22 },
+        ],
+        R: [
+          { name: 'Tudor Dixon', polling: 30 },
+          { name: 'James Craig', polling: 26 },
+          { name: 'Tom Leonard', polling: 18 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 48 },
         { name: 'R Nominee', party: 'R', polling: 47 },
@@ -1117,10 +1221,21 @@ export const GOVERNOR_RACES = {
     incumbent: 'Tim Walz',
     incumbentParty: 'D',
     termLimited: false,
-    rating: 'lean-d',
+    status: 'open',
     statusDetail: 'Walz not seeking reelection',
+    rating: 'lean-d',
+    keyIssues: ['Economy', 'Education', 'Public safety', 'Healthcare'],
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Peggy Flanagan', polling: 35 },
+          { name: 'Keith Ellison', polling: 28 },
+        ],
+        R: [
+          { name: 'Scott Jensen', polling: 32 },
+          { name: 'Jim Schultz', polling: 24 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 50 },
         { name: 'R Nominee', party: 'R', polling: 44 },
@@ -1184,9 +1299,18 @@ export const GOVERNOR_RACES = {
     incumbent: 'Michelle Lujan Grisham',
     incumbentParty: 'D',
     termLimited: true,
+    status: 'open',
     rating: 'lean-d',
     candidates: {
-      primary: { D: [], R: [] },
+      primary: {
+        D: [
+          { name: 'Raul Torrez', polling: 32 },
+          { name: 'Melanie Stansbury', polling: 26 },
+        ],
+        R: [
+          { name: 'Mark Ronchetti', polling: 42 },
+        ],
+      },
       general: [
         { name: 'D Nominee', party: 'D', polling: 52 },
         { name: 'R Nominee', party: 'R', polling: 42 },
@@ -1233,9 +1357,17 @@ export const GOVERNOR_RACES = {
     incumbent: 'Kevin Stitt',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'safe-r',
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Ryan Walters', polling: 28 },
+          { name: 'Matt Pinnell', polling: 26 },
+          { name: 'TBD', polling: null },
+        ],
+        D: [],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 62 },
         { name: 'TBD', party: 'D', polling: 32 },
@@ -1294,9 +1426,16 @@ export const GOVERNOR_RACES = {
     incumbent: 'Henry McMaster',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'safe-r',
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Alan Wilson', polling: 32 },
+          { name: 'Mark Hammond', polling: 22 },
+        ],
+        D: [],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 58 },
         { name: 'TBD', party: 'D', polling: 38 },
@@ -1324,9 +1463,16 @@ export const GOVERNOR_RACES = {
     incumbent: 'Bill Lee',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'safe-r',
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Andy Ogles', polling: 28 },
+          { name: 'Cameron Sexton', polling: 24 },
+        ],
+        D: [],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 62 },
         { name: 'TBD', party: 'D', polling: 32 },
@@ -1391,9 +1537,16 @@ export const GOVERNOR_RACES = {
     incumbent: 'Mark Gordon',
     incumbentParty: 'R',
     termLimited: true,
+    status: 'open',
     rating: 'safe-r',
     candidates: {
-      primary: { R: [], D: [] },
+      primary: {
+        R: [
+          { name: 'Mark Gordon Jr', polling: 30 },
+          { name: 'TBD', polling: null },
+        ],
+        D: [],
+      },
       general: [
         { name: 'R Nominee', party: 'R', polling: 68 },
         { name: 'TBD', party: 'D', polling: 26 },
