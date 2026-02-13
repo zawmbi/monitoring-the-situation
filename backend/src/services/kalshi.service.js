@@ -120,26 +120,57 @@ class KalshiService {
   }
 
   /**
-   * Filter markets by topic keywords
+   * Score a market against keyword sets.
+   * requiredKeywords: at least one must match or the market is excluded.
+   * boostKeywords:    optional, each match adds relevance score.
    */
-  filterByTopic(markets, keywords) {
-    if (!keywords || keywords.length === 0) return markets;
+  scoreMarket(market, requiredKeywords, boostKeywords = []) {
+    const text = market.searchText || normalizeText(`${market.question} ${market.description} ${market.category}`);
+    const rawText = market.rawSearchText || `${market.question} ${market.description}`;
+    const titleText = normalizeText(market.question || '');
 
-    const normalizedKeywords = keywords.map(k => normalizeText(k));
+    function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-    return markets.filter(market => {
-      const text = market.searchText || normalizeText(`${market.question} ${market.description} ${market.category}`);
-      const rawText = market.rawSearchText || `${market.question} ${market.description}`;
+    function matches(keyword) {
+      const regex = new RegExp(`\\b${escapeRe(keyword)}\\b`, 'i');
+      return regex.test(text) || regex.test(rawText);
+    }
 
-      return normalizedKeywords.some(keyword => {
-        // Try word-boundary match first
-        const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-        if (regex.test(text) || regex.test(rawText)) return true;
-        // Fallback to substring for short keywords
-        if (keyword.length <= 3) return false;
-        return text.includes(keyword);
-      });
-    });
+    function matchesTitle(keyword) {
+      const regex = new RegExp(`\\b${escapeRe(keyword)}\\b`, 'i');
+      return regex.test(titleText);
+    }
+
+    const reqMatches = requiredKeywords.filter(k => matches(normalizeText(k)));
+    if (reqMatches.length === 0) return 0;
+
+    let score = 0;
+    for (const k of reqMatches) {
+      score += matchesTitle(normalizeText(k)) ? 3 : 2;
+    }
+    for (const k of boostKeywords) {
+      if (matches(normalizeText(k))) {
+        score += matchesTitle(normalizeText(k)) ? 1.5 : 1;
+      }
+    }
+
+    return score;
+  }
+
+  /**
+   * Filter markets by required + boost keywords with scoring.
+   */
+  filterByTopic(markets, requiredKeywords, boostKeywords = []) {
+    if (!requiredKeywords || requiredKeywords.length === 0) return [];
+
+    return markets
+      .map(market => ({
+        ...market,
+        _score: this.scoreMarket(market, requiredKeywords, boostKeywords),
+      }))
+      .filter(m => m._score > 0)
+      .sort((a, b) => b._score - a._score || b.volume - a.volume)
+      .map(({ _score, ...market }) => market);
   }
 
   /**
@@ -172,9 +203,9 @@ class KalshiService {
   /**
    * Get markets filtered by topic keywords
    */
-  async getMarketsByTopic(keywords) {
+  async getMarketsByTopic(requiredKeywords, boostKeywords = []) {
     const allMarkets = await this.getAllMarkets();
-    return this.filterByTopic(allMarkets, keywords);
+    return this.filterByTopic(allMarkets, requiredKeywords, boostKeywords);
   }
 
   /**

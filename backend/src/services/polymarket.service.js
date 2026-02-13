@@ -404,37 +404,73 @@ class PolymarketService {
   }
 
   /**
-   * Filter markets by topic keywords
+   * Score a market against keyword sets.
+   * requiredKeywords: at least one must match or the market is excluded.
+   * boostKeywords:    optional, each match adds relevance score.
+   * Returns score > 0 if market qualifies, 0 if it doesn't.
    */
-  filterByTopic(markets, keywords) {
-    if (!keywords || keywords.length === 0) return markets;
+  scoreMarket(market, requiredKeywords, boostKeywords = []) {
+    const text = market.searchText || normalizeText(`${market.question} ${market.description} ${market.category}`);
+    const rawText = market.rawSearchText || `${market.question} ${market.description}`;
+    const titleText = normalizeText(market.question || '');
 
-    const normalizedKeywords = keywords.map(k => normalizeText(k));
+    function matches(keyword) {
+      const escaped = escapeRegex(keyword);
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      return regex.test(text) || regex.test(rawText);
+    }
 
-    return markets.filter(market => {
-      const text = market.searchText || normalizeText(`${market.question} ${market.description} ${market.category}`);
-      const rawText = market.rawSearchText || `${market.question} ${market.description}`;
+    function matchesTitle(keyword) {
+      const escaped = escapeRegex(keyword);
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      return regex.test(titleText);
+    }
 
-      return normalizedKeywords.some(keyword => {
-        const escaped = escapeRegex(keyword);
-        const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-        if (regex.test(text) || regex.test(rawText)) return true;
-        if (keyword.length <= 3) return false;
-        return text.includes(keyword);
-      });
-    });
+    // Must match at least one required keyword
+    const reqMatches = requiredKeywords.filter(k => matches(normalizeText(k)));
+    if (reqMatches.length === 0) return 0;
+
+    // Score: required matches in title worth 3, in body worth 2, boost matches worth 1
+    let score = 0;
+    for (const k of reqMatches) {
+      score += matchesTitle(normalizeText(k)) ? 3 : 2;
+    }
+    for (const k of boostKeywords) {
+      if (matches(normalizeText(k))) {
+        score += matchesTitle(normalizeText(k)) ? 1.5 : 1;
+      }
+    }
+
+    return score;
+  }
+
+  /**
+   * Filter markets by required + boost keywords with scoring.
+   * Returns markets sorted by relevance score (descending).
+   */
+  filterByTopic(markets, requiredKeywords, boostKeywords = []) {
+    if (!requiredKeywords || requiredKeywords.length === 0) return [];
+
+    return markets
+      .map(market => ({
+        ...market,
+        _score: this.scoreMarket(market, requiredKeywords, boostKeywords),
+      }))
+      .filter(m => m._score > 0)
+      .sort((a, b) => b._score - a._score || b.volume - a.volume)
+      .map(({ _score, ...market }) => market);
   }
 
   /**
    * Get markets filtered by topic keywords
    */
-  async getMarketsByTopic(keywords) {
-    const cacheKey = `${CACHE_KEY_PREFIX}:topic:${keywords.sort().join(',')}`;
+  async getMarketsByTopic(requiredKeywords, boostKeywords = []) {
+    const cacheKey = `${CACHE_KEY_PREFIX}:topic:${[...requiredKeywords].sort().join(',')}:${[...boostKeywords].sort().join(',')}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
     const allMarkets = await this.getAllMarkets();
-    const filtered = this.filterByTopic(allMarkets, keywords);
+    const filtered = this.filterByTopic(allMarkets, requiredKeywords, boostKeywords);
 
     await cacheService.set(cacheKey, filtered, CACHE_TTL);
     return filtered;

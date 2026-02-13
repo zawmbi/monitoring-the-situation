@@ -1,23 +1,24 @@
 /**
  * useMarketsByTopic Hook
  * Fetches combined prediction markets (Polymarket + Kalshi) by topic keywords
+ * Uses required keywords (must match) + optional boost keywords (improve ranking)
  * Auto-refreshes every 5 minutes
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export function useMarketsByTopic(keywords = [], enabled = true) {
+export function useMarketsByTopic(requiredKeywords = [], boostKeywords = [], enabled = true) {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const keywordsRef = useRef(keywords);
 
-  // Update ref when keywords change (stable reference for comparison)
-  const keywordsKey = keywords.sort().join(',');
+  // Stable key for required + boost keywords
+  const requireKey = [...requiredKeywords].sort().join(',');
+  const boostKey = [...boostKeywords].sort().join(',');
 
   const fetchMarkets = useCallback(async () => {
-    if (!enabled || !keywordsKey) {
+    if (!enabled || !requireKey) {
       setMarkets([]);
       return;
     }
@@ -27,8 +28,9 @@ export function useMarketsByTopic(keywords = [], enabled = true) {
 
     try {
       const params = new URLSearchParams();
-      params.set('topic', keywordsKey);
-      params.set('limit', '10');
+      params.set('require', requireKey);
+      if (boostKey) params.set('boost', boostKey);
+      params.set('limit', '8');
 
       const response = await fetch(`/api/predictions?${params.toString()}`);
 
@@ -51,15 +53,15 @@ export function useMarketsByTopic(keywords = [], enabled = true) {
     } finally {
       setLoading(false);
     }
-  }, [keywordsKey, enabled]);
+  }, [requireKey, boostKey, enabled]);
 
   useEffect(() => {
-    if (enabled && keywordsKey) {
+    if (enabled && requireKey) {
       fetchMarkets();
       const interval = setInterval(fetchMarkets, 5 * 60 * 1000);
       return () => clearInterval(interval);
     }
-  }, [fetchMarkets, enabled, keywordsKey]);
+  }, [fetchMarkets, enabled, requireKey]);
 
   return {
     markets,

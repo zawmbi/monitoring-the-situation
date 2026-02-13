@@ -490,7 +490,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         {/* Prediction Markets */}
         <div className="el-dates-section">
           <InlineMarkets
-            keywords={['election', 'midterm', 'senate', 'governor', 'congress', 'house', stateName]}
+            require={['midterm', 'election 2026', 'senate race', 'gubernatorial']}
+            boost={[stateName, 'senate', 'governor']}
             title="Election Markets"
             enabled={true}
             maxItems={4}

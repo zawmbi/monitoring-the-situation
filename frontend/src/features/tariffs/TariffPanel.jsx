@@ -230,7 +230,8 @@ export function TariffPanel({ countryName, position, onClose, onPositionChange, 
         {tab === 'markets' && (
           <div style={{ padding: '8px 0' }}>
             <InlineMarkets
-              keywords={['tariff', 'trade', 'import', 'export', countryName]}
+              require={['tariff', 'trade war', 'trade deal']}
+              boost={[countryName, 'sanctions', 'embargo']}
               title="Trade & Tariff Markets"
               enabled={true}
               maxItems={6}

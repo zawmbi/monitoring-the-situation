@@ -118,7 +118,8 @@ export default function ConflictPanel({ open, onClose }) {
         {tab === 'markets' && (
           <div className="conflict-panel-markets-tab">
             <InlineMarkets
-              keywords={['ukraine', 'russia', 'kyiv', 'kremlin', 'zelensky', 'putin', 'ceasefire', 'nato']}
+              require={['ukraine', 'russia', 'zelensky', 'kyiv']}
+              boost={['ceasefire', 'war', 'invasion', 'crimea', 'donbas', 'nato']}
               title="Ukraine-Russia Markets"
               enabled={open}
               maxItems={12}
@@ -425,7 +426,8 @@ function OverviewTab({ losses }) {
       </div>
 
       <InlineMarkets
-        keywords={['ukraine', 'russia', 'ceasefire', 'zelensky', 'putin', 'nato', 'kyiv', 'kremlin']}
+        require={['ukraine', 'russia', 'zelensky', 'kyiv']}
+        boost={['ceasefire', 'war', 'crimea']}
         title="Related Markets"
         enabled={true}
         maxItems={4}

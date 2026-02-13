@@ -588,7 +588,8 @@ function SCOTUSPanel({ onClose }) {
       </div>
 
       <InlineMarkets
-        keywords={['supreme court', 'scotus', 'judicial', 'court ruling']}
+        require={['supreme court', 'scotus']}
+        boost={['ruling', 'justice', 'overturn']}
         title="SCOTUS Markets"
         enabled={true}
         maxItems={4}
@@ -944,7 +945,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
         {!isScope && (
           <div className="cp-section">
             <InlineMarkets
-              keywords={[data.name]}
+              require={[data.name]}
               title={`${data.name} Markets`}
               enabled={true}
               maxItems={4}

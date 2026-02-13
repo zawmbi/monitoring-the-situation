@@ -90,8 +90,8 @@ function MarketCard({ market, isExpanded, onToggle }) {
   );
 }
 
-export default function InlineMarkets({ keywords, title, enabled = true, maxItems = 6 }) {
-  const { markets, loading, error, lastUpdated, refresh } = useMarketsByTopic(keywords, enabled);
+export default function InlineMarkets({ require: requiredKeywords, boost: boostKeywords = [], title, enabled = true, maxItems = 6 }) {
+  const { markets, loading, error, lastUpdated, refresh } = useMarketsByTopic(requiredKeywords, boostKeywords, enabled);
   const [expandedId, setExpandedId] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
 
