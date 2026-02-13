@@ -440,8 +440,7 @@
 
 .el-trend-svg {
   display: block;
-  width: 100%;
-  max-width: 360px;
+  width: min(100%, 50vw);
   height: auto;
 }
 
