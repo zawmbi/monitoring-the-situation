@@ -118,14 +118,16 @@ function PrimaryView({ party, candidates }) {
 function PollTrendChart({ candidates }) {
   if (!candidates || candidates.length < 2) return null;
 
+  const [hover, setHover] = useState(null); // { ci, i, v, x, y }
+
   // Simulated trend data (recent months) based on current polling with minor variations
   const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
-  const canvasWidth = 260;
-  const canvasHeight = 100;
-  const padL = 28;
-  const padR = 8;
-  const padT = 8;
-  const padB = 22;
+  const canvasWidth = 360;
+  const canvasHeight = 160;
+  const padL = 32;
+  const padR = 12;
+  const padT = 12;
+  const padB = 26;
   const plotW = canvasWidth - padL - padR;
   const plotH = canvasHeight - padT - padB;
 
@@ -146,42 +148,84 @@ function PollTrendChart({ candidates }) {
   const toX = (i) => padL + (i / (months.length - 1)) * plotW;
   const toY = (v) => padT + (1 - (v - minV) / range) * plotH;
 
+  // More grid lines for a polished look
+  const gridSteps = [];
+  for (let v = minV; v <= maxV; v += 5) gridSteps.push(v);
+
   return (
     <div className="el-trend-chart">
       <div className="el-trend-title">Polling Trend</div>
-      <svg viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} className="el-trend-svg">
-        {/* Grid lines */}
-        {[minV, minV + range / 2, maxV].map((v, i) => (
-          <g key={i}>
-            <line
-              x1={padL} y1={toY(v)} x2={canvasWidth - padR} y2={toY(v)}
-              stroke="rgba(255,255,255,0.06)" strokeWidth="1"
-            />
-            <text x={padL - 4} y={toY(v) + 3} fill="rgba(255,255,255,0.35)" fontSize="9" textAnchor="end">
-              {Math.round(v)}%
-            </text>
-          </g>
-        ))}
-        {/* Month labels */}
-        {months.map((m, i) => (
-          <text key={m} x={toX(i)} y={canvasHeight - 4} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle">
-            {m}
-          </text>
-        ))}
-        {/* Trend lines */}
-        {trends.map((data, ci) => {
-          const color = PARTY_COLORS[candidates[ci]?.party] || '#888';
-          const pathD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(v)}`).join(' ');
-          return (
-            <g key={ci}>
-              <path d={pathD} fill="none" stroke={color} strokeWidth="2" opacity="0.85" />
-              {data.map((v, i) => (
-                <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={color} opacity="0.9" />
-              ))}
+      <div className="el-trend-wrap">
+        <svg viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} className="el-trend-svg" onMouseLeave={() => setHover(null)}>
+          {/* Grid lines */}
+          {gridSteps.map((v, i) => (
+            <g key={i}>
+              <line
+                x1={padL} y1={toY(v)} x2={canvasWidth - padR} y2={toY(v)}
+                stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"
+              />
+              <text x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
+                {Math.round(v)}%
+              </text>
             </g>
-          );
-        })}
-      </svg>
+          ))}
+          {/* Month labels */}
+          {months.map((m, i) => (
+            <text key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
+              {m}
+            </text>
+          ))}
+          {/* Area fills under trend lines */}
+          {trends.map((data, ci) => {
+            const color = PARTY_COLORS[candidates[ci]?.party] || '#888';
+            const areaD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(v)}`).join(' ')
+              + ` L${toX(data.length - 1)},${padT + plotH} L${toX(0)},${padT + plotH} Z`;
+            return <path key={ci} d={areaD} fill={color} opacity="0.06" />;
+          })}
+          {/* Trend lines */}
+          {trends.map((data, ci) => {
+            const color = PARTY_COLORS[candidates[ci]?.party] || '#888';
+            const pathD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(v)}`).join(' ');
+            return (
+              <g key={ci}>
+                <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+                {data.map((v, i) => {
+                  const isHovered = hover && hover.ci === ci && hover.i === i;
+                  return (
+                    <circle
+                      key={i} cx={toX(i)} cy={toY(v)}
+                      r={isHovered ? 5 : 3} fill={isHovered ? '#fff' : color}
+                      stroke={isHovered ? color : 'none'} strokeWidth={isHovered ? 2 : 0}
+                      opacity="1" style={{ cursor: 'pointer', transition: 'r 0.15s, fill 0.15s' }}
+                      onMouseEnter={() => setHover({ ci, i, v, x: toX(i), y: toY(v) })}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+          {/* Tooltip */}
+          {hover && (() => {
+            const name = candidates[hover.ci]?.name?.split(' ').pop() || '';
+            const label = `${name}  ${hover.v.toFixed(1)}%`;
+            const tipW = label.length * 5.8 + 16;
+            const tipH = 22;
+            let tx = hover.x - tipW / 2;
+            let ty = hover.y - tipH - 8;
+            if (tx < padL) tx = padL;
+            if (tx + tipW > canvasWidth - padR) tx = canvasWidth - padR - tipW;
+            if (ty < 2) ty = hover.y + 12;
+            return (
+              <g className="el-trend-tooltip">
+                <rect x={tx} y={ty} width={tipW} height={tipH} rx="4" fill="rgba(20,20,28,0.92)" stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+                <text x={tx + tipW / 2} y={ty + tipH / 2 + 3.5} fill="#fff" fontSize="9.5" fontWeight="600" textAnchor="middle" fontFamily="inherit">
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
+        </svg>
+      </div>
     </div>
   );
 }
