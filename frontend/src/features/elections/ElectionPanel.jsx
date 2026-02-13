@@ -14,6 +14,7 @@ import {
   GENERAL_ELECTION_DATE,
   DATA_LAST_UPDATED,
 } from './electionData';
+import { useElectionLive } from '../../hooks/useElectionLive';
 import InlineMarkets from '../../components/InlineMarkets';
 import './elections.css';
 
@@ -359,6 +360,59 @@ function RaceDetails({ race }) {
   );
 }
 
+function MarketProbBar({ race }) {
+  if (!race?.dWinProb && !race?.rWinProb) return null;
+  const dProb = race.dWinProb || 0;
+  const rProb = race.rWinProb || 0;
+  return (
+    <div className="el-market-prob">
+      <div className="el-market-prob-header">
+        <span className="el-market-prob-label">Market Probability</span>
+        {race.marketSource && (
+          <a
+            className="el-market-prob-source"
+            href={race.marketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+          >
+            {race.marketSource === 'kalshi' ? 'Kalshi' : 'Polymarket'}
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 3, opacity: 0.6 }}>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
+        )}
+      </div>
+      <div className="el-market-prob-bar">
+        <div
+          className="el-market-prob-fill-d"
+          style={{ width: `${dProb}%` }}
+        />
+        <div
+          className="el-market-prob-fill-r"
+          style={{ width: `${rProb}%` }}
+        />
+      </div>
+      <div className="el-market-prob-labels">
+        <span style={{ color: PARTY_COLORS.D }}>D {dProb}%</span>
+        <span style={{ color: PARTY_COLORS.R }}>R {rProb}%</span>
+      </div>
+    </div>
+  );
+}
+
+function LiveIndicator({ isLive }) {
+  if (!isLive) return null;
+  return (
+    <span className="el-live-indicator" title="Live data from prediction markets — updates every 15min">
+      <span className="el-live-dot" />
+      LIVE
+    </span>
+  );
+}
+
 function StateContextBar({ pvi }) {
   if (!pvi) return null;
   const isD = pvi.startsWith('D');
@@ -381,7 +435,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const [activeTab, setActiveTab] = useState('senate');
   const [electionView, setElectionView] = useState('general'); // 'primary' | 'general'
 
-  const data = getStateElectionData(stateName);
+  const { getStateData, isLive, lastUpdated: liveUpdated } = useElectionLive(stateName);
+  const data = getStateData(stateName);
 
   // Auto-select first available tab
   useEffect(() => {
@@ -458,6 +513,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           </div>
           <div className="el-subtitle">2026 Midterm Elections</div>
         </div>
+        <LiveIndicator isLive={isLive} />
       </div>
 
       {/* Race type tabs */}
@@ -501,7 +557,16 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           <div className="el-race">
             {/* Race meta info */}
             <div className="el-race-meta">
-              <RatingBadge rating={activeRace.rating} />
+              {activeRace.liveRating ? (
+                <RatingBadge rating={activeRace.liveRating} />
+              ) : (
+                <RatingBadge rating={activeRace.rating} />
+              )}
+              {activeRace.liveRating && activeRace.liveRating !== activeRace.rating && (
+                <span className="el-rating-shift" title={`Static rating: ${RATING_LABELS[activeRace.rating]}`}>
+                  (was {RATING_LABELS[activeRace.rating]})
+                </span>
+              )}
               {activeRace.type === 'special' && (
                 <span className="el-special-badge">Special Election</span>
               )}
@@ -509,6 +574,9 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 <span className="el-open-badge">Open Seat</span>
               )}
             </div>
+
+            {/* Market-derived probability (live) */}
+            <MarketProbBar race={activeRace} />
 
             {/* Incumbent info */}
             <div className="el-incumbent-row">
@@ -655,8 +723,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         </div>
 
         <div className="el-data-footer">
-          <span className="el-data-updated">Data as of {DATA_LAST_UPDATED}</span>
-          <span className="el-data-sources">Cook/Sabato/OpenSecrets</span>
+          <span className="el-data-updated">
+            {isLive && liveUpdated
+              ? `Live ${Math.round((Date.now() - liveUpdated.getTime()) / 60000)}m ago`
+              : `Data as of ${DATA_LAST_UPDATED}`}
+          </span>
+          <span className="el-data-sources">
+            {isLive ? 'Markets + Static' : 'Cook/Sabato/OpenSecrets'}
+          </span>
         </div>
       </div>
     </div>

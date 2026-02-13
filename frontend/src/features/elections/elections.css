@@ -812,6 +812,117 @@
   font-weight: 600;
 }
 
+/* ── Live Indicator ── */
+
+.el-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: auto;
+  padding: 2px 8px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 4px;
+}
+
+.el-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: el-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes el-live-pulse {
+  0%, 100% { opacity: 0.4; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 4px 2px rgba(74, 222, 128, 0.2); }
+}
+
+/* ── Rating Shift Label ── */
+
+.el-rating-shift {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ── Market Probability Bar ── */
+
+.el-market-prob {
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.el-market-prob-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.el-market-prob-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.el-market-prob-source {
+  font-size: 8px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: opacity 0.15s;
+}
+
+.el-market-prob-source:hover {
+  opacity: 0.9;
+  color: #4ade80;
+}
+
+.el-market-prob-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  gap: 1px;
+}
+
+.el-market-prob-fill-d {
+  background: #3b8bd4;
+  border-radius: 3px 0 0 3px;
+  transition: width 0.8s ease;
+}
+
+.el-market-prob-fill-r {
+  background: #d44040;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.8s ease;
+}
+
+.el-market-prob-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 /* ── Election mode map legend (bottom overlay) ── */
 
 .el-map-legend {

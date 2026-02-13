@@ -649,4 +649,40 @@ router.get('/ucdp/conflicts', async (req, res) => {
   }
 });
 
+// ===========================================
+// ELECTIONS LIVE DATA
+// ===========================================
+
+/**
+ * GET /api/elections/live
+ * Combined live election data: market-derived ratings + FEC candidates/fundraising
+ * Auto-refreshes every 15 minutes in the background
+ */
+router.get('/elections/live', async (req, res) => {
+  try {
+    const { default: electionLiveService } = await import('../services/electionLive.service.js');
+    const data = await electionLiveService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Elections live error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch live election data' });
+  }
+});
+
+/**
+ * GET /api/elections/live/:state
+ * Live election data for a specific state
+ */
+router.get('/elections/live/:state', async (req, res) => {
+  try {
+    const { default: electionLiveService } = await import('../services/electionLive.service.js');
+    const stateName = req.params.state;
+    const data = await electionLiveService.getStateData(stateName);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Elections state error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch state election data' });
+  }
+});
+
 export default router;

@@ -18,6 +18,7 @@ import { worldBankService, PRELOAD_COUNTRIES } from './services/worldbank.servic
 import { wikidataService } from './services/wikidata.service.js';
 import { ucdpService } from './services/ucdp.service.js';
 import { wsHandler } from './services/websocket.service.js';
+import { electionLiveService } from './services/electionLive.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -110,6 +111,7 @@ let tariffRefreshInterval = null;
 let leadersRefreshInterval = null;
 let economicRefreshInterval = null;
 let ucdpRefreshInterval = null;
+let electionRefreshInterval = null;
 
 function startBackgroundRefresh() {
   // Initial fetch
@@ -179,6 +181,19 @@ function startBackgroundRefresh() {
     ucdpService.getActiveConflicts().catch(console.error);
   }, UCDP_POLL_MS);
 
+  // Initial election live data fetch (delayed to let market services warm up)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial election live data fetch...');
+    electionLiveService.getLiveData().catch(console.error);
+  }, 15000);
+
+  // Periodic refresh — election live data (every 15 min)
+  const ELECTION_POLL_MS = 15 * 60 * 1000;
+  electionRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing election live data...');
+    electionLiveService.getLiveData().catch(console.error);
+  }, ELECTION_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
@@ -237,6 +252,7 @@ async function shutdown(signal) {
   if (leadersRefreshInterval) clearInterval(leadersRefreshInterval);
   if (economicRefreshInterval) clearInterval(economicRefreshInterval);
   if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
+  if (electionRefreshInterval) clearInterval(electionRefreshInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 
