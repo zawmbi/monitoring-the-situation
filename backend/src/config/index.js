@@ -20,24 +20,42 @@ for (const envPath of envPaths) {
   if (!result.error) loaded.push(envPath);
 }
 
-// If keys are still missing, try manual UTF-8 parsing as last resort
-// (handles cases where PowerShell appended in UTF-16LE)
+// If keys are still missing, try multiple encodings as last resort
 if (!process.env.FEC_API_KEY || !process.env.GOOGLE_CIVIC_API_KEY) {
   for (const envPath of envPaths) {
-    try {
-      const raw = readFileSync(envPath, 'utf-8');
-      for (const line of raw.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-        const eqIdx = trimmed.indexOf('=');
-        if (eqIdx < 0) continue;
-        const key = trimmed.slice(0, eqIdx).trim();
-        const val = trimmed.slice(eqIdx + 1).trim();
-        if ((key === 'FEC_API_KEY' || key === 'GOOGLE_CIVIC_API_KEY') && val && !process.env[key]) {
-          process.env[key] = val;
+    for (const encoding of ['utf-8', 'utf16le', 'latin1']) {
+      try {
+        let raw = readFileSync(envPath, encoding);
+        // Strip BOM
+        raw = raw.replace(/^\uFEFF/, '');
+        // Strip null bytes (UTF-16 read as UTF-8)
+        raw = raw.replace(/\0/g, '');
+        for (const line of raw.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx < 0) continue;
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed.slice(eqIdx + 1).trim();
+          if ((key === 'FEC_API_KEY' || key === 'GOOGLE_CIVIC_API_KEY') && val && !process.env[key]) {
+            process.env[key] = val;
+            console.log(`[Config] Found ${key} via manual parse (${encoding}) in ${envPath}`);
+          }
         }
-      }
-    } catch { /* file not found, skip */ }
+      } catch { /* file not found, skip */ }
+    }
+  }
+  // Debug: dump last 300 bytes of each file to diagnose encoding
+  if (!process.env.FEC_API_KEY) {
+    for (const envPath of envPaths) {
+      try {
+        const buf = readFileSync(envPath);
+        const tail = buf.slice(Math.max(0, buf.length - 300));
+        console.log(`[Config] DEBUG tail of ${envPath}:`);
+        console.log(`[Config] hex: ${tail.toString('hex').slice(-200)}`);
+        console.log(`[Config] str: ${JSON.stringify(tail.toString('utf-8').slice(-150))}`);
+      } catch { /* skip */ }
+    }
   }
 }
 
