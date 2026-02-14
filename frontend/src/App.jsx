@@ -38,6 +38,29 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
+import { useDisasters } from './hooks/useDisasters';
+import { useCyber } from './hooks/useCyber';
+import { useCommodities } from './hooks/useCommodities';
+import { useShipping } from './hooks/useShipping';
+import { useTension } from './hooks/useTension';
+import { useBriefing } from './hooks/useBriefing';
+import { useCountryRisk } from './hooks/useCountryRisk';
+import { useRefugees } from './hooks/useRefugees';
+import { DisasterPanel } from './features/disasters/DisasterPanel';
+import DisasterOverlay from './features/disasters/DisasterOverlay';
+import { CyberPanel } from './features/cyber/CyberPanel';
+import { CommoditiesPanel } from './features/commodities/CommoditiesPanel';
+import { RefugeePanel } from './features/refugees/RefugeePanel';
+import { ShippingPanel } from './features/shipping/ShippingPanel';
+import ShippingOverlay from './features/shipping/ShippingOverlay';
+import { TensionPanel } from './features/tension/TensionPanel';
+import { BriefingPanel } from './features/briefing/BriefingPanel';
+import { CourtPanel } from './features/court/CourtPanel';
+import { SanctionsPanel } from './features/sanctions/SanctionsPanel';
+import { MetaculusPanel } from './features/metaculus/MetaculusPanel';
+import { ArbitragePanel } from './features/arbitrage/ArbitragePanel';
+import { CountryRiskPanel } from './features/risk/CountryRiskPanel';
+import { WatchlistPanel } from './features/watchlist/WatchlistPanel';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -729,6 +752,34 @@ function App() {
     refresh: refreshStability,
   } = useStability(stabilityMode);
 
+  // ── New feature state ──
+  const [showDisasters, setShowDisasters] = useState(false);
+  const [showDisasterPanel, setShowDisasterPanel] = useState(false);
+  const [showCyberPanel, setShowCyberPanel] = useState(false);
+  const [showCommoditiesPanel, setShowCommoditiesPanel] = useState(false);
+  const [showRefugeePanel, setShowRefugeePanel] = useState(false);
+  const [showShippingMode, setShowShippingMode] = useState(false);
+  const [showShippingPanel, setShowShippingPanel] = useState(false);
+  const [showTensionPanel, setShowTensionPanel] = useState(false);
+  const [showBriefingPanel, setShowBriefingPanel] = useState(false);
+  const [showCourtPanel, setShowCourtPanel] = useState(false);
+  const [showSanctionsPanel, setShowSanctionsPanel] = useState(false);
+  const [showMetaculusPanel, setShowMetaculusPanel] = useState(false);
+  const [showArbitragePanel, setShowArbitragePanel] = useState(false);
+  const [showCountryRiskPanel, setShowCountryRiskPanel] = useState(false);
+  const [showCountryRiskMode, setShowCountryRiskMode] = useState(false);
+  const [showWatchlistPanel, setShowWatchlistPanel] = useState(false);
+
+  // ── New data hooks ──
+  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(showDisasters);
+  const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel);
+  const { data: commoditiesData, loading: commoditiesLoading, refresh: refreshCommodities } = useCommodities(showCommoditiesPanel);
+  const { data: shippingData, loading: shippingLoading, refresh: refreshShipping } = useShipping(showShippingMode);
+  const { data: tensionData, loading: tensionLoading, refresh: refreshTension } = useTension(true);
+  const { data: briefingData, loading: briefingLoading, refresh: refreshBriefing } = useBriefing(showBriefingPanel);
+  const { data: countryRiskData, loading: countryRiskLoading, refresh: refreshCountryRisk } = useCountryRisk(showCountryRiskMode);
+  const { data: refugeeData, loading: refugeeLoading, refresh: refreshRefugees } = useRefugees(showRefugeePanel);
+
   const isLightTheme = theme === 'light';
 
   useEffect(() => {
@@ -794,6 +845,36 @@ function App() {
       }
     } catch {}
   }, [useGlobe]);
+
+  // ── Keyboard Navigation ──
+  useEffect(() => {
+    const handleKeyboard = (e) => {
+      // Don't intercept when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      // Ctrl/Cmd shortcuts
+      if (e.ctrlKey || e.metaKey) return;
+
+      switch (e.key) {
+        case '1': setShowBriefingPanel(p => !p); break;
+        case '2': setShowTensionPanel(p => !p); break;
+        case '3': setShowCountryRiskPanel(p => !p); setShowCountryRiskMode(true); break;
+        case '4': setShowCommoditiesPanel(p => !p); break;
+        case '5': setShowDisasters(p => { if (!p) setShowDisasterPanel(true); return !p; }); break;
+        case '6': setShowCyberPanel(p => !p); break;
+        case '7': setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); break;
+        case '8': setShowMetaculusPanel(p => !p); break;
+        case '9': setShowArbitragePanel(p => !p); break;
+        case '0': setShowWatchlistPanel(p => !p); break;
+        case 'Escape':
+          setPopoverHotspot(null);
+          setNewsPanelHotspot(null);
+          break;
+        default: break;
+      }
+    };
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1999,6 +2080,122 @@ function App() {
                 </div>
 
                 <div className="source-group">
+                  <div className="source-group-title">Intelligence & Forecasts</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Daily Briefing <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span>
+                      <input type="checkbox" checked={showBriefingPanel} onChange={() => setShowBriefingPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Global Tension Index <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>2</kbd></span>
+                      <input type="checkbox" checked={showTensionPanel} onChange={() => setShowTensionPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Country Risk Scores <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>3</kbd></span>
+                      <input type="checkbox" checked={showCountryRiskMode} onChange={() => { setShowCountryRiskMode(p => !p); setShowCountryRiskPanel(p => !p); }} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Metaculus Forecasts <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>8</kbd></span>
+                      <input type="checkbox" checked={showMetaculusPanel} onChange={() => setShowMetaculusPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Market Arbitrage <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>9</kbd></span>
+                      <input type="checkbox" checked={showArbitragePanel} onChange={() => setShowArbitragePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {showTensionPanel && tensionData && (
+                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                      <strong>Tension Index: <span style={{ color: tensionData.index >= 65 ? '#ff6b6b' : '#ffd700' }}>{tensionData.index}/100 ({tensionData.label})</span></strong>
+                      <p>{tensionData.summary?.totalConflicts || 0} active conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear flashpoints</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Disasters & Security</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Natural Disasters <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>5</kbd></span>
+                      <input type="checkbox" checked={showDisasters} onChange={() => { setShowDisasters(p => { if (!p) setShowDisasterPanel(true); return !p; }); }} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
+                      <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Court Rulings</span>
+                      <input type="checkbox" checked={showCourtPanel} onChange={() => setShowCourtPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Sanctions Monitor</span>
+                      <input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {showDisasters && disasterData && (
+                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                      <strong>{disasterData.summary?.totalActive || 0} Active Natural Events</strong>
+                      <p>NASA EONET live tracking. {disasterData.summary?.bySeverity?.critical || 0} critical, {disasterData.summary?.bySeverity?.high || 0} high severity.</p>
+                      <button className="stability-sidebar-open-btn" onClick={() => setShowDisasterPanel(p => !p)}>
+                        {showDisasterPanel ? 'Close' : 'Open'} Disaster Panel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Trade & Commodities</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Commodity Prices <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span>
+                      <input type="checkbox" checked={showCommoditiesPanel} onChange={() => setShowCommoditiesPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Shipping & Chokepoints <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>7</kbd></span>
+                      <input type="checkbox" checked={showShippingMode} onChange={() => { setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); }} />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {showShippingMode && shippingData && (
+                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                      <strong>Maritime Chokepoints</strong>
+                      <p>{shippingData.summary?.disrupted || 0} disrupted, {shippingData.summary?.criticalRisk || 0} critical risk</p>
+                      <button className="stability-sidebar-open-btn" onClick={() => setShowShippingPanel(p => !p)}>
+                        {showShippingPanel ? 'Close' : 'Open'} Shipping Panel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Migration & Humanitarian</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Refugee Flows</span>
+                      <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
+                      <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="source-group">
                   <div className="source-group-title">Lifestyle & Indices</div>
                   <div className="source-group-items">
                     {[
@@ -2343,6 +2540,266 @@ function App() {
             />
           </PanelWindow>
         )}
+
+        {/* ══════════ Disaster Panel ══════════ */}
+        {showDisasters && showDisasterPanel && (
+          <PanelWindow
+            id="disasters"
+            title="Natural Disasters"
+            onClose={() => setShowDisasterPanel(false)}
+            defaultWidth={400}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 90, y: 80 }}
+          >
+            <DisasterPanel
+              data={disasterData}
+              loading={disasterLoading}
+              onRefresh={refreshDisasters}
+              onEventClick={(event) => {
+                if (event.lat && event.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Cyber Panel ══════════ */}
+        {showCyberPanel && (
+          <PanelWindow
+            id="cyber"
+            title="Cyber Threats & Outages"
+            onClose={() => setShowCyberPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 120, y: 100 }}
+          >
+            <CyberPanel
+              data={cyberData}
+              loading={cyberLoading}
+              onRefresh={refreshCyber}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Commodities Panel ══════════ */}
+        {showCommoditiesPanel && (
+          <PanelWindow
+            id="commodities"
+            title="Commodity Prices"
+            onClose={() => setShowCommoditiesPanel(false)}
+            defaultWidth={440}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 140, y: 80 }}
+          >
+            <CommoditiesPanel
+              data={commoditiesData}
+              loading={commoditiesLoading}
+              onRefresh={refreshCommodities}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Refugee Panel ══════════ */}
+        {showRefugeePanel && (
+          <PanelWindow
+            id="refugees"
+            title="Refugee Flows & Migration"
+            onClose={() => setShowRefugeePanel(false)}
+            defaultWidth={400}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 100, y: 90 }}
+          >
+            <RefugeePanel
+              data={refugeeData}
+              loading={refugeeLoading}
+              onRefresh={refreshRefugees}
+              onSituationClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 4, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Shipping Panel ══════════ */}
+        {showShippingMode && showShippingPanel && (
+          <PanelWindow
+            id="shipping"
+            title="Shipping & Trade Flows"
+            onClose={() => setShowShippingPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 110, y: 85 }}
+          >
+            <ShippingPanel
+              data={shippingData}
+              loading={shippingLoading}
+              onRefresh={refreshShipping}
+              onChokepointClick={(cp) => {
+                if (cp.lat && cp.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [cp.lon, cp.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Tension Panel ══════════ */}
+        {showTensionPanel && (
+          <PanelWindow
+            id="tension"
+            title="Global Tension Index"
+            onClose={() => setShowTensionPanel(false)}
+            defaultWidth={420}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 130, y: 70 }}
+          >
+            <TensionPanel
+              data={tensionData}
+              loading={tensionLoading}
+              onRefresh={refreshTension}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Briefing Panel ══════════ */}
+        {showBriefingPanel && (
+          <PanelWindow
+            id="briefing"
+            title="Intelligence Briefing"
+            onClose={() => setShowBriefingPanel(false)}
+            defaultWidth={440}
+            defaultHeight={620}
+            defaultMode="floating"
+            defaultPosition={{ x: 100, y: 60 }}
+          >
+            <BriefingPanel
+              data={briefingData}
+              loading={briefingLoading}
+              onRefresh={refreshBriefing}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Court Panel ══════════ */}
+        {showCourtPanel && (
+          <PanelWindow
+            id="court"
+            title="Court Rulings & Cases"
+            onClose={() => setShowCourtPanel(false)}
+            defaultWidth={400}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={{ x: 150, y: 90 }}
+          >
+            <CourtPanel />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Sanctions Panel ══════════ */}
+        {showSanctionsPanel && (
+          <PanelWindow
+            id="sanctions"
+            title="Sanctions Monitor"
+            onClose={() => setShowSanctionsPanel(false)}
+            defaultWidth={400}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={{ x: 160, y: 95 }}
+          >
+            <SanctionsPanel />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Metaculus Panel ══════════ */}
+        {showMetaculusPanel && (
+          <PanelWindow
+            id="metaculus"
+            title="Metaculus Forecasts"
+            onClose={() => setShowMetaculusPanel(false)}
+            defaultWidth={420}
+            defaultHeight={580}
+            defaultMode="floating"
+            defaultPosition={{ x: 120, y: 75 }}
+          >
+            <MetaculusPanel />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Arbitrage Panel ══════════ */}
+        {showArbitragePanel && (
+          <PanelWindow
+            id="arbitrage"
+            title="Market Arbitrage Scanner"
+            onClose={() => setShowArbitragePanel(false)}
+            defaultWidth={440}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 140, y: 85 }}
+          >
+            <ArbitragePanel />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Country Risk Panel ══════════ */}
+        {showCountryRiskMode && showCountryRiskPanel && (
+          <PanelWindow
+            id="country-risk"
+            title="Country Risk Scores"
+            onClose={() => setShowCountryRiskPanel(false)}
+            defaultWidth={380}
+            defaultHeight={580}
+            defaultMode="floating"
+            defaultPosition={{ x: 100, y: 80 }}
+          >
+            <CountryRiskPanel
+              data={countryRiskData}
+              loading={countryRiskLoading}
+              onRefresh={refreshCountryRisk}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Watchlist Panel ══════════ */}
+        {showWatchlistPanel && (
+          <PanelWindow
+            id="watchlist"
+            title="My Watchlist"
+            onClose={() => setShowWatchlistPanel(false)}
+            defaultWidth={340}
+            defaultHeight={460}
+            defaultMode="floating"
+            defaultPosition={{ x: 160, y: 100 }}
+          >
+            <WatchlistPanel
+              onCountryClick={(name) => {
+                // Find country marker and fly to it
+                const marker = COUNTRY_MARKERS.find(m => m.name.toLowerCase() === name.toLowerCase());
+                if (marker && mapRef.current) {
+                  mapRef.current.flyTo({ center: [marker.lon, marker.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* Keyboard shortcut hint */}
+        <div className="keyboard-hint">
+          <kbd>1</kbd>-<kbd>9</kbd> panels · <kbd>0</kbd> watchlist · <kbd>Esc</kbd> close
+        </div>
 
         {/* Election mode map legend */}
         {electionMode && (
@@ -2788,6 +3245,30 @@ function App() {
             zoom={mapZoom}
             showBases={showUSBases}
           />
+
+          {/* Disaster markers on map */}
+          {showDisasters && disasterData?.activeEvents && (
+            <DisasterOverlay
+              events={disasterData.activeEvents}
+              onEventClick={(event) => {
+                if (event.lat && event.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          )}
+
+          {/* Shipping chokepoint markers on map */}
+          {showShippingMode && shippingData?.chokepoints && (
+            <ShippingOverlay
+              chokepoints={shippingData.chokepoints}
+              onChokepointClick={(cp) => {
+                if (cp.lat && cp.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [cp.lon, cp.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          )}
 
           {/* Population heatmap */}
           <Source id="population-heat" type="geojson" data={POPULATION_POINTS}>
