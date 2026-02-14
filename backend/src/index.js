@@ -19,6 +19,7 @@ import { wikidataService } from './services/wikidata.service.js';
 import { ucdpService } from './services/ucdp.service.js';
 import { wsHandler } from './services/websocket.service.js';
 import { electionLiveService } from './services/electionLive.service.js';
+import { stabilityService } from './services/stability.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -68,6 +69,7 @@ app.get('/', (req, res) => {
       economic: '/api/economic/:cca2',
       leaders: '/api/leaders',
       ucdp: '/api/ucdp/events',
+      stability: '/api/stability',
       search: '/api/search',
       health: '/health',
     },
@@ -112,6 +114,7 @@ let leadersRefreshInterval = null;
 let economicRefreshInterval = null;
 let ucdpRefreshInterval = null;
 let electionRefreshInterval = null;
+let stabilityRefreshInterval = null;
 
 function startBackgroundRefresh() {
   // Initial fetch
@@ -194,6 +197,19 @@ function startBackgroundRefresh() {
     electionLiveService.getLiveData().catch(console.error);
   }, ELECTION_POLL_MS);
 
+  // Initial stability data fetch (delayed to avoid startup contention)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial stability data fetch...');
+    stabilityService.getCombinedData().catch(console.error);
+  }, 20000);
+
+  // Periodic refresh — stability data (every 15 min)
+  const STABILITY_POLL_MS = 15 * 60 * 1000;
+  stabilityRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing stability data...');
+    stabilityService.getCombinedData().catch(console.error);
+  }, STABILITY_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
@@ -253,6 +269,7 @@ async function shutdown(signal) {
   if (economicRefreshInterval) clearInterval(economicRefreshInterval);
   if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
   if (electionRefreshInterval) clearInterval(electionRefreshInterval);
+  if (stabilityRefreshInterval) clearInterval(stabilityRefreshInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 

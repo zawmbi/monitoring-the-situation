@@ -1,0 +1,331 @@
+/**
+ * Stability Service
+ * Aggregates global protest/unrest, military movement, and political instability data
+ * Sources: GDELT Project (free, no API key), Google News RSS
+ */
+
+import { cacheService } from './cache.service.js';
+import Parser from 'rss-parser';
+
+const parser = new Parser({ timeout: 10000, maxRedirects: 3 });
+
+const CACHE_TTL = 600; // 10 minutes
+const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
+
+// ─── Country → lat/lon centroid lookup (ISO alpha-2) ───
+const COUNTRY_COORDS = {
+  AF: [33.93, 67.71], AL: [41.15, 20.17], DZ: [28.03, 1.66], AR: [-38.42, -63.62],
+  AM: [40.07, 45.04], AU: [-25.27, 133.78], AT: [47.52, 14.55], AZ: [40.14, 47.58],
+  BD: [23.68, 90.36], BY: [53.71, 27.95], BE: [50.50, 4.47], BO: [-16.29, -63.59],
+  BA: [43.92, 17.68], BR: [-14.24, -51.93], BG: [42.73, 25.49], MM: [21.91, 95.96],
+  KH: [12.57, 104.99], CM: [7.37, 12.35], CA: [56.13, -106.35], CF: [6.61, 20.94],
+  TD: [15.45, 18.73], CL: [-35.68, -71.54], CN: [35.86, 104.20], CO: [4.57, -74.30],
+  CD: [-4.04, 21.76], CG: [-0.23, 15.83], CR: [9.75, -83.75], HR: [45.10, 15.20],
+  CU: [21.52, -77.78], CZ: [49.82, 15.47], DK: [56.26, 9.50], EC: [-1.83, -78.18],
+  EG: [26.82, 30.80], SV: [13.79, -88.90], ER: [15.18, 39.78], EE: [58.60, 25.01],
+  ET: [9.15, 40.49], FI: [61.92, 25.75], FR: [46.23, 2.21], GE: [42.32, 43.36],
+  DE: [51.17, 10.45], GR: [39.07, 21.82], GT: [15.78, -90.23], GN: [9.95, -9.70],
+  HT: [18.97, -72.29], HN: [15.20, -86.24], HU: [47.16, 19.50], IN: [20.59, 78.96],
+  ID: [-0.79, 113.92], IR: [32.43, 53.69], IQ: [33.22, 43.68], IE: [53.41, -8.24],
+  IL: [31.05, 34.85], IT: [41.87, 12.57], JM: [18.11, -77.30], JP: [36.20, 138.25],
+  JO: [30.59, 36.24], KZ: [48.02, 66.92], KE: [-0.02, 37.91], KP: [40.34, 127.51],
+  KR: [35.91, 127.77], KW: [29.31, 47.48], KG: [41.20, 74.77], LA: [19.86, 102.50],
+  LV: [56.88, 24.60], LB: [33.85, 35.86], LY: [26.34, 17.23], LT: [55.17, 23.88],
+  MG: [-18.77, 46.87], MW: [-13.25, 34.30], MY: [4.21, 101.98], ML: [17.57, -4.00],
+  MX: [23.63, -102.55], MD: [47.41, 28.37], MN: [46.86, 103.85], MA: [31.79, -7.09],
+  MZ: [-18.67, 35.53], NP: [28.39, 84.12], NL: [52.13, 5.29], NZ: [-40.90, 174.89],
+  NI: [12.87, -85.21], NE: [17.61, 8.08], NG: [9.08, 8.68], NO: [60.47, 8.47],
+  PK: [30.38, 69.35], PS: [31.95, 35.23], PA: [8.54, -80.78], PY: [-23.44, -58.44],
+  PE: [-9.19, -75.02], PH: [12.88, 121.77], PL: [51.92, 19.15], PT: [39.40, -8.22],
+  RO: [45.94, 24.97], RU: [61.52, 105.32], RW: [-1.94, 29.87], SA: [23.89, 45.08],
+  SN: [14.50, -14.45], RS: [44.02, 21.01], SL: [8.46, -11.78], SG: [1.35, 103.82],
+  SK: [48.67, 19.70], SI: [46.15, 14.99], SO: [5.15, 46.20], ZA: [-30.56, 22.94],
+  SS: [6.88, 31.31], ES: [40.46, -3.75], LK: [7.87, 80.77], SD: [12.86, 30.22],
+  SE: [60.13, 18.64], CH: [46.82, 8.23], SY: [34.80, 38.99], TW: [23.70, 120.96],
+  TJ: [38.86, 71.28], TZ: [-6.37, 34.89], TH: [15.87, 100.99], TN: [33.89, 9.54],
+  TR: [38.96, 35.24], TM: [38.97, 59.56], UA: [48.38, 31.17], AE: [23.42, 53.85],
+  GB: [55.38, -3.44], US: [37.09, -95.71], UY: [-32.52, -55.77], UZ: [41.38, 64.59],
+  VE: [6.42, -66.59], VN: [14.06, 108.28], YE: [15.55, 48.52], ZM: [-13.13, 27.85],
+  ZW: [-19.02, 29.15],
+};
+
+// ─── Google News RSS search ───
+async function fetchGoogleNewsRSS(query, maxItems = 30) {
+  try {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`;
+    const feed = await parser.parseURL(url);
+    return (feed.items || []).slice(0, maxItems).map((item) => ({
+      title: item.title || '',
+      link: item.link || '',
+      pubDate: item.pubDate || item.isoDate || '',
+      source: (item.title || '').split(' - ').pop()?.trim() || 'Google News',
+    }));
+  } catch (err) {
+    console.warn(`[Stability] RSS fetch failed for "${query}":`, err.message);
+    return [];
+  }
+}
+
+// ─── GDELT Doc API fetch ───
+async function fetchGDELT(query, maxRecords = 75, timespan = '7d') {
+  try {
+    const url = `${GDELT_BASE}?query=${encodeURIComponent(query)}&mode=ArtList&maxrecords=${maxRecords}&timespan=${timespan}&format=json`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!resp.ok) throw new Error(`GDELT HTTP ${resp.status}`);
+    const data = await resp.json();
+    return (data.articles || []).map((a) => ({
+      title: a.title || '',
+      url: a.url || '',
+      source: a.domain || '',
+      date: a.seendate || '',
+      sourcecountry: a.sourcecountry || '',
+      language: a.language || '',
+      image: a.socialimage || '',
+    }));
+  } catch (err) {
+    console.warn(`[Stability] GDELT fetch failed for "${query}":`, err.message);
+    return [];
+  }
+}
+
+// ─── Resolve country code from GDELT sourcecountry field ───
+function resolveCountryCode(sourcecountry) {
+  if (!sourcecountry) return null;
+  const sc = sourcecountry.trim().toUpperCase();
+  // GDELT uses FIPS codes; map common ones to ISO alpha-2
+  const FIPS_TO_ISO = {
+    US: 'US', UK: 'GB', FR: 'FR', GM: 'DE', RS: 'RU', CH: 'CN', IN: 'IN',
+    JA: 'JP', KS: 'KR', KN: 'KP', BR: 'BR', AU: 'AU', CA: 'CA', IS: 'IL',
+    IR: 'IR', IZ: 'IQ', TU: 'TR', PK: 'PK', EG: 'EG', SF: 'ZA', NI: 'NG',
+    BM: 'MM', SU: 'SD', ET: 'ET', SO: 'SO', HA: 'HT', CU: 'CU', VE: 'VE',
+    MX: 'MX', CO: 'CO', PE: 'PE', AR: 'AR', UP: 'UA', LY: 'LY', SY: 'SY',
+    YM: 'YE', AF: 'AF', CE: 'LK', TH: 'TH', VM: 'VN', RP: 'PH', ID: 'ID',
+    MY: 'MY', BG: 'BD', NP: 'NP', KE: 'KE', TZ: 'TZ', UG: 'UG', CG: 'CD',
+    CF: 'CF', CM: 'CM', IV: 'CI', GH: 'GH', SN: 'SN', ML: 'ML', NG: 'NE',
+    PO: 'PL', HU: 'HU', RO: 'RO', BU: 'BG', EN: 'EE', LG: 'LV', LH: 'LT',
+    GG: 'GE', AM: 'AM', AJ: 'AZ', KZ: 'KZ', TI: 'TJ', TX: 'TM', UZ: 'UZ',
+    KG: 'KG',
+  };
+  return FIPS_TO_ISO[sc] || (sc.length === 2 && COUNTRY_COORDS[sc] ? sc : null);
+}
+
+// ─── Build protest / unrest data ───
+async function fetchProtestData() {
+  const [gdeltArticles, rssArticles] = await Promise.allSettled([
+    fetchGDELT('protest OR unrest OR demonstration OR riot OR strike action', 100, '14d'),
+    fetchGoogleNewsRSS('protest unrest demonstration worldwide', 40),
+  ]);
+
+  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
+  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+
+  // Aggregate by country from GDELT
+  const countryHeat = {};
+  for (const article of articles) {
+    const code = resolveCountryCode(article.sourcecountry);
+    if (!code || !COUNTRY_COORDS[code]) continue;
+    if (!countryHeat[code]) {
+      countryHeat[code] = { count: 0, articles: [] };
+    }
+    countryHeat[code].count++;
+    if (countryHeat[code].articles.length < 5) {
+      countryHeat[code].articles.push({
+        title: article.title,
+        url: article.url,
+        date: article.date,
+        source: article.source,
+      });
+    }
+  }
+
+  // Convert to heatmap points
+  const heatmapPoints = Object.entries(countryHeat).map(([code, data]) => {
+    const [lat, lon] = COUNTRY_COORDS[code];
+    return {
+      id: `protest-${code}`,
+      countryCode: code,
+      lat,
+      lon,
+      intensity: Math.min(10, Math.max(1, Math.round(data.count / 3))),
+      count: data.count,
+      articles: data.articles,
+    };
+  });
+
+  return {
+    heatmapPoints,
+    totalArticles: articles.length,
+    newsHeadlines: rss.slice(0, 20),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ─── Build military movement data ───
+async function fetchMilitaryData() {
+  const [gdeltArticles, rssArticles] = await Promise.allSettled([
+    fetchGDELT('military deployment OR troop movement OR naval exercise OR military buildup OR military drill', 100, '14d'),
+    fetchGoogleNewsRSS('military movement deployment exercise buildup', 40),
+  ]);
+
+  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
+  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+
+  const countryMil = {};
+  for (const article of articles) {
+    const code = resolveCountryCode(article.sourcecountry);
+    if (!code || !COUNTRY_COORDS[code]) continue;
+    if (!countryMil[code]) {
+      countryMil[code] = { count: 0, articles: [] };
+    }
+    countryMil[code].count++;
+    if (countryMil[code].articles.length < 5) {
+      countryMil[code].articles.push({
+        title: article.title,
+        url: article.url,
+        date: article.date,
+        source: article.source,
+      });
+    }
+  }
+
+  const indicators = Object.entries(countryMil).map(([code, data]) => {
+    const [lat, lon] = COUNTRY_COORDS[code];
+    const severity = data.count > 15 ? 'critical' : data.count > 8 ? 'high' : data.count > 3 ? 'elevated' : 'low';
+    return {
+      id: `mil-${code}`,
+      countryCode: code,
+      lat,
+      lon,
+      count: data.count,
+      severity,
+      articles: data.articles,
+    };
+  });
+
+  return {
+    indicators,
+    totalArticles: articles.length,
+    newsHeadlines: rss.slice(0, 20),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ─── Build instability alerts ───
+async function fetchInstabilityData() {
+  const [gdeltArticles, rssArticles] = await Promise.allSettled([
+    fetchGDELT('assassination OR coup OR regime change OR political crisis OR martial law OR political instability', 100, '14d'),
+    fetchGoogleNewsRSS('assassination coup regime change political crisis', 40),
+  ]);
+
+  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
+  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+
+  const countryAlerts = {};
+  for (const article of articles) {
+    const code = resolveCountryCode(article.sourcecountry);
+    if (!code || !COUNTRY_COORDS[code]) continue;
+    if (!countryAlerts[code]) {
+      countryAlerts[code] = { count: 0, articles: [] };
+    }
+    countryAlerts[code].count++;
+    if (countryAlerts[code].articles.length < 5) {
+      countryAlerts[code].articles.push({
+        title: article.title,
+        url: article.url,
+        date: article.date,
+        source: article.source,
+      });
+    }
+  }
+
+  // Classify alert type based on article text
+  function classifyAlert(articles) {
+    const text = articles.map((a) => a.title).join(' ').toLowerCase();
+    if (text.includes('assassinat')) return 'assassination';
+    if (text.includes('coup')) return 'coup';
+    if (text.includes('martial law')) return 'martial_law';
+    if (text.includes('regime')) return 'regime_change';
+    return 'political_crisis';
+  }
+
+  const alerts = Object.entries(countryAlerts).map(([code, data]) => {
+    const [lat, lon] = COUNTRY_COORDS[code];
+    const severity = data.count > 12 ? 'critical' : data.count > 6 ? 'high' : data.count > 2 ? 'elevated' : 'moderate';
+    return {
+      id: `alert-${code}`,
+      countryCode: code,
+      lat,
+      lon,
+      type: classifyAlert(data.articles),
+      severity,
+      count: data.count,
+      articles: data.articles,
+    };
+  });
+
+  // Sort by count descending
+  alerts.sort((a, b) => b.count - a.count);
+
+  return {
+    alerts,
+    totalArticles: articles.length,
+    newsHeadlines: rss.slice(0, 20),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ─── Public API ───
+
+export const stabilityService = {
+  async getProtestData() {
+    const cacheKey = 'stability:protests';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const data = await fetchProtestData();
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  },
+
+  async getMilitaryData() {
+    const cacheKey = 'stability:military';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const data = await fetchMilitaryData();
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  },
+
+  async getInstabilityData() {
+    const cacheKey = 'stability:instability';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const data = await fetchInstabilityData();
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  },
+
+  async getCombinedData() {
+    const cacheKey = 'stability:combined';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const [protests, military, instability] = await Promise.allSettled([
+      this.getProtestData(),
+      this.getMilitaryData(),
+      this.getInstabilityData(),
+    ]);
+
+    const data = {
+      protests: protests.status === 'fulfilled' ? protests.value : { heatmapPoints: [], newsHeadlines: [], totalArticles: 0 },
+      military: military.status === 'fulfilled' ? military.value : { indicators: [], newsHeadlines: [], totalArticles: 0 },
+      instability: instability.status === 'fulfilled' ? instability.value : { alerts: [], newsHeadlines: [], totalArticles: 0 },
+      lastUpdated: new Date().toISOString(),
+    };
+
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  },
+};

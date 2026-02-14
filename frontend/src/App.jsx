@@ -30,6 +30,10 @@ import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
+import ProtestHeatmap from './features/stability/ProtestHeatmap';
+import MilitaryOverlay from './features/stability/MilitaryOverlay';
+import StabilityPanel from './features/stability/StabilityPanel';
+import { useStability } from './hooks/useStability';
 import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
@@ -704,6 +708,12 @@ function App() {
   const [showSeverePanel, setShowSeverePanel] = useState(false);
   const [selectedSevereEventId, setSelectedSevereEventId] = useState(null);
 
+  // Stability state (protests, military, instability)
+  const [stabilityMode, setStabilityMode] = useState(false);
+  const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
+  const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
+  const [showStabilityPanel, setShowStabilityPanel] = useState(false);
+
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
   const {
@@ -711,6 +721,12 @@ function App() {
     loading: severeLoading,
     refresh: refreshSevere,
   } = useSevereWeather(enabledLayers.severeWeather);
+
+  const {
+    data: stabilityData,
+    loading: stabilityLoading,
+    refresh: refreshStability,
+  } = useStability(stabilityMode);
 
   const isLightTheme = theme === 'light';
 
@@ -1914,6 +1930,69 @@ function App() {
                 </div>
 
                 <div className="source-group">
+                  <div className="source-group-title">Global Stability</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Stability Monitor</span>
+                      <input
+                        type="checkbox"
+                        checked={stabilityMode}
+                        onChange={() => {
+                          setStabilityMode(prev => {
+                            if (prev) {
+                              setShowStabilityPanel(false);
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {stabilityMode && (
+                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                      <strong>Global Stability Monitor</strong>
+                      <p>
+                        Protest heatmap, military movement indicators, and regime instability alerts from OSINT sources.
+                      </p>
+                      <div className="stability-sidebar-stats">
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Protests</span>
+                        </div>
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Military</span>
+                        </div>
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Alerts</span>
+                        </div>
+                      </div>
+                      <div className="conflict-sidebar-toggles">
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Protest Heatmap</span>
+                          <input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} />
+                          <span className="slider" />
+                        </label>
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Military Indicators</span>
+                          <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                      <button
+                        className="stability-sidebar-open-btn"
+                        onClick={() => setShowStabilityPanel(prev => !prev)}
+                      >
+                        {showStabilityPanel ? 'Close' : 'Open'} Stability Panel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
                   <div className="source-group-title">Lifestyle & Indices</div>
                   <div className="source-group-items">
                     {[
@@ -2224,6 +2303,40 @@ function App() {
           </PanelWindow>
         )}
 
+
+        {/* ══════════ Stability Panel ══════════ */}
+        {stabilityMode && showStabilityPanel && (
+          <PanelWindow
+            id="stability"
+            title="Global Stability Monitor"
+            onClose={() => setShowStabilityPanel(false)}
+            defaultWidth={440}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 90, y: 80 }}
+          >
+            <StabilityPanel
+              data={stabilityData}
+              loading={stabilityLoading}
+              onRefresh={refreshStability}
+              onAlertClick={(alert) => {
+                if (alert.lat && alert.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [alert.lon, alert.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+              onMilitaryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+              onProtestClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
 
         {/* Election mode map legend */}
         {electionMode && (
@@ -2653,6 +2766,20 @@ function App() {
                 setConflictPanelOpen(true);
               }
             }}
+          />
+
+          {/* ══════════ Protest / Unrest Heatmap ══════════ */}
+          <ProtestHeatmap
+            visible={stabilityMode && showProtestHeatmap}
+            protests={stabilityData?.protests || []}
+            zoom={mapZoom}
+          />
+
+          {/* ══════════ Military Movement Indicators ══════════ */}
+          <MilitaryOverlay
+            visible={stabilityMode && showMilitaryOverlay}
+            indicators={stabilityData?.military || []}
+            zoom={mapZoom}
           />
 
           {/* Population heatmap */}

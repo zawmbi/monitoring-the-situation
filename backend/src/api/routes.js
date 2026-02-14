@@ -19,6 +19,7 @@ import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
 import { marketsService } from '../services/markets.service.js';
 import { kalshiService } from '../services/kalshi.service.js';
+import { stabilityService } from '../services/stability.service.js';
 
 const router = Router();
 
@@ -765,6 +766,66 @@ router.get('/fec/expenditures/:state', async (req, res) => {
   } catch (error) {
     console.error('[API] FEC expenditures error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch expenditure data' });
+  }
+});
+
+// ===========================================
+// STABILITY DATA (Protests, Military, Instability)
+// ===========================================
+
+/**
+ * GET /api/stability
+ * Combined stability data: protests heatmap + military indicators + instability alerts
+ */
+router.get('/stability', async (req, res) => {
+  try {
+    const data = await stabilityService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Stability error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
+  }
+});
+
+/**
+ * GET /api/stability/protests
+ * Protest/unrest heatmap data with GDELT article counts per country
+ */
+router.get('/stability/protests', async (req, res) => {
+  try {
+    const data = await stabilityService.getProtestData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Protest data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch protest data' });
+  }
+});
+
+/**
+ * GET /api/stability/military
+ * Military movement indicators (OSINT-derived)
+ */
+router.get('/stability/military', async (req, res) => {
+  try {
+    const data = await stabilityService.getMilitaryData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Military data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch military data' });
+  }
+});
+
+/**
+ * GET /api/stability/instability
+ * Assassinations, coups, regime instability alerts
+ */
+router.get('/stability/instability', async (req, res) => {
+  try {
+    const data = await stabilityService.getInstabilityData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Instability data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch instability data' });
   }
 });
 
