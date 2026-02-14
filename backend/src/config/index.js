@@ -5,18 +5,43 @@
 
 import { config as dotenvConfig } from 'dotenv';
 import path from 'path';
-const r1 = dotenvConfig();
-// Also load env from repository root if backend is launched from /backend
-const rootEnvPath = path.resolve(process.cwd(), '..', '.env');
-const r2 = dotenvConfig({ path: rootEnvPath, override: false });
+import { readFileSync } from 'fs';
 
-// Debug: verify API key loading
-if (r1.error && r2.error) {
-  console.warn('[Config] No .env files found. Tried cwd and', rootEnvPath);
-} else {
-  const src = r1.error ? rootEnvPath : '.env (cwd)';
-  console.log(`[Config] Loaded env from: ${src}`);
+// Load .env from multiple locations (first match wins per variable)
+const envPaths = [
+  path.resolve(process.cwd(), '.env'),                   // backend/.env
+  path.resolve(process.cwd(), '..', '.env'),              // root .env
+  path.resolve(process.cwd(), '..', 'frontend', '.env'),  // frontend/.env (fallback)
+];
+
+const loaded = [];
+for (const envPath of envPaths) {
+  const result = dotenvConfig({ path: envPath, override: false });
+  if (!result.error) loaded.push(envPath);
 }
+
+// If keys are still missing, try manual UTF-8 parsing as last resort
+// (handles cases where PowerShell appended in UTF-16LE)
+if (!process.env.FEC_API_KEY || !process.env.GOOGLE_CIVIC_API_KEY) {
+  for (const envPath of envPaths) {
+    try {
+      const raw = readFileSync(envPath, 'utf-8');
+      for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx < 0) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if ((key === 'FEC_API_KEY' || key === 'GOOGLE_CIVIC_API_KEY') && val && !process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    } catch { /* file not found, skip */ }
+  }
+}
+
+console.log(`[Config] Loaded env from: ${loaded.join(', ') || 'none'}`);
 console.log(`[Config] FEC_API_KEY: ${process.env.FEC_API_KEY ? 'set (' + process.env.FEC_API_KEY.slice(0, 4) + '...)' : 'MISSING'}`);
 console.log(`[Config] GOOGLE_CIVIC_API_KEY: ${process.env.GOOGLE_CIVIC_API_KEY ? 'set (' + process.env.GOOGLE_CIVIC_API_KEY.slice(0, 4) + '...)' : 'MISSING'}`);
 
