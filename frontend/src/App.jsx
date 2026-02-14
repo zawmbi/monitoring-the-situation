@@ -38,6 +38,7 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
+import GlobalStatusBar from './components/GlobalStatusBar';
 import { useDisasters } from './hooks/useDisasters';
 import { useCyber } from './hooks/useCyber';
 import { useCommodities } from './hooks/useCommodities';
@@ -53,6 +54,8 @@ import { CommoditiesPanel } from './features/commodities/CommoditiesPanel';
 import { RefugeePanel } from './features/refugees/RefugeePanel';
 import { ShippingPanel } from './features/shipping/ShippingPanel';
 import ShippingOverlay from './features/shipping/ShippingOverlay';
+import { RefugeeOverlay } from './features/refugees/RefugeeOverlay';
+import { RiskOverlay } from './features/risk/RiskOverlay';
 import { TensionPanel } from './features/tension/TensionPanel';
 import { BriefingPanel } from './features/briefing/BriefingPanel';
 import { CourtPanel } from './features/court/CourtPanel';
@@ -61,6 +64,10 @@ import { MetaculusPanel } from './features/metaculus/MetaculusPanel';
 import { ArbitragePanel } from './features/arbitrage/ArbitragePanel';
 import { CountryRiskPanel } from './features/risk/CountryRiskPanel';
 import { WatchlistPanel } from './features/watchlist/WatchlistPanel';
+import { useCourt } from './hooks/useCourt';
+import { useSanctions } from './hooks/useSanctions';
+import { useMetaculus } from './hooks/useMetaculus';
+import { useArbitrage } from './hooks/useArbitrage';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -779,6 +786,10 @@ function App() {
   const { data: briefingData, loading: briefingLoading, refresh: refreshBriefing } = useBriefing(showBriefingPanel);
   const { data: countryRiskData, loading: countryRiskLoading, refresh: refreshCountryRisk } = useCountryRisk(showCountryRiskMode);
   const { data: refugeeData, loading: refugeeLoading, refresh: refreshRefugees } = useRefugees(showRefugeePanel);
+  const { data: courtData, loading: courtLoading, refresh: refreshCourt } = useCourt(showCourtPanel);
+  const { data: sanctionsData, loading: sanctionsLoading, refresh: refreshSanctions } = useSanctions(showSanctionsPanel);
+  const { data: metaculusData, loading: metaculusLoading, refresh: refreshMetaculus } = useMetaculus(showMetaculusPanel);
+  const { data: arbitrageData, loading: arbitrageLoading, refresh: refreshArbitrage } = useArbitrage(showArbitragePanel);
 
   const isLightTheme = theme === 'light';
 
@@ -2700,7 +2711,11 @@ function App() {
             defaultMode="floating"
             defaultPosition={{ x: 150, y: 90 }}
           >
-            <CourtPanel />
+            <CourtPanel
+              data={courtData}
+              loading={courtLoading}
+              onRefresh={refreshCourt}
+            />
           </PanelWindow>
         )}
 
@@ -2715,7 +2730,16 @@ function App() {
             defaultMode="floating"
             defaultPosition={{ x: 160, y: 95 }}
           >
-            <SanctionsPanel />
+            <SanctionsPanel
+              data={sanctionsData}
+              loading={sanctionsLoading}
+              onRefresh={refreshSanctions}
+              onRegimeClick={(regime) => {
+                if (regime.lat && regime.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [regime.lon, regime.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
           </PanelWindow>
         )}
 
@@ -2730,7 +2754,11 @@ function App() {
             defaultMode="floating"
             defaultPosition={{ x: 120, y: 75 }}
           >
-            <MetaculusPanel />
+            <MetaculusPanel
+              data={metaculusData}
+              loading={metaculusLoading}
+              onRefresh={refreshMetaculus}
+            />
           </PanelWindow>
         )}
 
@@ -2745,7 +2773,11 @@ function App() {
             defaultMode="floating"
             defaultPosition={{ x: 140, y: 85 }}
           >
-            <ArbitragePanel />
+            <ArbitragePanel
+              data={arbitrageData}
+              loading={arbitrageLoading}
+              onRefresh={refreshArbitrage}
+            />
           </PanelWindow>
         )}
 
@@ -2795,6 +2827,9 @@ function App() {
             />
           </PanelWindow>
         )}
+
+        {/* Global Status Bar */}
+        <GlobalStatusBar tensionData={tensionData} disasterData={disasterData} cyberData={cyberData} commoditiesData={commoditiesData} />
 
         {/* Keyboard shortcut hint */}
         <div className="keyboard-hint">
@@ -3265,6 +3300,30 @@ function App() {
               onChokepointClick={(cp) => {
                 if (cp.lat && cp.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [cp.lon, cp.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          )}
+
+          {/* Refugee displacement markers on map */}
+          {showRefugeePanel && refugeeData?.situations && (
+            <RefugeeOverlay
+              situations={refugeeData.situations}
+              onSituationClick={(s) => {
+                if (s.lat && s.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [s.lon, s.lat], zoom: 4, duration: 1400, essential: true });
+                }
+              }}
+            />
+          )}
+
+          {/* Country risk markers on map */}
+          {showCountryRiskMode && countryRiskData?.scores && (
+            <RiskOverlay
+              scores={countryRiskData.scores}
+              onCountryClick={(c) => {
+                if (c.lat && c.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [c.lon, c.lat], zoom: 5, duration: 1400, essential: true });
                 }
               }}
             />
