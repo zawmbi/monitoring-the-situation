@@ -30,17 +30,16 @@ const STATE_CODES = {
 
 class FECService {
   constructor() {
-    this._apiKey = process.env.FEC_API_KEY || '';
     this._memCache = {};
     this._memCacheTime = {};
   }
 
   get apiKey() {
-    return this._apiKey || 'DEMO_KEY';
+    return process.env.FEC_API_KEY || 'DEMO_KEY';
   }
 
   get isConfigured() {
-    return !!this._apiKey;
+    return !!process.env.FEC_API_KEY;
   }
 
   async _fetch(endpoint, params = {}) {
