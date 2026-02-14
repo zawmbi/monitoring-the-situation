@@ -1111,6 +1111,90 @@ function App() {
     })),
   }), [flightPaths]);
 
+  // Aggregate events from all data sources for the TimelineNavigator
+  const timelineEvents = useMemo(() => {
+    const events = [];
+    let id = 0;
+    // Tension conflicts
+    if (tensionData?.conflicts) {
+      for (const c of tensionData.conflicts) {
+        events.push({
+          id: `conflict-${id++}`,
+          title: c.name || c.label,
+          date: c.lastEvent || c.updatedAt || new Date().toISOString(),
+          category: 'conflict',
+          severity: c.nuclear ? 3 : c.intensity >= 7 ? 3 : c.intensity >= 4 ? 2 : 1,
+          country: c.region || c.countries?.[0],
+        });
+      }
+    }
+    // Tension flashpoints
+    if (tensionData?.flashpoints) {
+      for (const f of tensionData.flashpoints) {
+        events.push({
+          id: `flash-${id++}`,
+          title: f.name || f.label,
+          date: f.updatedAt || new Date().toISOString(),
+          category: 'conflict',
+          severity: f.nuclear ? 3 : f.tension >= 70 ? 3 : f.tension >= 40 ? 2 : 1,
+          country: f.region,
+        });
+      }
+    }
+    // Disaster events
+    if (disasterData?.events) {
+      for (const ev of disasterData.events) {
+        events.push({
+          id: `disaster-${id++}`,
+          title: ev.title || ev.name,
+          date: ev.date || ev.updatedAt || new Date().toISOString(),
+          category: 'disaster',
+          severity: ev.severity === 'critical' ? 3 : ev.severity === 'high' ? 2 : 1,
+          country: ev.country || ev.region,
+        });
+      }
+    }
+    // Cyber incidents
+    if (cyberData?.incidents) {
+      for (const inc of cyberData.incidents) {
+        events.push({
+          id: `cyber-${id++}`,
+          title: inc.title || inc.name,
+          date: inc.date || inc.publishedAt || new Date().toISOString(),
+          category: 'cyber',
+          severity: inc.severity === 'critical' ? 3 : inc.severity === 'high' ? 2 : 1,
+          country: inc.country,
+        });
+      }
+    }
+    // Leadership change alerts
+    if (leadershipData?.changeAlerts) {
+      for (const alert of leadershipData.changeAlerts) {
+        events.push({
+          id: `leader-${id++}`,
+          title: `${alert.country}: ${alert.description || alert.type}`,
+          date: alert.detectedAt || new Date().toISOString(),
+          category: 'politics',
+          severity: alert.severity === 'critical' ? 3 : alert.severity === 'high' ? 2 : 1,
+          country: alert.country,
+        });
+      }
+    }
+    // Credibility manipulation alerts
+    if (credibilityData?.manipulationAlerts) {
+      for (const alert of credibilityData.manipulationAlerts) {
+        events.push({
+          id: `manip-${id++}`,
+          title: alert.title || alert.pattern,
+          date: alert.detectedAt || new Date().toISOString(),
+          category: 'politics',
+          severity: alert.severity === 'critical' ? 3 : alert.severity === 'high' ? 2 : 1,
+        });
+      }
+    }
+    return events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [tensionData, disasterData, cyberData, leadershipData, credibilityData]);
+
   // MapLibre style — basemap baked in for reliable globe rendering
   // NOTE: useGlobe is NOT a dependency — background is updated via map API
   // to avoid full style reloads on projection switch
@@ -2919,6 +3003,11 @@ function App() {
               data={narrativeData}
               loading={narrativeLoading}
               onRefresh={refreshNarrative}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
             />
           </PanelWindow>
         )}
@@ -2962,6 +3051,11 @@ function App() {
               data={allianceData}
               loading={allianceLoading}
               onRefresh={refreshAlliance}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 4, duration: 1400, essential: true });
+                }
+              }}
             />
           </PanelWindow>
         )}
@@ -3055,9 +3149,16 @@ function App() {
         {/* ══════════ Timeline Navigator ══════════ */}
         {showTimeline && (
           <TimelineNavigator
-            events={[]}
-            onTimeSelect={() => {}}
-            onEventClick={() => {}}
+            events={timelineEvents}
+            onTimeSelect={(date) => {
+              console.log('[Timeline] Selected:', date);
+            }}
+            onEventClick={(event) => {
+              if (event.country && mapRef.current) {
+                // Try to fly to the event's country/region
+                console.log('[Timeline] Event clicked:', event.title);
+              }
+            }}
           />
         )}
 
@@ -3644,6 +3745,30 @@ function App() {
                   />
                   <div className="severe-marker-pulse" style={{ borderColor: color }} />
                 </div>
+              </Marker>
+            );
+          })}
+
+          {/* Infrastructure vulnerability markers */}
+          {showInfrastructurePanel && infrastructureData?.infrastructure?.map((infra) => {
+            if (!infra.location?.lat || !infra.location?.lon) return null;
+            const catColors = { energy: '#f59e0b', digital: '#3b82f6', transport: '#06b6d4', financial: '#22c55e', food_water: '#8b5cf6' };
+            const color = catColors[infra.category] || '#888';
+            const vulnColor = infra.vulnerabilityScore >= 75 ? '#ef4444' : infra.vulnerabilityScore >= 50 ? '#f97316' : color;
+            return (
+              <Marker key={infra.id} longitude={infra.location.lon} latitude={infra.location.lat} anchor="center">
+                <div
+                  title={`${infra.name} (${infra.category}) — Vulnerability: ${infra.vulnerabilityScore}`}
+                  style={{
+                    width: 12, height: 12, borderRadius: '50%',
+                    background: vulnColor, border: '2px solid rgba(0,0,0,0.4)',
+                    boxShadow: `0 0 6px ${vulnColor}80`,
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    mapRef.current?.flyTo({ center: [infra.location.lon, infra.location.lat], zoom: 6, duration: 1200, essential: true });
+                  }}
+                />
               </Marker>
             );
           })}
