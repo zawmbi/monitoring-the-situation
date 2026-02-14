@@ -31,6 +31,13 @@ import { shippingService } from './services/shipping.service.js';
 import { countryRiskService } from './services/countryRisk.service.js';
 import { tensionIndexService } from './services/tensionIndex.service.js';
 import { briefingService } from './services/briefing.service.js';
+import { narrativeService } from './services/narrative.service.js';
+import { regimeService } from './services/regime.service.js';
+import { allianceService } from './services/alliance.service.js';
+import { infrastructureService } from './services/infrastructure.service.js';
+import { demographicService } from './services/demographic.service.js';
+import { credibilityService } from './services/credibility.service.js';
+import { leadershipService } from './services/leadership.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -93,6 +100,13 @@ app.get('/', (req, res) => {
       tension: '/api/tension',
       arbitrage: '/api/arbitrage',
       briefing: '/api/briefing',
+      narrative: '/api/narrative',
+      regime: '/api/regime',
+      alliance: '/api/alliance',
+      infrastructure: '/api/infrastructure',
+      demographic: '/api/demographic',
+      credibility: '/api/credibility',
+      leadership: '/api/leadership',
       search: '/api/search',
       health: '/health',
     },
@@ -149,6 +163,13 @@ let shippingRefreshInterval = null;
 let riskRefreshInterval = null;
 let tensionRefreshInterval = null;
 let briefingRefreshInterval = null;
+let narrativeRefreshInterval = null;
+let regimeRefreshInterval = null;
+let allianceRefreshInterval = null;
+let infrastructureRefreshInterval = null;
+let demographicRefreshInterval = null;
+let credibilityRefreshInterval = null;
+let leadershipRefreshInterval = null;
 
 function startBackgroundRefresh() {
   // Initial fetch
@@ -367,6 +388,85 @@ function startBackgroundRefresh() {
     briefingService.getGlobalBriefing().catch(console.error);
   }, BRIEFING_POLL_MS);
 
+  // ── New Phase 2 services (staggered startup) ──
+
+  // Narrative & Sentiment — every 10 minutes (GDELT Tone)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial narrative tracking...');
+    narrativeService.getCombinedData().catch(console.error);
+  }, 58000);
+  const NARRATIVE_POLL_MS = 10 * 60 * 1000;
+  narrativeRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing narrative data...');
+    narrativeService.getCombinedData().catch(console.error);
+  }, NARRATIVE_POLL_MS);
+
+  // Regime Stability — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial regime stability computation...');
+    regimeService.getCombinedData().catch(console.error);
+  }, 62000);
+  const REGIME_POLL_MS = 30 * 60 * 1000;
+  regimeRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing regime data...');
+    regimeService.getCombinedData().catch(console.error);
+  }, REGIME_POLL_MS);
+
+  // Alliance Network — every 1 hour
+  setTimeout(() => {
+    console.log('[Worker] Starting initial alliance network analysis...');
+    allianceService.getCombinedData().catch(console.error);
+  }, 65000);
+  const ALLIANCE_POLL_MS = 60 * 60 * 1000;
+  allianceRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing alliance data...');
+    allianceService.getCombinedData().catch(console.error);
+  }, ALLIANCE_POLL_MS);
+
+  // Infrastructure Vulnerability — every 15 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial infrastructure monitoring...');
+    infrastructureService.getCombinedData().catch(console.error);
+  }, 68000);
+  const INFRA_POLL_MS = 15 * 60 * 1000;
+  infrastructureRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing infrastructure data...');
+    infrastructureService.getCombinedData().catch(console.error);
+  }, INFRA_POLL_MS);
+
+  // Demographic Risk — every 24 hours (World Bank data is slow-moving)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial demographic risk analysis...');
+    demographicService.getCombinedData().catch(console.error);
+  }, 72000);
+  const DEMOGRAPHIC_POLL_MS = 24 * 60 * 60 * 1000;
+  demographicRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing demographic data...');
+    demographicService.getCombinedData().catch(console.error);
+  }, DEMOGRAPHIC_POLL_MS);
+
+  // Source Credibility — every 10 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial credibility analysis...');
+    credibilityService.getCombinedData().catch(console.error);
+  }, 75000);
+  const CREDIBILITY_POLL_MS = 10 * 60 * 1000;
+  credibilityRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing credibility data...');
+    credibilityService.getCombinedData().catch(console.error);
+  }, CREDIBILITY_POLL_MS);
+
+  // Leadership Intelligence — every 1 hour
+  setTimeout(() => {
+    console.log('[Worker] Starting initial leadership intelligence...');
+    leadershipService.getCombinedData().catch(console.error);
+  }, 78000);
+  const LEADERSHIP_POLL_MS = 60 * 60 * 1000;
+  leadershipRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing leadership data...');
+    leadershipService.getCombinedData().catch(console.error);
+  }, LEADERSHIP_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
@@ -439,6 +539,13 @@ async function shutdown(signal) {
   if (riskRefreshInterval) clearInterval(riskRefreshInterval);
   if (tensionRefreshInterval) clearInterval(tensionRefreshInterval);
   if (briefingRefreshInterval) clearInterval(briefingRefreshInterval);
+  if (narrativeRefreshInterval) clearInterval(narrativeRefreshInterval);
+  if (regimeRefreshInterval) clearInterval(regimeRefreshInterval);
+  if (allianceRefreshInterval) clearInterval(allianceRefreshInterval);
+  if (infrastructureRefreshInterval) clearInterval(infrastructureRefreshInterval);
+  if (demographicRefreshInterval) clearInterval(demographicRefreshInterval);
+  if (credibilityRefreshInterval) clearInterval(credibilityRefreshInterval);
+  if (leadershipRefreshInterval) clearInterval(leadershipRefreshInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 

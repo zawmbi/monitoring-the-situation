@@ -68,6 +68,21 @@ import { useCourt } from './hooks/useCourt';
 import { useSanctions } from './hooks/useSanctions';
 import { useMetaculus } from './hooks/useMetaculus';
 import { useArbitrage } from './hooks/useArbitrage';
+import { useNarrative } from './hooks/useNarrative';
+import { useRegime } from './hooks/useRegime';
+import { useAlliance } from './hooks/useAlliance';
+import { useInfrastructure } from './hooks/useInfrastructure';
+import { useDemographic } from './hooks/useDemographic';
+import { useCredibility } from './hooks/useCredibility';
+import { useLeadership } from './hooks/useLeadership';
+import { NarrativePanel } from './features/narrative/NarrativePanel';
+import { RegimePanel } from './features/regime/RegimePanel';
+import { AlliancePanel } from './features/alliance/AlliancePanel';
+import { InfrastructurePanel } from './features/infrastructure/InfrastructurePanel';
+import { DemographicPanel } from './features/demographic/DemographicPanel';
+import { CredibilityPanel } from './features/credibility/CredibilityPanel';
+import { LeadershipPanel } from './features/leadership/LeadershipPanel';
+import { TimelineNavigator } from './components/TimelineNavigator';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -776,6 +791,14 @@ function App() {
   const [showCountryRiskPanel, setShowCountryRiskPanel] = useState(false);
   const [showCountryRiskMode, setShowCountryRiskMode] = useState(false);
   const [showWatchlistPanel, setShowWatchlistPanel] = useState(false);
+  const [showNarrativePanel, setShowNarrativePanel] = useState(false);
+  const [showRegimePanel, setShowRegimePanel] = useState(false);
+  const [showAlliancePanel, setShowAlliancePanel] = useState(false);
+  const [showInfrastructurePanel, setShowInfrastructurePanel] = useState(false);
+  const [showDemographicPanel, setShowDemographicPanel] = useState(false);
+  const [showCredibilityPanel, setShowCredibilityPanel] = useState(false);
+  const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   // ── New data hooks ──
   const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(showDisasters);
@@ -790,6 +813,13 @@ function App() {
   const { data: sanctionsData, loading: sanctionsLoading, refresh: refreshSanctions } = useSanctions(showSanctionsPanel);
   const { data: metaculusData, loading: metaculusLoading, refresh: refreshMetaculus } = useMetaculus(showMetaculusPanel);
   const { data: arbitrageData, loading: arbitrageLoading, refresh: refreshArbitrage } = useArbitrage(showArbitragePanel);
+  const { data: narrativeData, loading: narrativeLoading, refresh: refreshNarrative } = useNarrative(showNarrativePanel);
+  const { data: regimeData, loading: regimeLoading, refresh: refreshRegime } = useRegime(showRegimePanel);
+  const { data: allianceData, loading: allianceLoading, refresh: refreshAlliance } = useAlliance(showAlliancePanel);
+  const { data: infrastructureData, loading: infrastructureLoading, refresh: refreshInfrastructure } = useInfrastructure(showInfrastructurePanel);
+  const { data: demographicData, loading: demographicLoading, refresh: refreshDemographic } = useDemographic(showDemographicPanel);
+  const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showCredibilityPanel);
+  const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel);
 
   const isLightTheme = theme === 'light';
 
@@ -2118,6 +2148,16 @@ function App() {
                       <input type="checkbox" checked={showArbitragePanel} onChange={() => setShowArbitragePanel(p => !p)} />
                       <span className="slider" />
                     </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Narrative Tracking</span>
+                      <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Source Credibility</span>
+                      <input type="checkbox" checked={showCredibilityPanel} onChange={() => setShowCredibilityPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
                   </div>
 
                   {showTensionPanel && tensionData && (
@@ -2149,6 +2189,11 @@ function App() {
                     <label className="switch switch-neutral">
                       <span className="switch-label">Sanctions Monitor</span>
                       <input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Infrastructure Threats</span>
+                      <input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} />
                       <span className="slider" />
                     </label>
                   </div>
@@ -2201,6 +2246,37 @@ function App() {
                     <label className="switch switch-neutral">
                       <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
                       <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Demographic Risk</span>
+                      <input type="checkbox" checked={showDemographicPanel} onChange={() => setShowDemographicPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Geopolitical Modeling</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Regime Stability</span>
+                      <input type="checkbox" checked={showRegimePanel} onChange={() => setShowRegimePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Alliance Networks</span>
+                      <input type="checkbox" checked={showAlliancePanel} onChange={() => setShowAlliancePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Leadership Intel</span>
+                      <input type="checkbox" checked={showLeadershipPanel} onChange={() => setShowLeadershipPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Timeline Navigator</span>
+                      <input type="checkbox" checked={showTimeline} onChange={() => setShowTimeline(p => !p)} />
                       <span className="slider" />
                     </label>
                   </div>
@@ -2826,6 +2902,163 @@ function App() {
               }}
             />
           </PanelWindow>
+        )}
+
+        {/* ══════════ Narrative & Sentiment Panel ══════════ */}
+        {showNarrativePanel && (
+          <PanelWindow
+            id="narrative"
+            title="Narrative & Sentiment Tracking"
+            onClose={() => setShowNarrativePanel(false)}
+            defaultWidth={440}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 110, y: 70 }}
+          >
+            <NarrativePanel
+              data={narrativeData}
+              loading={narrativeLoading}
+              onRefresh={refreshNarrative}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Regime Stability Panel ══════════ */}
+        {showRegimePanel && (
+          <PanelWindow
+            id="regime"
+            title="Regime Stability & Coup Risk"
+            onClose={() => setShowRegimePanel(false)}
+            defaultWidth={420}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 130, y: 75 }}
+          >
+            <RegimePanel
+              data={regimeData}
+              loading={regimeLoading}
+              onRefresh={refreshRegime}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Alliance Network Panel ══════════ */}
+        {showAlliancePanel && (
+          <PanelWindow
+            id="alliance"
+            title="Alliance Network Analysis"
+            onClose={() => setShowAlliancePanel(false)}
+            defaultWidth={440}
+            defaultHeight={580}
+            defaultMode="floating"
+            defaultPosition={{ x: 100, y: 80 }}
+          >
+            <AlliancePanel
+              data={allianceData}
+              loading={allianceLoading}
+              onRefresh={refreshAlliance}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Infrastructure Vulnerability Panel ══════════ */}
+        {showInfrastructurePanel && (
+          <PanelWindow
+            id="infrastructure"
+            title="Infrastructure Vulnerability"
+            onClose={() => setShowInfrastructurePanel(false)}
+            defaultWidth={420}
+            defaultHeight={580}
+            defaultMode="floating"
+            defaultPosition={{ x: 120, y: 85 }}
+          >
+            <InfrastructurePanel
+              data={infrastructureData}
+              loading={infrastructureLoading}
+              onRefresh={refreshInfrastructure}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Demographic Risk Panel ══════════ */}
+        {showDemographicPanel && (
+          <PanelWindow
+            id="demographic"
+            title="Demographic Risk Analysis"
+            onClose={() => setShowDemographicPanel(false)}
+            defaultWidth={420}
+            defaultHeight={580}
+            defaultMode="floating"
+            defaultPosition={{ x: 140, y: 90 }}
+          >
+            <DemographicPanel
+              data={demographicData}
+              loading={demographicLoading}
+              onRefresh={refreshDemographic}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Source Credibility Panel ══════════ */}
+        {showCredibilityPanel && (
+          <PanelWindow
+            id="credibility"
+            title="Source Credibility Engine"
+            onClose={() => setShowCredibilityPanel(false)}
+            defaultWidth={440}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={{ x: 100, y: 65 }}
+          >
+            <CredibilityPanel
+              data={credibilityData}
+              loading={credibilityLoading}
+              onRefresh={refreshCredibility}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Leadership Intelligence Panel ══════════ */}
+        {showLeadershipPanel && (
+          <PanelWindow
+            id="leadership"
+            title="Leadership Intelligence"
+            onClose={() => setShowLeadershipPanel(false)}
+            defaultWidth={440}
+            defaultHeight={620}
+            defaultMode="floating"
+            defaultPosition={{ x: 120, y: 70 }}
+          >
+            <LeadershipPanel
+              data={leadershipData}
+              loading={leadershipLoading}
+              onRefresh={refreshLeadership}
+              onCountryClick={(item) => {
+                if (item.lat && item.lon && mapRef.current) {
+                  mapRef.current.flyTo({ center: [item.lon, item.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Timeline Navigator ══════════ */}
+        {showTimeline && (
+          <TimelineNavigator
+            events={[]}
+            onTimeSelect={() => {}}
+            onEventClick={() => {}}
+          />
         )}
 
         {/* Global Status Bar */}

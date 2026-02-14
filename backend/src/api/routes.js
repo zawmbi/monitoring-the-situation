@@ -32,6 +32,13 @@ import { countryRiskService } from '../services/countryRisk.service.js';
 import { tensionIndexService } from '../services/tensionIndex.service.js';
 import { arbitrageService } from '../services/arbitrage.service.js';
 import { briefingService } from '../services/briefing.service.js';
+import { narrativeService } from '../services/narrative.service.js';
+import { regimeService } from '../services/regime.service.js';
+import { allianceService } from '../services/alliance.service.js';
+import { infrastructureService } from '../services/infrastructure.service.js';
+import { demographicService } from '../services/demographic.service.js';
+import { credibilityService } from '../services/credibility.service.js';
+import { leadershipService } from '../services/leadership.service.js';
 
 const router = Router();
 
@@ -1078,6 +1085,132 @@ router.get('/briefing/:country', async (req, res) => {
   } catch (error) {
     console.error('[API] Country briefing error:', error);
     res.status(500).json({ success: false, error: 'Failed to generate country briefing' });
+  }
+});
+
+// ===========================================
+// NARRATIVE & SENTIMENT TRACKING
+// ===========================================
+
+/**
+ * GET /api/narrative
+ * Global narrative tracking, sentiment analysis, divergence detection
+ */
+router.get('/narrative', async (req, res) => {
+  try {
+    const data = await narrativeService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Narrative error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch narrative data' });
+  }
+});
+
+// ===========================================
+// REGIME STABILITY & COUP RISK
+// ===========================================
+
+/**
+ * GET /api/regime
+ * Regime stability scores, coup risk indicators
+ */
+router.get('/regime', async (req, res) => {
+  try {
+    const data = await regimeService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Regime error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch regime data' });
+  }
+});
+
+// ===========================================
+// ALLIANCE NETWORK
+// ===========================================
+
+/**
+ * GET /api/alliance
+ * Geopolitical alliance networks and bilateral tensions
+ */
+router.get('/alliance', async (req, res) => {
+  try {
+    const data = await allianceService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Alliance error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch alliance data' });
+  }
+});
+
+// ===========================================
+// INFRASTRUCTURE VULNERABILITY
+// ===========================================
+
+/**
+ * GET /api/infrastructure
+ * Critical infrastructure monitoring and threat detection
+ */
+router.get('/infrastructure', async (req, res) => {
+  try {
+    const data = await infrastructureService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Infrastructure error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch infrastructure data' });
+  }
+});
+
+// ===========================================
+// DEMOGRAPHIC RISK
+// ===========================================
+
+/**
+ * GET /api/demographic
+ * Demographic risk analysis from World Bank indicators
+ */
+router.get('/demographic', async (req, res) => {
+  try {
+    const data = await demographicService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Demographic error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch demographic data' });
+  }
+});
+
+// ===========================================
+// SOURCE CREDIBILITY & TRUTH ENGINE
+// ===========================================
+
+/**
+ * GET /api/credibility
+ * Source credibility assessment and misinformation detection
+ */
+router.get('/credibility', async (req, res) => {
+  try {
+    const data = await credibilityService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Credibility error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch credibility data' });
+  }
+});
+
+// ===========================================
+// LEADERSHIP INTELLIGENCE
+// ===========================================
+
+/**
+ * GET /api/leadership
+ * Enhanced leadership tracking, influence scoring, change alerts
+ */
+router.get('/leadership', async (req, res) => {
+  try {
+    const data = await leadershipService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Leadership error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch leadership data' });
   }
 });
 
