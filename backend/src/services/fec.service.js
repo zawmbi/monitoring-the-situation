@@ -61,7 +61,10 @@ class FECService {
         console.warn('[FEC] Rate limited — try setting FEC_API_KEY env');
         return null;
       }
-      if (!response.ok) throw new Error(`FEC API ${response.status}`);
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`FEC API ${response.status}: ${body.slice(0, 200)}`);
+      }
       return await response.json();
     } catch (error) {
       clearTimeout(timeout);
