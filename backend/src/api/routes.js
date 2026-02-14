@@ -19,7 +19,6 @@ import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
 import { marketsService } from '../services/markets.service.js';
 import { kalshiService } from '../services/kalshi.service.js';
-import { financialDataService } from '../services/financialData.service.js';
 
 const router = Router();
 
@@ -766,26 +765,6 @@ router.get('/fec/expenditures/:state', async (req, res) => {
   } catch (error) {
     console.error('[API] FEC expenditures error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch expenditure data' });
-  }
-});
-
-// ===========================================
-// FINANCIAL DATA (Deep markets: yields, vol, credit, CDS proxies)
-// ===========================================
-
-/**
- * GET /api/financial
- * Deep financial market data: treasury yield curve, volatility indices,
- * credit/CDS proxies, dollar index, extended commodities, fear & greed,
- * sovereign bond yields. Auto-refreshes every 5 minutes.
- */
-router.get('/financial', async (req, res) => {
-  try {
-    const data = await financialDataService.getFinancialData();
-    res.json({ success: true, data, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error('[API] Financial data error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch financial data' });
   }
 });
 

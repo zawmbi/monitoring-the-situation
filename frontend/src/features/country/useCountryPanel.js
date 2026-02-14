@@ -109,7 +109,7 @@ export function useCountryPanel() {
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
-  // Fetch market data (stock indices + forex) when country panel opens
+  // Fetch market data when country panel opens; re-fetch every 30s for live ticking
   useEffect(() => {
     const cca2 = countryPanel.data?.cca2;
     if (!countryPanel.open || !cca2 || countryPanel.data?.scope) {
@@ -120,14 +120,19 @@ export function useCountryPanel() {
     let cancelled = false;
     setMarketLoading(true);
 
-    fetchMarketData(cca2).then(result => {
-      if (!cancelled) {
-        setMarketData(result);
-        setMarketLoading(false);
-      }
-    });
+    const doFetch = (skipCache = false) => {
+      fetchMarketData(cca2, skipCache).then(result => {
+        if (!cancelled) {
+          setMarketData(result);
+          setMarketLoading(false);
+        }
+      });
+    };
 
-    return () => { cancelled = true; };
+    doFetch(false);
+    const interval = setInterval(() => doFetch(true), 30000);
+
+    return () => { cancelled = true; clearInterval(interval); };
   }, [countryPanel.open, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
   const openCountryPanel = async (rawName) => {
