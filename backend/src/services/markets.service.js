@@ -7,8 +7,8 @@
 
 import { cacheService } from './cache.service.js';
 
-const CACHE_TTL = 300; // 5 minutes
-const FOREX_CACHE_TTL = 600; // 10 minutes
+const CACHE_TTL = 30; // 30 seconds — live ticking
+const FOREX_CACHE_TTL = 120; // 2 minutes (forex moves slower)
 
 // ── Fetch a quote directly from Yahoo Finance's chart API ──
 async function fetchQuote(symbol) {
