@@ -69,6 +69,63 @@ export const BASELINE_INSTABILITY = [
   { id: 'i-pk', country: 'Pakistan', code: 'PK', lat: 33.69, lon: 73.04, type: 'political_crisis', severity: 'elevated', headline: 'Political crisis / military influence' },
 ];
 
+// ── US Military Installations (OSINT / public DOD data) ──
+// Major Operating Bases (MOB), Forward Operating Sites (FOS),
+// and Cooperative Security Locations (CSL) worldwide
+export const US_INSTALLATIONS = [
+  // ═══ EUCOM — US European Command ═══
+  { id: 'usb-ramstein', name: 'Ramstein AB', code: 'US', lat: 49.44, lon: 7.60, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 9200, label: 'USAFE-AFAFRICA HQ, 86th Airlift Wing. Key C2 & airlift hub for Europe/Africa ops.' },
+  { id: 'usb-lakenheath', name: 'RAF Lakenheath', code: 'US', lat: 52.41, lon: 0.56, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 4500, label: '48th Fighter Wing (F-35A). Primary USAF fighter base in UK.' },
+  { id: 'usb-mildenhall', name: 'RAF Mildenhall', code: 'US', lat: 52.36, lon: 0.49, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 3200, label: '100th Air Refueling Wing. Tanker & special ops hub.' },
+  { id: 'usb-aviano', name: 'Aviano AB', code: 'US', lat: 46.03, lon: 12.60, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 3100, label: '31st Fighter Wing (F-16). Southern Europe forward fighter base.' },
+  { id: 'usb-sigonella', name: 'NAS Sigonella', code: 'US', lat: 37.40, lon: 14.92, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'EUCOM', personnel: 4200, label: 'Naval Air Station. P-8A Poseidon ASW/ISR hub for Mediterranean.' },
+  { id: 'usb-rota', name: 'Naval Station Rota', code: 'US', lat: 36.63, lon: -6.35, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'EUCOM', personnel: 3400, label: 'Forward-deployed Aegis BMD destroyers. Atlantic/Med gateway.' },
+  { id: 'usb-naples', name: 'NSA Naples', code: 'US', lat: 40.82, lon: 14.29, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'EUCOM', personnel: 6000, label: 'US Naval Forces Europe / 6th Fleet HQ.' },
+  { id: 'usb-grafenwoehr', name: 'Grafenwoehr', code: 'US', lat: 49.70, lon: 11.93, type: 'Main Operating Base', milType: 'army_base', branch: 'US Army', cocom: 'EUCOM', personnel: 4000, label: '7th Army Training Command. Largest US Army training area in Europe.' },
+  { id: 'usb-incirlik', name: 'Incirlik AB', code: 'US', lat: 37.00, lon: 35.43, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 5000, label: '39th Air Base Wing. Strategic air base in southern Turkey.' },
+  { id: 'usb-souda', name: 'NSA Souda Bay', code: 'US', lat: 35.49, lon: 24.12, type: 'Forward Operating Site', milType: 'naval_base', branch: 'US Navy', cocom: 'EUCOM', personnel: 800, label: 'Eastern Med naval support. Ammunition & fuel depot.' },
+  { id: 'usb-moron', name: 'Moron AB', code: 'US', lat: 37.17, lon: -5.62, type: 'Forward Operating Site', milType: 'air_base', branch: 'US Air Force / USMC', cocom: 'EUCOM', personnel: 2200, label: 'SPMAGTF-CR staging base. Rapid response to Africa/Europe crises.' },
+  { id: 'usb-bondsteel', name: 'Camp Bondsteel', code: 'US', lat: 42.36, lon: 21.25, type: 'Forward Operating Site', milType: 'army_base', branch: 'US Army', cocom: 'EUCOM', personnel: 7000, label: 'KFOR mission. Largest US base in the Balkans.' },
+  { id: 'usb-deveselu', name: 'Deveselu AAMDS', code: 'US', lat: 44.05, lon: 24.47, type: 'Forward Operating Site', milType: 'air_base', branch: 'US Navy / MDA', cocom: 'EUCOM', personnel: 500, label: 'Aegis Ashore Missile Defense Site (SM-3). NATO BMD shield.' },
+  { id: 'usb-redzikowo', name: 'Redzikowo AAMDS', code: 'US', lat: 54.48, lon: 17.10, type: 'Main Operating Base', milType: 'air_base', branch: 'US Navy / MDA', cocom: 'EUCOM', personnel: 300, label: 'Aegis Ashore Poland. NATO BMD northern shield, operational 2024.' },
+  { id: 'usb-lask', name: 'Lask AB', code: 'US', lat: 51.55, lon: 19.18, type: 'Forward Operating Site', milType: 'air_base', branch: 'US Air Force', cocom: 'EUCOM', personnel: 800, label: 'Rotational USAF fighter detachment. NATO enhanced Air Policing.' },
+  { id: 'usb-mihail', name: 'Mihail Kogalniceanu', code: 'US', lat: 44.36, lon: 28.49, type: 'Forward Operating Site', milType: 'army_base', branch: 'US Army / USMC', cocom: 'EUCOM', personnel: 2500, label: 'Rotational BCT deployment. Black Sea deterrence posture.' },
+  { id: 'usb-thule', name: 'Pituffik Space Base', code: 'US', lat: 76.53, lon: -68.70, type: 'Main Operating Base', milType: 'intel', branch: 'US Space Force', cocom: 'NORTHCOM', personnel: 600, label: 'Formerly Thule AB. BMEWS radar & satellite tracking. Arctic gateway.' },
+
+  // ═══ INDOPACOM — US Indo-Pacific Command ═══
+  { id: 'usb-yokosuka', name: 'CFAY Yokosuka', code: 'US', lat: 35.28, lon: 139.67, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 11000, label: 'Commander Fleet Activities Yokosuka. 7th Fleet HQ, CVN-76 homeport.' },
+  { id: 'usb-kadena', name: 'Kadena AB', code: 'US', lat: 26.35, lon: 127.77, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'INDOPACOM', personnel: 18000, label: '18th Wing — largest USAF wing in Pacific. F-15C/E, KC-135, E-3.' },
+  { id: 'usb-humphreys', name: 'Camp Humphreys', code: 'US', lat: 36.96, lon: 127.03, type: 'Main Operating Base', milType: 'army_base', branch: 'US Army', cocom: 'INDOPACOM', personnel: 36000, label: 'USFK / 8th Army HQ. Largest US overseas military base.' },
+  { id: 'usb-osan', name: 'Osan AB', code: 'US', lat: 37.09, lon: 127.03, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'INDOPACOM', personnel: 7800, label: '51st Fighter Wing (F-16, A-10). Forward air ops for Korean peninsula.' },
+  { id: 'usb-guam', name: 'Andersen AFB', code: 'US', lat: 13.58, lon: 144.92, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'INDOPACOM', personnel: 4000, label: '36th Wing. B-52/B-1/B-2 rotational bomber presence. Pacific power projection.' },
+  { id: 'usb-guam-nav', name: 'Naval Base Guam', code: 'US', lat: 13.45, lon: 144.65, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 6000, label: 'SSN/SSGN submarine base. Marine Corps Base Camp Blaz under construction.' },
+  { id: 'usb-diegogarcia', name: 'NSF Diego Garcia', code: 'US', lat: -7.32, lon: 72.41, type: 'Main Operating Base', milType: 'joint_base', branch: 'US Navy / USAF', cocom: 'INDOPACOM', personnel: 3500, label: 'Strategic mid-Indian Ocean base. Bomber staging, SIGINT, prepositioned ships.' },
+  { id: 'usb-iwakuni', name: 'MCAS Iwakuni', code: 'US', lat: 34.15, lon: 132.24, type: 'Main Operating Base', milType: 'air_base', branch: 'USMC', cocom: 'INDOPACOM', personnel: 10000, label: '1st MAW. F-35B/C, F/A-18 squadrons. Forward Marine air power.' },
+  { id: 'usb-misawa', name: 'Misawa AB', code: 'US', lat: 40.70, lon: 141.37, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'INDOPACOM', personnel: 5200, label: '35th Fighter Wing (F-16). Northern Japan forward air defense.' },
+  { id: 'usb-sasebo', name: 'CFAS Sasebo', code: 'US', lat: 33.16, lon: 129.72, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 4500, label: 'Forward-deployed amphibious ships. Mine countermeasures base.' },
+  { id: 'usb-pearl', name: 'JBPHH', code: 'US', lat: 21.35, lon: -157.97, type: 'Main Operating Base', milType: 'joint_base', branch: 'US Navy / USAF', cocom: 'INDOPACOM', personnel: 58000, label: 'Joint Base Pearl Harbor-Hickam. INDOPACOM HQ, Pacific Fleet HQ.' },
+  { id: 'usb-kwajalein', name: 'Kwajalein Atoll', code: 'US', lat: 9.40, lon: 167.47, type: 'Forward Operating Site', milType: 'intel', branch: 'US Army / MDA', cocom: 'INDOPACOM', personnel: 2500, label: 'Reagan Test Site. ICBM tracking radar, missile defense testing.' },
+  { id: 'usb-darwin', name: 'Robertson Barracks', code: 'US', lat: -12.43, lon: 130.87, type: 'Cooperative Security Location', milType: 'army_base', branch: 'USMC', cocom: 'INDOPACOM', personnel: 2500, label: 'USMC rotational force — Australia. MRF-D (2,500 Marines).' },
+  { id: 'usb-clark', name: 'Clark AB (EDCA)', code: 'US', lat: 15.19, lon: 120.56, type: 'Cooperative Security Location', milType: 'air_base', branch: 'US Air Force', cocom: 'INDOPACOM', personnel: 600, label: 'EDCA site. Rotational USAF/USMC access. Prepositioned materiel.' },
+
+  // ═══ CENTCOM — US Central Command ═══
+  { id: 'usb-aludeid', name: 'Al Udeid AB', code: 'US', lat: 25.12, lon: 51.31, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'CENTCOM', personnel: 10000, label: 'CENTCOM Forward HQ / AFCENT. CAOC — Combined Air Operations Center.' },
+  { id: 'usb-bahrain', name: 'NSA Bahrain', code: 'US', lat: 26.23, lon: 50.62, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy', cocom: 'CENTCOM', personnel: 7000, label: '5th Fleet HQ. CTF 50/CTF 51 — Persian Gulf naval operations.' },
+  { id: 'usb-arifjan', name: 'Camp Arifjan', code: 'US', lat: 29.15, lon: 48.10, type: 'Main Operating Base', milType: 'army_base', branch: 'US Army', cocom: 'CENTCOM', personnel: 13000, label: 'ARCENT Forward / Third Army. Main logistical hub for Middle East ops.' },
+  { id: 'usb-aldhafra', name: 'Al Dhafra AB', code: 'US', lat: 24.25, lon: 54.55, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'CENTCOM', personnel: 3500, label: '380th AEW. F-22, U-2, RQ-4 Global Hawk ISR operations.' },
+  { id: 'usb-aljaber', name: 'Ali Al Salem AB', code: 'US', lat: 29.35, lon: 47.52, type: 'Main Operating Base', milType: 'air_base', branch: 'US Air Force', cocom: 'CENTCOM', personnel: 4000, label: '386th AEW. Theater airlift & personnel transit hub.' },
+  { id: 'usb-princesultan', name: 'Prince Sultan AB', code: 'US', lat: 24.06, lon: 47.58, type: 'Forward Operating Site', milType: 'air_base', branch: 'US Air Force', cocom: 'CENTCOM', personnel: 2500, label: 'CAOC alternate. Patriot / THAAD air defense. F-15E rotational.' },
+
+  // ═══ AFRICOM — US Africa Command ═══
+  { id: 'usb-lemonnier', name: 'Camp Lemonnier', code: 'US', lat: 11.55, lon: 43.15, type: 'Main Operating Base', milType: 'joint_base', branch: 'US Navy / CJTF-HOA', cocom: 'AFRICOM', personnel: 4500, label: 'Only permanent US base in Africa. CJTF-Horn of Africa. CT/ISR ops.' },
+  { id: 'usb-agadez', name: 'AB 201 Agadez', code: 'US', lat: 16.97, lon: 7.99, type: 'Forward Operating Site', milType: 'air_base', branch: 'US Air Force', cocom: 'AFRICOM', personnel: 800, label: 'MQ-9 Reaper drone base. ISR operations over Sahel ($110M facility).' },
+
+  // ═══ SOUTHCOM — US Southern Command ═══
+  { id: 'usb-gtmo', name: 'NS Guantanamo Bay', code: 'US', lat: 19.90, lon: -75.13, type: 'Main Operating Base', milType: 'naval_base', branch: 'US Navy / JTF-GTMO', cocom: 'SOUTHCOM', personnel: 6000, label: 'Oldest overseas US naval base (1903). Detention facility & naval station.' },
+  { id: 'usb-sotocano', name: 'Soto Cano AB', code: 'US', lat: 14.38, lon: -87.62, type: 'Forward Operating Site', milType: 'joint_base', branch: 'US Army / USAF', cocom: 'SOUTHCOM', personnel: 1300, label: 'JTF-Bravo. Counter-narcotics, HADR staging for Central America.' },
+  { id: 'usb-curacao', name: 'FOL Curacao', code: 'US', lat: 12.17, lon: -68.96, type: 'Cooperative Security Location', milType: 'air_base', branch: 'US Air Force / CBP', cocom: 'SOUTHCOM', personnel: 200, label: 'Counter-narcotics FOL. P-3, E-2C patrol aircraft rotations.' },
+];
+
 // ── Severity color map ──
 export const SEVERITY_COLORS = {
   critical: '#ff2222',

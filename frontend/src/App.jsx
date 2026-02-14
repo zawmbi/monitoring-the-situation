@@ -713,6 +713,7 @@ function App() {
   const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
   const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
   const [showStabilityPanel, setShowStabilityPanel] = useState(false);
+  const [showUSBases, setShowUSBases] = useState(true);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
@@ -1981,6 +1982,11 @@ function App() {
                           <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
                           <span className="slider" />
                         </label>
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">US Installations (OSINT)</span>
+                          <input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} />
+                          <span className="slider" />
+                        </label>
                       </div>
                       <button
                         className="stability-sidebar-open-btn"
@@ -2780,6 +2786,7 @@ function App() {
             visible={stabilityMode && showMilitaryOverlay}
             indicators={stabilityData?.military || []}
             zoom={mapZoom}
+            showBases={showUSBases}
           />
 
           {/* Population heatmap */}
