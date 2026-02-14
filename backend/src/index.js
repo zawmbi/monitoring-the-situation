@@ -19,6 +19,7 @@ import { wikidataService } from './services/wikidata.service.js';
 import { ucdpService } from './services/ucdp.service.js';
 import { wsHandler } from './services/websocket.service.js';
 import { electionLiveService } from './services/electionLive.service.js';
+import { financialDataService } from './services/financialData.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -112,6 +113,7 @@ let leadersRefreshInterval = null;
 let economicRefreshInterval = null;
 let ucdpRefreshInterval = null;
 let electionRefreshInterval = null;
+let financialRefreshInterval = null;
 
 function startBackgroundRefresh() {
   // Initial fetch
@@ -194,12 +196,26 @@ function startBackgroundRefresh() {
     electionLiveService.getLiveData().catch(console.error);
   }, ELECTION_POLL_MS);
 
+  // Initial financial data fetch (delayed to avoid startup contention)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial financial data fetch...');
+    financialDataService.getFinancialData().catch(console.error);
+  }, 20000);
+
+  // Periodic refresh — financial data (every 5 min)
+  const FINANCIAL_POLL_MS = 5 * 60 * 1000;
+  financialRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing financial data...');
+    financialDataService.getFinancialData().catch(console.error);
+  }, FINANCIAL_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
   console.log(`[Worker] World leaders refresh every ${LEADERS_POLL_MS / 1000}s`);
   console.log(`[Worker] Economic data refresh every ${ECONOMIC_POLL_MS / 1000}s`);
   console.log(`[Worker] UCDP conflict data refresh every ${UCDP_POLL_MS / 1000}s`);
+  console.log(`[Worker] Financial data refresh every ${FINANCIAL_POLL_MS / 1000}s`);
 }
 
 // ===========================================
@@ -253,6 +269,7 @@ async function shutdown(signal) {
   if (economicRefreshInterval) clearInterval(economicRefreshInterval);
   if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
   if (electionRefreshInterval) clearInterval(electionRefreshInterval);
+  if (financialRefreshInterval) clearInterval(financialRefreshInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 

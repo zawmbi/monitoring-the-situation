@@ -1,0 +1,379 @@
+/* ── Financial Data Terminal ── */
+
+.fd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 0.78rem;
+  color: #e2e8f0;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+.fd-panel::-webkit-scrollbar { width: 5px; }
+.fd-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* Header */
+.fd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+.fd-header-left { display: flex; flex-direction: column; gap: 1px; }
+.fd-title { font-size: 0.85rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.02em; }
+.fd-subtitle { font-size: 0.65rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.fd-header-right { display: flex; align-items: center; gap: 8px; }
+
+.fd-refresh-btn {
+  background: rgba(96,165,250,0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96,165,250,0.2);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fd-refresh-btn:hover { background: rgba(96,165,250,0.2); }
+.fd-refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+.fd-updated { font-size: 0.62rem; color: rgba(255,255,255,0.3); }
+
+/* Loading / Error */
+.fd-loading, .fd-error {
+  padding: 24px 16px;
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.75rem;
+}
+.fd-error { color: #ef4444; }
+
+.fd-retry-btn {
+  display: block;
+  margin: 8px auto;
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.2);
+  padding: 4px 14px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+/* Sections */
+.fd-section {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.fd-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.fd-section-title:hover { background: rgba(255,255,255,0.02); }
+
+.fd-chevron {
+  font-size: 0.55rem;
+  color: rgba(255,255,255,0.25);
+}
+
+.fd-section-body {
+  padding: 0 12px 10px;
+  overflow: hidden;
+}
+.fd-section-body.fd-collapsed {
+  max-height: 0;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+/* Badge */
+.fd-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.fd-badge--warn { background: rgba(239,68,68,0.15); color: #ef4444; }
+.fd-badge--ok { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+/* Colors */
+.fd-positive { color: #22c55e; }
+.fd-negative { color: #ef4444; }
+
+/* Sparkline */
+.fd-sparkline { display: block; margin-top: 4px; }
+
+/* ── Fear & Greed ── */
+.fd-fg-grid { display: flex; gap: 12px; }
+.fd-fg-item { flex: 1; }
+.fd-fg-label {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fd-gauge { margin-bottom: 4px; }
+.fd-gauge-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: visible;
+}
+.fd-gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.fd-gauge-marker {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: currentColor;
+  border: 1px solid;
+  transform: translateX(-50%);
+}
+.fd-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: 0.58rem;
+}
+.fd-gauge-fear { color: #ef4444; }
+.fd-gauge-greed { color: #22c55e; }
+.fd-gauge-score { font-weight: 700; font-size: 0.8rem; }
+.fd-gauge-label {
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+/* ── Yield Curve ── */
+.fd-yield-chart {
+  width: 100%;
+  max-height: 100px;
+  margin-bottom: 6px;
+}
+
+.fd-yield-table {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+}
+.fd-yield-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  width: 50%;
+  box-sizing: border-box;
+}
+.fd-yield-mat {
+  font-weight: 600;
+  color: #94a3b8;
+  width: 30px;
+}
+.fd-yield-val {
+  color: #e2e8f0;
+  flex: 1;
+}
+.fd-yield-chg { font-size: 0.63rem; }
+
+/* Spreads */
+.fd-spreads { margin-top: 8px; }
+.fd-spread-title {
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.fd-spread-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.fd-spread-item {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.fd-spread-label { font-size: 0.65rem; color: #94a3b8; }
+.fd-spread-val { font-size: 0.7rem; font-weight: 600; }
+
+/* ── Volatility ── */
+.fd-vol-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.fd-vol-card {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.fd-vol-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.fd-vol-name { font-weight: 600; font-size: 0.72rem; color: #e2e8f0; }
+.fd-vol-level { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
+.fd-vol-change { font-size: 0.65rem; margin-top: 1px; }
+.fd-vol-desc { font-size: 0.58rem; color: rgba(255,255,255,0.3); margin-top: 3px; }
+
+.fd-signal {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── DXY ── */
+.fd-dxy-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.fd-dxy-price { font-size: 1.3rem; font-weight: 700; color: #f1f5f9; }
+.fd-dxy-change { font-size: 0.72rem; margin-top: 2px; }
+.fd-dxy-range { font-size: 0.62rem; color: rgba(255,255,255,0.35); margin-top: 3px; }
+.fd-dxy-desc { font-size: 0.58rem; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+/* ── Credit / CDS Proxies ── */
+.fd-credit-note {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.3);
+  padding: 4px 0 8px;
+  line-height: 1.4;
+  font-style: italic;
+}
+.fd-credit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.fd-credit-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 5px;
+  padding: 7px 9px;
+}
+.fd-credit-header { display: flex; justify-content: space-between; align-items: center; }
+.fd-credit-ticker { font-weight: 700; font-size: 0.75rem; color: #60a5fa; }
+.fd-credit-cat {
+  font-size: 0.5rem;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fd-credit-name { font-size: 0.6rem; color: rgba(255,255,255,0.45); margin-top: 1px; }
+.fd-credit-price { font-size: 0.85rem; font-weight: 600; color: #e2e8f0; margin-top: 3px; }
+.fd-credit-change { font-size: 0.63rem; }
+.fd-credit-desc { font-size: 0.53rem; color: rgba(255,255,255,0.25); margin-top: 3px; line-height: 1.3; }
+
+/* ── Extended Commodities ── */
+.fd-comm-category { margin-bottom: 8px; }
+.fd-comm-cat-title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.fd-comm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px;
+}
+.fd-comm-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 4px;
+  padding: 6px 8px;
+  text-align: center;
+}
+.fd-comm-name { font-size: 0.62rem; font-weight: 600; color: #94a3b8; }
+.fd-comm-price { font-size: 0.75rem; font-weight: 600; color: #e2e8f0; margin-top: 2px; }
+.fd-comm-unit { font-size: 0.55rem; color: rgba(255,255,255,0.3); margin-left: 1px; }
+.fd-comm-change { font-size: 0.6rem; }
+
+/* ── Sovereign Bonds ── */
+.fd-sov-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.fd-sov-card {
+  display: grid;
+  grid-template-columns: 32px 1fr 70px 60px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.68rem;
+}
+.fd-sov-card:last-child { border-bottom: none; }
+.fd-sov-country { font-weight: 700; color: #60a5fa; font-size: 0.7rem; }
+.fd-sov-name { color: rgba(255,255,255,0.5); font-size: 0.62rem; }
+.fd-sov-yield { font-weight: 600; color: #e2e8f0; text-align: right; }
+.fd-sov-change { font-size: 0.63rem; text-align: right; }
+
+/* Footer */
+.fd-footer {
+  padding: 8px 12px;
+  font-size: 0.55rem;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* ── Light theme overrides ── */
+[data-theme="light"] .fd-panel { color: #334155; }
+[data-theme="light"] .fd-title { color: #1e293b; }
+[data-theme="light"] .fd-subtitle { color: rgba(0,0,0,0.4); }
+[data-theme="light"] .fd-section-title { color: #64748b; }
+[data-theme="light"] .fd-section-title:hover { background: rgba(0,0,0,0.02); }
+[data-theme="light"] .fd-header { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .fd-section { border-bottom-color: rgba(0,0,0,0.04); }
+[data-theme="light"] .fd-vol-card,
+[data-theme="light"] .fd-dxy-card,
+[data-theme="light"] .fd-credit-card,
+[data-theme="light"] .fd-comm-card,
+[data-theme="light"] .fd-spread-item {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .fd-yield-row,
+[data-theme="light"] .fd-sov-card { border-bottom-color: rgba(0,0,0,0.04); }
+[data-theme="light"] .fd-vol-level,
+[data-theme="light"] .fd-dxy-price { color: #1e293b; }
+[data-theme="light"] .fd-gauge-bar { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .fd-footer { color: rgba(0,0,0,0.25); }
+[data-theme="light"] .fd-credit-note { color: rgba(0,0,0,0.35); }
+[data-theme="light"] .fd-chevron { color: rgba(0,0,0,0.3); }

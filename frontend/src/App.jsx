@@ -34,6 +34,8 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
+import { FinancialPanel } from './features/financial/FinancialPanel';
+import useFinancialData from './hooks/useFinancialData';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -640,6 +642,10 @@ function App() {
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
   const [electionMode, setElectionMode] = useState(false);
   const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
+
+  // Financial data panel
+  const [showFinancialPanel, setShowFinancialPanel] = useState(false);
+  const { data: financialData, loading: financialLoading, error: financialError, refresh: refreshFinancial } = useFinancialData(showFinancialPanel);
 
   // Tariff panel state
   const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
@@ -1816,6 +1822,15 @@ function App() {
                       />
                       <span className="slider" />
                     </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Financial Data Terminal</span>
+                      <input
+                        type="checkbox"
+                        checked={showFinancialPanel}
+                        onChange={() => setShowFinancialPanel(prev => !prev)}
+                      />
+                      <span className="slider" />
+                    </label>
                   </div>
 
                   {showTariffHeatmap && (
@@ -2219,6 +2234,26 @@ function App() {
             <ConflictPanel
               open={true}
               onClose={() => setConflictPanelOpen(false)}
+            />
+          </PanelWindow>
+        )}
+
+        {/* Financial Data Terminal */}
+        {showFinancialPanel && (
+          <PanelWindow
+            id="financial"
+            title="Financial Data Terminal"
+            onClose={() => setShowFinancialPanel(false)}
+            defaultWidth={440}
+            defaultHeight={650}
+            defaultMode="floating"
+            defaultPosition={{ x: 70, y: 60 }}
+          >
+            <FinancialPanel
+              data={financialData}
+              loading={financialLoading}
+              error={financialError}
+              onRefresh={refreshFinancial}
             />
           </PanelWindow>
         )}

@@ -47,6 +47,9 @@ export const api = {
     return api.fetch(`/ucdp/events${query ? `?${query}` : ''}`);
   },
   getUCDPConflicts: () => api.fetch('/ucdp/conflicts'),
+
+  // Financial data (deep markets: yields, vol, credit, CDS proxies)
+  getFinancialData: () => api.fetch('/financial'),
 };
 
 export default api;
