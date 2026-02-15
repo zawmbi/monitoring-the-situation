@@ -29,6 +29,8 @@ import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
 import { useSettings } from './hooks/useSettings';
 import { getStoredTheme, applyTheme } from './themes/index.js';
+import { useChat } from './hooks/useChat';
+import { useAuth } from './hooks/useAuth';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -479,6 +481,96 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
         {hotspot.items.map((item, idx) => (
           <NewsItem key={item.id || idx} item={item} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+// Chat Panel Component (sidebar inline)
+function ChatPanel({ chatId }) {
+  const { messages, loading, error, sending, send } = useChat(chatId || 'global');
+  const { user, isAuthenticated } = useAuth();
+  const [draft, setDraft] = useState('');
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!draft.trim() || sending) return;
+    const text = draft;
+    setDraft('');
+    await send(text);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="chat-panel">
+        <div className="chat-login-prompt">
+          <p>Sign in to join the chat</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="chat-panel">
+      <div className="chat-messages">
+        {loading && messages.length === 0 && (
+          <div className="chat-loading">Loading messages...</div>
+        )}
+        {error && (
+          <div className="chat-error">{error}</div>
+        )}
+        {!loading && messages.length === 0 && !error && (
+          <div className="chat-empty">No messages yet. Start the conversation!</div>
+        )}
+        {messages.map((msg) => {
+          const isOwn = msg.sender_id === user?.uid;
+          return (
+            <div key={msg.id} className={`chat-msg ${isOwn ? 'chat-msg-own' : ''}`}>
+              <div className="chat-msg-header">
+                <span className="chat-msg-sender">{isOwn ? 'You' : (msg.sender_display_name || 'Anonymous')}</span>
+                <span className="chat-msg-time">{msg.created_at ? timeAgo(msg.created_at.toDate ? msg.created_at.toDate() : msg.created_at) : ''}</span>
+              </div>
+              <div className="chat-msg-body">{msg.message}</div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="chat-input-row">
+        <input
+          type="text"
+          className="chat-input"
+          placeholder="Type a message..."
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={sending}
+          maxLength={500}
+        />
+        <button
+          className="chat-send-btn"
+          onClick={handleSend}
+          disabled={sending || !draft.trim()}
+          aria-label="Send message"
+        >
+          {sending ? '...' : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -1503,6 +1595,24 @@ function App() {
                   </button>
                   <button
                     type="button"
+                    className={`sidebar-tab ${sidebarTab === 'chat' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('chat')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'chat'}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    type="button"
+                    className={`sidebar-tab ${sidebarTab === 'themes' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('themes')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'themes'}
+                  >
+                    Themes
+                  </button>
+                  <button
+                    type="button"
                     className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
                     onClick={() => setSidebarTab('settings')}
                     role="tab"
@@ -1651,6 +1761,99 @@ function App() {
                 selectedRegion={selectedRegion}
                 onBackToWorld={handleBackToWorld}
               />
+            )}
+
+            {/* Chat Tab */}
+            {sidebarExpanded && sidebarTab === 'chat' && (
+              <ChatPanel chatId="global" />
+            )}
+
+            {/* Themes Tab */}
+            {sidebarExpanded && sidebarTab === 'themes' && (
+              <div className="themes-panel">
+                <div className="toggle-group-title">Theme</div>
+                <div className="themes-grid">
+                  <button
+                    className={`theme-card ${theme === 'dark' ? 'theme-card-active' : ''}`}
+                    onClick={() => { setTheme('dark'); saveTheme('dark'); }}
+                  >
+                    <div className="theme-card-preview theme-preview-dark">
+                      <div className="theme-preview-bar" />
+                      <div className="theme-preview-body">
+                        <div className="theme-preview-sidebar" />
+                        <div className="theme-preview-map" />
+                      </div>
+                    </div>
+                    <span className="theme-card-label">Dark</span>
+                  </button>
+                  <button
+                    className={`theme-card ${theme === 'light' ? 'theme-card-active' : ''}`}
+                    onClick={() => { setTheme('light'); saveTheme('light'); }}
+                  >
+                    <div className="theme-card-preview theme-preview-light">
+                      <div className="theme-preview-bar" />
+                      <div className="theme-preview-body">
+                        <div className="theme-preview-sidebar" />
+                        <div className="theme-preview-map" />
+                      </div>
+                    </div>
+                    <span className="theme-card-label">Light</span>
+                  </button>
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '20px' }}>Globe Effects</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Holographic</span>
+                    <input
+                      type="checkbox"
+                      checked={holoMode}
+                      onChange={() => setHoloMode(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Transparent Globe</span>
+                    <input
+                      type="checkbox"
+                      checked={transparentGlobe}
+                      onChange={() => setTransparentGlobe(prev => !prev)}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Atmospheric Edge Glow</span>
+                    <input
+                      type="checkbox"
+                      checked={visualLayers.atmosphere}
+                      onChange={() => toggleVisualLayer('atmosphere')}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '20px' }}>Map Visuals</div>
+                <div className="settings-group">
+                  {[
+                    { key: 'contours', label: 'Micro Topographic Contours' },
+                    { key: 'countryFill', label: 'Country Fill Color' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="switch switch-neutral">
+                      <span className="switch-label">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={visualLayers[key]}
+                        onChange={() => toggleVisualLayer(key)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
             )}
 
             {sidebarExpanded && sidebarTab === 'settings' && (
