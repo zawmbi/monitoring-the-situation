@@ -29,6 +29,7 @@ export async function handleUserCreate(user) {
     // SECURITY: Only store the Firebase UID as the doc ID.
     // Never persist raw OAuth access/refresh tokens.
     display_name: safeName,
+    display_name_lower: safeName.toLowerCase(),
     email: email || null,
     created_at: FieldValue.serverTimestamp(),
     last_login: FieldValue.serverTimestamp(),
@@ -46,6 +47,11 @@ export async function handleUserCreate(user) {
 
     // Track auth provider type for account upgrade flow
     is_anonymous: isAnonymous,
+
+    // SECURITY: display_name_set is false until the user explicitly
+    // picks a username via the userSetUsername callable function.
+    // The frontend gates chat access on this flag.
+    display_name_set: false,
 
     // User preferences — persisted across sessions.
     // Updated via the settingsSave Cloud Function only.

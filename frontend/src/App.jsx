@@ -38,6 +38,7 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
+import UsernameScreen from './components/UsernameScreen';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -669,6 +670,11 @@ const getInitialVisualLayers = () => {
 };
 
 function App() {
+  const { user, profile, loading: authLoading } = useAuth();
+
+  // Show username picker when logged in but no profile or no display name set
+  const needsUsername = !authLoading && user && (!profile || profile.display_name_set !== true);
+
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
   const [selectedRegion, setSelectedRegion] = useState(null);
@@ -3183,6 +3189,7 @@ function App() {
     </div>
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
     <MinimizedTray />
+    {needsUsername && <UsernameScreen />}
     </>
     </WindowManagerProvider>
   );

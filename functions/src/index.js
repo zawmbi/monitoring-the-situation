@@ -26,6 +26,7 @@ import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 // ===========================================
 
 import { handleUserCreate } from './auth/onCreate.js';
+import { handleSetUsername } from './auth/setUsername.js';
 import { deleteAccount as handleDeleteAccount } from './auth/onDelete.js';
 import { handleUserDelete } from './auth/onDelete.js';
 
@@ -36,6 +37,15 @@ import { handleUserDelete } from './auth/onDelete.js';
 export const authOnCreate = beforeUserCreated((event) => {
   return handleUserCreate(event.data);
 });
+
+/**
+ * Callable: Set a display name after first sign-in.
+ * SECURITY: Validates length, characters, and uniqueness.
+ */
+export const userSetUsername = onCall(
+  { enforceAppCheck: false },
+  handleSetUsername,
+);
 
 /**
  * Callable: User-initiated account deletion.

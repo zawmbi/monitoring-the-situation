@@ -30,6 +30,7 @@ import { db, functions } from './config.js';
 // The Cloud Functions handle auth, rate limiting, validation,
 // and tier enforcement before any data is written.
 
+export const setUsername = httpsCallable(functions, 'userSetUsername');
 export const saveSettings = httpsCallable(functions, 'settingsSave');
 export const sendMessage = httpsCallable(functions, 'chatSendMessage');
 export const reportMessage = httpsCallable(functions, 'chatReportMessage');
