@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
-import { deleteAccount } from '../firebase/firestore.js';
+import { setUsername, deleteAccount } from '../firebase/firestore.js';
+import { BLOCKED_PATTERNS } from '../utils/blockedWords.js';
 import './AccountPanel.css';
+
+function containsBadWord(name) {
+  const lower = name.toLowerCase();
+  return BLOCKED_PATTERNS.some((pat) =>
+    pat instanceof RegExp ? pat.test(lower) : lower.includes(pat),
+  );
+}
 
 export default function AccountPanel({ onClose }) {
   const {
@@ -14,7 +22,45 @@ export default function AccountPanel({ onClose }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Username form state (only shown if username not yet set)
+  const [usernameValue, setUsernameValue] = useState('');
+  const [usernameError, setUsernameError] = useState(null);
+  const [usernameLoading, setUsernameLoading] = useState(false);
+
   const displayName = profile?.display_name || (isAnonymous ? 'Guest' : 'User');
+  const usernameSet = profile?.display_name_set === true;
+
+  const handleSetUsername = async (e) => {
+    e.preventDefault();
+    const trimmed = usernameValue.trim();
+
+    if (trimmed.length < 4 || trimmed.length > 20) {
+      setUsernameError('Username must be 4-20 characters');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      setUsernameError('Letters, numbers, and underscores only');
+      return;
+    }
+    if (containsBadWord(trimmed)) {
+      setUsernameError('That username is not allowed');
+      return;
+    }
+
+    setUsernameLoading(true);
+    setUsernameError(null);
+
+    try {
+      const result = await setUsername({ username: trimmed });
+      if (!result.data.success) {
+        setUsernameError(result.data.error || 'Failed to set username');
+      }
+    } catch (err) {
+      setUsernameError(err.message || 'Something went wrong');
+    } finally {
+      setUsernameLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -34,7 +80,6 @@ export default function AccountPanel({ onClose }) {
 
     try {
       await deleteAccount();
-      // Auth state listener will handle the rest
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to delete account');
@@ -63,18 +108,42 @@ export default function AccountPanel({ onClose }) {
       <div className="account-panel-body">
         <div className="account-panel-section">
           <div className="account-panel-label">Username</div>
-          <div className="account-panel-value">
-            {displayName}
-            {!profile?.display_name_set && (
-              <span className="account-panel-badge">Not set</span>
-            )}
-            {isAnonymous && (
-              <span className="account-panel-badge">Guest</span>
-            )}
-            {profile?.subscription_status === 'pro' && (
-              <span className="account-panel-badge account-panel-badge--pro">Pro</span>
-            )}
-          </div>
+          {usernameSet ? (
+            <div className="account-panel-value">
+              {displayName}
+              {isAnonymous && (
+                <span className="account-panel-badge">Guest</span>
+              )}
+              {profile?.subscription_status === 'pro' && (
+                <span className="account-panel-badge account-panel-badge--pro">Pro</span>
+              )}
+            </div>
+          ) : (
+            <form className="account-panel-username-form" onSubmit={handleSetUsername}>
+              <div className="account-panel-value">
+                <span className="account-panel-value-muted">{displayName}</span>
+                <span className="account-panel-badge">Not set</span>
+              </div>
+              <input
+                className="account-panel-input"
+                type="text"
+                placeholder="Choose a username"
+                maxLength={20}
+                value={usernameValue}
+                onChange={(e) => setUsernameValue(e.target.value)}
+                disabled={usernameLoading}
+              />
+              {usernameError && <p className="account-panel-error">{usernameError}</p>}
+              <button
+                className="account-panel-btn account-panel-btn--primary"
+                type="submit"
+                disabled={usernameLoading || usernameValue.trim().length < 4}
+              >
+                {usernameLoading ? 'Setting...' : 'Set username'}
+              </button>
+              <p className="account-panel-hint">4-20 characters. Letters, numbers, underscores.</p>
+            </form>
+          )}
         </div>
 
         <div className="account-panel-actions">

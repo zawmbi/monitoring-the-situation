@@ -38,7 +38,6 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
-import UsernameScreen from './components/UsernameScreen';
 import AccountPanel from './components/AccountPanel';
 
 // Fix polygons for MapLibre rendering:
@@ -672,33 +671,6 @@ const getInitialVisualLayers = () => {
 
 function App() {
   const { user, profile, loading: authLoading } = useAuth();
-
-  // Track whether username screen was dismissed this session
-  const [usernameDismissed, setUsernameDismissed] = useState(false);
-  // Track the previous user to detect fresh login
-  const [prevUser, setPrevUser] = useState(undefined);
-
-  // Show username picker only on fresh login (not on page reload with existing session)
-  const needsUsername = !authLoading && user && (!profile || profile.display_name_set !== true) && !usernameDismissed;
-
-  // Reset dismissed state when user changes (new login)
-  useEffect(() => {
-    if (prevUser === undefined) {
-      // First render — if user is already logged in from a previous session, don't show
-      setPrevUser(user || null);
-      if (user) setUsernameDismissed(true);
-      return;
-    }
-    // User changed from null to logged in → fresh login, allow username screen
-    if (!prevUser && user) {
-      setUsernameDismissed(false);
-    }
-    // User logged out → reset
-    if (prevUser && !user) {
-      setUsernameDismissed(false);
-    }
-    setPrevUser(user || null);
-  }, [user]);
 
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
@@ -3218,7 +3190,6 @@ function App() {
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
     {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
     <MinimizedTray />
-    {needsUsername && <UsernameScreen onSkip={() => setUsernameDismissed(true)} />}
     </>
     </WindowManagerProvider>
   );
