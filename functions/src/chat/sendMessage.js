@@ -80,10 +80,15 @@ export async function handleSendMessage(request) {
     return { success: false, error: 'Message contains inappropriate content' };
   }
 
-  // 6. SECURITY: Check if the chat exists
-  const chatDoc = await db.collection('chats').doc(chatId).get();
+  // 6. Ensure chat document exists (auto-create for well-known rooms)
+  const chatRef = db.collection('chats').doc(chatId);
+  const chatDoc = await chatRef.get();
   if (!chatDoc.exists) {
-    return { success: false, error: 'Chat not found' };
+    if (chatId === 'global') {
+      await chatRef.set({ created_at: FieldValue.serverTimestamp(), name: 'Global Chat' });
+    } else {
+      return { success: false, error: 'Chat not found' };
+    }
   }
 
   // 7. SECURITY: Shadowban handling — store the message but mark it
