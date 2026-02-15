@@ -27,12 +27,12 @@ export default function UsernameScreen() {
       const result = await setUsername({ username: trimmed });
       if (!result.data.success) {
         setError(result.data.error || 'Failed to set username');
-        setLoading(false);
       }
       // On success, the Firestore listener in AuthContext will pick up the
       // profile change and automatically dismiss this screen.
     } catch (err) {
       setError(err.message || 'Something went wrong');
+    } finally {
       setLoading(false);
     }
   };
