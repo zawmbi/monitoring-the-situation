@@ -13,13 +13,13 @@
  * All functions share the same admin instance.
  */
 
-import { initializeApp } from 'firebase-admin/app';
+// IMPORTANT: init.js must be the first import — it calls initializeApp()
+// before any other module can use Firebase Admin services at the top level.
+import './init.js';
+
 import { onCall, onRequest } from 'firebase-functions/v2/https';
 import { beforeUserCreated } from 'firebase-functions/v2/identity';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
-
-// Initialize Firebase Admin (uses default credentials in Cloud Functions)
-initializeApp();
 
 // ===========================================
 // AUTH TRIGGERS
