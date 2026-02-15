@@ -25,6 +25,8 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import { useSettings } from './hooks/useSettings';
+import { getStoredTheme, applyTheme } from './themes/index.js';
 import ConflictOverlay from './features/conflicts/ConflictOverlay';
 import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
@@ -538,15 +540,9 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   );
 }
 
-const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'dark';
-  const stored = window.localStorage.getItem('theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    return 'light';
-  }
-  return 'dark';
-};
+// Theme initialization uses the themes layer for validation.
+// getStoredTheme reads from localStorage → system preference → 'dark'.
+// After auth resolves, useSettings may override this from Firestore.
 
 const getInitialNavCollapsed = () => {
   if (typeof window === 'undefined') return false;
@@ -585,9 +581,15 @@ function App() {
   const [viewMode, setViewMode] = useState('world');
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState(getStoredTheme);
   const [activePage, setActivePage] = useState(null);
   const [navCollapsed, setNavCollapsed] = useState(getInitialNavCollapsed);
+
+  // Settings persistence — restores theme/layout from Firestore after login.
+  // onThemeRestored syncs the Firestore theme into local state without flicker.
+  const { saveTheme, saveDesktopPreferences } = useSettings({
+    onThemeRestored: (restoredTheme) => setTheme(restoredTheme),
+  });
 
   // Country panel hook
   const {
@@ -724,8 +726,7 @@ function App() {
   const isLightTheme = theme === 'light';
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    applyTheme(theme);
     window.localStorage.setItem('theme', theme);
   }, [theme]);
 
@@ -1425,7 +1426,11 @@ function App() {
   };
 
   const handleToggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      saveTheme(next);
+      return next;
+    });
   };
 
   const handleToggleMusic = () => {
