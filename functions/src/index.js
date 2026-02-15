@@ -107,6 +107,22 @@ export const configList = onCall(
 );
 
 // ===========================================
+// SETTINGS FUNCTIONS
+// ===========================================
+
+import { handleSaveSettings } from './settings/saveSettings.js';
+
+/**
+ * Callable: Save user settings (theme, layout, preferences).
+ * SECURITY: Only allowed fields can be modified. Restricted fields
+ * (role, subscription_status, banned_flag) are rejected.
+ */
+export const settingsSave = onCall(
+  { enforceAppCheck: false },
+  handleSaveSettings,
+);
+
+// ===========================================
 // STRIPE FUNCTIONS
 // ===========================================
 

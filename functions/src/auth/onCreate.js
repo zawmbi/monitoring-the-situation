@@ -46,6 +46,12 @@ export async function handleUserCreate(user) {
 
     // Track auth provider type for account upgrade flow
     is_anonymous: isAnonymous,
+
+    // User preferences — persisted across sessions.
+    // Updated via the settingsSave Cloud Function only.
+    theme_preference: 'dark',
+    dashboard_layout_settings: {},
+    desktop_preferences: {},
   };
 
   await db.collection('users').doc(uid).set(userDoc);
