@@ -27,6 +27,8 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import StarfieldCanvas from './StarfieldCanvas';
+import EarthOverlay from './EarthOverlay';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -482,14 +484,20 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   );
 }
 
+const THEMES = [
+  { id: 'cyber-control-room', label: 'Cyber Control Room', swatch: '#00d4ff' },
+  { id: 'dark-minimal', label: 'Dark Minimal', swatch: '#8080ff' },
+  { id: 'light-analytic', label: 'Light Analytic', swatch: '#2060c0' },
+];
+
 const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'cyber-control-room';
   const stored = window.localStorage.getItem('theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    return 'light';
-  }
-  return 'dark';
+  // Migration: map old values to new theme IDs
+  if (stored === 'dark') return 'cyber-control-room';
+  if (stored === 'light') return 'light-analytic';
+  if (THEMES.some(t => t.id === stored)) return stored;
+  return 'cyber-control-room';
 };
 
 const getInitialNavCollapsed = () => {
@@ -659,13 +667,18 @@ function App() {
     refresh: refreshSevere,
   } = useSevereWeather(enabledLayers.severeWeather);
 
-  const isLightTheme = theme === 'light';
+  const isLightTheme = theme === 'light-analytic';
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    // cyber-control-room uses :root defaults (no data-theme needed)
+    if (theme === 'cyber-control-room') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = theme;
+    }
+    document.documentElement.style.colorScheme = isLightTheme ? 'light' : 'dark';
     window.localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, isLightTheme]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
@@ -1221,7 +1234,10 @@ function App() {
   };
 
   const handleToggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme(prev => {
+      const idx = THEMES.findIndex(t => t.id === prev);
+      return THEMES[(idx + 1) % THEMES.length].id;
+    });
   };
 
   const handleToggleMusic = () => {
@@ -1345,10 +1361,15 @@ function App() {
     }
   }, []);
 
-  // Track map center for globe hemisphere visibility check
+  // Track map center for globe hemisphere visibility check + starfield parallax
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
-    if (c) mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+    if (c) {
+      mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      // Update bearing/pitch for starfield parallax (throttled by rAF)
+      setMapBearing(c.bearing || 0);
+      setMapPitch(c.pitch || 0);
+    }
   }, []);
 
   /**
@@ -1444,8 +1465,15 @@ function App() {
     };
   }, [useGlobe, autoRotate, mapLoaded]);
 
+  // Track map bearing and pitch for starfield parallax
+  const [mapBearing, setMapBearing] = useState(0);
+  const [mapPitch, setMapPitch] = useState(0);
+
   return (
     <>
+    {!isLightTheme && (
+      <StarfieldCanvas mapBearing={mapBearing} mapPitch={mapPitch} useGlobe={useGlobe} />
+    )}
     <div className="app">
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
@@ -1454,7 +1482,9 @@ function App() {
         activePage={activePage}
         onNavigate={handleNavigate}
         theme={theme}
+        themes={THEMES}
         onToggleTheme={handleToggleTheme}
+        onSetTheme={setTheme}
         useGlobe={useGlobe}
         onToggleGlobe={() => setUseGlobe(prev => !prev)}
         musicPlaying={musicPlaying}
@@ -1652,15 +1682,33 @@ function App() {
               <div className="settings-panel">
                 <div className="toggle-group-title">Visuals & App Appearance</div>
                 <div className="settings-group">
-                  <label className="switch switch-theme">
-                    <span className="switch-label">Light mode</span>
-                    <input
-                      type="checkbox"
-                      checked={isLightTheme}
-                      onChange={(event) => setTheme(event.target.checked ? 'light' : 'dark')}
-                    />
-                    <span className="slider" />
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <span className="switch-label" style={{ fontSize: '0.85rem', fontWeight: 500 }}>Theme</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {THEMES.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTheme(t.id)}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '0.72rem',
+                            fontWeight: theme === t.id ? 700 : 500,
+                            fontFamily: 'var(--font-mono)',
+                            letterSpacing: '0.04em',
+                            border: `1px solid ${theme === t.id ? 'var(--color-border-light)' : 'var(--color-border)'}`,
+                            borderRadius: 'var(--radius-md)',
+                            background: theme === t.id ? 'rgba(var(--accent-rgb), 0.12)' : 'transparent',
+                            color: theme === t.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {t.label.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="switch switch-neutral">
                     <span className="switch-label">Holographic</span>
                     <input
@@ -1796,6 +1844,9 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        {/* Earth Overlay - scan line, atmospheric glow */}
+        <EarthOverlay useGlobe={useGlobe} />
+
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
