@@ -1,0 +1,729 @@
+/* Election Panel — 2026 Midterm Elections */
+
+.el-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-top: 2px solid rgba(166, 123, 194, 0.5);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  height: 100%;
+  box-shadow: var(--glass-shadow-glow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: el-fade-in 0.2s ease-out;
+}
+
+@keyframes el-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+
+.el-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.el-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.el-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.3px;
+}
+
+.el-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.el-subtitle {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.el-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.el-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-primary);
+}
+
+/* ── Tabs ── */
+
+.el-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.el-tab {
+  flex: 1;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.el-tab:hover {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.el-tab.active {
+  color: var(--color-text-primary);
+  border-bottom-color: rgba(166, 123, 194, 0.7);
+  background: rgba(166, 123, 194, 0.06);
+}
+
+/* ── Primary / General toggle ── */
+
+.el-view-toggle {
+  display: flex;
+  padding: 8px 14px;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.el-view-btn {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.el-view-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.el-view-btn.active {
+  background: rgba(166, 123, 194, 0.15);
+  border-color: rgba(166, 123, 194, 0.4);
+  color: var(--color-text-primary);
+}
+
+/* ── Content area ── */
+
+.el-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+.el-content::-webkit-scrollbar {
+  width: 4px;
+}
+.el-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.el-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* ── Race section ── */
+
+.el-race {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.el-race-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.el-rating-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.el-special-badge,
+.el-open-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.el-special-badge {
+  background: rgba(245, 197, 66, 0.15);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: #f5c542;
+}
+
+.el-open-badge {
+  background: rgba(73, 198, 255, 0.12);
+  border: 1px solid rgba(73, 198, 255, 0.3);
+  color: var(--color-accent-2);
+}
+
+/* ── Incumbent row ── */
+
+.el-incumbent-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.el-incumbent-label {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.el-incumbent-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-party-tag {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.el-status-detail {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.el-note {
+  font-size: 11px;
+  color: var(--color-accent-2);
+  padding: 5px 8px;
+  background: rgba(73, 198, 255, 0.06);
+  border: 1px solid rgba(73, 198, 255, 0.15);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* ── Section title ── */
+
+.el-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-party-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Poll bar (general election) ── */
+
+.el-poll-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.el-poll-bar {
+  display: flex;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.el-poll-bar-segment {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+  opacity: 0.85;
+}
+
+.el-poll-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.el-poll-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.el-poll-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.el-poll-name {
+  color: var(--color-text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-poll-pct {
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.el-poll-empty {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 8px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Primary view ── */
+
+.el-primary-section {
+  margin-bottom: 4px;
+}
+
+.el-primary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.el-primary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.el-primary-rank {
+  width: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.el-primary-name {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  width: 120px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-primary-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.el-primary-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  opacity: 0.8;
+}
+
+.el-primary-pct {
+  font-size: 11px;
+  font-weight: 700;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Trend chart ── */
+
+.el-trend-chart {
+  margin-top: 4px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.el-trend-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.el-trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── House mini map ── */
+
+.el-house-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.el-house-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.el-house-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.el-house-lean {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.el-house-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.el-house-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.el-house-seg-d { background: #3b8bd4; opacity: 0.85; }
+.el-house-seg-comp { background: #a67bc2; opacity: 0.7; }
+.el-house-seg-r { background: #d44040; opacity: 0.85; }
+
+.el-house-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.el-house-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.el-house-tossups {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.el-house-tossup-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.el-house-district-tag {
+  padding: 1px 5px;
+  background: rgba(166, 123, 194, 0.12);
+  border: 1px solid rgba(166, 123, 194, 0.25);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #c9a0dc;
+  letter-spacing: 0.3px;
+}
+
+/* ── National context ── */
+
+.el-national-context {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.el-national-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.el-national-row span {
+  color: var(--color-text-muted);
+}
+
+.el-national-row strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* ── Dates section ── */
+
+.el-dates-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.el-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+}
+
+.el-date-row.el-date-past {
+  opacity: 0.5;
+}
+
+.el-date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.el-date-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-date-type-primary { color: #f5c542; }
+.el-date-type-runoff { color: #ff8c6b; }
+.el-date-type-general { color: #7df7cc; }
+.el-date-type-default { color: var(--color-text-secondary); }
+
+.el-date-row:has(.el-date-type-primary) { border-left-color: #f5c542; }
+.el-date-row:has(.el-date-type-runoff) { border-left-color: #ff8c6b; }
+.el-date-row:has(.el-date-type-general) { border-left-color: #7df7cc; }
+
+.el-date-formatted {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.el-date-countdown {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: rgba(125, 247, 204, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.el-date-countdown.el-date-done {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ── Drag note ── */
+
+.el-drag-note {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-align: center;
+  opacity: 0.5;
+}
+
+/* ── Election mode map legend (bottom overlay) ── */
+
+.el-map-legend {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 14px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  z-index: 900;
+  animation: el-fade-in 0.3s ease-out;
+}
+
+.el-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.el-legend-swatch {
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.el-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 4px;
+}
+
+/* ── Election mode badge (sidebar toggle area) ── */
+
+.el-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(166, 123, 194, 0.12);
+  border: 1px solid rgba(166, 123, 194, 0.3);
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c9a0dc;
+  letter-spacing: 0.3px;
+}
+
+.el-mode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9a0dc;
+  animation: el-pulse 2s ease-in-out infinite;
+}
+
+@keyframes el-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .el-panel {
+    width: calc(100vw - 32px);
+    max-width: 420px;
+  }
+}
+
+/* ── Light theme overrides ── */
+
+[data-theme="light"] .el-panel {
+  border-top-color: rgba(130, 80, 170, 0.5);
+}
+
+[data-theme="light"] .el-note {
+  background: rgba(73, 198, 255, 0.08);
+  color: #2a6f9a;
+}
+
+[data-theme="light"] .el-trend-chart {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}

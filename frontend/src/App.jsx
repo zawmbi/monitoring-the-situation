@@ -11,10 +11,8 @@ import canadaProvinces from './canadaProvinces.json';
 import CAPITAL_COORDS from './capitalCoords';
 import POPULATION_POINTS from './populationData';
 import { useFeed } from './hooks/useFeed';
-import { useStocks } from './hooks/useStocks';
 import { useFlights } from './hooks/useFlights';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
-import { StocksPanel } from './features/stocks/StocksPanel';
 import { PolymarketPanel } from './features/polymarket/PolymarketPanel';
 import { usePolymarket } from './features/polymarket/usePolymarket';
 import { CountryPanel } from './features/country/CountryPanel';
@@ -31,6 +29,15 @@ import { useSettings } from './hooks/useSettings';
 import { getStoredTheme, applyTheme } from './themes/index.js';
 import { useChat } from './hooks/useChat';
 import { useAuth } from './hooks/useAuth';
+import ConflictOverlay from './features/conflicts/ConflictOverlay';
+import ConflictPanel from './features/conflicts/ConflictPanel';
+import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
+import { ElectionPanel } from './features/elections/ElectionPanel';
+import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
+import { getCountryFillColor } from './features/country/countryColors';
+import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
+import PanelWindow from './components/PanelWindow';
+import MinimizedTray from './components/MinimizedTray';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -62,7 +69,6 @@ function fixGeoJSON(geojson) {
 const GEO_FEATURES = fixGeoJSON(
   worldData?.objects?.countries
     ? feature(worldData, worldData.objects.countries).features
-        .filter(f => String(f.id).padStart(3, '0') !== '010') // Remove Antarctica
     : []
 );
 const US_STATE_FEATURES = usData?.objects?.states
@@ -70,6 +76,17 @@ const US_STATE_FEATURES = usData?.objects?.states
   : [];
 
 const CA_PROVINCE_FEATURES = fixGeoJSON(canadaProvinces?.features || []);
+
+// EU member state names as they appear in the TopoJSON world-atlas data
+const EU_MEMBER_NAMES = new Set([
+  'Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czechia', 'Czech Rep.',
+  'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary',
+  'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands',
+  'Poland', 'Portugal', 'Romania', 'Slovakia', 'Slovenia', 'Spain', 'Sweden',
+]);
+
+// Pre-compute how many EU features exist so hover-all loops have a stable count
+const EU_FEATURE_COUNT = GEO_FEATURES.filter((f) => EU_MEMBER_NAMES.has(f.properties?.name)).length;
 
 const COUNTRIES_DATA = Array.isArray(countries)
   ? countries
@@ -108,7 +125,14 @@ const CAPITAL_MARKERS = GEO_FEATURES.map((geo, idx) => {
 
 // Build marker list for every country and US state
 const COUNTRY_MARKERS = GEO_FEATURES.map((geo, idx) => {
-  const [lon, lat] = geoCentroid(geo);
+  const ccn3 = String(geo.id).padStart(3, '0');
+  const coords = CAPITAL_COORDS[ccn3];
+  let lon, lat;
+  if (coords) {
+    [lat, lon] = coords;
+  } else {
+    [lon, lat] = geoCentroid(geo);
+  }
   if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
   return {
     id: geo.id || `country-${idx}`,
@@ -222,20 +246,49 @@ const TIMEZONE_LINES_GEOJSON = {
   })),
 };
 
+// Ambiguous location names that are also common first names, words, or overlap
+// with another region. Require these to appear as whole words with context.
+const AMBIGUOUS_NAMES = new Set([
+  'georgia', 'jordan', 'chad', 'niger', 'guinea', 'mali', 'ireland',
+  'turkey', 'china', 'japan', 'india', 'france', 'brazil', 'cuba',
+  'panama', 'monaco', 'malta', 'cyprus', 'togo', 'nauru', 'oman',
+  'peru', 'fiji', 'laos', 'iran', 'iraq', 'israel', 'congo',
+]);
+
+// Build a word-boundary regex for a name; for ambiguous names also check
+// that the surrounding context looks geographic/political.
+function buildMatchRegex(name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[\\s,.()"'])${escaped}(?=[\\s,.()"']|$)`, 'i');
+}
+
 function deriveHotspots(items) {
-  const buckets = GEO_MARKERS.map(marker => ({ ...marker, items: [] }));
+  const buckets = GEO_MARKERS.map(marker => ({
+    ...marker,
+    items: [],
+    regex: marker.match ? buildMatchRegex(marker.match) : null,
+  }));
 
   items.forEach(item => {
-    const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`.toLowerCase();
+    const text = `${item.title || ''} ${item.summary || ''} ${item.content || ''} ${item.sourceName || ''} ${item.source || ''}`;
+    const textLower = text.toLowerCase();
     buckets.forEach(bucket => {
-      if (bucket.match && text.includes(bucket.match)) {
-        bucket.items.push(item);
+      if (!bucket.regex) return;
+      // Word-boundary match to avoid substring false positives
+      if (!bucket.regex.test(text)) return;
+      // For ambiguous names, require at least one geographic context word nearby
+      if (AMBIGUOUS_NAMES.has(bucket.match)) {
+        const ctx = textLower;
+        const hasContext = /\b(government|president|minister|military|troops|war|conflict|crisis|protest|election|capital|border|region|province|state of|country|nation|attack|bomb|strike|sanction|embassy|diplomat|foreign|amid|unrest)\b/.test(ctx);
+        if (!hasContext) return;
       }
+      bucket.items.push(item);
     });
   });
 
+  // Require minimum 2 items for a hotspot to appear (reduces noise)
   return buckets
-    .filter(bucket => bucket.items.length > 0)
+    .filter(bucket => bucket.items.length >= 2)
     .map(bucket => {
       const byType = {};
       bucket.items.forEach(entry => {
@@ -354,10 +407,12 @@ function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionC
 
   if (!hotspot || !position) return null;
 
+  const typeLabel = (t) => ({ article: 'news', rumor: 'rumor', tweet: 'twitter', reddit_post: 'reddit', flight: 'flights', stock: 'stocks' }[t] || t);
+
   return (
     <div
       ref={popoverRef}
-      className="hotspot-popover"
+      className="hs-popover"
       style={{
         position: 'absolute',
         left: position.x,
@@ -367,39 +422,38 @@ function HotspotPopover({ hotspot, position, onClose, onOpenInPanel, onPositionC
       }}
       onMouseDown={handleDragStart}
     >
-      <div className="hotspot-popover-arrow" />
-      <div className="hotspot-popover-content">
-        <div className="hotspot-popover-header" style={{ cursor: 'grab' }}>
-          <h3 className="hotspot-popover-title">{hotspot.name}</h3>
-          <button className="hotspot-popover-close" onClick={onClose} aria-label="Close">x</button>
-        </div>
-        {isRecentlyUpdated(hotspot.lastUpdated) && (
-          <div className="hotspot-popover-badge">Updated {timeAgo(hotspot.lastUpdated)}</div>
-        )}
-        <div className="hotspot-popover-stats">
-          <div className="hotspot-popover-stat">
-            <span className="stat-value">{hotspot.count}</span>
-            <span className="stat-label">items</span>
+      <div className="hs-popover-inner">
+        <div className="hs-popover-head" style={{ cursor: 'grab' }}>
+          <div className="hs-popover-title-row">
+            <h3 className="hs-popover-title">{hotspot.name}</h3>
+            <span className="hs-popover-count">{hotspot.count}</span>
           </div>
-          {Object.entries(hotspot.byType).map(([type, count]) => (
-            <div key={type} className="hotspot-popover-stat">
-              <span className="stat-value">{count}</span>
-              <span className="stat-label">{type === 'article' ? 'news' : type}</span>
-            </div>
+          <button className="hs-popover-close" onClick={onClose} aria-label="Close">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
+        {Object.keys(hotspot.byType).length > 1 && (
+          <div className="hs-popover-tags">
+            {Object.entries(hotspot.byType).sort((a,b) => b[1] - a[1]).map(([type, count]) => (
+              <span key={type} className="hs-popover-tag">{count} {typeLabel(type)}</span>
+            ))}
+          </div>
+        )}
+        <div className="hs-popover-items">
+          {hotspot.items.slice(0, 4).map((item, idx) => (
+            <a key={item.id || idx} className="hs-popover-item" href={item.url} target="_blank" rel="noopener noreferrer">
+              <span className="hs-popover-item-title">{item.title || 'Untitled'}</span>
+              <span className="hs-popover-item-meta">{item.sourceName || item.source} &middot; {timeAgo(item.publishedAt)}</span>
+            </a>
           ))}
         </div>
-        <div className="hotspot-popover-items">
-          {hotspot.items.slice(0, 3).map((item, idx) => (
-            <div key={item.id || idx} className="hotspot-popover-item">
-              <div className="hotspot-popover-item-title">{item.title || 'Untitled'}</div>
-              <div className="hotspot-popover-item-meta">{item.sourceName} - {timeAgo(item.publishedAt)}</div>
-            </div>
-          ))}
-        </div>
-        <button className="hotspot-popover-btn" onClick={onOpenInPanel}>
-          Open in Panel
-        </button>
+        {hotspot.items.length > 4 && (
+          <button className="hs-popover-more" onClick={onOpenInPanel}>
+            View all {hotspot.count} items
+          </button>
+        )}
       </div>
+      <div className="hs-popover-arrow" />
     </div>
   );
 }
@@ -460,7 +514,7 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   return (
     <div
       ref={panelRef}
-      className="news-panel"
+      className="hs-panel"
       style={{
         position: 'absolute',
         left: position.x,
@@ -470,14 +524,16 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
       }}
       onMouseDown={handleDragStart}
     >
-      <div className="news-panel-header" style={{ cursor: 'grab' }}>
-        <div className="news-panel-title-section">
-          <h3 className="news-panel-title">{hotspot.name}</h3>
-          <div className="news-panel-subtitle">{hotspot.count} items</div>
+      <div className="hs-panel-head" style={{ cursor: 'grab' }}>
+        <div>
+          <h3 className="hs-panel-title">{hotspot.name}</h3>
+          <div className="hs-panel-subtitle">{hotspot.count} items</div>
         </div>
-        <button className="news-panel-close" onClick={onClose} aria-label="Close">x</button>
+        <button className="hs-popover-close" onClick={onClose} aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
       </div>
-      <div className="news-panel-content">
+      <div className="hs-panel-content">
         {hotspot.items.map((item, idx) => (
           <NewsItem key={item.id || idx} item={item} />
         ))}
@@ -630,11 +686,19 @@ function App() {
   // Country panel hook
   const {
     countryPanel,
+    currencyData,
+    currencyLoading,
+    approvalData,
+    approvalLoading,
+    economicData,
+    economicLoading,
+    marketData,
+    marketLoading,
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openEUPanel,
     closeCountryPanel,
-    updateCountryPanelPosition,
   } = useCountryPanel();
 
   // Temperature unit: 'F' (default) or 'C'
@@ -654,13 +718,22 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [holoMode, setHoloMode] = useState(false);
-  const [transparentGlobe, setTransparentGlobe] = useState(true);
+  const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [showFrontline, setShowFrontline] = useState(false);
+  const [conflictMode, setConflictMode] = useState(false);
+  const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
+  const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  const [showUSStates, setShowUSStates] = useState(false);
+  const [showCAProvinces, setShowCAProvinces] = useState(false);
+  const [showEUCountries, setShowEUCountries] = useState(false);
+  const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
+  const [electionMode, setElectionMode] = useState(false);
+  const [electionPanel, setElectionPanel] = useState({ open: false, state: null, pos: { x: 160, y: 120 } });
 
   // Tariff panel state
   const [tariffPanel, setTariffPanel] = useState({ open: false, country: null, pos: { x: 160, y: 120 } });
@@ -703,13 +776,11 @@ function App() {
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
   const hoveredProvinceIdRef = useRef(null);
+  const hoveredEUIdRef = useRef(null);
 
   // News panel state
   const [newsPanelHotspot, setNewsPanelHotspot] = useState(null);
   const [newsPanelPosition, setNewsPanelPosition] = useState(null);
-
-  // Stocks panel visibility
-  const [showStocksPanel, setShowStocksPanel] = useState(false);
 
   // Polymarket panel visibility and state
   const [showPolymarketPanel, setShowPolymarketPanel] = useState(false);
@@ -724,21 +795,12 @@ function App() {
     twitter: true,
     reddit: true,
     flights: false,
-    stocks: false,
     severeWeather: false,
   });
   const [showSeverePanel, setShowSeverePanel] = useState(false);
   const [selectedSevereEventId, setSelectedSevereEventId] = useState(null);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
-  const {
-    stocks,
-    marketStatus,
-    lastUpdated: stocksLastUpdated,
-    loading: stocksLoading,
-    error: stocksError,
-    refresh: refreshStocks,
-  } = useStocks(enabledLayers.stocks);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
   const {
     markets: polymarkets,
@@ -776,6 +838,48 @@ function App() {
     setVisualLayers(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Sync hillshade visibility to native style layer when toggle changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      if (map.getLayer('hillshade-layer')) {
+        map.setLayoutProperty('hillshade-layer', 'visibility', visualLayers.hillshade ? 'visible' : 'none');
+      }
+    } catch {}
+  }, [visualLayers.hillshade]);
+
+  // Clean up hover states and update background on projection switch
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      // Clear stale hover feature states
+      if (hoveredCountryIdRef.current !== null) {
+        map.setFeatureState({ source: 'countries', id: hoveredCountryIdRef.current }, { hover: false });
+        hoveredCountryIdRef.current = null;
+      }
+      if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
+        map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
+        hoveredStateIdRef.current = null;
+      }
+      if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
+        map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
+        hoveredProvinceIdRef.current = null;
+      }
+      if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+        for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+          map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+        }
+        hoveredEUIdRef.current = null;
+      }
+      // Update background color without triggering full style reload
+      if (map.getLayer('background')) {
+        map.setPaintProperty('background', 'background-color', useGlobe ? '#050c14' : '#060e18');
+      }
+    } catch {}
+  }, [useGlobe]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1100) {
@@ -792,6 +896,13 @@ function App() {
       setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } });
     }
   }, [showTariffHeatmap]);
+
+  // Close election panel when election mode is turned off
+  useEffect(() => {
+    if (!electionMode) {
+      setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+    }
+  }, [electionMode]);
 
   const flightPaths = useMemo(() => {
     return (flights || [])
@@ -814,12 +925,6 @@ function App() {
   const toggleLayer = (layer) => {
     setEnabledLayers(prev => {
       const newState = { ...prev, [layer]: !prev[layer] };
-      // Show stocks panel when stocks layer is enabled
-      if (layer === 'stocks' && newState.stocks) {
-        setShowStocksPanel(true);
-      } else if (layer === 'stocks' && !newState.stocks) {
-        setShowStocksPanel(false);
-      }
       // Show severe weather panel when toggled on
       if (layer === 'severeWeather' && newState.severeWeather) {
         setShowSeverePanel(true);
@@ -848,7 +953,6 @@ function App() {
       if (enabledLayers.twitter && item.contentType === 'tweet') return true;
       if (enabledLayers.reddit && item.contentType === 'reddit_post') return true;
       if (enabledLayers.flights && item.contentType === 'flight') return true;
-      if (enabledLayers.stocks && item.contentType === 'stock') return true;
       return false;
     });
   }, [feed, enabledLayers]);
@@ -881,34 +985,36 @@ function App() {
 
   // ---- MapLibre GeoJSON data ----
 
-  const countryColor = useCallback((index) => {
-    // Futuristic palette — blues, purples, pinks, teals
-    const darkPalette = [
-      '#2a3070', '#4a2268', '#602050', '#1e4078', '#3a2878',
-      '#5a2058', '#283880', '#4e2060', '#1a3870', '#682050',
-      '#303880', '#5e1e52', '#382878', '#224068', '#502465',
-      '#1e4a6a', '#422875', '#602852', '#2a3578', '#482468',
-      '#1a4572', '#58205a', '#303080', '#522258', '#244070',
-      '#3e2878', '#1e3a75', '#5a2250', '#283580', '#4a2060',
-    ];
-    const lightPalette = [
-      '#4a7a3e', '#6b8f42', '#8a6e3a', '#3d6b35', '#7a8548',
-      '#5c7040', '#9b7a3c', '#4e7e44', '#6e6838', '#3a6030',
-      '#87764a', '#527238', '#7c8a4e', '#48703a', '#a0823e',
-      '#5a6e3c', '#6a7a40', '#8b7044', '#3e6832', '#74804a',
-      '#4c6a36', '#96783e', '#5e7c42', '#7e6c3a', '#447034',
-      '#6c8648', '#8e7a40', '#3c6530', '#78724c', '#568038',
-    ];
-    const palette = isLightTheme ? lightPalette : darkPalette;
-    // Stride by 11 (coprime with 30) so geographic neighbors get distinct colors
-    return palette[(index * 11) % palette.length];
-  }, [isLightTheme]);
-
   const countriesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
-    features: GEO_FEATURES.map((f, i) => {
-      const name = f.properties?.name || `Country ${i}`;
-      const tariffRate = getUniversalRate(name);
+    features: GEO_FEATURES
+      .filter((f) => {
+        const name = f.properties?.name || '';
+        return !(String(f.id).padStart(3, '0') === '010' || name === 'Antarctica');
+      })
+      .map((f, i) => {
+        const name = f.properties?.name || `Country ${i}`;
+        const tariffRate = getUniversalRate(name);
+        return {
+          type: 'Feature',
+          id: i,
+          geometry: f.geometry,
+          properties: {
+            name,
+            originalId: String(f.id),
+            isEU: EU_MEMBER_NAMES.has(name),
+            fillColor: getCountryFillColor(name, i, isLightTheme),
+            tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
+            tariffRate,
+          },
+        };
+      }),
+  }), [isLightTheme]);
+
+  const usStatesGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: US_STATE_FEATURES.map((f, i) => {
+      const name = f.properties?.name || `State ${i}`;
       return {
         type: 'Feature',
         id: i,
@@ -916,25 +1022,11 @@ function App() {
         properties: {
           name,
           originalId: String(f.id),
-          fillColor: countryColor(i),
-          tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
-          tariffRate,
+          electionColor: getElectionColor(name),
+          hasElection: hasElectionRaces(name),
         },
       };
     }),
-  }), [countryColor, isLightTheme]);
-
-  const usStatesGeoJSON = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: US_STATE_FEATURES.map((f, i) => ({
-      type: 'Feature',
-      id: i,
-      geometry: f.geometry,
-      properties: {
-        name: f.properties?.name || `State ${i}`,
-        originalId: String(f.id),
-      },
-    })),
   }), []);
 
   const caProvincesGeoJSON = useMemo(() => ({
@@ -950,6 +1042,25 @@ function App() {
     })),
   }), []);
 
+  const euCountriesGeoJSON = useMemo(() => {
+    const euFeatures = GEO_FEATURES.filter((f) => {
+      const name = f.properties?.name;
+      return name && EU_MEMBER_NAMES.has(name);
+    });
+    return {
+      type: 'FeatureCollection',
+      features: euFeatures.map((f, i) => ({
+        type: 'Feature',
+        id: i,
+        geometry: f.geometry,
+        properties: {
+          name: f.properties?.name || `EU Country ${i}`,
+          originalId: String(f.id),
+        },
+      })),
+    };
+  }, []);
+
   const flightPathsGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: flightPaths.map((flight, i) => ({
@@ -963,22 +1074,80 @@ function App() {
     })),
   }), [flightPaths]);
 
-  // MapLibre style (minimal, theme-aware background)
-  const mapStyle = useMemo(() => ({
-    version: 8,
-    name: 'monitoring',
-    sources: {},
-    layers: [{
-      id: 'background',
-      type: 'background',
-      paint: {
-        'background-color': holoMode
-          ? (isLightTheme ? '#8ab4d8' : '#060a14')
-          : (isLightTheme ? '#8ab4d8' : '#0c1126'),
+  // MapLibre style — basemap baked in for reliable globe rendering
+  // NOTE: useGlobe is NOT a dependency — background is updated via map API
+  // to avoid full style reloads on projection switch
+  const mapStyle = useMemo(() => {
+    let bgColor;
+    // TNO-inspired: midnight blue ocean, cool and muted
+    if (isLightTheme) {
+      bgColor = '#3a7ab0';
+    } else {
+      bgColor = holoMode ? '#020810' : '#060e18';
+    }
+
+    // Positron basemap desaturated and heavily darkened — provides subtle
+    // terrain texture (rivers, coastlines, mountains) without its own colors
+    const basemapUrl = isLightTheme
+      ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+      : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
+    return {
+      version: 8,
+      name: 'monitoring',
+      sources: {
+        'basemap-tiles': {
+          type: 'raster',
+          tiles: [basemapUrl],
+          tileSize: 256,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        },
+        'terrain-dem': {
+          type: 'raster-dem',
+          tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+          encoding: 'terrarium',
+          tileSize: 256,
+          maxzoom: 7,
+        },
       },
-    }],
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  }), [isLightTheme, holoMode]);
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': bgColor },
+        },
+        {
+          id: 'basemap-raster',
+          type: 'raster',
+          source: 'basemap-tiles',
+          paint: isLightTheme
+            ? {
+                'raster-opacity': 0.55,
+                'raster-saturation': -0.5,
+              }
+            : {
+                'raster-opacity': 0.18,
+                'raster-brightness-max': 0.35,
+                'raster-saturation': -1,
+                'raster-contrast': 0.15,
+              },
+        },
+        {
+          id: 'hillshade-layer',
+          type: 'hillshade',
+          source: 'terrain-dem',
+          paint: {
+            'hillshade-exaggeration': 0.3,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.3)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(180,200,230,0.08)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.12)',
+            'hillshade-illumination-direction': 315,
+          },
+        },
+      ],
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    };
+  }, [isLightTheme, holoMode]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1023,13 +1192,19 @@ function App() {
           map.setFeatureState({ source: 'countries', id: hoveredCountryIdRef.current }, { hover: false });
           hoveredCountryIdRef.current = null;
         }
-        if (hoveredStateIdRef.current !== null) {
+        if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
           map.setFeatureState({ source: 'us-states', id: hoveredStateIdRef.current }, { hover: false });
           hoveredStateIdRef.current = null;
         }
-        if (hoveredProvinceIdRef.current !== null) {
+        if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
           map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
           hoveredProvinceIdRef.current = null;
+        }
+        if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+          for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+            map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+          }
+          hoveredEUIdRef.current = null;
         }
         setTooltip({ show: false, text: '', x: 0, y: 0 });
         map.getCanvas().style.cursor = '';
@@ -1047,19 +1222,25 @@ function App() {
       );
       hoveredCountryIdRef.current = null;
     }
-    if (hoveredStateIdRef.current !== null) {
+    if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
       map.setFeatureState(
         { source: 'us-states', id: hoveredStateIdRef.current },
         { hover: false }
       );
       hoveredStateIdRef.current = null;
     }
-    if (hoveredProvinceIdRef.current !== null) {
+    if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
       map.setFeatureState(
         { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
         { hover: false }
       );
       hoveredProvinceIdRef.current = null;
+    }
+    if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+      for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+        map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+      }
+      hoveredEUIdRef.current = null;
     }
 
     if (features && features.length > 0) {
@@ -1084,9 +1265,17 @@ function App() {
           { hover: true }
         );
         hoveredProvinceIdRef.current = feat.id;
+      } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
+        // Highlight ALL EU country features for unified entity hover
+        for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+          map.setFeatureState({ source: 'eu-countries', id: i }, { hover: true });
+        }
+        hoveredEUIdRef.current = -1; // sentinel: all highlighted
       }
 
-      const tooltipName = feat.properties?.name || 'Unknown';
+      const tooltipName = sourceId === 'eu-countries'
+        ? 'European Union'
+        : (feat.properties?.name || 'Unknown');
       const tariffRate = feat.properties?.tariffRate;
       let tooltipText = tooltipName;
       if (showTariffHeatmap && tariffRate != null) {
@@ -1118,19 +1307,25 @@ function App() {
       );
       hoveredCountryIdRef.current = null;
     }
-    if (hoveredStateIdRef.current !== null) {
+    if (hoveredStateIdRef.current !== null && map.getSource('us-states')) {
       map.setFeatureState(
         { source: 'us-states', id: hoveredStateIdRef.current },
         { hover: false }
       );
       hoveredStateIdRef.current = null;
     }
-    if (hoveredProvinceIdRef.current !== null) {
+    if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
       map.setFeatureState(
         { source: 'ca-provinces', id: hoveredProvinceIdRef.current },
         { hover: false }
       );
       hoveredProvinceIdRef.current = null;
+    }
+    if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
+      for (let i = 0; i < EU_FEATURE_COUNT; i++) {
+        map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
+      }
+      hoveredEUIdRef.current = null;
     }
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   }, []);
@@ -1195,9 +1390,8 @@ function App() {
             setTariffPanel({ open: true, country: name, pos: { x, y } });
           }
 
-          openCountryPanel(name, { x, y });
+          openCountryPanel(name);
           setPolymarketCountry(name);
-          setShowPolymarketPanel(true);
         }
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
@@ -1215,7 +1409,12 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openStatePanel(name, { x, y });
+
+          if (electionMode && hasElectionRaces(name)) {
+            setElectionPanel({ open: true, state: name, pos: { x, y } });
+          } else {
+            openStatePanel(name);
+          }
         }
       } else if (sourceId === 'ca-provinces') {
         setSelectedRegion({ type: 'province', id: originalId, name });
@@ -1233,11 +1432,16 @@ function App() {
           let y = clickY + 24;
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
-          openProvincePanel(name, { x, y });
+          openProvincePanel(name);
         }
+      } else if (sourceId === 'eu-countries') {
+        setSelectedRegion({ type: 'eu', id: 'EU', name: 'European Union' });
+        setViewMode('region');
+        setSelectedCapital(null);
+        openEUPanel();
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, showTariffHeatmap]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, openEUPanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1434,18 +1638,21 @@ function App() {
   const onMapLoad = useCallback((evt) => {
     mapRef.current = evt.target;
     setMapLoaded(true);
-    // Faster, smoother scroll zoom
+    // Smooth, Apple-Maps-like scroll zoom (slower = more controlled)
     const sh = evt.target.scrollZoom;
     if (sh) {
-      sh.setWheelZoomRate(1 / 200);
-      sh.setZoomRate(1 / 50);
+      sh.setWheelZoomRate(1 / 250);
+      sh.setZoomRate(1 / 60);
     }
   }, []);
 
   // Track map center for globe hemisphere visibility check
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
-    if (c) mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+    if (c) {
+      mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      if (c.zoom !== undefined) setMapZoom(c.zoom);
+    }
   }, []);
 
   /**
@@ -1542,6 +1749,7 @@ function App() {
   }, [useGlobe, autoRotate, mapLoaded]);
 
   return (
+    <WindowManagerProvider>
     <>
     <div className="app">
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
@@ -1630,15 +1838,6 @@ function App() {
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  className={`sidebar-tab ${sidebarTab === 'tariffs' ? 'active' : ''}`}
-                  onClick={() => setSidebarTab('tariffs')}
-                  role="tab"
-                  aria-selected={sidebarTab === 'tariffs'}
-                >
-                  Tariffs & Trade
-                </button>
               </div>
             )}
           </div>
@@ -1686,7 +1885,6 @@ function App() {
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
                     {[
-                      { id: 'stocks', label: 'Stocks', tone: 'stocks', disabled: false },
                       { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false },
                       { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
                     ].map((layer) => (
@@ -1701,38 +1899,147 @@ function App() {
                         <span className="slider" />
                       </label>
                     ))}
+                    <label className="switch switch-stocks">
+                      <span className="switch-label">Betting Markets</span>
+                      <input
+                        type="checkbox"
+                        checked={showPolymarketPanel}
+                        onChange={() => {
+                          setShowPolymarketPanel(prev => {
+                            if (!prev) setPolymarketCountry(null);
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
                   </div>
                 </div>
 
                 <div className="source-group">
                   <div className="source-group-title">Politics & Economy</div>
                   <div className="source-group-items">
-                    {[
-                      { id: 'elections', label: 'Election News', tone: 'neutral', disabled: true },
-                      { id: 'tariffs', label: 'Tariffs & Trade', tone: 'neutral', disabled: true },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
-                        <span className="switch-label">{layer.label} (WIP)</span>
-                        <input type="checkbox" checked={false} disabled />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Overlays</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-frontline">
-                      <span className="switch-label">UA/RU Frontline</span>
+                    <label className="switch switch-elections">
+                      <span className="switch-label">2026 Midterm Elections</span>
                       <input
                         type="checkbox"
-                        checked={showFrontline}
-                        onChange={() => setShowFrontline(prev => !prev)}
+                        checked={electionMode}
+                        onChange={() => {
+                          setElectionMode(prev => {
+                            if (prev) {
+                              setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
+                            } else {
+                              setShowUSStates(true);
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Tariffs & Trade</span>
+                      <input
+                        type="checkbox"
+                        checked={showTariffHeatmap}
+                        onChange={() => setShowTariffHeatmap(prev => !prev)}
                       />
                       <span className="slider" />
                     </label>
                   </div>
+
+                  {showTariffHeatmap && (
+                    <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
+                      <div className="tariff-heatmap-active-badge">
+                        <span className="tariff-heatmap-active-dot" />
+                        Heatmap active
+                      </div>
+
+                      <div className="tariff-legend">
+                        <div className="tariff-legend-title">Tariff Rate Legend</div>
+                        <div className="tariff-legend-items">
+                          {TARIFF_LEGEND.map((item) => (
+                            <div key={item.label} className="tariff-legend-item">
+                              <span
+                                className="tariff-legend-swatch"
+                                style={{ background: isLightTheme ? item.colorLight : item.color }}
+                              />
+                              <span>{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="tariff-sidebar-info">
+                        <strong>US Import Tariffs</strong><br />
+                        Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Conflicts</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-frontline">
+                      <span className="switch-label">Russia–Ukraine War</span>
+                      <input
+                        type="checkbox"
+                        checked={conflictMode}
+                        onChange={() => {
+                          setConflictMode(prev => {
+                            if (prev) {
+                              setConflictPanelOpen(false);
+                              setShowFrontline(false);
+                            } else {
+                              setShowFrontline(true);
+                            }
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
+                  </div>
+
+                  {conflictMode && (
+                    <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
+                      <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
+                      <strong>Russia–Ukraine War</strong>
+                      <p>
+                        Frontlines, estimated troop positions, and occupied territory are shown on the map. Click for detailed statistics.
+                      </p>
+                      <div className="conflict-sidebar-toggles">
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Show Troop Positions</span>
+                          <input
+                            type="checkbox"
+                            checked={conflictShowTroops}
+                            onChange={() => setConflictShowTroops(prev => !prev)}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                      <button
+                        className="conflict-sidebar-open-btn"
+                        style={{
+                          marginTop: '8px',
+                          width: '100%',
+                          padding: '7px 10px',
+                          background: 'rgba(255, 50, 50, 0.12)',
+                          border: '1px solid rgba(255, 50, 50, 0.25)',
+                          borderRadius: '6px',
+                          color: '#ff6b6b',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setConflictPanelOpen(prev => !prev)}
+                      >
+                        {conflictPanelOpen ? 'Close' : 'Open'} War Statistics Panel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="source-group">
@@ -1887,10 +2194,37 @@ function App() {
                     />
                     <span className="slider" />
                   </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">US State Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showUSStates}
+                      onChange={() => setShowUSStates(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">CA Province Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showCAProvinces}
+                      onChange={() => setShowCAProvinces(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">EU Country Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showEUCountries}
+                      onChange={() => setShowEUCountries(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
                   {[
                     { key: 'contours', label: 'Micro Topographic Contours' },
                     { key: 'countryFill', label: 'Country Fill Color' },
-                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade' },
                     { key: 'heatmap', label: 'Population Heatmap (WIP)' },
                   ].map(({ key, label }) => (
                     <label key={key} className="switch switch-neutral">
@@ -1948,49 +2282,6 @@ function App() {
               </div>
             )}
 
-            {sidebarExpanded && sidebarTab === 'tariffs' && (
-              <div className="settings-panel tariff-sidebar">
-                <div className="toggle-group-title">Tariff Heatmap</div>
-                <div className="settings-group tariff-heatmap-toggle">
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Show Heatmap</span>
-                    <input
-                      type="checkbox"
-                      checked={showTariffHeatmap}
-                      onChange={() => setShowTariffHeatmap(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                {showTariffHeatmap && (
-                  <div className="tariff-heatmap-active-badge">
-                    <span className="tariff-heatmap-active-dot" />
-                    Heatmap active
-                  </div>
-                )}
-
-                <div className="tariff-legend">
-                  <div className="tariff-legend-title">Tariff Rate Legend</div>
-                  <div className="tariff-legend-items">
-                    {TARIFF_LEGEND.map((item) => (
-                      <div key={item.label} className="tariff-legend-item">
-                        <span
-                          className="tariff-legend-swatch"
-                          style={{ background: isLightTheme ? item.colorLight : item.color }}
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="tariff-sidebar-info">
-                  <strong>US Import Tariffs</strong><br />
-                  Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
-                </div>
-              </div>
-            )}
 
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
@@ -2003,7 +2294,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}`} ref={mapContainerRef}>
+        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -2055,82 +2346,175 @@ function App() {
           />
         )}
 
-        {/* Stocks Panel */}
-        <StocksPanel
-          visible={showStocksPanel}
-          stocks={stocks}
-          marketStatus={marketStatus}
-          loading={stocksLoading}
-          error={stocksError}
-          lastUpdated={stocksLastUpdated}
-          onClose={() => setShowStocksPanel(false)}
-          onRefresh={refreshStocks}
-        />
-
         {/* Severe Weather Panel */}
-        <SevereWeatherPanel
-          visible={showSeverePanel}
-          events={severeEvents}
-          loading={severeLoading}
-          selectedEventId={selectedSevereEventId}
-          onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
-          onRefresh={refreshSevere}
-          onEventClick={(event) => {
-            setSelectedSevereEventId(event.id);
-            if (event.lon && event.lat && mapRef.current) {
-              mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
-            }
-          }}
-        />
+        {showSeverePanel && (
+          <PanelWindow
+            id="severe-weather"
+            title="Severe Weather"
+            onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 90, y: 80 }}
+          >
+            <SevereWeatherPanel
+              visible={true}
+              events={severeEvents}
+              loading={severeLoading}
+              selectedEventId={selectedSevereEventId}
+              onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
+              onRefresh={refreshSevere}
+              onEventClick={(event) => {
+                setSelectedSevereEventId(event.id);
+                if (event.lon && event.lat && mapRef.current) {
+                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+            />
+          </PanelWindow>
+        )}
 
         {/* Polymarket Panel */}
-        <PolymarketPanel
-          visible={showPolymarketPanel}
-          markets={polymarkets}
-          loading={polymarketsLoading}
-          error={polymarketsError}
-          lastUpdated={polymarketsLastUpdated}
-          country={polymarketCountry}
-          onClose={() => setShowPolymarketPanel(false)}
-          onRefresh={refreshPolymarkets}
-        />
+        {showPolymarketPanel && (
+          <PanelWindow
+            id="polymarket"
+            title="Polymarket"
+            onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
+            defaultWidth={360}
+            defaultHeight={600}
+          >
+            <PolymarketPanel
+              visible={true}
+              markets={polymarkets}
+              loading={polymarketsLoading}
+              error={polymarketsError}
+              lastUpdated={polymarketsLastUpdated}
+              country={polymarketCountry}
+              onClose={() => { setShowPolymarketPanel(false); setPolymarketCountry(null); }}
+              onRefresh={refreshPolymarkets}
+            />
+          </PanelWindow>
+        )}
 
         {/* Tariff Panel */}
         {tariffPanel.open && tariffPanel.country && (
-          <TariffPanel
-            countryName={tariffPanel.country}
-            position={tariffPanel.pos}
-            bounds={
-              mapContainerRef.current
-                ? {
-                    width: mapContainerRef.current.getBoundingClientRect().width,
-                    height: mapContainerRef.current.getBoundingClientRect().height,
-                  }
-                : null
-            }
-            onPositionChange={(pos) => setTariffPanel(prev => ({ ...prev, pos }))}
+          <PanelWindow
+            id="tariff"
+            title={`Tariffs — ${tariffPanel.country}`}
             onClose={() => setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } })}
-          />
+            defaultWidth={360}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={tariffPanel.pos}
+          >
+            <TariffPanel
+              countryName={tariffPanel.country}
+              position={tariffPanel.pos}
+              bounds={
+                mapContainerRef.current
+                  ? {
+                      width: mapContainerRef.current.getBoundingClientRect().width,
+                      height: mapContainerRef.current.getBoundingClientRect().height,
+                    }
+                  : null
+              }
+              onPositionChange={(pos) => setTariffPanel(prev => ({ ...prev, pos }))}
+              onClose={() => setTariffPanel({ open: false, country: null, pos: { x: 160, y: 120 } })}
+            />
+          </PanelWindow>
+        )}
+
+        {/* Election Panel */}
+        {electionPanel.open && electionPanel.state && (
+          <PanelWindow
+            id="election"
+            title={`Election — ${electionPanel.state}`}
+            onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+            defaultWidth={400}
+            defaultHeight={520}
+            defaultMode="floating"
+            defaultPosition={electionPanel.pos}
+          >
+            <ElectionPanel
+              stateName={electionPanel.state}
+              position={electionPanel.pos}
+              bounds={
+                mapContainerRef.current
+                  ? {
+                      width: mapContainerRef.current.getBoundingClientRect().width,
+                      height: mapContainerRef.current.getBoundingClientRect().height,
+                    }
+                  : null
+              }
+              onPositionChange={(pos) => setElectionPanel(prev => ({ ...prev, pos }))}
+              onClose={() => setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } })}
+            />
+          </PanelWindow>
+        )}
+
+        {/* Conflict panel */}
+        {conflictMode && conflictPanelOpen && (
+          <PanelWindow
+            id="conflict"
+            title="Ukraine-Russia Conflict"
+            onClose={() => setConflictPanelOpen(false)}
+            defaultWidth={420}
+            defaultHeight={600}
+          >
+            <ConflictPanel
+              open={true}
+              onClose={() => setConflictPanelOpen(false)}
+            />
+          </PanelWindow>
+        )}
+
+        {/* Election mode map legend */}
+        {electionMode && (
+          <div className="el-map-legend">
+            {[
+              { rating: 'safe-d', label: 'Safe D' },
+              { rating: 'likely-d', label: 'Likely D' },
+              { rating: 'lean-d', label: 'Lean D' },
+              { rating: 'toss-up', label: 'Toss-Up' },
+              { rating: 'lean-r', label: 'Lean R' },
+              { rating: 'likely-r', label: 'Likely R' },
+              { rating: 'safe-r', label: 'Safe R' },
+            ].map((item, idx) => (
+              <span key={item.rating}>
+                {idx > 0 && <span className="el-legend-sep" />}
+                <span className="el-legend-item">
+                  <span className="el-legend-swatch" style={{ background: RATING_COLORS[item.rating] }} />
+                  {item.label}
+                </span>
+              </span>
+            ))}
+          </div>
         )}
 
         {countryPanel.open && countryPanel.data && (
-          <CountryPanel
-            data={countryPanel.data}
-            position={countryPanel.pos}
-            bounds={
-              mapContainerRef.current
-                ? {
-                    width: mapContainerRef.current.getBoundingClientRect().width,
-                    height: mapContainerRef.current.getBoundingClientRect().height,
-                  }
-                : null
-            }
-            onPositionChange={updateCountryPanelPosition}
+          <PanelWindow
+            id="country"
+            title={countryPanel.data?.name || 'Country'}
             onClose={closeCountryPanel}
-            weather={panelWeather}
-            weatherLoading={panelWeatherLoading}
-            tempUnit={tempUnit}
-          />
+            defaultWidth={360}
+            defaultHeight={600}
+          >
+            <CountryPanel
+              data={countryPanel.data}
+              onClose={closeCountryPanel}
+              weather={panelWeather}
+              weatherLoading={panelWeatherLoading}
+              tempUnit={tempUnit}
+              currencyData={currencyData}
+              currencyLoading={currencyLoading}
+              approvalData={approvalData}
+              approvalLoading={approvalLoading}
+              economicData={economicData}
+              economicLoading={economicLoading}
+              marketData={marketData}
+              marketLoading={marketLoading}
+            />
+          </PanelWindow>
         )}
 
         <MapGL
@@ -2144,7 +2528,12 @@ function App() {
             zoom: 2.0,
           }}
           style={{ width: '100%', height: '100%' }}
-          interactiveLayerIds={['countries-fill', 'us-states-fill', 'ca-provinces-fill']}
+          interactiveLayerIds={[
+            'countries-fill',
+            ...(showUSStates ? ['us-states-fill'] : []),
+            ...(showCAProvinces ? ['ca-provinces-fill'] : []),
+            ...(showEUCountries ? ['eu-countries-fill'] : []),
+          ]}
           onMove={handleMapMove}
           onMouseMove={handleMapMouseMove}
           onMouseLeave={handleMapMouseLeave}
@@ -2152,13 +2541,15 @@ function App() {
           onDblClick={handleMapDblClick}
           doubleClickZoom={false}
           dragRotate={useGlobe}
-          pitchWithRotate={useGlobe}
-          touchPitch={useGlobe}
+          pitchWithRotate={false}
+          touchPitch={false}
           renderWorldCopies={!useGlobe}
-          maxBounds={useGlobe ? undefined : [[-Infinity, -75], [Infinity, 85]]}
+          maxBounds={useGlobe ? undefined : [[-Infinity, -50], [Infinity, 85]]}
           maxZoom={8}
-          minZoom={1}
+          minZoom={useGlobe ? 0.8 : 1}
         >
+          {/* Basemap raster + hillshade are baked into mapStyle for globe compatibility */}
+
           {/* Graticule (Micro Topographic Contours) */}
           <Source id="graticule" type="geojson" data={GRATICULE_GEOJSON}>
             <Layer
@@ -2242,16 +2633,27 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
+                      isLightTheme ? '#a8c090' : '#1c3040',
                       ['get', 'tariffColor'],
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1a3a52',
-                      ['get', 'fillColor'],
-                    ],
-                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 1 : 0),
+                  : showEUCountries
+                    ? [
+                        'case',
+                        ['boolean', ['get', 'isEU'], false],
+                        'rgba(0,0,0,0)',
+                        ['case',
+                          ['boolean', ['feature-state', 'hover'], false],
+                          isLightTheme ? '#a8c090' : '#1c3040',
+                          ['get', 'fillColor'],
+                        ],
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme ? '#a8c090' : '#1c3040',
+                        ['get', 'fillColor'],
+                      ],
+                'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
               }}
             />
             {/* Holo glow layers: outer blur, mid glow, inner bright */}
@@ -2260,7 +2662,7 @@ function App() {
                 id="countries-glow-outer"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#7b6bff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
                   'line-opacity': 0.2,
@@ -2272,7 +2674,7 @@ function App() {
                 id="countries-glow-mid"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
                   'line-opacity': 0.4,
@@ -2283,24 +2685,36 @@ function App() {
               id="countries-line"
               type="line"
               paint={{
-                'line-color': holoMode
-                  ? (isLightTheme ? 'rgba(166, 120, 80, 0.55)' : 'rgba(73, 198, 255, 0.6)')
-                  : (isLightTheme
-                      ? 'rgba(50, 40, 80, 0.5)'
-                      : 'rgba(140, 160, 200, 0.4)'),
-                'line-width': holoMode
+                'line-color': showTariffHeatmap
+                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
+                  : holoMode
+                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
+                    : (isLightTheme
+                        ? 'rgba(30, 25, 50, 0.5)'
+                        : 'rgba(15, 20, 30, 0.7)'),
+                'line-width': showTariffHeatmap
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
+                      2.8,
                       1.4,
                     ]
-                  : [
-                      'case',
-                      ['boolean', ['feature-state', 'hover'], false],
-                      2.2,
-                      1.6,
-                    ],
+                  : holoMode
+                    ? [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        2.5,
+                        1.6,
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        1.8,
+                        0.8,
+                      ],
+                'line-opacity': showEUCountries
+                  ? ['case', ['boolean', ['get', 'isEU'], false], 0, 1]
+                  : 1,
               }}
             />
             {/* Selected country highlight */}
@@ -2313,7 +2727,7 @@ function App() {
                   ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
-                      : 'rgba(123, 107, 255, 0.35)'),
+                      : 'rgba(61, 194, 208, 0.25)'),
               }}
             />
             {holoMode && (
@@ -2322,7 +2736,7 @@ function App() {
                 type="line"
                 filter={selectedCountryFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#5d4dff' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
                   'line-width': 5,
                   'line-blur': 6,
                   'line-opacity': 0.5,
@@ -2335,125 +2749,154 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? '#5d4dff' : '#49c6ff')
-                  : (isLightTheme ? '#5d4dff' : '#7b6bff'),
+                  ? (isLightTheme ? '#2a8a94' : '#49c6ff')
+                  : (isLightTheme ? '#2a8a94' : '#3dc2d0'),
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
           </Source>
 
-          {/* US States */}
-          <Source id="us-states" type="geojson" data={usStatesGeoJSON}>
-            <Layer
-              id="us-states-fill"
-              type="fill"
-              paint={{
-                'fill-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme
-                    ? 'rgba(194, 120, 62, 0.15)'
-                    : 'rgba(123, 107, 255, 0.22)',
-                  'rgba(0, 0, 0, 0)',
-                ],
-                'fill-opacity': 1,
-              }}
-            />
-            <Layer
-              id="us-states-line"
-              type="line"
-              paint={{
-                'line-color': isLightTheme
-                  ? 'rgba(166, 120, 80, 0.35)'
-                  : 'rgba(160, 145, 255, 0.35)',
-                'line-width': 1,
-              }}
-            />
-            <Layer
-              id="us-states-selected-fill"
-              type="fill"
-              filter={selectedStateFilter}
-              paint={{
-                'fill-color': isLightTheme
-                  ? 'rgba(194, 120, 62, 0.25)'
-                  : 'rgba(123, 107, 255, 0.35)',
-              }}
-            />
-            <Layer
-              id="us-states-selected-line"
-              type="line"
-              filter={selectedStateFilter}
-              paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 1.5,
-              }}
-            />
-          </Source>
+          {/* US States — only shown when toggled on */}
+          {showUSStates && (
+            <Source id="us-states" type="geojson" data={usStatesGeoJSON}>
+              <Layer
+                id="us-states-fill"
+                type="fill"
+                paint={{
+                  'fill-color': electionMode
+                    ? [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                        ['get', 'electionColor'],
+                      ]
+                    : [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        isLightTheme
+                          ? 'rgba(194, 120, 62, 0.15)'
+                          : 'rgba(61, 194, 208, 0.15)',
+                        'rgba(0, 0, 0, 0)',
+                      ],
+                  'fill-opacity': electionMode ? 0.7 : 1,
+                }}
+              />
+              <Layer
+                id="us-states-line"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme
+                    ? 'rgba(166, 120, 80, 0.35)'
+                    : 'rgba(160, 145, 255, 0.35)',
+                  'line-width': 1,
+                }}
+              />
+              <Layer
+                id="us-states-selected-fill"
+                type="fill"
+                filter={selectedStateFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(194, 120, 62, 0.25)'
+                    : 'rgba(61, 194, 208, 0.25)',
+                }}
+              />
+              <Layer
+                id="us-states-selected-line"
+                type="line"
+                filter={selectedStateFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
+                  'line-width': 1.5,
+                }}
+              />
+            </Source>
+          )}
 
-          {/* Canadian provinces — borders only to avoid misalignment with world-atlas */}
-          <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
-            {/* Invisible fill for click/hover interactivity */}
-            <Layer
-              id="ca-provinces-fill"
-              type="fill"
-              paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
-            />
-            {/* Province border lines */}
-            <Layer
-              id="ca-provinces-line"
-              type="line"
-              paint={{
-                'line-color': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
-                  isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
-                ],
-                'line-width': [
-                  'case',
-                  ['boolean', ['feature-state', 'hover'], false],
-                  1.5,
-                  0.8,
-                ],
-              }}
-            />
-            {/* Selected province highlight — just a brighter border */}
-            <Layer
-              id="ca-provinces-selected-line"
-              type="line"
-              filter={selectedProvinceFilter}
-              paint={{
-                'line-color': isLightTheme ? '#5d4dff' : '#7b6bff',
-                'line-width': 2,
-              }}
-            />
-          </Source>
+          {/* Canadian provinces — only shown when toggled on */}
+          {showCAProvinces && (
+            <Source id="ca-provinces" type="geojson" data={caProvincesGeoJSON}>
+              {/* Invisible fill for click/hover interactivity */}
+              <Layer
+                id="ca-provinces-fill"
+                type="fill"
+                paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
+              />
+              {/* Province border lines */}
+              <Layer
+                id="ca-provinces-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
+                    isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              {/* Selected province highlight — just a brighter border */}
+              <Layer
+                id="ca-provinces-selected-line"
+                type="line"
+                filter={selectedProvinceFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
+                  'line-width': 2,
+                }}
+              />
+            </Source>
+          )}
 
-          {/* UA/RU Frontline Overlay */}
-          <FrontlineOverlay visible={showFrontline} />
+          {/* EU unified entity — shown when toggled on */}
+          {showEUCountries && (
+            <Source id="eu-countries" type="geojson" data={euCountriesGeoJSON}>
+              {/* Border rendered UNDER fill — internal shared edges hidden by fills on both sides */}
+              <Layer
+                id="eu-countries-border"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? 'rgba(30, 70, 160, 0.6)' : 'rgba(80, 150, 255, 0.6)',
+                  'line-width': 2.5,
+                }}
+              />
+              {/* Unified EU fill — opaque enough to hide internal border artifacts */}
+              <Layer
+                id="eu-countries-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 60, 140, 0.32)' : 'rgba(60, 120, 220, 0.32)',
+                    isLightTheme ? 'rgba(30, 60, 140, 0.22)' : 'rgba(50, 100, 200, 0.22)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+            </Source>
+          )}
 
-          {/* Elevation / Hillshade — on top of country fills so ocean bathymetry is hidden */}
-          <Source
-            id="terrain-dem"
-            type="raster-dem"
-            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
-            encoding="terrarium"
-            tileSize={256}
-            maxzoom={15}
-          >
-            <Layer
-              id="hillshade-layer"
-              type="hillshade"
-              layout={{ visibility: 'none' /* WIP — terrain tile alignment issues */ }}
-              paint={{
-                'hillshade-exaggeration': 0.3,
-                'hillshade-shadow-color': isLightTheme ? 'rgba(40,40,60,0.3)' : 'rgba(0,0,0,0.35)',
-                'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.25)' : 'rgba(180,200,255,0.12)',
-                'hillshade-accent-color': isLightTheme ? 'rgba(60,60,80,0.15)' : 'rgba(10,10,30,0.2)',
-                'hillshade-illumination-direction': 315,
-              }}
-            />
-          </Source>
+          {/* UA/RU Frontline Overlay (legacy — hidden when conflict mode is on) */}
+          <FrontlineOverlay visible={showFrontline && !conflictMode} />
+
+          {/* Conflict Overlay — frontlines, occupied territory, coat of arms, NATO symbols */}
+          <ConflictOverlay
+            visible={conflictMode}
+            showTroops={conflictShowTroops}
+            zoom={mapZoom}
+            onTroopClick={(unit) => {
+              if (!conflictPanelOpen) {
+                setConflictPanelOpen(true);
+              }
+            }}
+          />
 
           {/* Population heatmap */}
           <Source id="population-heat" type="geojson" data={POPULATION_POINTS}>
@@ -2579,11 +3022,12 @@ function App() {
           {/* Hotspots */}
           {hotspots.filter((h) => isMarkerVisible(h.lon, h.lat)).map((hotspot) => {
             const maxCount = hotspots[0]?.count || 1;
-            const intensity = Math.max(0.2, hotspot.count / maxCount);
-            const size = 6 + intensity * 12;
+            const intensity = Math.min(1, hotspot.count / Math.max(maxCount, 1));
             const isActive = hotspot.id === selectedHotspotId;
             const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
             const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
+            // Tier: high (10+), mid (5-9), low (2-4) items
+            const tier = hotspot.count >= 10 ? 'high' : hotspot.count >= 5 ? 'mid' : 'low';
 
             return (
               <Marker
@@ -2593,43 +3037,44 @@ function App() {
                 anchor="center"
               >
                 <div
-                  className={`hotspot-marker-wrap ${isStale ? 'hotspot-stale' : 'hotspot-active'}`}
+                  className={`hs-wrap ${isStale ? 'hs-stale' : ''} ${isActive ? 'hs-selected' : ''} hs-${tier}`}
                   onMouseEnter={(e) => handleHotspotMouseEnter(hotspot, e)}
                   onMouseLeave={handleHotspotMouseLeave}
                   onClick={(e) => handleHotspotClick(hotspot, e)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <svg
-                    className="hotspot-marker breathe"
-                    width={size * 2 + 4}
-                    height={size * 2 + 4}
-                    viewBox={`${-size - 2} ${-size - 2} ${size * 2 + 4} ${size * 2 + 4}`}
-                    style={{ overflow: 'visible', display: 'block' }}
-                  >
-                    <circle
-                      r={size}
-                      fill={`rgba(var(--accent-rgb), ${0.15 + intensity * 0.35})`}
-                      stroke="rgba(var(--accent-rgb), 0.7)"
-                      strokeWidth={isActive ? 2 : 1.5}
-                    />
-                    <circle r={size * 0.6} fill="rgba(var(--accent-rgb), 0.95)" />
-                    {isRecent && <circle r={size * 0.25} fill="rgb(var(--success-rgb))" />}
-                  </svg>
-                  <div className="hotspot-label-wrap">
-                    <span className="hotspot-label-dom">{hotspot.name}</span>
-                    {isRecent && (
-                      <span className="hotspot-updated-badge-dom">
-                        Updated {timeAgo(hotspot.lastUpdated)}
-                      </span>
-                    )}
+                  {/* Ping ring for active hotspots */}
+                  {!isStale && tier !== 'low' && <span className="hs-ping" />}
+                  <span className="hs-dot" />
+                  <div className="hs-label">
+                    <span className="hs-name">{hotspot.name}</span>
+                    <span className="hs-count">{hotspot.count}</span>
                   </div>
                 </div>
               </Marker>
             );
           })}
 
+          {/* Pole markers — 3D globe only */}
+          {useGlobe && (
+            <>
+              <Marker longitude={0} latitude={90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">N</span>
+                </div>
+              </Marker>
+              <Marker longitude={0} latitude={-90} anchor="center">
+                <div className="pole-marker">
+                  <div className="pole-ring" />
+                  <span className="pole-label">S</span>
+                </div>
+              </Marker>
+            </>
+          )}
+
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
+
 
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (
@@ -2737,7 +3182,9 @@ function App() {
     </div>
     </div>
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    <MinimizedTray />
     </>
+    </WindowManagerProvider>
   );
 }
 

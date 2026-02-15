@@ -12,6 +12,12 @@ import { cacheService } from '../services/cache.service.js';
 import { wsHandler } from '../services/websocket.service.js';
 import { stocksService } from '../services/stocks.service.js';
 import { polymarketService } from '../services/polymarket.service.js';
+import { conflictService } from '../services/conflict.service.js';
+import { tariffService } from '../services/tariff.service.js';
+import { worldBankService } from '../services/worldbank.service.js';
+import { wikidataService } from '../services/wikidata.service.js';
+import { ucdpService } from '../services/ucdp.service.js';
+import { marketsService } from '../services/markets.service.js';
 
 const router = Router();
 
@@ -300,6 +306,262 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('[API] Search error:', error);
     res.status(500).json({ success: false, error: 'Search failed' });
+  }
+});
+
+// ===========================================
+// CONFLICT DATA (Russia-Ukraine live stats)
+// ===========================================
+
+/**
+ * GET /api/conflict
+ * Get combined live conflict data (latest losses + news)
+ */
+router.get('/conflict', async (req, res) => {
+  try {
+    const data = await conflictService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch conflict data' });
+  }
+});
+
+/**
+ * GET /api/conflict/losses
+ * Get latest Russian losses (UA MOD daily report)
+ */
+router.get('/conflict/losses', async (req, res) => {
+  try {
+    const data = await conflictService.getLatestLosses();
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'Loss data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict losses error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch loss data' });
+  }
+});
+
+/**
+ * GET /api/conflict/losses/history
+ * Get recent loss history for trend analysis
+ * Query params:
+ *   - days: number of days (default 30, max 90)
+ */
+router.get('/conflict/losses/history', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days || '30', 10), 90);
+    const data = await conflictService.getLossesHistory(days);
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'History data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict history error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch loss history' });
+  }
+});
+
+/**
+ * GET /api/conflict/news
+ * Get latest war news from RSS feeds
+ * Query params:
+ *   - limit: number of articles (default 30)
+ */
+router.get('/conflict/news', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '30', 10), 100);
+    const data = await conflictService.getWarNews(limit);
+    res.json({
+      success: true,
+      count: data.items.length,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Conflict news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch war news' });
+  }
+});
+
+// ===========================================
+// TARIFF DATA (US trade policy live stats)
+// ===========================================
+
+/**
+ * GET /api/tariffs
+ * Get combined live tariff data (news + rate overrides)
+ */
+router.get('/tariffs', async (req, res) => {
+  try {
+    const data = await tariffService.getLiveData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Tariff error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tariff data' });
+  }
+});
+
+/**
+ * GET /api/tariffs/news
+ * Get latest tariff-related news from RSS feeds
+ * Query params:
+ *   - limit: number of articles (default 30)
+ */
+router.get('/tariffs/news', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '30', 10), 100);
+    const data = await tariffService.getTariffNews(limit);
+    res.json({
+      success: true,
+      count: data.items.length,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[API] Tariff news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tariff news' });
+  }
+});
+
+// ===========================================
+// ECONOMIC DATA (World Bank live indicators)
+// ===========================================
+
+/**
+ * GET /api/economic/:cca2
+ * Get live economic indicators for a country (ISO 3166-1 alpha-2 code)
+ * Source: World Bank Indicators API (CC BY 4.0)
+ */
+router.get('/economic/:cca2', async (req, res) => {
+  try {
+    const { cca2 } = req.params;
+    if (!cca2 || cca2.length !== 2) {
+      return res.status(400).json({ success: false, error: 'Valid 2-letter country code required' });
+    }
+    const data = await worldBankService.getEconomicData(cca2.toUpperCase());
+    if (!data) {
+      return res.status(404).json({ success: false, error: `No economic data for ${cca2}` });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Economic error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch economic data' });
+  }
+});
+
+// ===========================================
+// WORLD LEADERS (Wikidata live data)
+// ===========================================
+
+/**
+ * GET /api/leaders
+ * Get all current world leaders
+ * Source: Wikidata SPARQL (CC0 — public domain)
+ */
+router.get('/leaders', async (req, res) => {
+  try {
+    const data = await wikidataService.getWorldLeaders();
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'Leader data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Leaders error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch world leaders' });
+  }
+});
+
+/**
+ * GET /api/leaders/:country
+ * Get the current leader for a specific country
+ */
+router.get('/leaders/:country', async (req, res) => {
+  try {
+    const { country } = req.params;
+    const leader = await wikidataService.getLeaderByCountry(decodeURIComponent(country));
+    if (!leader) {
+      return res.status(404).json({ success: false, error: `No leader data for ${country}` });
+    }
+    res.json({ success: true, data: leader, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Leader error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch leader data' });
+  }
+});
+
+// ===========================================
+// MARKETS (Stock indices & forex per country)
+// ===========================================
+
+/**
+ * GET /api/markets/:countryCode
+ * Get stock market indices and forex data for a country (ISO 3166-1 alpha-2)
+ * Source: Yahoo Finance (indices), Frankfurter API (forex)
+ */
+router.get('/markets/:countryCode', async (req, res) => {
+  try {
+    const { countryCode } = req.params;
+    if (!countryCode || countryCode.length < 2 || countryCode.length > 3) {
+      return res.status(400).json({ success: false, error: 'Valid 2-letter country code required' });
+    }
+    const data = await marketsService.getMarketData(countryCode.toUpperCase());
+    if (!data) {
+      return res.status(404).json({ success: false, error: `No market data for ${countryCode}` });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Markets error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch market data' });
+  }
+});
+
+// ===========================================
+// UCDP CONFLICT EVENTS (Global conflict data)
+// ===========================================
+
+/**
+ * GET /api/ucdp/events
+ * Get recent conflict events from UCDP Georeferenced Event Dataset
+ * Query params:
+ *   - country: filter by country name
+ *   - year: filter by year (default: current)
+ *   - limit: max events (default 100)
+ */
+router.get('/ucdp/events', async (req, res) => {
+  try {
+    const { country, year, limit = 100 } = req.query;
+    const data = await ucdpService.getRecentEvents({
+      country: country || undefined,
+      year: year ? parseInt(year, 10) : undefined,
+      limit: Math.min(parseInt(limit, 10), 500),
+    });
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'UCDP data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] UCDP events error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch conflict events' });
+  }
+});
+
+/**
+ * GET /api/ucdp/conflicts
+ * Get active armed conflicts summary
+ */
+router.get('/ucdp/conflicts', async (req, res) => {
+  try {
+    const data = await ucdpService.getActiveConflicts();
+    if (!data) {
+      return res.status(503).json({ success: false, error: 'UCDP data temporarily unavailable' });
+    }
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] UCDP conflicts error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch active conflicts' });
   }
 });
 
