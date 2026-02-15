@@ -2,13 +2,10 @@
  * FrontlineOverlay — MapLibre version
  * Renders the UA/RU frontline as GeoJSON line layers on the map.
  */
-import { useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 import {
   FRONTLINE_SEGMENTS,
   UKRAINE_BLUE,
-  UKRAINE_YELLOW,
-  RUSSIA_BLUE,
   RUSSIA_RED,
 } from './frontlineData';
 
@@ -41,73 +38,52 @@ export default function FrontlineOverlay({ visible }) {
   return (
     <>
       <Source id="frontline" type="geojson" data={FRONTLINE_GEOJSON}>
-        {/* Background glow */}
+        {/* Soft outer glow */}
         <Layer
           id="frontline-glow"
           type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
-            'line-color': 'rgba(255, 60, 60, 0.2)',
+            'line-color': 'rgba(255, 80, 60, 0.12)',
             'line-width': 10,
+            'line-blur': 6,
           }}
         />
 
-        {/* Ukraine side - blue */}
+        {/* Ukraine side — thin blue accent */}
         <Layer
           id="frontline-ua-base"
           type="line"
-          layout={{ visibility, 'line-cap': 'butt' }}
+          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
             'line-color': UKRAINE_BLUE,
-            'line-width': 4,
-            'line-offset': -3,
-          }}
-        />
-        {/* Ukraine side - yellow dashes */}
-        <Layer
-          id="frontline-ua-dash"
-          type="line"
-          layout={{ visibility, 'line-cap': 'butt' }}
-          paint={{
-            'line-color': UKRAINE_YELLOW,
-            'line-width': 4,
-            'line-dasharray': [2, 2],
-            'line-offset': -3,
+            'line-width': 1.5,
+            'line-offset': -2,
+            'line-opacity': 0.7,
           }}
         />
 
-        {/* Center frontline - red */}
+        {/* Center line — crisp white-hot core */}
         <Layer
           id="frontline-center"
           type="line"
           layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
-            'line-color': 'rgba(255, 50, 50, 0.95)',
-            'line-width': 1.5,
+            'line-color': 'rgba(255, 255, 255, 0.7)',
+            'line-width': 1,
           }}
         />
 
-        {/* Russia side - red */}
+        {/* Russia side — thin red accent */}
         <Layer
           id="frontline-ru-base"
           type="line"
-          layout={{ visibility, 'line-cap': 'butt' }}
+          layout={{ visibility, 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
             'line-color': RUSSIA_RED,
-            'line-width': 4,
-            'line-offset': 3,
-          }}
-        />
-        {/* Russia side - blue dashes */}
-        <Layer
-          id="frontline-ru-dash"
-          type="line"
-          layout={{ visibility, 'line-cap': 'butt' }}
-          paint={{
-            'line-color': RUSSIA_BLUE,
-            'line-width': 4,
-            'line-dasharray': [2, 2],
-            'line-offset': 3,
+            'line-width': 1.5,
+            'line-offset': 2,
+            'line-opacity': 0.7,
           }}
         />
       </Source>

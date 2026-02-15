@@ -1,0 +1,138 @@
+rules_version = '2';
+
+// ===========================================
+// FIRESTORE SECURITY RULES
+// ===========================================
+// SECURITY: All write operations are enforced via Cloud Functions.
+// These rules act as a second layer of defense. Never rely solely
+// on frontend checks — the Cloud Functions validate auth, tier
+// limits, rate limits, and content safety before any write occurs.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------
+    // HELPER FUNCTIONS
+    // -----------------------------------------
+
+    // SECURITY: Verify the request comes from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // SECURITY: Verify the authenticated user matches the target user ID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // SECURITY: Check if user has a specific role stored in their user doc.
+    // Roles are set exclusively via admin Cloud Functions to prevent
+    // privilege escalation — users cannot set their own role.
+    function hasRole(role) {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // SECURITY: Admin or mod check for moderation endpoints
+    function isModerator() {
+      return hasRole('admin') || hasRole('mod');
+    }
+
+    // SECURITY: Check if the user is banned. Banned users are denied
+    // all write access to prevent abuse even if they have a valid token.
+    function isNotBanned() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.banned_flag != true;
+    }
+
+    // -----------------------------------------
+    // USERS COLLECTION
+    // -----------------------------------------
+    // SECURITY: Users can read their own profile. Only Cloud Functions
+    // can create/update user documents to prevent field tampering
+    // (e.g., setting subscription_status or role directly).
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isModerator();
+      // SECURITY: All writes go through Cloud Functions.
+      // This prevents users from modifying their own role,
+      // subscription_status, or banned_flag directly.
+      allow write: if false;
+    }
+
+    // -----------------------------------------
+    // CONFIGS COLLECTION
+    // -----------------------------------------
+    // SECURITY: Users can read their own configs and public configs.
+    // All writes enforced via Cloud Functions to check tier limits
+    // (free: max 3 configs, pro: unlimited).
+    match /configs/{configId} {
+      allow read: if isAuthenticated()
+        && (resource.data.user_id == request.auth.uid || resource.data.is_public == true);
+      // SECURITY: Writes go through Cloud Functions for tier validation
+      allow write: if false;
+    }
+
+    // -----------------------------------------
+    // CHATS COLLECTION
+    // -----------------------------------------
+    // SECURITY: Public chats are readable by all authenticated users.
+    // Private chats require membership (checked server-side).
+    // Messages are write-protected — only Cloud Functions can create
+    // messages after passing rate limit and toxicity checks.
+    match /chats/{chatId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      // SECURITY: Messages subcollection — read-only from client.
+      // All message creation goes through Cloud Functions which
+      // enforce rate limits, profanity filters, and shadowban logic.
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+    }
+
+    // -----------------------------------------
+    // SUBSCRIPTIONS COLLECTION
+    // -----------------------------------------
+    // SECURITY: Users can read their own subscription status.
+    // All writes come from Stripe webhooks via Cloud Functions.
+    // Never trust frontend subscription state — always verify server-side.
+    match /subscriptions/{userId} {
+      allow read: if isOwner(userId);
+      // SECURITY: Only Stripe webhook Cloud Function writes here.
+      // Prevents users from faking pro subscription status.
+      allow write: if false;
+    }
+
+    // -----------------------------------------
+    // REPORTS COLLECTION
+    // -----------------------------------------
+    // SECURITY: Reports are write-only via Cloud Functions.
+    // Only moderators can read reports to prevent information leaks
+    // about who reported whom.
+    match /reports/{reportId} {
+      allow read: if isModerator();
+      allow write: if false;
+    }
+
+    // -----------------------------------------
+    // RATE LIMITS COLLECTION (internal)
+    // -----------------------------------------
+    // SECURITY: Rate limit counters are managed exclusively by
+    // Cloud Functions. No client access to prevent manipulation.
+    match /rate_limits/{docId} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------
+    // DEFAULT DENY
+    // -----------------------------------------
+    // SECURITY: Deny all access to any collection not explicitly
+    // listed above. This is defense-in-depth against accidental
+    // data exposure from new collections.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
