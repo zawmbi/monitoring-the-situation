@@ -2,17 +2,21 @@
  * Set username — callable Cloud Function
  *
  * SECURITY: Creates or updates the user's display name in Firestore.
- * Validates the username for length, allowed characters, and uniqueness.
+ * Validates the username for length, allowed characters, uniqueness,
+ * and checks against a blocked-word list to prevent vulgar, racist,
+ * or abusive usernames.
+ *
  * Only works once — after display_name_set is true, users cannot change
  * their display name through this function.
  */
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { containsBadWord } from './blockedWords.js';
 
 const db = getFirestore();
 
 // Username rules
-const MIN_LENGTH = 2;
+const MIN_LENGTH = 4;
 const MAX_LENGTH = 20;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
 
@@ -44,6 +48,11 @@ export async function handleSetUsername(request) {
   // Validate characters
   if (!USERNAME_REGEX.test(trimmed)) {
     return { success: false, error: 'Username can only contain letters, numbers, and underscores' };
+  }
+
+  // SECURITY: Check against blocked words list
+  if (containsBadWord(trimmed)) {
+    return { success: false, error: 'That username is not allowed' };
   }
 
   // Check if user doc already exists with display_name_set = true

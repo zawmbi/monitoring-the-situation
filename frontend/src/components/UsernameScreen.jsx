@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { setUsername } from '../firebase/firestore.js';
+import { BLOCKED_PATTERNS } from '../utils/blockedWords.js';
 import './UsernameScreen.css';
 
-export default function UsernameScreen() {
+function containsBadWord(name) {
+  const lower = name.toLowerCase();
+  return BLOCKED_PATTERNS.some((pat) =>
+    pat instanceof RegExp ? pat.test(lower) : lower.includes(pat),
+  );
+}
+
+export default function UsernameScreen({ onSkip }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -11,12 +19,16 @@ export default function UsernameScreen() {
     e.preventDefault();
     const trimmed = value.trim();
 
-    if (trimmed.length < 2 || trimmed.length > 20) {
-      setError('Username must be 2-20 characters');
+    if (trimmed.length < 4 || trimmed.length > 20) {
+      setError('Username must be 4-20 characters');
       return;
     }
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
       setError('Letters, numbers, and underscores only');
+      return;
+    }
+    if (containsBadWord(trimmed)) {
+      setError('That username is not allowed');
       return;
     }
 
@@ -61,14 +73,23 @@ export default function UsernameScreen() {
         <button
           className="username-btn"
           type="submit"
-          disabled={loading || value.trim().length < 2}
+          disabled={loading || value.trim().length < 4}
         >
           {loading ? 'Setting...' : 'Continue'}
         </button>
 
         <p className="username-hint">
-          2-20 characters. Letters, numbers, underscores.
+          4-20 characters. Letters, numbers, underscores.
         </p>
+
+        <button
+          className="username-skip"
+          type="button"
+          onClick={onSkip}
+          disabled={loading}
+        >
+          Skip for now
+        </button>
       </form>
     </div>
   );

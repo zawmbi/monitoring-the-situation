@@ -93,3 +93,23 @@
   font-size: 0.7rem;
   color: var(--color-text-muted);
 }
+
+.username-skip {
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.username-skip:hover:not(:disabled) {
+  color: var(--color-text-secondary);
+}
+
+.username-skip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

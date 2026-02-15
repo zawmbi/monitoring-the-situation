@@ -39,6 +39,7 @@ import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
 import UsernameScreen from './components/UsernameScreen';
+import AccountPanel from './components/AccountPanel';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -672,8 +673,32 @@ const getInitialVisualLayers = () => {
 function App() {
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Show username picker when logged in but no profile or no display name set
-  const needsUsername = !authLoading && user && (!profile || profile.display_name_set !== true);
+  // Track whether username screen was dismissed this session
+  const [usernameDismissed, setUsernameDismissed] = useState(false);
+  // Track the previous user to detect fresh login
+  const [prevUser, setPrevUser] = useState(undefined);
+
+  // Show username picker only on fresh login (not on page reload with existing session)
+  const needsUsername = !authLoading && user && (!profile || profile.display_name_set !== true) && !usernameDismissed;
+
+  // Reset dismissed state when user changes (new login)
+  useEffect(() => {
+    if (prevUser === undefined) {
+      // First render — if user is already logged in from a previous session, don't show
+      setPrevUser(user || null);
+      if (user) setUsernameDismissed(true);
+      return;
+    }
+    // User changed from null to logged in → fresh login, allow username screen
+    if (!prevUser && user) {
+      setUsernameDismissed(false);
+    }
+    // User logged out → reset
+    if (prevUser && !user) {
+      setUsernameDismissed(false);
+    }
+    setPrevUser(user || null);
+  }, [user]);
 
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
@@ -681,6 +706,7 @@ function App() {
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
   const [theme, setTheme] = useState(getStoredTheme);
   const [activePage, setActivePage] = useState(null);
+  const [showAccount, setShowAccount] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(getInitialNavCollapsed);
 
   // Settings persistence — restores theme/layout from Firestore after login.
@@ -1550,6 +1576,7 @@ function App() {
 
   const handleNavigate = (pageId) => {
     setActivePage(prev => (prev === pageId ? null : pageId));
+    setShowAccount(false);
   };
 
   const handleToggleNav = () => {
@@ -1774,6 +1801,7 @@ function App() {
         onVolumeChange={handleVolumeChange}
         collapsed={navCollapsed}
         onToggleCollapse={handleToggleNav}
+        onOpenAccount={() => { setShowAccount(true); setActivePage(null); }}
       />
 
       <div className="app-body">
@@ -3188,8 +3216,9 @@ function App() {
     </div>
     </div>
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
     <MinimizedTray />
-    {needsUsername && <UsernameScreen />}
+    {needsUsername && <UsernameScreen onSkip={() => setUsernameDismissed(true)} />}
     </>
     </WindowManagerProvider>
   );
