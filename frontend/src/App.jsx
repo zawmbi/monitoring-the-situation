@@ -117,6 +117,23 @@ function fixGeoJSON(geojson) {
   return geojson.map(f => ({ ...f, geometry: fixGeometry(f.geometry) }));
 }
 
+// Compute [west, south, east, north] bounding box from a GeoJSON geometry
+function geoBBox(geometry) {
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  function visit(coords) {
+    if (typeof coords[0] === 'number') {
+      if (coords[0] < minLng) minLng = coords[0];
+      if (coords[0] > maxLng) maxLng = coords[0];
+      if (coords[1] < minLat) minLat = coords[1];
+      if (coords[1] > maxLat) maxLat = coords[1];
+    } else {
+      for (const c of coords) visit(c);
+    }
+  }
+  visit(geometry.coordinates);
+  return [minLng, minLat, maxLng, maxLat];
+}
+
 // Safe guard in case topojson fails to load
 const GEO_FEATURES = fixGeoJSON(
   worldData?.objects?.countries
@@ -1322,11 +1339,10 @@ function App() {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
 
-    // Positron basemap desaturated and heavily darkened — provides subtle
-    // terrain texture (rivers, coastlines, mountains) without its own colors
+    // Positron basemap — retina tiles for sharper terrain texture on zoom
     const basemapUrl = isLightTheme
-      ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
-      : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+      ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png'
+      : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png';
 
     return {
       version: 8,
@@ -1335,7 +1351,7 @@ function App() {
         'basemap-tiles': {
           type: 'raster',
           tiles: [basemapUrl],
-          tileSize: 256,
+          tileSize: 512,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
         },
         'terrain-dem': {
@@ -1345,6 +1361,10 @@ function App() {
           tileSize: 256,
           maxzoom: 7,
         },
+      },
+      terrain: {
+        source: 'terrain-dem',
+        exaggeration: 1.5,
       },
       layers: [
         {
@@ -1358,14 +1378,14 @@ function App() {
           source: 'basemap-tiles',
           paint: isLightTheme
             ? {
-                'raster-opacity': 0.55,
+                'raster-opacity': 0.65,
                 'raster-saturation': -0.5,
               }
             : {
-                'raster-opacity': 0.18,
-                'raster-brightness-max': 0.35,
-                'raster-saturation': -1,
-                'raster-contrast': 0.15,
+                'raster-opacity': 0.35,
+                'raster-brightness-max': 0.45,
+                'raster-saturation': -0.6,
+                'raster-contrast': 0.25,
               },
         },
         {
@@ -1373,10 +1393,10 @@ function App() {
           type: 'hillshade',
           source: 'terrain-dem',
           paint: {
-            'hillshade-exaggeration': 0.3,
-            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.3)',
-            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(180,200,230,0.08)',
-            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.12)',
+            'hillshade-exaggeration': 1.0,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.5)' : 'rgba(0,0,10,0.5)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.4)' : 'rgba(180,200,230,0.2)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,25,0.2)',
             'hillshade-illumination-direction': 315,
           },
         },
@@ -1600,6 +1620,23 @@ function App() {
       const name = feat.properties?.name || 'Unknown';
       const originalId = feat.properties?.originalId;
 
+      // Auto-zoom: fly to the clicked feature's bounding box
+      const map = mapRef.current;
+      if (map && feat.geometry) {
+        try {
+          const [west, south, east, north] = geoBBox(feat.geometry);
+          if (Number.isFinite(west) && Number.isFinite(south)) {
+            map.stop();
+            map.fitBounds([[west, south], [east, north]], {
+              padding: { top: 80, bottom: 80, left: 80, right: 80 },
+              maxZoom: 7,
+              duration: 1400,
+              essential: true,
+            });
+          }
+        } catch (_) { /* geometry may be incomplete */ }
+      }
+
       if (sourceId === 'countries') {
         setSelectedRegion({ type: 'country', id: originalId, name });
         setViewMode('region');
@@ -1802,6 +1839,18 @@ function App() {
     setSelectedRegion(null);
     setSelectedHotspotId(null);
     setSelectedCapital(null);
+    // Zoom back to world view
+    const map = mapRef.current;
+    if (map) {
+      map.flyTo({
+        center: [0, 20],
+        zoom: 2.0,
+        pitch: 0,
+        bearing: 0,
+        duration: 1400,
+        essential: true,
+      });
+    }
   };
 
   // Double-click: zoom into the clicked country/state centered on click point
@@ -1827,10 +1876,26 @@ function App() {
     const features = event.features;
     if (!features || features.length === 0) return;
 
-    // Stop any in-progress animation so flyTo takes effect immediately
+    // Stop any in-progress animation so fitBounds takes effect immediately
     map.stop();
 
-    // Zoom to click location at a country-detail level
+    // Zoom to the feature's bounding box for a contextual close-up
+    const feat = features[0];
+    if (feat.geometry) {
+      try {
+        const [west, south, east, north] = geoBBox(feat.geometry);
+        if (Number.isFinite(west) && Number.isFinite(south)) {
+          map.fitBounds([[west, south], [east, north]], {
+            padding: { top: 60, bottom: 60, left: 60, right: 60 },
+            maxZoom: 8,
+            duration: 1000,
+            essential: true,
+          });
+          return;
+        }
+      } catch (_) { /* fallback below */ }
+    }
+    // Fallback: zoom to click point
     map.flyTo({
       center: [event.lngLat.lng, event.lngLat.lat],
       zoom: 6,
@@ -1891,6 +1956,12 @@ function App() {
       sh.setWheelZoomRate(1 / 250);
       sh.setZoomRate(1 / 60);
     }
+    // Enable real 3D terrain mesh using existing elevation tiles
+    try {
+      if (evt.target.getSource('terrain-dem')) {
+        evt.target.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 });
+      }
+    } catch (_) { /* terrain may not be supported in all contexts */ }
   }, []);
 
   // Track map center for globe hemisphere visibility check + starfield parallax
