@@ -67,8 +67,8 @@ export class TwinklingStarfieldLayer {
     this.type = 'custom';
     this.renderingMode = '3d';
 
-    this._starCount = options.starCount ?? 4000;
-    this._starSize  = options.starSize  ?? 3.0;
+    this._starCount = options.starCount ?? 5000;
+    this._starSize  = options.starSize  ?? 3.5;
 
     this._renderer  = null;
     this._scene     = null;
