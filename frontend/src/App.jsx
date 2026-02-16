@@ -884,29 +884,30 @@ function App() {
       }
       // Update background color without triggering full style reload
       if (map.getLayer('background')) {
-        map.setPaintProperty('background', 'background-color', useGlobe ? '#000510' : '#060e18');
+        map.setPaintProperty('background', 'background-color', useGlobe ? '#000208' : '#060e18');
       }
     } catch {}
   }, [useGlobe]);
 
-  // Globe fog — renders stars in the sky behind the globe + subtle atmosphere
+  // Globe fog — stars + blue atmosphere halo that wraps the actual globe edge
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     try {
       if (useGlobe) {
+        const glowOn = visualLayers.earthGlow;
         map.setFog({
-          'space-color': '#000510',
-          'star-intensity': 0.55,
-          'color': '#0a1628',
-          'high-color': '#061020',
-          'horizon-blend': 0.03,
+          'space-color': '#000208',
+          'star-intensity': 0.6,
+          'color': glowOn ? '#1a80dd' : '#000208',
+          'high-color': glowOn ? '#0c3a6e' : '#000208',
+          'horizon-blend': glowOn ? 0.06 : 0,
         });
       } else {
         map.setFog(null);
       }
     } catch {}
-  }, [useGlobe, mapLoaded]);
+  }, [useGlobe, mapLoaded, visualLayers.earthGlow]);
 
   useEffect(() => {
     const handleResize = () => {
