@@ -16,17 +16,16 @@ const CACHE_TTL = 3600; // 1 hour
 
 class GoogleCivicService {
   constructor() {
-    this._apiKey = process.env.GOOGLE_CIVIC_API_KEY || '';
     this._memCache = {};
     this._memCacheTime = {};
   }
 
   get apiKey() {
-    return this._apiKey;
+    return process.env.GOOGLE_CIVIC_API_KEY || '';
   }
 
   get isConfigured() {
-    return !!this._apiKey;
+    return !!process.env.GOOGLE_CIVIC_API_KEY;
   }
 
   async _fetch(endpoint, params = {}) {

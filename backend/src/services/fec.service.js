@@ -30,17 +30,16 @@ const STATE_CODES = {
 
 class FECService {
   constructor() {
-    this._apiKey = process.env.FEC_API_KEY || '';
     this._memCache = {};
     this._memCacheTime = {};
   }
 
   get apiKey() {
-    return this._apiKey || 'DEMO_KEY';
+    return process.env.FEC_API_KEY || 'DEMO_KEY';
   }
 
   get isConfigured() {
-    return !!this._apiKey;
+    return !!process.env.FEC_API_KEY;
   }
 
   async _fetch(endpoint, params = {}) {
@@ -62,7 +61,10 @@ class FECService {
         console.warn('[FEC] Rate limited — try setting FEC_API_KEY env');
         return null;
       }
-      if (!response.ok) throw new Error(`FEC API ${response.status}`);
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`FEC API ${response.status}: ${body.slice(0, 200)}`);
+      }
       return await response.json();
     } catch (error) {
       clearTimeout(timeout);
@@ -95,7 +97,7 @@ class FECService {
       state: stateCode,
       office: 'S',
       election_year: '2026',
-      sort: '-total_receipts',
+      sort: 'name',
       per_page: '20',
       is_active_candidate: 'true',
     });
@@ -112,7 +114,7 @@ class FECService {
       candidateId: c.candidate_id,
       state: stateCode,
       office: 'senate',
-    }));
+    })).sort((a, b) => b.totalReceipts - a.totalReceipts);
 
     if (candidates.length > 0) {
       await cacheService.set(cacheKey, candidates, CACHE_TTL);
@@ -143,7 +145,7 @@ class FECService {
       const data = await this._fetch('/candidates/search/', {
         office: 'S',
         election_year: '2026',
-        sort: '-total_receipts',
+        sort: 'name',
         per_page: '100',
         page: String(page),
         is_active_candidate: 'true',
@@ -204,7 +206,7 @@ class FECService {
       office: 'H',
       district: String(district).padStart(2, '0'),
       election_year: '2026',
-      sort: '-total_receipts',
+      sort: 'name',
       per_page: '20',
       is_active_candidate: 'true',
     });
@@ -222,7 +224,7 @@ class FECService {
       state: stateCode,
       district: c.district,
       office: 'house',
-    }));
+    })).sort((a, b) => b.totalReceipts - a.totalReceipts);
 
     if (candidates.length > 0) {
       await cacheService.set(cacheKey, candidates, CACHE_TTL);
@@ -422,7 +424,7 @@ class FECService {
       state: stateCode,
       office: 'S',
       election_year: '2026',
-      sort: '-total_receipts',
+      sort: 'name',
       per_page: '20',
       is_active_candidate: 'true',
     });
@@ -439,7 +441,7 @@ class FECService {
       candidateId: c.candidate_id,
       state: stateCode,
       office: 'senate',
-    }));
+    })).sort((a, b) => b.totalReceipts - a.totalReceipts);
 
     if (candidates.length > 0) {
       await cacheService.set(cacheKey, candidates, CACHE_TTL);

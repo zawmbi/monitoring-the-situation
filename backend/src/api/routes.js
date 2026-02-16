@@ -19,6 +19,26 @@ import { wikidataService } from '../services/wikidata.service.js';
 import { ucdpService } from '../services/ucdp.service.js';
 import { marketsService } from '../services/markets.service.js';
 import { kalshiService } from '../services/kalshi.service.js';
+import { stabilityService } from '../services/stability.service.js';
+import { disastersService } from '../services/disasters.service.js';
+import { cyberService } from '../services/cyber.service.js';
+import { refugeeService } from '../services/refugee.service.js';
+import { courtService } from '../services/court.service.js';
+import { commoditiesService } from '../services/commodities.service.js';
+import { metaculusService } from '../services/metaculus.service.js';
+import { sanctionsService } from '../services/sanctions.service.js';
+import { shippingService } from '../services/shipping.service.js';
+import { countryRiskService } from '../services/countryRisk.service.js';
+import { tensionIndexService } from '../services/tensionIndex.service.js';
+import { arbitrageService } from '../services/arbitrage.service.js';
+import { briefingService } from '../services/briefing.service.js';
+import { narrativeService } from '../services/narrative.service.js';
+import { regimeService } from '../services/regime.service.js';
+import { allianceService } from '../services/alliance.service.js';
+import { infrastructureService } from '../services/infrastructure.service.js';
+import { demographicService } from '../services/demographic.service.js';
+import { credibilityService } from '../services/credibility.service.js';
+import { leadershipService } from '../services/leadership.service.js';
 
 const router = Router();
 
@@ -765,6 +785,432 @@ router.get('/fec/expenditures/:state', async (req, res) => {
   } catch (error) {
     console.error('[API] FEC expenditures error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch expenditure data' });
+  }
+});
+
+// ===========================================
+// STABILITY DATA (Protests, Military, Instability)
+// ===========================================
+
+/**
+ * GET /api/stability
+ * Combined stability data: protests heatmap + military indicators + instability alerts
+ */
+router.get('/stability', async (req, res) => {
+  try {
+    const data = await stabilityService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Stability error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
+  }
+});
+
+/**
+ * GET /api/stability/protests
+ * Protest/unrest heatmap data with GDELT article counts per country
+ */
+router.get('/stability/protests', async (req, res) => {
+  try {
+    const data = await stabilityService.getProtestData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Protest data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch protest data' });
+  }
+});
+
+/**
+ * GET /api/stability/military
+ * Military movement indicators (OSINT-derived)
+ */
+router.get('/stability/military', async (req, res) => {
+  try {
+    const data = await stabilityService.getMilitaryData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Military data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch military data' });
+  }
+});
+
+/**
+ * GET /api/stability/instability
+ * Assassinations, coups, regime instability alerts
+ */
+router.get('/stability/instability', async (req, res) => {
+  try {
+    const data = await stabilityService.getInstabilityData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Instability data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch instability data' });
+  }
+});
+
+// ===========================================
+// NATURAL DISASTERS & EMERGENCIES (NASA EONET + ReliefWeb)
+// ===========================================
+
+/**
+ * GET /api/disasters
+ * Active natural disaster events from NASA EONET + ReliefWeb
+ */
+router.get('/disasters', async (req, res) => {
+  try {
+    const data = await disastersService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Disasters error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch disaster data' });
+  }
+});
+
+// ===========================================
+// CYBERATTACKS & OUTAGES
+// ===========================================
+
+/**
+ * GET /api/cyber
+ * Cyberattack incidents, outages, and CISA vulnerabilities
+ */
+router.get('/cyber', async (req, res) => {
+  try {
+    const data = await cyberService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Cyber error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch cyber data' });
+  }
+});
+
+// ===========================================
+// REFUGEE FLOWS & MIGRATION
+// ===========================================
+
+/**
+ * GET /api/refugees
+ * Refugee situations, host countries, and migration news
+ */
+router.get('/refugees', async (req, res) => {
+  try {
+    const data = await refugeeService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Refugees error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch refugee data' });
+  }
+});
+
+// ===========================================
+// COURT RULINGS & LEGAL CASES
+// ===========================================
+
+/**
+ * GET /api/court
+ * Major court rulings, pending cases, and legal news
+ */
+router.get('/court', async (req, res) => {
+  try {
+    const data = await courtService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Court error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch court data' });
+  }
+});
+
+// ===========================================
+// COMMODITIES & SUPPLY SHOCKS
+// ===========================================
+
+/**
+ * GET /api/commodities
+ * Live commodity prices, supply chain disruption news
+ */
+router.get('/commodities', async (req, res) => {
+  try {
+    const data = await commoditiesService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Commodities error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch commodity data' });
+  }
+});
+
+// ===========================================
+// METACULUS FORECASTS
+// ===========================================
+
+/**
+ * GET /api/metaculus
+ * Metaculus community forecasts on geopolitical events
+ * Query params:
+ *   - q: search query (optional)
+ *   - limit: max results (default 10)
+ */
+router.get('/metaculus', async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    let data;
+    if (q) {
+      data = await metaculusService.searchQuestions(q, parseInt(limit, 10));
+      res.json({ success: true, count: data.length, data, timestamp: new Date().toISOString() });
+    } else {
+      data = await metaculusService.getCombinedData();
+      res.json({ success: true, data, timestamp: new Date().toISOString() });
+    }
+  } catch (error) {
+    console.error('[API] Metaculus error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch Metaculus data' });
+  }
+});
+
+// ===========================================
+// SANCTIONS & COMPLIANCE
+// ===========================================
+
+/**
+ * GET /api/sanctions
+ * Sanctioned regimes, compliance news
+ */
+router.get('/sanctions', async (req, res) => {
+  try {
+    const data = await sanctionsService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Sanctions error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch sanctions data' });
+  }
+});
+
+// ===========================================
+// SHIPPING & TRADE FLOWS
+// ===========================================
+
+/**
+ * GET /api/shipping
+ * Maritime chokepoints, trade disruptions, shipping news
+ */
+router.get('/shipping', async (req, res) => {
+  try {
+    const data = await shippingService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Shipping error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch shipping data' });
+  }
+});
+
+// ===========================================
+// COUNTRY RISK SCORES
+// ===========================================
+
+/**
+ * GET /api/risk
+ * Composite country risk scores
+ */
+router.get('/risk', async (req, res) => {
+  try {
+    const data = await countryRiskService.getCountryRiskScores();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Risk error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch risk scores' });
+  }
+});
+
+// ===========================================
+// GLOBAL TENSION INDEX
+// ===========================================
+
+/**
+ * GET /api/tension
+ * Global tension index with active conflicts and flashpoints
+ */
+router.get('/tension', async (req, res) => {
+  try {
+    const data = await tensionIndexService.getGlobalTension();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Tension error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tension index' });
+  }
+});
+
+// ===========================================
+// PREDICTION MARKET ARBITRAGE
+// ===========================================
+
+/**
+ * GET /api/arbitrage
+ * Polymarket vs Kalshi divergence detection
+ */
+router.get('/arbitrage', async (req, res) => {
+  try {
+    const data = await arbitrageService.getOpportunities();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Arbitrage error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch arbitrage data' });
+  }
+});
+
+// ===========================================
+// INTELLIGENCE BRIEFINGS
+// ===========================================
+
+/**
+ * GET /api/briefing
+ * Auto-generated global intelligence briefing
+ */
+router.get('/briefing', async (req, res) => {
+  try {
+    const data = await briefingService.getGlobalBriefing();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Briefing error:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate briefing' });
+  }
+});
+
+/**
+ * GET /api/briefing/:country
+ * Country-specific situation brief
+ */
+router.get('/briefing/:country', async (req, res) => {
+  try {
+    const data = await briefingService.getCountryBrief(decodeURIComponent(req.params.country));
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Country briefing error:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate country briefing' });
+  }
+});
+
+// ===========================================
+// NARRATIVE & SENTIMENT TRACKING
+// ===========================================
+
+/**
+ * GET /api/narrative
+ * Global narrative tracking, sentiment analysis, divergence detection
+ */
+router.get('/narrative', async (req, res) => {
+  try {
+    const data = await narrativeService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Narrative error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch narrative data' });
+  }
+});
+
+// ===========================================
+// REGIME STABILITY & COUP RISK
+// ===========================================
+
+/**
+ * GET /api/regime
+ * Regime stability scores, coup risk indicators
+ */
+router.get('/regime', async (req, res) => {
+  try {
+    const data = await regimeService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Regime error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch regime data' });
+  }
+});
+
+// ===========================================
+// ALLIANCE NETWORK
+// ===========================================
+
+/**
+ * GET /api/alliance
+ * Geopolitical alliance networks and bilateral tensions
+ */
+router.get('/alliance', async (req, res) => {
+  try {
+    const data = await allianceService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Alliance error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch alliance data' });
+  }
+});
+
+// ===========================================
+// INFRASTRUCTURE VULNERABILITY
+// ===========================================
+
+/**
+ * GET /api/infrastructure
+ * Critical infrastructure monitoring and threat detection
+ */
+router.get('/infrastructure', async (req, res) => {
+  try {
+    const data = await infrastructureService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Infrastructure error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch infrastructure data' });
+  }
+});
+
+// ===========================================
+// DEMOGRAPHIC RISK
+// ===========================================
+
+/**
+ * GET /api/demographic
+ * Demographic risk analysis from World Bank indicators
+ */
+router.get('/demographic', async (req, res) => {
+  try {
+    const data = await demographicService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Demographic error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch demographic data' });
+  }
+});
+
+// ===========================================
+// SOURCE CREDIBILITY & TRUTH ENGINE
+// ===========================================
+
+/**
+ * GET /api/credibility
+ * Source credibility assessment and misinformation detection
+ */
+router.get('/credibility', async (req, res) => {
+  try {
+    const data = await credibilityService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Credibility error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch credibility data' });
+  }
+});
+
+// ===========================================
+// LEADERSHIP INTELLIGENCE
+// ===========================================
+
+/**
+ * GET /api/leadership
+ * Enhanced leadership tracking, influence scoring, change alerts
+ */
+router.get('/leadership', async (req, res) => {
+  try {
+    const data = await leadershipService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Leadership error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch leadership data' });
   }
 });
 
