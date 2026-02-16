@@ -78,7 +78,6 @@ function getGlobeScreenRadius(map) {
 export default function EarthOverlay({ useGlobe = false, earthGlow = true, map = null }) {
   const starCanvasRef = useRef(null);
   const haloRef = useRef(null);
-  const rafRef = useRef(0);
 
   // ---------- Starfield ----------
   useEffect(() => {
@@ -94,34 +93,28 @@ export default function EarthOverlay({ useGlobe = false, earthGlow = true, map =
   }, [useGlobe]);
 
   // ---------- Globe radius tracking ----------
+  // Uses 'render' event (fires every frame during animations) and updates
+  // the DOM synchronously — no rAF delay — so the halo stays locked to the globe.
   useEffect(() => {
     if (!map || !useGlobe) return;
 
     const update = () => {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        const r = getGlobeScreenRadius(map);
-        if (r > 0) {
-          // Update halo size
-          if (haloRef.current) {
-            haloRef.current.style.width = r * 2 + 'px';
-            haloRef.current.style.height = r * 2 + 'px';
-            haloRef.current.style.display = '';
-          }
-          // Update star mask radius
-          if (starCanvasRef.current) {
-            starCanvasRef.current.style.setProperty('--globe-r', r + 'px');
-          }
+      const r = getGlobeScreenRadius(map);
+      if (r > 0) {
+        if (haloRef.current) {
+          haloRef.current.style.width = r * 2 + 'px';
+          haloRef.current.style.height = r * 2 + 'px';
+          haloRef.current.style.display = '';
         }
-      });
+        if (starCanvasRef.current) {
+          starCanvasRef.current.style.setProperty('--globe-r', r + 'px');
+        }
+      }
     };
 
     update();
-    map.on('move', update);
-    return () => {
-      map.off('move', update);
-      cancelAnimationFrame(rafRef.current);
-    };
+    map.on('render', update);
+    return () => map.off('render', update);
   }, [map, useGlobe]);
 
   return (
