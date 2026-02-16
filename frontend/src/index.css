@@ -755,7 +755,7 @@ body {
 
 .map-container .maplibregl-ctrl-bottom-left {
   bottom: 96px;
-  left: 15px;
+  left: 17px;
 }
 
 .map-container .maplibregl-ctrl-group {
@@ -768,8 +768,8 @@ body {
 }
 
 .map-container .maplibregl-ctrl-group button {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--glass-border);
