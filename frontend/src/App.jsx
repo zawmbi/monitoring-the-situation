@@ -3897,8 +3897,8 @@ function App() {
 
           {/* ══════════ Military Movement Indicators ══════════ */}
           <MilitaryOverlay
-            visible={stabilityMode && showMilitaryOverlay}
-            indicators={stabilityData?.military || []}
+            visible={(stabilityMode && showMilitaryOverlay) || showUSBases}
+            indicators={stabilityMode && showMilitaryOverlay ? (stabilityData?.military || []) : []}
             zoom={mapZoom}
             showBases={showUSBases}
           />
