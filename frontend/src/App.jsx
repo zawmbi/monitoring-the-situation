@@ -1339,10 +1339,11 @@ function App() {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
 
-    // Positron basemap — retina tiles for sharper terrain texture on zoom
+    // Apple Maps-inspired: dark basemap for dark mode, light for light mode
+    // Dark Matter tiles keep ocean dark and provide subtle land texture
     const basemapUrl = isLightTheme
       ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png'
-      : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png';
+      : 'https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png';
 
     return {
       version: 8,
@@ -1364,7 +1365,7 @@ function App() {
       },
       terrain: {
         source: 'terrain-dem',
-        exaggeration: 1.5,
+        exaggeration: 0.8,
       },
       layers: [
         {
@@ -1382,10 +1383,9 @@ function App() {
                 'raster-saturation': -0.5,
               }
             : {
-                'raster-opacity': 0.35,
-                'raster-brightness-max': 0.45,
-                'raster-saturation': -0.6,
-                'raster-contrast': 0.25,
+                'raster-opacity': 0.55,
+                'raster-saturation': -0.3,
+                'raster-contrast': 0.15,
               },
         },
         {
@@ -1393,10 +1393,10 @@ function App() {
           type: 'hillshade',
           source: 'terrain-dem',
           paint: {
-            'hillshade-exaggeration': 1.0,
-            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.5)' : 'rgba(0,0,10,0.5)',
-            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.4)' : 'rgba(180,200,230,0.2)',
-            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,25,0.2)',
+            'hillshade-exaggeration': 0.5,
+            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.5)' : 'rgba(0,0,20,0.35)',
+            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.4)' : 'rgba(140,170,210,0.12)',
+            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.2)' : 'rgba(5,10,25,0.1)',
             'hillshade-illumination-direction': 315,
           },
         },
@@ -1959,7 +1959,7 @@ function App() {
     // Enable real 3D terrain mesh using existing elevation tiles
     try {
       if (evt.target.getSource('terrain-dem')) {
-        evt.target.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 });
+        evt.target.setTerrain({ source: 'terrain-dem', exaggeration: 0.8 });
       }
     } catch (_) { /* terrain may not be supported in all contexts */ }
   }, []);
@@ -3721,32 +3721,33 @@ function App() {
               type="line"
               paint={{
                 'line-color': showTariffHeatmap
-                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
+                  ? (isLightTheme ? 'rgba(30, 20, 50, 0.65)' : 'rgba(180, 195, 220, 0.4)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : 'rgba(73, 198, 255, 0.65)')
+                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.7)' : 'rgba(73, 198, 255, 0.45)')
                     : (isLightTheme
-                        ? 'rgba(30, 25, 50, 0.5)'
-                        : 'rgba(15, 20, 30, 0.7)'),
+                        ? 'rgba(30, 25, 50, 0.4)'
+                        : 'rgba(80, 110, 150, 0.3)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      2.8,
-                      1.4,
+                      2.0,
+                      0.8,
                     ]
                   : holoMode
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        2.5,
-                        1.6,
+                        1.8,
+                        1.0,
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        1.8,
-                        0.8,
+                        1.4,
+                        0.5,
                       ],
+                'line-blur': 0.5,
                 'line-opacity': showEUCountries
                   ? ['case', ['boolean', ['get', 'isEU'], false], 0, 1]
                   : 1,
@@ -3821,9 +3822,10 @@ function App() {
                 type="line"
                 paint={{
                   'line-color': isLightTheme
-                    ? 'rgba(11, 84, 167, 0.35)'
-                    : 'rgba(35, 220, 245, 0.35)',
-                  'line-width': 2,
+                    ? 'rgba(11, 84, 167, 0.3)'
+                    : 'rgba(35, 220, 245, 0.25)',
+                  'line-width': 1.0,
+                  'line-blur': 0.5,
                 }}
               />
               <Layer
@@ -3865,15 +3867,16 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(3, 165, 157, 0.6)',
-                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : 'rgb(0, 238, 226)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.5)' : 'rgba(3, 165, 157, 0.4)',
+                    isLightTheme ? 'rgba(27, 84, 189, 0.25)' : 'rgba(0, 238, 226, 0.25)',
                   ],
                   'line-width': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    1.5,
-                    0.8,
+                    1.2,
+                    0.5,
                   ],
+                  'line-blur': 0.5,
                 }}
               />
               {/* Selected province highlight — just a brighter border */}
@@ -3897,8 +3900,9 @@ function App() {
                 id="eu-countries-border"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(30, 70, 160, 0.6)' : 'rgba(80, 150, 255, 0.6)',
-                  'line-width': 2.5,
+                  'line-color': isLightTheme ? 'rgba(30, 70, 160, 0.4)' : 'rgba(80, 150, 255, 0.35)',
+                  'line-width': 1.2,
+                  'line-blur': 0.5,
                 }}
               />
               {/* Unified EU fill — opaque enough to hide internal border artifacts */}
