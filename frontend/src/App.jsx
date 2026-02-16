@@ -899,9 +899,9 @@ function App() {
         map.setFog({
           'space-color': '#000208',
           'star-intensity': 0.6,
-          'color': glowOn ? '#1a80dd' : '#000208',
-          'high-color': glowOn ? '#0c3a6e' : '#000208',
-          'horizon-blend': glowOn ? 0.06 : 0,
+          'color': glowOn ? '#4db8ff' : '#000208',
+          'high-color': glowOn ? '#1a6bcc' : '#000208',
+          'horizon-blend': glowOn ? 0.18 : 0,
         });
       } else {
         map.setFog(null);
