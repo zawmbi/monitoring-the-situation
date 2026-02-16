@@ -31,38 +31,9 @@ export const CONFLICT_SUMMARY = {
 };
 
 // ─── Frontline segments ───
-export const FRONTLINE_SEGMENTS = [
-  {
-    id: 'north-kivu-front',
-    label: 'North Kivu',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [29.00, -0.80], [29.10, -1.00], [29.15, -1.20], [29.20, -1.40],
-      [29.25, -1.60], [29.30, -1.80], [29.35, -2.00],
-    ],
-  },
-  {
-    id: 'south-kivu-front',
-    label: 'South Kivu',
-    asOf: '2026-01-20',
-    status: 'contested',
-    points: [
-      [29.35, -2.00], [29.30, -2.20], [29.20, -2.40], [29.10, -2.60],
-      [29.00, -2.80], [28.90, -3.00],
-    ],
-  },
-  {
-    id: 'ituri-front',
-    label: 'Ituri Province',
-    asOf: '2026-01-15',
-    status: 'active',
-    points: [
-      [29.50, 1.50], [29.60, 1.30], [29.70, 1.10], [29.80, 0.90],
-      [29.90, 0.70], [30.00, 0.50],
-    ],
-  },
-];
+// Removed: civil/internal conflicts have no meaningful continuous frontlines.
+// Battle markers (BATTLE_SITES) show active areas of fighting instead.
+export const FRONTLINE_SEGMENTS = [];
 
 // ─── Occupied territory ───
 export const OCCUPIED_TERRITORY = {

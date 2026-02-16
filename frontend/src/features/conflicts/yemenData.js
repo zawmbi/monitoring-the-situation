@@ -33,37 +33,9 @@ export const CONFLICT_SUMMARY = {
 };
 
 // ─── Frontline segments ───
-export const FRONTLINE_SEGMENTS = [
-  {
-    id: 'marib-front',
-    label: 'Marib',
-    asOf: '2026-01-15',
-    status: 'stable',
-    points: [
-      [45.20, 15.80], [45.30, 15.60], [45.40, 15.40], [45.50, 15.20],
-      [45.60, 15.00], [45.70, 14.80],
-    ],
-  },
-  {
-    id: 'taiz-front',
-    label: 'Taiz',
-    asOf: '2026-01-15',
-    status: 'stable',
-    points: [
-      [43.80, 13.80], [44.00, 13.70], [44.20, 13.60], [44.40, 13.50],
-      [44.60, 13.40],
-    ],
-  },
-  {
-    id: 'hodeidah-front',
-    label: 'Hodeidah',
-    asOf: '2026-01-15',
-    status: 'stable',
-    points: [
-      [43.20, 15.00], [43.30, 14.80], [43.40, 14.60], [43.50, 14.40],
-    ],
-  },
-];
+// Removed: civil/internal conflicts have no meaningful continuous frontlines.
+// Battle markers (BATTLE_SITES) show active areas of fighting instead.
+export const FRONTLINE_SEGMENTS = [];
 
 // ─── Occupied territory ───
 export const OCCUPIED_TERRITORY = {

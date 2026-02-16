@@ -31,49 +31,9 @@ export const CONFLICT_SUMMARY = {
 };
 
 // ─── Frontline segments ───
-export const FRONTLINE_SEGMENTS = [
-  {
-    id: 'khartoum-front',
-    label: 'Greater Khartoum',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [32.40, 15.70], [32.45, 15.65], [32.50, 15.60], [32.55, 15.58],
-      [32.58, 15.55], [32.60, 15.52], [32.62, 15.50], [32.65, 15.48],
-      [32.60, 15.45], [32.55, 15.42], [32.50, 15.40],
-    ],
-  },
-  {
-    id: 'gezira-front',
-    label: 'Al-Jazira / Gezira State',
-    asOf: '2026-01-28',
-    status: 'contested',
-    points: [
-      [32.50, 15.40], [32.60, 15.20], [32.80, 14.90], [33.00, 14.60],
-      [33.10, 14.40], [33.20, 14.20], [33.40, 14.00],
-    ],
-  },
-  {
-    id: 'darfur-front',
-    label: 'Darfur',
-    asOf: '2026-01-20',
-    status: 'active',
-    points: [
-      [25.00, 13.60], [25.20, 13.40], [25.40, 13.20], [25.60, 13.00],
-      [25.80, 12.80], [26.00, 12.60], [26.20, 12.40], [26.40, 12.20],
-    ],
-  },
-  {
-    id: 'sennar-front',
-    label: 'Sennar State',
-    asOf: '2026-02-01',
-    status: 'contested',
-    points: [
-      [33.40, 14.00], [33.50, 13.80], [33.60, 13.60], [33.80, 13.40],
-      [34.00, 13.30], [34.20, 13.20],
-    ],
-  },
-];
+// Removed: civil/internal conflicts have no meaningful continuous frontlines.
+// Battle markers (BATTLE_SITES) show active areas of fighting instead.
+export const FRONTLINE_SEGMENTS = [];
 
 // ─── Occupied territory ───
 export const OCCUPIED_TERRITORY = {

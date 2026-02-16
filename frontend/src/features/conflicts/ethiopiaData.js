@@ -33,38 +33,9 @@ export const CONFLICT_SUMMARY = {
 };
 
 // ─── Frontline segments ───
-export const FRONTLINE_SEGMENTS = [
-  {
-    id: 'amhara-front',
-    label: 'Amhara Region',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [37.50, 12.50], [37.80, 12.30], [38.10, 12.10], [38.40, 11.90],
-      [38.70, 11.70], [39.00, 11.50], [39.30, 11.30],
-    ],
-  },
-  {
-    id: 'oromia-front',
-    label: 'Oromia Region',
-    asOf: '2026-01-15',
-    status: 'contested',
-    points: [
-      [38.00, 9.50], [38.30, 9.20], [38.60, 8.90], [39.00, 8.60],
-      [39.40, 8.30], [39.80, 8.00],
-    ],
-  },
-  {
-    id: 'tigray-ceasefire',
-    label: 'Tigray (Ceasefire Line)',
-    asOf: '2026-01-01',
-    status: 'stable',
-    points: [
-      [36.80, 14.40], [37.20, 14.20], [37.60, 14.00], [38.00, 13.80],
-      [38.40, 13.60], [38.80, 13.40], [39.20, 13.20], [39.60, 13.00],
-    ],
-  },
-];
+// Removed: civil/internal conflicts have no meaningful continuous frontlines.
+// Battle markers (BATTLE_SITES) show active areas of fighting instead.
+export const FRONTLINE_SEGMENTS = [];
 
 // ─── Occupied territory ───
 export const OCCUPIED_TERRITORY = {

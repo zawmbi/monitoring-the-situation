@@ -32,68 +32,9 @@ export const CONFLICT_SUMMARY = {
 };
 
 // ─── Frontline segments ───
-export const FRONTLINE_SEGMENTS = [
-  {
-    id: 'shan-north',
-    label: 'Northern Shan State',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [96.50, 23.00], [96.80, 22.80], [97.10, 22.60], [97.40, 22.40],
-      [97.70, 22.20], [98.00, 22.00], [98.30, 21.80],
-    ],
-  },
-  {
-    id: 'sagaing-front',
-    label: 'Sagaing Region',
-    asOf: '2026-01-28',
-    status: 'active',
-    points: [
-      [94.50, 23.50], [94.80, 23.20], [95.10, 22.90], [95.30, 22.60],
-      [95.50, 22.30], [95.70, 22.00],
-    ],
-  },
-  {
-    id: 'chin-front',
-    label: 'Chin State',
-    asOf: '2026-01-20',
-    status: 'contested',
-    points: [
-      [93.50, 22.50], [93.60, 22.20], [93.70, 21.90], [93.80, 21.60],
-      [93.90, 21.30],
-    ],
-  },
-  {
-    id: 'kayah-front',
-    label: 'Kayah / Karenni State',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [97.00, 19.80], [97.10, 19.60], [97.20, 19.40], [97.30, 19.20],
-      [97.40, 19.00],
-    ],
-  },
-  {
-    id: 'karen-front',
-    label: 'Karen / Kayin State',
-    asOf: '2026-01-15',
-    status: 'contested',
-    points: [
-      [97.50, 18.50], [97.60, 18.20], [97.70, 17.90], [97.80, 17.60],
-      [97.90, 17.30], [98.00, 17.00],
-    ],
-  },
-  {
-    id: 'rakhine-front',
-    label: 'Rakhine State',
-    asOf: '2026-02-01',
-    status: 'active',
-    points: [
-      [92.80, 21.00], [92.90, 20.70], [93.00, 20.40], [93.10, 20.10],
-      [93.20, 19.80], [93.30, 19.50],
-    ],
-  },
-];
+// Removed: civil/internal conflicts have no meaningful continuous frontlines.
+// Battle markers (BATTLE_SITES) show active areas of fighting instead.
+export const FRONTLINE_SEGMENTS = [];
 
 // ─── Occupied territory (resistance-controlled) ───
 export const OCCUPIED_TERRITORY = {
@@ -269,9 +210,9 @@ export const WAR_TIMELINE = [
   { date: '2023-10-27', event: 'Operation 1027 launched by Three Brotherhood Alliance', phase: 'offensive' },
   { date: '2023-11-25', event: 'MNDAA captures Kokang capital Laukkaing', phase: 'offensive' },
   { date: '2024-01-11', event: 'China brokers ceasefire in Shan State (partially holds)', phase: 'ceasefire' },
+  { date: '2024-02-10', event: 'Junta introduces conscription law (People\'s Military Service Law) amid severe manpower crisis', phase: 'war' },
   { date: '2024-04-11', event: 'KNLA captures Myawaddy border town', phase: 'offensive' },
   { date: '2024-06-01', event: 'AA captures most of Rakhine State; navy bases fall', phase: 'offensive' },
-  { date: '2024-02-10', event: 'Junta introduces conscription law (People\'s Military Service Law) amid severe manpower crisis', phase: 'war' },
   { date: '2024-06-25', event: 'AA captures Sittwe port area; junta navy retreats from Rakhine coast', phase: 'offensive' },
   { date: '2024-08-03', event: 'Lashio falls to MNDAA — largest city ever taken by resistance forces', phase: 'offensive' },
   { date: '2024-11-15', event: 'Junta air force loses multiple aircraft; resistance FPV drones increasingly effective', phase: 'offensive' },
