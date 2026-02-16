@@ -39,11 +39,11 @@ const CONFLICT_FEEDS = {
     ],
   },
   yemen: {
-    label: 'Yemen Houthi Red Sea',
+    label: 'Yemen War & STC Crisis',
     queries: [
-      'Houthi Red Sea shipping attacks',
-      'Yemen war Houthi',
-      'Red Sea shipping crisis',
+      'Yemen Houthi ceasefire Red Sea',
+      'Yemen STC Saudi Arabia government',
+      'Yemen cabinet Aden Riyadh crisis',
     ],
   },
   ethiopia: {

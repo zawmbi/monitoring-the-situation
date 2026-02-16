@@ -23,12 +23,12 @@ export const CONFLICT_SUMMARY = {
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
-  phase: 'Stalemate / Houthi Red Sea attacks on shipping',
+  phase: 'Post-STC crisis; Houthi Red Sea attacks ceased after Oct 2025 Gaza ceasefire; new govt cabinet formed Feb 2026',
   sideA: { name: 'Houthis (Ansar Allah)', shortName: 'Houthis', color: HOUTHI_GREEN, flag: '\u{1F1FE}\u{1F1EA}' },
   sideB: { name: 'Intl. Recognized Govt / Coalition', shortName: 'IRG/Coalition', color: GOVT_BLUE, flag: '\u{1F1FE}\u{1F1EA}' },
   internationalSupport: {
     sideA: 'Iran (missiles, drones, advisors)',
-    sideB: 'Saudi Arabia, UAE, US/UK (anti-Houthi strikes)',
+    sideB: 'Saudi Arabia (dominant partner since UAE withdrawal Dec 2025), US/UK (anti-Houthi strikes)',
   },
 };
 
@@ -56,7 +56,7 @@ export const OCCUPIED_TERRITORY = {
 // ─── Capitals & cities ───
 export const CAPITALS = [
   { id: 'sanaa', name: 'Sanaa', country: 'sideA', lat: 15.3694, lon: 44.1910, population: '3.9M', note: 'Houthi-controlled capital' },
-  { id: 'aden', name: 'Aden', country: 'sideB', lat: 12.8000, lon: 45.0375, population: '1.0M', note: 'Interim govt seat; STC influence' },
+  { id: 'aden', name: 'Aden', country: 'sideB', lat: 12.8000, lon: 45.0375, population: '1.0M', note: 'Interim govt seat; STC seized control Dec 2025 but Saudi-backed forces recaptured Jan 2026' },
 ];
 
 export const MAJOR_CITIES = [
@@ -65,7 +65,7 @@ export const MAJOR_CITIES = [
   { id: 'marib', name: 'Marib', country: 'sideB', lat: 15.4542, lon: 45.3269, population: '170K', note: 'Oil/gas region; govt-held' },
   { id: 'ibb', name: 'Ibb', country: 'sideA', lat: 13.9670, lon: 44.1830, population: '270K', note: 'Houthi-controlled' },
   { id: 'saada', name: 'Sa\'ada', country: 'sideA', lat: 16.9406, lon: 43.7614, population: '70K', note: 'Houthi heartland / stronghold' },
-  { id: 'mukalla', name: 'Al Mukalla', country: 'sideB', lat: 14.5428, lon: 49.1269, population: '300K', note: 'Hadhramaut; govt-controlled' },
+  { id: 'mukalla', name: 'Al Mukalla', country: 'sideB', lat: 14.5428, lon: 49.1269, population: '300K', note: 'Hadhramaut; STC captured Dec 2025; Saudi strikes 30 Dec; govt recaptured 4 Jan 2026' },
   { id: 'al-hudaydah', name: 'Ras Isa', country: 'sideA', lat: 15.1844, lon: 42.7511, population: '', note: 'Oil terminal; Houthi-controlled' },
 ];
 
@@ -91,7 +91,7 @@ export const TROOP_POSITIONS = [
   { id: 'houthi-taiz', side: 'sideA', unitType: 'infantry', unitSize: 'brigade', name: 'Houthi Taiz Siege Force', lat: 13.70, lon: 44.00, sector: 'Taiz' },
   { id: 'govt-marib', side: 'sideB', unitType: 'infantry', unitSize: 'division', name: 'Govt Marib Defense', lat: 15.45, lon: 45.33, sector: 'Marib' },
   { id: 'govt-taiz', side: 'sideB', unitType: 'infantry', unitSize: 'brigade', name: 'Govt Taiz Force', lat: 13.58, lon: 44.02, sector: 'Taiz' },
-  { id: 'stc-aden', side: 'sideB', unitType: 'infantry', unitSize: 'division', name: 'STC / Security Belt', lat: 12.80, lon: 45.04, sector: 'Aden' },
+  { id: 'stc-aden', side: 'sideB', unitType: 'infantry', unitSize: 'division', name: 'Govt / Former STC Forces (reintegrating)', lat: 12.80, lon: 45.04, sector: 'Aden' },
   { id: 'giants-shabwa', side: 'sideB', unitType: 'mechanized', unitSize: 'brigade', name: 'Giants Brigades', lat: 14.50, lon: 46.50, sector: 'Shabwa' },
 ];
 
@@ -109,23 +109,33 @@ export const BATTLE_SITES = [
   },
   {
     id: 'battle-red-sea', name: 'Red Sea / Bab al-Mandab Crisis', lat: 13.50, lon: 43.00,
-    date: 'Nov 2023 – ongoing', result: 'Ongoing',
-    note: 'Houthi attacks on international shipping; US/UK retaliatory strikes',
+    date: 'Nov 2023 – Oct 2025', result: 'Ceased after Gaza ceasefire',
+    note: 'Houthi attacks on international shipping; US/UK retaliatory strikes. Ceased following Oct 2025 Gaza ceasefire.',
     sideACommander: 'Houthi Naval/Missile Forces', sideBCommander: 'US CENTCOM / UK Royal Navy',
     sideATroops: 'Missile and drone units', sideBTroops: 'USN carrier groups + coalition navies',
     sideAEquipment: 'Anti-ship ballistic missiles, UAVs, mines, USVs', sideBEquipment: 'Aircraft carriers, destroyers, Tomahawk missiles',
-    sideACasualties: 'Targets struck; degraded but resilient; rebuild capability', sideBCasualties: '4+ commercial crew killed; MV Rubymar sunk (Mar 2024); 130+ ships damaged/attacked',
-    significance: '130+ commercial vessels attacked (190+ total attacks) since Nov 2023. Global shipping rerouted via Cape of Good Hope adding 10-14 days. Suez Canal revenue dropped ~61%. Iran-backed proxy war dimension.',
+    sideACasualties: 'Targets struck; degraded but resilient', sideBCasualties: '7+ commercial crew killed; 3 ships sunk (MV Rubymar Mar 2024, MV Magic Seas & MV Eternity C Jul 2025); ~137 ships attacked',
+    significance: '~137 commercial vessels attacked (190+ total attacks) Nov 2023–Oct 2025. Only 7 ship attacks in 2025 vs 150 in 2024. Global shipping rerouted via Cape of Good Hope adding 10-14 days. Suez Canal revenue dropped ~61%. US-Houthi ceasefire May 2025 did not cover Israel-linked vessels. Attacks ceased after Oct 2025 Gaza ceasefire.',
   },
   {
-    id: 'battle-hodeidah-strikes', name: 'US/UK Strikes on Hodeidah', lat: 14.7980, lon: 42.9536,
-    date: 'Jan 2024 – ongoing', result: 'Ongoing',
-    note: 'Operation Prosperity Guardian; US/UK airstrikes on Houthi targets',
+    id: 'battle-hodeidah-strikes', name: 'US/UK Strikes on Yemen (incl. Op Rough Rider)', lat: 14.7980, lon: 42.9536,
+    date: 'Jan 2024 – May 2025', result: 'Ceasefire 6 May 2025',
+    note: 'Operation Prosperity Guardian (Jan 2024), then Operation Rough Rider (15 Mar – 5 May 2025, 1,100+ strikes). Ended with Oman-brokered US-Houthi ceasefire.',
     sideACommander: 'Houthi military leadership', sideBCommander: 'US CENTCOM',
-    sideATroops: 'Air defense and missile crews', sideBTroops: 'US/UK air and naval forces',
+    sideATroops: 'Air defense and missile crews', sideBTroops: 'US/UK air and naval forces (2 carrier strike groups)',
     sideAEquipment: 'Air defense, missile launchers', sideBEquipment: 'F/A-18, Tomahawk, B-2 bombers',
-    sideACasualties: '~100+ killed; infrastructure damaged', sideBCasualties: 'Minimal; 1 MQ-9 lost',
-    significance: 'First direct US/UK military action against Houthis. Failed to stop attacks on shipping. Houthis claim attacks in solidarity with Gaza.',
+    sideACasualties: '224-238 civilians killed (monitoring groups); infrastructure degraded', sideBCasualties: 'Minimal; 1 MQ-9 lost',
+    significance: 'Op Rough Rider: 52-day intensive campaign (1,100+ strikes). 28 Apr strike on Sa\'ada migrant center killed 68. "Signalgate" leak of operational details via Signal group chat. Failed to stop Houthi capability. Oman-brokered ceasefire 6 May 2025.',
+  },
+  {
+    id: 'battle-stc-offensive', name: 'STC Southern Yemen Offensive', lat: 14.54, lon: 49.12,
+    date: '2 Dec 2025 – 10 Jan 2026', result: 'STC defeated; territory recaptured',
+    note: 'STC launched "Operation Promising Future" seizing 6 southern governorates. Saudi-backed counteroffensive reversed gains by Jan 10.',
+    sideACommander: 'Aidarus al-Zubaidi (STC)', sideBCommander: 'Rashad al-Alimi (PLC) / Saudi forces',
+    sideATroops: 'STC Security Belt + UAE-backed forces', sideBTroops: 'Govt forces + Saudi military',
+    sideAEquipment: 'UAE armored vehicles, Chinese AH4 howitzers', sideBEquipment: 'Saudi air force, ground forces',
+    sideACasualties: 'STC dissolved; al-Zubaidi dismissed/fled to UAE', sideBCasualties: 'Al-Alimi forced to Riyadh temporarily',
+    significance: 'Exposed Saudi-UAE rivalry over Yemen. Saudi airstrikes hit STC positions and Emirati vessels (30 Dec). UAE announced full withdrawal. STC dissolved 9 Jan 2026. Most significant internal govt-side split since 2015.',
   },
 ];
 
@@ -183,16 +193,18 @@ export const COMMAND = {
       { name: 'Abdel Khalek Badr al-Din al-Houthi', role: 'Military Commander' },
     ],
     totalPersonnel: '~150,000 (including tribal militias)',
+    note: 'Israeli strike (Operation Lucky Drop, 28 Aug 2025) killed PM Ahmed al-Rahawi, Defense Min. Mohamed al-Atifi, CoS Muhammad al-Ghamari, and 9 other senior officials. Leadership reconstituted but significantly degraded.',
   },
   sideB: {
     title: 'Internationally Recognized Government / Coalition',
     commanderInChief: { name: 'Rashad al-Alimi', role: 'Chairman, Presidential Leadership Council', since: 'Apr 2022' },
     keyCommanders: [
-      { name: 'Rashad al-Alimi', role: 'Chairman, Presidential Council' },
-      { name: 'Aidarus al-Zoubaidi', role: 'VP; STC leader' },
+      { name: 'Rashad al-Alimi', role: 'Chairman, Presidential Council (operates from Riyadh since Dec 2025)' },
+      { name: 'Mahmoud al-Subaihi', role: 'PLC member (replaced al-Zubaidi, Jan 2026)' },
       { name: 'Sultan al-Arada', role: 'Marib governor / PLC member' },
     ],
-    totalPersonnel: '~100,000 (govt + STC + tribal forces)',
+    totalPersonnel: '~100,000 (govt + tribal forces; STC forces dissolved/reintegrating)',
+    note: 'Aidarus al-Zubaidi dismissed from PLC on 7 Jan 2026 for high treason after STC attempted secession. STC dissolved 9 Jan 2026. UAE forces withdrew from Yemen Dec 2025.',
   },
 };
 
@@ -213,11 +225,20 @@ export const WAR_TIMELINE = [
   { date: '2024-06-01', event: 'Houthis claim hypersonic missile capability (disputed by analysts; likely conventional ballistic)', phase: 'escalation' },
   { date: '2024-10-01', event: 'US deploys B-2 bombers against underground Houthi sites', phase: 'red_sea' },
   { date: '2025-01-19', event: 'Gaza ceasefire leads to temporary reduction in Houthi Red Sea attacks', phase: 'red_sea' },
-  { date: '2025-03-01', event: 'Houthi attacks resume after Gaza ceasefire collapses; shipping disruption continues', phase: 'red_sea' },
-  { date: '2025-06-01', event: 'US intensifies strikes on Houthi infrastructure; limited degradation of capability', phase: 'red_sea' },
-  { date: '2025-09-01', event: 'Red Sea shipping rerouting becomes semi-permanent; insurance costs remain elevated 10x+', phase: 'red_sea' },
-  { date: '2025-12-01', event: 'Internal Yemen peace talks stall; Saudi Arabia continues backchannel with Houthis', phase: 'stalemate' },
-  { date: '2026-01-01', event: 'Houthis maintain operational capability; 130+ commercial vessels attacked since Nov 2023; Red Sea crisis enters 3rd year', phase: 'stalemate' },
+  { date: '2025-03-15', event: 'US launches Operation Rough Rider — 52-day intensive bombing campaign (1,100+ strikes) against Houthi targets', phase: 'red_sea' },
+  { date: '2025-04-28', event: 'US strike on Sa\'ada migrant detention center kills 68 people; widespread international condemnation', phase: 'red_sea' },
+  { date: '2025-05-04', event: 'Houthi missile strikes Ben Gurion Airport perimeter, injuring 8; Israel retaliates against Sanaa airport', phase: 'escalation' },
+  { date: '2025-05-06', event: 'Oman brokers US-Houthi ceasefire; US bombing stops. Ceasefire does not cover Israel-linked targets', phase: 'ceasefire' },
+  { date: '2025-07-06', event: 'Houthis resume Red Sea attacks: MV Magic Seas sunk (3 crew killed); MV Eternity C sunk 9 Jul (4 crew killed, crew kidnapped)', phase: 'red_sea' },
+  { date: '2025-08-28', event: 'Israel Operation Lucky Drop: airstrike on Sanaa kills Houthi PM al-Rahawi, Defense Min al-Atifi, CoS al-Ghamari, and 9 other ministers', phase: 'escalation' },
+  { date: '2025-10-10', event: 'New Gaza ceasefire takes effect; Houthi Red Sea and Israel attacks cease. ~137 commercial ships attacked total since Nov 2023', phase: 'ceasefire' },
+  { date: '2025-11-29', event: 'STC-govt dispute erupts over Masila oil fields in Hadhramaut', phase: 'internal' },
+  { date: '2025-12-02', event: 'STC launches "Operation Promising Future" — seizes 6 southern governorates including Hadhramaut and al-Mahra', phase: 'internal' },
+  { date: '2025-12-09', event: 'STC controls former South Yemen territory; al-Alimi withdraws from Aden to Riyadh', phase: 'internal' },
+  { date: '2025-12-30', event: 'Saudi Arabia airstrikes STC-held Mukalla; strikes Emirati weapons shipments. Govt orders UAE forces out', phase: 'internal' },
+  { date: '2026-01-02', event: 'Saudi-backed counteroffensive recaptures southern territories; Seiyun (3 Jan), Mukalla (4 Jan) retaken', phase: 'internal' },
+  { date: '2026-01-07', event: 'PLC dismisses al-Zubaidi for high treason; he flees to UAE. STC dissolved 9 Jan', phase: 'internal' },
+  { date: '2026-02-08', event: 'New Yemeni cabinet formed in Riyadh; Saudi consolidates control over govt side', phase: 'stalemate' },
 ];
 
 // ─── Humanitarian ───
@@ -234,10 +255,10 @@ export const HUMANITARIAN = {
     source: 'OCHA',
   },
   hunger: {
-    atRisk: 21000000,
-    label: '~21 million need humanitarian assistance (2/3 of population)',
-    famineRisk: '~5M in emergency food insecurity',
-    source: 'WFP / IPC',
+    atRisk: 23100000,
+    label: '~23.1 million need humanitarian assistance (2026 projection)',
+    famineRisk: '~5M in emergency food insecurity; 450+ health facilities closed due to funding cuts',
+    source: 'WFP / IPC / UN OCHA 2026',
   },
   infrastructureDamage: {
     healthFacilities: '~50% non-functional',
@@ -252,9 +273,9 @@ export const HUMANITARIAN = {
 export const TERRITORIAL_CONTROL = {
   totalArea: 527968,
   houthiControlled: '~30% of territory but ~70-80% of population',
-  govtControlled: '~50% of territory (south, east)',
-  stcControlled: '~20% (southern governorates)',
-  contested: 'Marib, Taiz frontlines',
+  govtControlled: '~70% of territory (south, east; recaptured from STC Jan 2026)',
+  stcControlled: 'Dissolved Jan 2026; former STC territory reintegrated under PLC/Saudi authority',
+  contested: 'Marib, Taiz frontlines; southern integration still fragile',
   asOf: 'February 2026',
   source: 'ACLED / OSINT',
 };
