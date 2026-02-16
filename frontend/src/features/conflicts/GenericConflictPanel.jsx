@@ -22,6 +22,7 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
     TERRITORIAL_CONTROL: territorial,
     BATTLE_SITES: battles = [],
     INTERNATIONAL_RESPONSE: intlResponse,
+    DONATE_CHARITIES: donateCharities,
   } = conflictData;
 
   const days = summary.daysSince();
@@ -40,6 +41,7 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
     { id: 'humanitarian', label: 'Humanitarian' },
     { id: 'battles', label: 'Battles' },
     { id: 'markets', label: 'Markets' },
+    ...(donateCharities?.length ? [{ id: 'donate', label: 'Donate' }] : []),
   ];
 
   // Build market keywords from conflict data
@@ -122,6 +124,9 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
               maxItems={12}
             />
           </div>
+        )}
+        {tab === 'donate' && donateCharities?.length > 0 && (
+          <DonateTab charities={donateCharities} conflictName={summary.name} />
         )}
       </div>
     </div>
@@ -566,6 +571,38 @@ function BattlesTab({ battles, summary, sideAColor, sideBColor }) {
           {b.significance && <div className="conflict-section-note" style={{ marginTop: 6 }}>{b.significance}</div>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ─── Donate Tab ─── */
+function DonateTab({ charities, conflictName }) {
+  return (
+    <div className="conflict-tab-body">
+      <div className="conflict-donate-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+        <div className="conflict-donate-title">
+          Humanitarian Aid — {conflictName}
+        </div>
+        <div className="conflict-donate-subtitle">
+          Verified organizations providing humanitarian, medical, and relief support to civilians affected by this conflict.
+        </div>
+        <div className="conflict-donate-list">
+          {charities.map((c) => (
+            <a key={c.name} className="conflict-donate-item"
+              href={c.url} target="_blank" rel="noopener noreferrer">
+              <span className="conflict-donate-item-icon">{c.icon}</span>
+              <div className="conflict-donate-item-info">
+                <div className="conflict-donate-item-name">{c.name}</div>
+                <div className="conflict-donate-item-desc">{c.desc}</div>
+              </div>
+              <span className="conflict-donate-item-arrow">&rsaquo;</span>
+            </a>
+          ))}
+        </div>
+        <div className="conflict-donate-disclaimer">
+          Links go directly to official charity websites. We are not affiliated with and do not receive funds from any of these organizations.
+        </div>
+      </div>
     </div>
   );
 }

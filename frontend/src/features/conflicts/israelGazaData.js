@@ -441,3 +441,67 @@ export const STRATEGIC_FACILITIES = [
   { id: 'dimona', name: 'Dimona Nuclear Facility', lat: 31.0017, lon: 35.1448, status: 'operational', note: 'Israeli nuclear research center (undeclared)' },
 ];
 
+// ─── Donate / Humanitarian Aid Charities ───
+export const DONATE_CHARITIES = [
+  {
+    name: 'UNRWA',
+    icon: '🇺🇳',
+    url: 'https://www.unrwa.org/donate',
+    desc: 'UN agency for Palestine refugees — food, shelter, healthcare, education in Gaza',
+  },
+  {
+    name: 'UNICEF — State of Palestine',
+    icon: '👶',
+    url: 'https://www.unicef.org/sop/',
+    desc: 'Children & families — healthcare, water, nutrition, psychosocial support',
+  },
+  {
+    name: 'Doctors Without Borders (MSF)',
+    icon: '🏥',
+    url: 'https://www.msf.org/palestine',
+    desc: 'Emergency medical care, surgical teams, and mobile clinics in Gaza',
+  },
+  {
+    name: 'International Committee of the Red Cross',
+    icon: '🔴',
+    url: 'https://www.icrc.org/en/where-we-work/middle-east/israel-and-occupied-territories',
+    desc: 'Medical support, family reunification, detention visits, emergency relief',
+  },
+  {
+    name: 'Medical Aid for Palestinians (MAP)',
+    icon: '💊',
+    url: 'https://www.map.org.uk',
+    desc: 'UK-based charity — healthcare, mental health, emergency medical response in Gaza',
+  },
+  {
+    name: 'Palestine Children\'s Relief Fund (PCRF)',
+    icon: '🧒',
+    url: 'https://www.pcrf.net',
+    desc: 'US 501(c)(3) — medical care, surgery sponsorships, humanitarian aid for children',
+  },
+  {
+    name: 'World Food Programme (WFP)',
+    icon: '🍲',
+    url: 'https://www.wfp.org/emergencies/palestine-emergency',
+    desc: 'Emergency food assistance — combating famine conditions in Gaza',
+  },
+  {
+    name: 'Anera',
+    icon: '🤝',
+    url: 'https://www.anera.org',
+    desc: 'US-based — food parcels, medical supplies, education, community development',
+  },
+  {
+    name: 'World Central Kitchen',
+    icon: '🍞',
+    url: 'https://wck.org',
+    desc: 'Hot meals and food relief in Gaza; lost 7 aid workers in April 2024 IDF strike',
+  },
+  {
+    name: 'Islamic Relief USA',
+    icon: '🌙',
+    url: 'https://irusa.org/middle-east/palestine/',
+    desc: 'Emergency relief — food, water, shelter, medical supplies for families in Gaza',
+  },
+];
+
