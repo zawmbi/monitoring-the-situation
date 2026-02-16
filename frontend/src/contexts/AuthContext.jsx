@@ -14,7 +14,7 @@
 
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase/config.js';
+import { auth, initError } from '../firebase/config.js';
 import {
   signInWithGoogle,
   signInAsGuest,
@@ -33,6 +33,12 @@ export function AuthProvider({ children }) {
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
+    if (!auth) {
+      setError(initError?.message || 'Firebase failed to initialize. Check VITE_FIREBASE_* env vars.');
+      setLoading(false);
+      return;
+    }
+
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);

@@ -24,20 +24,30 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase app (singleton)
-const app = initializeApp(firebaseConfig);
+let app = null;
+let auth = null;
+let db = null;
+let functions = null;
+let initError = null;
 
-// Initialize services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const functions = getFunctions(app);
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  functions = getFunctions(app);
 
-// SECURITY: Connect to emulators in development mode only.
-// This prevents accidental writes to production during local dev.
-if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  connectFunctionsEmulator(functions, 'localhost', 5001);
+  // SECURITY: Connect to emulators in development mode only.
+  // This prevents accidental writes to production during local dev.
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+  }
+} catch (err) {
+  initError = err;
+  console.error('Firebase initialization failed:', err.message);
+  console.error('Check that VITE_FIREBASE_* environment variables are set in the root .env file.');
 }
 
+export { auth, db, functions, initError };
 export default app;
