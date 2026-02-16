@@ -631,14 +631,14 @@ body {
   100% { transform: translateX(200%); }
 }
 
-/* Starfield canvas — random stars, masked to only appear in space (outside globe) */
+/* Starfield div — generated star PNG as background-image, masked to space area */
 .starfield-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
   --globe-r: 0px;
   -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--globe-r), black calc(var(--globe-r) + 3px));
   mask: radial-gradient(circle at 50% 50%, transparent var(--globe-r), black calc(var(--globe-r) + 3px));

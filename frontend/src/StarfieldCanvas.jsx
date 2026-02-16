@@ -1,42 +1,49 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect } from 'react';
 
 /**
- * StarfieldCanvas — twinkling stars with parallax depth layers.
- * Rendered inside the map container, masked so stars only appear
- * in the "space" area outside the globe.
+ * StarfieldCanvas — twinkling stars rendered as a div with a generated
+ * background image. Uses the same rendering approach as the working
+ * globe-halo-ring (a positioned div inside the map container).
  *
- * Globe radius is tracked via map 'render' events so the mask
- * stays perfectly in sync during zoom/pan animations.
+ * Stars are drawn once on an offscreen canvas, converted to a data-URL,
+ * and set as background-image. Parallax shifts background-position on drag.
+ * A CSS mask hides stars over the globe, tracked via map 'render' events.
  */
 
-const STAR_LAYERS = [
-  { count: 280, speed: 0.03, sizeMin: 0.3, sizeMax: 0.9, opacity: 0.35 },
-  { count: 160, speed: 0.08, sizeMin: 0.5, sizeMax: 1.3, opacity: 0.55 },
-  { count: 80,  speed: 0.16, sizeMin: 0.8, sizeMax: 1.8, opacity: 0.80 },
-  { count: 12,  speed: 0.22, sizeMin: 1.6, sizeMax: 2.6, opacity: 0.95 },
-];
+const STAR_COUNT = 600;
 
-const STAR_COLORS = [
-  '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff',
-  '#cce0ff', '#b8d4ff', '#ffeedd', '#ffd8b0',
-];
+function generateStarBackground(width, height) {
+  const canvas = document.createElement('canvas');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
 
-function createStars(width, height) {
-  return STAR_LAYERS.map((layer) => {
-    const stars = [];
-    for (let i = 0; i < layer.count; i++) {
-      stars.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        size: layer.sizeMin + Math.random() * (layer.sizeMax - layer.sizeMin),
-        baseOpacity: layer.opacity * (0.5 + Math.random() * 0.5),
-        twinkleSpeed: 0.4 + Math.random() * 2.2,
-        twinklePhase: Math.random() * Math.PI * 2,
-        color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
-      });
-    }
-    return { ...layer, stars };
-  });
+  const colors = [
+    [255, 255, 255],
+    [255, 255, 255],
+    [255, 255, 255],
+    [190, 210, 255],  // cool blue
+    [255, 235, 210],  // warm
+  ];
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const size = Math.random() < 0.92
+      ? 0.3 + Math.random() * 0.8   // tiny pinpoint
+      : 0.8 + Math.random() * 1.4;  // brighter star
+    const alpha = 0.25 + Math.random() * 0.65;
+    const [r, g, b] = colors[Math.floor(Math.random() * colors.length)];
+
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return canvas.toDataURL('image/png');
 }
 
 function getGlobeScreenRadius(map) {
@@ -62,24 +69,26 @@ function getGlobeScreenRadius(map) {
 }
 
 export default function StarfieldCanvas({ mapBearing = 0, mapPitch = 0, useGlobe = false, map = null }) {
-  const canvasRef = useRef(null);
-  const layersRef = useRef(null);
-  const animRef = useRef(null);
-  const bearingRef = useRef(mapBearing);
-  const pitchRef = useRef(mapPitch);
-  const useGlobeRef = useRef(useGlobe);
+  const divRef = useRef(null);
 
-  useEffect(() => { bearingRef.current = mapBearing; }, [mapBearing]);
-  useEffect(() => { pitchRef.current = mapPitch; }, [mapPitch]);
-  useEffect(() => { useGlobeRef.current = useGlobe; }, [useGlobe]);
+  // Generate starfield background image once on mount
+  useEffect(() => {
+    if (!divRef.current) return;
+    const w = divRef.current.offsetWidth || window.innerWidth;
+    const h = divRef.current.offsetHeight || window.innerHeight;
+    const url = generateStarBackground(w, h);
+    divRef.current.style.backgroundImage = `url(${url})`;
+    divRef.current.style.backgroundSize = `${w}px ${h}px`;
+    divRef.current.style.backgroundRepeat = 'no-repeat';
+  }, []);
 
   // Track globe radius → update CSS --globe-r for the mask
   useEffect(() => {
     if (!map || !useGlobe) return;
     const update = () => {
       const r = getGlobeScreenRadius(map);
-      if (canvasRef.current) {
-        canvasRef.current.style.setProperty('--globe-r', r > 0 ? r + 'px' : '0px');
+      if (divRef.current) {
+        divRef.current.style.setProperty('--globe-r', r > 0 ? r + 'px' : '0px');
       }
     };
     update();
@@ -87,88 +96,15 @@ export default function StarfieldCanvas({ mapBearing = 0, mapPitch = 0, useGlobe
     return () => map.off('render', update);
   }, [map, useGlobe]);
 
-  const initCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = canvas.offsetWidth || window.innerWidth;
-    const h = canvas.offsetHeight || window.innerHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    layersRef.current = createStars(w * dpr, h * dpr);
-  }, []);
-
+  // Parallax — shift background position based on globe bearing/pitch
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    initCanvas();
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    let time = 0;
-
-    function draw() {
-      const w = canvas.width;
-      const h = canvas.height;
-      const layers = layersRef.current;
-      if (!layers) { animRef.current = requestAnimationFrame(draw); return; }
-
-      ctx.clearRect(0, 0, w, h);
-
-      const bearing = bearingRef.current;
-      const pitch = pitchRef.current;
-      const isGlobe = useGlobeRef.current;
-
-      time += 0.016;
-
-      for (let li = 0; li < layers.length; li++) {
-        const layer = layers[li];
-        const parallaxFactor = layer.speed;
-
-        const bearingOffset = isGlobe ? bearing * parallaxFactor * 4 : 0;
-        const pitchOffset = isGlobe ? pitch * parallaxFactor * 1.5 : 0;
-
-        for (let si = 0; si < layer.stars.length; si++) {
-          const star = layer.stars[si];
-
-          const twinkle = 0.5 + 0.5 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
-          const alpha = star.baseOpacity * (0.4 + 0.6 * twinkle);
-
-          let sx = (star.x + bearingOffset) % w;
-          let sy = (star.y + pitchOffset) % h;
-          if (sx < 0) sx += w;
-          if (sy < 0) sy += h;
-
-          ctx.globalAlpha = alpha;
-          ctx.fillStyle = star.color;
-          ctx.beginPath();
-          ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      ctx.globalAlpha = 1;
-      animRef.current = requestAnimationFrame(draw);
-    }
-
-    animRef.current = requestAnimationFrame(draw);
-
-    const onResize = () => initCanvas();
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [initCanvas]);
+    if (!divRef.current || !useGlobe) return;
+    divRef.current.style.backgroundPosition = `${-mapBearing * 0.5}px ${mapPitch * 0.3}px`;
+  }, [mapBearing, mapPitch, useGlobe]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={divRef}
       className="starfield-canvas"
       aria-hidden="true"
     />
