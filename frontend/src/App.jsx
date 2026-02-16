@@ -3751,7 +3751,7 @@ function App() {
                 paint={{
                   'line-color': isLightTheme
                     ? 'rgba(11, 84, 167, 0.35)'
-                    : 'rgba(160, 145, 255, 0.35)',
+                    : 'rgba(35, 220, 245, 0.35)',
                   'line-width': 2,
                 }}
               />
@@ -3784,7 +3784,7 @@ function App() {
               <Layer
                 id="ca-provinces-fill"
                 type="fill"
-                paint={{ 'fill-color': 'rgba(105, 160, 148, 0.7)', 'fill-opacity': 1 }}
+                paint={{ 'fill-color': 'rgba(37, 96, 173, 0.15)', 'fill-opacity': 1 }}
               />
               {/* Province border lines */}
               <Layer
@@ -3794,8 +3794,8 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(30, 3, 165, 0.6)',
-                    isLightTheme ? 'rgba(0, 58, 216, 0.3)' : 'rgb(32, 0, 238)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(3, 165, 157, 0.6)',
+                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : 'rgb(0, 238, 226)',
                   ],
                   'line-width': [
                     'case',
