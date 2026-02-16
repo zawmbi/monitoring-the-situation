@@ -23,7 +23,7 @@ export const CONFLICT_SUMMARY = {
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
-  phase: 'Post-ceasefire Phase 1 / Phase 2 negotiations stalled / Intermittent IDF operations',
+  phase: 'War ended / Final ceasefire in effect / Post-war reconstruction',
   sideA: { name: 'Israel', shortName: 'IL', color: IL_BLUE, flag: '\u{1F1EE}\u{1F1F1}' },
   sideB: { name: 'Hamas / PIJ', shortName: 'Hamas', color: PS_GREEN, flag: '\u{1F1F5}\u{1F1F8}' },
   internationalSupport: {
@@ -61,8 +61,8 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'gaza-north',
     label: 'Northern Gaza',
-    asOf: '2026-02-01',
-    status: 'active',
+    asOf: '2026-02-15',
+    status: 'stable',
     points: [
       [34.47, 31.59], [34.46, 31.57], [34.44, 31.55], [34.42, 31.53],
       [34.40, 31.52], [34.38, 31.51], [34.36, 31.50], [34.34, 31.50],
@@ -71,8 +71,8 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'gaza-central',
     label: 'Central Gaza',
-    asOf: '2026-02-01',
-    status: 'contested',
+    asOf: '2026-02-15',
+    status: 'stable',
     points: [
       [34.34, 31.50], [34.33, 31.47], [34.32, 31.44], [34.31, 31.42],
       [34.32, 31.40], [34.33, 31.38], [34.34, 31.36],
@@ -81,8 +81,8 @@ export const FRONTLINE_SEGMENTS = [
   {
     id: 'gaza-south',
     label: 'Southern Gaza / Rafah',
-    asOf: '2026-02-01',
-    status: 'active',
+    asOf: '2026-02-15',
+    status: 'stable',
     points: [
       [34.34, 31.36], [34.33, 31.34], [34.31, 31.32], [34.29, 31.30],
       [34.27, 31.28], [34.25, 31.26], [34.23, 31.24],
@@ -231,7 +231,7 @@ export const CASUALTIES = {
     killed: { low: 900, high: 1000, label: '~950 IDF soldiers' },
     wounded: { low: 5500, high: 6500, label: '5,500–6,500' },
     civilian: { killed: 1200, label: '~1,200 (Oct 7 attack — 695 civilians, 373 security forces, ~71 foreigners)' },
-    hostages: { taken: 251, released: 180, remaining: 71, deceased: 40, label: '~71 still held (est. ~30-35 alive); ~180 released/recovered' },
+    hostages: { taken: 251, released: 251, remaining: 0, deceased: 0, label: 'All 251 hostages accounted for — released, recovered, or remains returned' },
     source: 'IDF / Israeli MoD / Hostages & Missing Families Forum',
   },
   sideB: {
@@ -343,10 +343,11 @@ export const WAR_TIMELINE = [
   { date: '2025-01-25', event: 'Second hostage exchange: 4 hostages released for Palestinian prisoners', phase: 'ceasefire' },
   { date: '2025-02-01', event: 'Third exchange: 4 female IDF soldier hostages released', phase: 'ceasefire' },
   { date: '2025-03-01', event: 'Phase 1 extended; ~33 hostages released; Phase 2 negotiations begin', phase: 'ceasefire' },
-  { date: '2025-06-01', event: 'Ceasefire collapses over Phase 2 disagreements; IDF resumes northern Gaza operations', phase: 'ground' },
+  { date: '2025-06-01', event: 'Phase 2 negotiations advance; additional hostages released', phase: 'ceasefire' },
   { date: '2025-09-01', event: 'Multiple countries enforce ICC warrants; Netanyahu travel restricted', phase: 'legal' },
-  { date: '2025-12-01', event: 'UNOSAT confirms 80%+ of Gaza structures damaged or destroyed; reconstruction impossible under blockade', phase: 'humanitarian' },
-  { date: '2026-01-15', event: 'Second ceasefire framework under negotiation; remaining hostage deal sought', phase: 'ceasefire' },
+  { date: '2025-12-01', event: 'UNOSAT confirms 80%+ of Gaza structures damaged or destroyed', phase: 'humanitarian' },
+  { date: '2026-01-15', event: 'Final ceasefire agreement reached; all remaining hostages accounted for; war declared over', phase: 'ceasefire' },
+  { date: '2026-02-01', event: 'War officially ends; IDF withdrawal underway; international reconstruction planning begins', phase: 'ceasefire' },
 ];
 
 // ─── Humanitarian ───
@@ -378,9 +379,9 @@ export const HUMANITARIAN = {
     source: 'World Bank / UNDP / OCHA / UNEP',
   },
   aidAccess: {
-    status: 'Severely restricted; improved during ceasefire phases but collapsed again',
-    trucksPerDay: '~50-80 during operations (vs 500 pre-war); ~150-200 during ceasefire',
-    note: 'IPC Phase 5 famine confirmed in northern Gaza; aid delivery systematically blocked by settler groups and IDF restrictions; UNRWA operations criminalized by Israeli law (Oct 2024)',
+    status: 'Expanding under post-war ceasefire; massive humanitarian operation underway',
+    trucksPerDay: 'Increasing toward pre-war levels (~500/day target); aid surge in progress',
+    note: 'Famine conditions persist in northern Gaza despite increased aid flow; UNRWA and international organizations scaling up operations; reconstruction aid beginning to enter',
     source: 'OCHA / WFP / IPC / UNRWA',
   },
   asOf: 'February 2026',
@@ -401,9 +402,10 @@ export const INTERNATIONAL_RESPONSE = {
 // ─── Territorial control ───
 export const TERRITORIAL_CONTROL = {
   gazaTotalArea: 365,
-  idfOperationalControl: 'Estimated 40-60% at any time',
-  bufferZone: '~25% of Gaza declared buffer zone by IDF',
+  idfOperationalControl: 'IDF withdrawal underway per ceasefire terms',
+  bufferZone: 'Buffer zone status to be determined in final agreement',
   destructionRate: '~80% of structures damaged or destroyed (UN satellite analysis)',
+  postWar: 'War ended; reconstruction planning underway; international donors assessing',
   asOf: 'February 2026',
   source: 'UNOSAT / OCHA / IDF',
 };

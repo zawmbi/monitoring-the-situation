@@ -15,11 +15,11 @@ const CACHE_TTL = 900; // 15 minutes
  */
 const CONFLICT_FEEDS = {
   'israel-gaza': {
-    label: 'Israel–Gaza War',
+    label: 'Israel–Gaza Post-War',
     queries: [
-      'Israel Gaza war',
-      'Gaza ceasefire hostages',
-      'IDF Gaza operations',
+      'Gaza ceasefire reconstruction',
+      'Gaza post-war humanitarian aid',
+      'Israel Gaza peace agreement',
     ],
   },
   sudan: {
