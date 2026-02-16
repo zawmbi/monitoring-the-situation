@@ -19,8 +19,8 @@ import {
   UA_BLUE,
   UA_YELLOW,
   RU_RED,
-  getFrontlineColor,
 } from './conflictData';
+import { getFrontlineColor } from './utils';
 
 /* ───────────────────────────────────────────
    Zoom thresholds — markers hidden when zoomed out

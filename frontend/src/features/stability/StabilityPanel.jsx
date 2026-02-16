@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { SEVERITY_COLORS, ALERT_TYPE_META, FORCE_ICONS, SEVERITY_LABELS } from './stabilityData';
+import { timeAgoShort } from '../../utils/time';
 import './stability.css';
 
 const TABS = [
@@ -14,17 +15,6 @@ const TABS = [
   { id: 'protests', label: 'Protests' },
   { id: 'military', label: 'Military' },
 ];
-
-function timeAgoShort(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 function SeverityBadge({ severity }) {
   return (

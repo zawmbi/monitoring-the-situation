@@ -7,6 +7,7 @@
  */
 import { useState, useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
+import { getFrontlineColor as defaultGetColor } from './utils';
 
 const ZOOM_SHOW_DETAIL = 4;
 const ZOOM_SHOW_LABELS = 5;
@@ -192,8 +193,8 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
     TROOP_POSITIONS: troops = [],
     BATTLE_SITES: battles = [],
     FORTIFICATION_LINES: fortLines = [],
-    getFrontlineColor: getColor,
   } = conflictData;
+  const getColor = conflictData.getFrontlineColor || defaultGetColor;
 
   const sideAColor = summary.sideA.color;
   const sideBColor = summary.sideB.color;

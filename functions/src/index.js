@@ -19,7 +19,6 @@ import './init.js';
 
 import { onCall, onRequest } from 'firebase-functions/v2/https';
 import { beforeUserCreated } from 'firebase-functions/v2/identity';
-import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 
 // ===========================================
 // AUTH TRIGGERS
@@ -28,7 +27,6 @@ import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { handleUserCreate } from './auth/onCreate.js';
 import { handleSetUsername } from './auth/setUsername.js';
 import { deleteAccount as handleDeleteAccount } from './auth/onDelete.js';
-import { handleUserDelete } from './auth/onDelete.js';
 
 /**
  * SECURITY: Fires before a new user is created in Firebase Auth.

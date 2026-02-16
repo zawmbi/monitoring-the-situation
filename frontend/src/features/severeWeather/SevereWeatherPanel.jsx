@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { timeAgoShort } from '../../utils/time';
 import './severeWeather.css';
 
 const TABS = [
@@ -34,17 +35,6 @@ const TYPE_ICONS = {
   drought: '☀️',
   other: '⚠️',
 };
-
-function timeAgoShort(isoString) {
-  if (!isoString) return '';
-  const diff = Date.now() - new Date(isoString).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 export function SevereWeatherPanel({
   visible,

@@ -24,7 +24,6 @@ import { TariffPanel } from './features/tariffs/TariffPanel';
 import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } from './features/tariffs/tariffData';
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
-import FrontlineOverlay from './features/frontline/FrontlineOverlay';
 import { useStarfield } from './StarfieldCanvas';
 import EarthOverlay from './EarthOverlay';
 import { useSettings } from './hooks/useSettings';
@@ -790,7 +789,6 @@ function App() {
   const [musicPlaying, setMusicPlaying] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
-  const [showFrontline, setShowFrontline] = useState(false);
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
@@ -2253,9 +2251,6 @@ function App() {
                           setConflictMode(prev => {
                             if (prev) {
                               setConflictPanelOpen(false);
-                              setShowFrontline(false);
-                            } else {
-                              setShowFrontline(true);
                             }
                             return !prev;
                           });
@@ -3953,9 +3948,6 @@ function App() {
               />
             </Source>
           )}
-
-          {/* UA/RU Frontline Overlay (legacy — hidden when conflict mode is on) */}
-          <FrontlineOverlay visible={showFrontline && !conflictMode} />
 
           {/* Conflict Overlay — frontlines, occupied territory, coat of arms, NATO symbols */}
           <ConflictOverlay
