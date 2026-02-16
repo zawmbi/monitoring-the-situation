@@ -1,15 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { MaplibreStarfieldLayer } from '@geoql/maplibre-gl-starfield';
+import { TwinklingStarfieldLayer } from './TwinklingStarfieldLayer';
 
 const LAYER_ID = 'starfield';
 
 /**
- * useStarfield — adds a WebGL starfield layer to the MapLibre globe.
+ * useStarfield — adds a twinkling WebGL starfield layer to the MapLibre globe.
  *
- * Uses @geoql/maplibre-gl-starfield which implements MapLibre's
- * CustomLayerInterface and renders star points via Three.js directly
- * in the map's WebGL context. Stars are depth-pushed behind the globe,
- * so no CSS masks or z-index hacks are needed.
+ * Uses a custom MapLibre CustomLayerInterface that renders Three.js star
+ * points directly in the map's WebGL context. Each star has a random
+ * phase and speed so they twinkle independently via a time-driven sine wave.
  */
 export function useStarfield(map, enabled) {
   const layerRef = useRef(null);
@@ -17,11 +16,10 @@ export function useStarfield(map, enabled) {
   useEffect(() => {
     if (!map || !enabled) return;
 
-    // Wait for style to be loaded
     const addLayer = () => {
       if (map.getLayer(LAYER_ID)) return;
 
-      const layer = new MaplibreStarfieldLayer({
+      const layer = new TwinklingStarfieldLayer({
         id: LAYER_ID,
         starCount: 4000,
         starSize: 2.0,
