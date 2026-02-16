@@ -9,6 +9,9 @@ const LAYER_ID = 'starfield';
  * Uses a custom MapLibre CustomLayerInterface that renders Three.js star
  * points directly in the map's WebGL context. Each star has a random
  * phase and speed so they twinkle independently via a time-driven sine wave.
+ *
+ * Listens for style reloads (e.g. projection changes) and re-adds the layer
+ * so stars survive globe ↔ mercator toggles without a page refresh.
  */
 export function useStarfield(map, enabled) {
   const layerRef = useRef(null);
@@ -38,7 +41,23 @@ export function useStarfield(map, enabled) {
       map.once('style.load', addLayer);
     }
 
+    // Re-add the layer after any style reload (e.g. projection switch)
+    // so stars survive globe ↔ mercator toggles.
+    const onStyleData = () => {
+      if (!map.getLayer(LAYER_ID) && layerRef.current) {
+        // Layer was wiped by a style reload — re-add it
+        try {
+          const firstLayerId = map.getStyle().layers?.[0]?.id;
+          map.addLayer(layerRef.current, firstLayerId);
+        } catch {
+          // style may not be fully ready yet; next event will retry
+        }
+      }
+    };
+    map.on('styledata', onStyleData);
+
     return () => {
+      map.off('styledata', onStyleData);
       try {
         if (map.getLayer(LAYER_ID)) {
           map.removeLayer(LAYER_ID);

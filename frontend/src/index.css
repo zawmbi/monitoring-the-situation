@@ -599,6 +599,11 @@ body {
   isolation: isolate;
 }
 
+/* Globe mode: force black space behind the globe regardless of theme */
+.map-container.globe-mode {
+  background: #000208;
+}
+
 .map-container .maplibregl-map {
   position: relative;
   z-index: 2;

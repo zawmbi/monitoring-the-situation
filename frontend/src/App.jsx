@@ -884,16 +884,8 @@ function App() {
         hoveredEUIdRef.current = null;
       }
       // Update background color without triggering full style reload
-      // Globe mode always uses near-black space regardless of theme
       if (map.getLayer('background')) {
-        let bg;
-        if (useGlobe) {
-          bg = '#000208';
-        } else if (isLightTheme) {
-          bg = '#3a7ab0';
-        } else {
-          bg = holoMode ? '#020810' : '#060e18';
-        }
+        const bg = isLightTheme ? '#3a7ab0' : (holoMode ? '#020810' : '#060e18');
         map.setPaintProperty('background', 'background-color', bg);
       }
     } catch {}
