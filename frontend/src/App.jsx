@@ -2135,28 +2135,6 @@ function App() {
                 <div className="toggle-group-title">Layers & Sources</div>
 
                 <div className="source-group">
-                  <div className="source-group-title">News</div>
-                  <div className="source-group-items">
-                    {[
-                      { id: 'news', label: 'Major News', tone: 'news', disabled: false },
-                      { id: 'reddit', label: 'Reddit', tone: 'reddit', disabled: false },
-                      { id: 'twitter', label: 'Twitter', tone: 'twitter', disabled: false },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                        <span className="switch-label">{layer.label}</span>
-                        <input
-                          type="checkbox"
-                          checked={enabledLayers[layer.id]}
-                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
-                          disabled={layer.disabled}
-                        />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="source-group">
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
                     {[
@@ -2711,7 +2689,26 @@ function App() {
 
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
-                <div className="toggle-group-title">Map Overlays</div>
+                <div className="toggle-group-title">News Sources</div>
+                <div className="settings-group">
+                  {[
+                    { id: 'news', label: 'Major News', tone: 'news' },
+                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
+                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
+                  ].map((layer) => (
+                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
+                      <span className="switch-label">{layer.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={enabledLayers[layer.id]}
+                        onChange={() => toggleLayer(layer.id)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Overlays</div>
                 <div className="settings-group">
                   <label className="switch switch-neutral switch-disabled">
                     <span className="switch-label">Timezones (WIP)</span>
