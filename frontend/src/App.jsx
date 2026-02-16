@@ -889,24 +889,23 @@ function App() {
     } catch {}
   }, [useGlobe]);
 
-  // Globe fog — stars + blue atmosphere halo that wraps the actual globe edge
+  // Globe atmosphere halo — uses MapLibre's setSky API (NOT setFog, which is Mapbox-only)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     try {
       if (useGlobe) {
-        const glowOn = visualLayers.earthGlow;
-        map.setFog({
-          'space-color': '#000208',
-          'star-intensity': 0.6,
-          'color': glowOn ? '#4db8ff' : '#000208',
-          'high-color': glowOn ? '#1a6bcc' : '#000208',
-          'horizon-blend': glowOn ? 0.18 : 0,
+        map.setSky({
+          'sky-color': '#0b1a30',
+          'horizon-color': '#1a80dd',
+          'atmosphere-blend': visualLayers.earthGlow ? 1.0 : 0,
         });
       } else {
-        map.setFog(null);
+        map.setSky({
+          'atmosphere-blend': 0,
+        });
       }
-    } catch {}
+    } catch (e) { console.warn('setSky failed:', e); }
   }, [useGlobe, mapLoaded, visualLayers.earthGlow]);
 
   useEffect(() => {
@@ -2174,16 +2173,6 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Atmospheric Edge Glow</span>
-                    <input
-                      type="checkbox"
-                      checked={visualLayers.atmosphere}
-                      onChange={() => toggleVisualLayer('atmosphere')}
-                      disabled={!useGlobe}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
                     <span className="switch-label">Earth Atmosphere Halo</span>
                     <input
                       type="checkbox"
@@ -2324,16 +2313,6 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Atmospheric Edge Glow</span>
-                    <input
-                      type="checkbox"
-                      checked={visualLayers.atmosphere}
-                      onChange={() => toggleVisualLayer('atmosphere')}
-                      disabled={!useGlobe}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
                     <span className="switch-label">Earth Atmosphere Halo</span>
                     <input
                       type="checkbox"
@@ -2376,7 +2355,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} />
         {/* Timezone Labels Top */}
