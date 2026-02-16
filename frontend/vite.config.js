@@ -14,20 +14,22 @@ export default defineConfig(({ mode }) => {
   // Use 127.0.0.1 instead of localhost to avoid IPv6 ECONNREFUSED on Windows
   const backendUrl = `http://127.0.0.1:${backendPort}`;
 
-  // Build a define map so VITE_* vars from the root .env are available
-  // via import.meta.env in client code. envDir alone doesn't reliably
-  // expose them in Vite 7 when the .env lives outside the project root.
-  const define = {};
+  // Vite's import.meta.env handling is special — using `define` with
+  // import.meta.env.* keys gets overridden by Vite's built-in env plugin.
+  // Instead, inject a __ROOT_ENV__ global that config.js reads directly.
+  const viteEnv = {};
   for (const [key, val] of Object.entries(env)) {
     if (key.startsWith('VITE_')) {
-      define[`import.meta.env.${key}`] = JSON.stringify(val);
+      viteEnv[key] = val;
     }
   }
 
   return {
     plugins: [react()],
     envDir: rootDir,
-    define,
+    define: {
+      __ROOT_ENV__: JSON.stringify(viteEnv),
+    },
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {
