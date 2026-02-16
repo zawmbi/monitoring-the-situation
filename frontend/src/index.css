@@ -670,6 +670,13 @@ body {
   gap: 8px;
 }
 
+.map-collapse-toggle-bl {
+  position: absolute;
+  bottom: 52px;
+  left: 17px;
+  z-index: 10;
+}
+
 .map-controls-collapse-btn {
   opacity: 0.55;
 }
