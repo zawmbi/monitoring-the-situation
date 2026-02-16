@@ -4212,7 +4212,10 @@ function App() {
               </svg>
             </button>
           )}
-          {/* Collapse / expand toggle */}
+        </div>
+
+        {/* Collapse / expand toggle - below all controls */}
+        <div className="map-collapse-toggle-bl">
           <button
             className="map-autorotate-btn map-controls-collapse-btn"
             onClick={() => setMapControlsCollapsed(prev => !prev)}
