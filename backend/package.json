@@ -20,7 +20,6 @@
     "news-aggregator-monorepo": "file:..",
     "pg": "^8.11.3",
     "rss-parser": "^3.13.0",
-    "snoowrap": "^1.23.0",
     "twitter-api-v2": "^1.15.2",
     "uuid": "^9.0.1",
     "ws": "^8.16.0",
