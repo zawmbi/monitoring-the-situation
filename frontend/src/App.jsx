@@ -2785,7 +2785,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        <div className={`map-container${useGlobe ? ' globe-mode' : ''}${mapControlsCollapsed ? ' map-controls-hidden' : ''}`} ref={mapContainerRef}>
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
@@ -4139,94 +4139,92 @@ function App() {
         {/* Map controls - bottom left, grouped with zoom */}
         <div className="map-controls-bl">
           {/* Rotation controls (collapsible) */}
-          {useGlobe && (
-            <div className={`map-rotation-controls${mapControlsCollapsed ? ' collapsed' : ''}`}>
-              {!mapControlsCollapsed && (
-                <>
-                  {autoRotate && (
-                    <input
-                      type="range"
-                      className="rotate-speed-slider"
-                      min="0.005"
-                      max="0.12"
-                      step="0.005"
-                      value={rotateSpeed}
-                      onChange={(e) => setRotateSpeed(Number(e.target.value))}
-                      title={`Rotation speed: ${Math.round(rotateSpeed * 60)}°/s`}
-                      aria-label="Rotation speed"
-                    />
-                  )}
-                  {/* Play / Pause rotation */}
-                  <button
-                    className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
-                    onClick={() => setAutoRotate(prev => !prev)}
-                    title={autoRotate ? 'Stop rotation' : 'Start rotation'}
-                    aria-label="Toggle auto-rotation"
-                  >
-                    {autoRotate ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <rect x="5" y="4" width="5" height="16" rx="1" />
-                        <rect x="14" y="4" width="5" height="16" rx="1" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <polygon points="6,3 20,12 6,21" />
-                      </svg>
-                    )}
-                  </button>
-                  {/* Direction toggle — left/right arrows */}
-                  {autoRotate && (
-                    <button
-                      className="map-autorotate-btn map-rotate-dir-btn active"
-                      onClick={() => setRotateCCW(prev => !prev)}
-                      title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
-                      aria-label="Toggle rotation direction"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {rotateCCW ? (
-                          <>
-                            <line x1="19" y1="12" x2="5" y2="12" />
-                            <polyline points="12 19 5 12 12 5" />
-                          </>
-                        ) : (
-                          <>
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                            <polyline points="12 5 19 12 12 19" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
-                  )}
-                </>
+          {useGlobe && !mapControlsCollapsed && (
+            <div className="map-rotation-controls">
+              {autoRotate && (
+                <input
+                  type="range"
+                  className="rotate-speed-slider"
+                  min="0.005"
+                  max="0.2"
+                  step="0.005"
+                  value={rotateSpeed}
+                  onChange={(e) => setRotateSpeed(Number(e.target.value))}
+                  title={`Rotation speed: ${Math.round(rotateSpeed * 60)}°/s`}
+                  aria-label="Rotation speed"
+                />
               )}
-              {/* Collapse / expand toggle */}
+              {/* Play / Pause rotation */}
               <button
-                className="map-autorotate-btn map-controls-collapse-btn"
-                onClick={() => setMapControlsCollapsed(prev => !prev)}
-                title={mapControlsCollapsed ? 'Show controls' : 'Hide controls'}
-                aria-label="Toggle map controls"
+                className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
+                onClick={() => setAutoRotate(prev => !prev)}
+                title={autoRotate ? 'Stop rotation' : 'Start rotation'}
+                aria-label="Toggle auto-rotation"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  {mapControlsCollapsed ? (
-                    <polyline points="6 15 12 9 18 15" />
-                  ) : (
-                    <polyline points="6 9 12 15 18 9" />
-                  )}
-                </svg>
+                {autoRotate ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <rect x="5" y="4" width="5" height="16" rx="1" />
+                    <rect x="14" y="4" width="5" height="16" rx="1" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="6,3 20,12 6,21" />
+                  </svg>
+                )}
               </button>
+              {/* Direction toggle — left/right arrows */}
+              {autoRotate && (
+                <button
+                  className="map-autorotate-btn map-rotate-dir-btn active"
+                  onClick={() => setRotateCCW(prev => !prev)}
+                  title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
+                  aria-label="Toggle rotation direction"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {rotateCCW ? (
+                      <>
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                      </>
+                    ) : (
+                      <>
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+              )}
             </div>
           )}
           {/* Recenter / globe button */}
+          {!mapControlsCollapsed && (
+            <button
+              className="map-recenter-btn"
+              onClick={handleRecenter}
+              title="Recenter map"
+              aria-label="Recenter map to default view"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <ellipse cx="12" cy="12" rx="4" ry="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+              </svg>
+            </button>
+          )}
+          {/* Collapse / expand toggle */}
           <button
-            className="map-recenter-btn"
-            onClick={handleRecenter}
-            title="Recenter map"
-            aria-label="Recenter map to default view"
+            className="map-autorotate-btn map-controls-collapse-btn"
+            onClick={() => setMapControlsCollapsed(prev => !prev)}
+            title={mapControlsCollapsed ? 'Show controls' : 'Hide controls'}
+            aria-label="Toggle map controls"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <ellipse cx="12" cy="12" rx="4" ry="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {mapControlsCollapsed ? (
+                <polyline points="6 15 12 9 18 15" />
+              ) : (
+                <polyline points="6 9 12 15 18 9" />
+              )}
             </svg>
           </button>
         </div>
