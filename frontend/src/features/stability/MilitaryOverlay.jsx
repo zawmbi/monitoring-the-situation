@@ -225,7 +225,7 @@ function NatoMilSymbol({ item, showLabel, onClick, isBase }) {
   );
 }
 
-export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, showBases = true }) {
+export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, showBases = true, isMarkerVisible }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIsBase, setSelectedIsBase] = useState(false);
 
@@ -249,7 +249,7 @@ export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, sh
     <>
       {/* Military movement indicators */}
       {indicators
-        .filter((m) => m.lat && m.lon)
+        .filter((m) => m.lat && m.lon && (!isMarkerVisible || isMarkerVisible(m.lon, m.lat)))
         .map((item) => (
           <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
             <NatoMilSymbol
@@ -268,7 +268,7 @@ export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, sh
 
       {/* US military installations */}
       {bases
-        .filter((b) => b.lat && b.lon)
+        .filter((b) => b.lat && b.lon && (!isMarkerVisible || isMarkerVisible(b.lon, b.lat)))
         .map((base) => (
           <Marker key={base.id} longitude={base.lon} latitude={base.lat} anchor="center">
             <NatoMilSymbol

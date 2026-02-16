@@ -3901,6 +3901,7 @@ function App() {
             indicators={stabilityMode && showMilitaryOverlay ? (stabilityData?.military || []) : []}
             zoom={mapZoom}
             showBases={showUSBases}
+            isMarkerVisible={isMarkerVisible}
           />
 
           {/* Disaster markers on map */}
