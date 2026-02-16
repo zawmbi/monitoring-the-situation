@@ -654,7 +654,7 @@ body {
 
 .map-controls-bl {
   position: absolute;
-  bottom: 110px;
+  bottom: 170px;
   left: 17px;
   z-index: 10;
   display: flex;
@@ -755,7 +755,7 @@ body {
 
 .map-container .maplibregl-ctrl-bottom-left {
   bottom: 96px;
-  left: 8px;
+  left: 15px;
 }
 
 .map-container .maplibregl-ctrl-group {
