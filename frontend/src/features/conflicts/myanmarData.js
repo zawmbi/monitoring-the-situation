@@ -112,7 +112,7 @@ export const BATTLE_SITES = [
   {
     id: 'op-1027', name: 'Operation 1027', lat: 23.20, lon: 97.80,
     date: 'Oct 2023 – Jan 2024', result: 'Resistance victory',
-    note: 'Three Brotherhood Alliance offensive; captured Lashio and northern Shan cities',
+    note: 'Three Brotherhood Alliance Phase 1 offensive; captured Laukkaing and northern Shan cities (Lashio fell later in Phase 2, Aug 2024)',
     sideACommander: 'NE Regional Military Command', sideBCommander: 'MNDAA / TNLA / AA alliance',
     sideATroops: '~20,000 Tatmadaw', sideBTroops: '~25,000 alliance fighters',
     sideAEquipment: 'Air force, armor, fortified bases', sideBEquipment: 'Light infantry, captured heavy weapons, drones',
@@ -121,8 +121,8 @@ export const BATTLE_SITES = [
   },
   {
     id: 'battle-myawaddy', name: 'Battle of Myawaddy', lat: 16.6933, lon: 98.5089,
-    date: 'Apr 2024', result: 'Resistance captured',
-    note: 'KNLA captured major border trade town',
+    date: 'Apr 2024', result: 'Briefly captured; junta recaptured ~Apr 24',
+    note: 'KNLA captured major border trade town Apr 11; junta 44th Division recaptured ~Apr 24; remains contested',
     sideACommander: 'Tatmadaw SE Command', sideBCommander: 'KNLA / PDF',
     sideATroops: '~3,000', sideBTroops: '~5,000',
     sideAEquipment: 'Fortified positions', sideBEquipment: 'Light weapons, drones',
@@ -175,10 +175,10 @@ export const CASUALTIES = {
 // ─── Command structure ───
 export const COMMAND = {
   sideA: {
-    title: 'State Administration Council (SAC) / Tatmadaw',
-    commanderInChief: { name: 'Min Aung Hlaing', role: 'Chairman, SAC / Commander-in-Chief', since: 'Feb 2021' },
+    title: 'State Security and Peace Commission (SSPC) / Tatmadaw',
+    commanderInChief: { name: 'Min Aung Hlaing', role: 'Chairman, SSPC / Commander-in-Chief', since: 'Feb 2021' },
     keyCommanders: [
-      { name: 'Min Aung Hlaing', role: 'Chairman, SAC / Senior General' },
+      { name: 'Min Aung Hlaing', role: 'Chairman, SSPC / Senior General (formerly SAC; reorganized 2025)' },
       { name: 'Soe Win', role: 'Vice Senior General / Deputy PM' },
       { name: 'Mya Tun Oo', role: 'Minister of Defence' },
     ],
@@ -216,11 +216,13 @@ export const WAR_TIMELINE = [
   { date: '2024-06-25', event: 'AA captures multiple Rakhine towns and navy bases; Sittwe besieged but still junta-held', phase: 'offensive' },
   { date: '2024-08-03', event: 'Lashio falls to MNDAA — largest city ever taken by resistance forces', phase: 'offensive' },
   { date: '2024-11-15', event: 'Junta air force loses multiple aircraft; resistance FPV drones increasingly effective', phase: 'offensive' },
-  { date: '2025-02-01', event: 'Anniversary of coup: NUG/resistance control estimated 60%+ of territory', phase: 'offensive' },
+  { date: '2025-02-01', event: 'Anniversary of coup: NUG claims 60%+ of territory; independent estimates ~40-50% (ISP Myanmar/BBC)', phase: 'offensive' },
   { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces collapsed in peripheral states', phase: 'attrition' },
   { date: '2025-09-01', event: 'AA controls most of Rakhine State; establishes parallel administration; Sittwe and Kyaukpyu remain junta-held', phase: 'offensive' },
-  { date: '2025-12-01', event: 'Tatmadaw effective strength below 100K; controls only central corridor (Yangon-Mandalay-Naypyidaw)', phase: 'attrition' },
-  { date: '2026-01-01', event: 'NUG and EAOs begin federal constitution consultations; junta regime isolated internationally', phase: 'political' },
+  { date: '2025-03-28', event: 'Major earthquake severely damages Naypyidaw; ~80% of govt buildings affected', phase: 'disaster' },
+  { date: '2025-09-01', event: 'Junta surges conscription to replenish forces; frontline reaches outskirts of Mandalay', phase: 'attrition' },
+  { date: '2025-12-01', event: 'Junta holds sham elections (USDP wins predictably); international community rejects results', phase: 'political' },
+  { date: '2026-01-01', event: 'NUG and some EAOs continue fragmented federal constitution consultations (NUCC process); key actors (AA, KNU) absent from unified framework', phase: 'political' },
 ];
 
 // ─── Humanitarian ───
