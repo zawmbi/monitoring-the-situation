@@ -754,7 +754,7 @@ body {
 }
 
 .map-container .maplibregl-ctrl-bottom-left {
-  bottom: 8px;
+  bottom: 96px;
   left: 8px;
 }
 

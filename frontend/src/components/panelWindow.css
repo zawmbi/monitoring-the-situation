@@ -290,7 +290,7 @@
 
 .pw-minimized-tray {
   position: fixed;
-  bottom: 88px; /* above GlobalStatusBar (28px) + TimelineNavigator (60px) */
+  bottom: 32px; /* just above GlobalStatusBar (28px) + small gap */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
