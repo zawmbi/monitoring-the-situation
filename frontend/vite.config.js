@@ -2,21 +2,46 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Parse a .env file into a key-value object, skipping comments and blanks
+function parseEnvFile(filePath) {
+  const vars = {};
+  if (!existsSync(filePath)) return vars;
+  const lines = readFileSync(filePath, 'utf-8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val = trimmed.slice(eqIdx + 1).trim();
+    // Strip surrounding quotes
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    vars[key] = val;
+  }
+  return vars;
+}
+
 export default defineConfig(({ mode }) => {
-  // Load env from repo root (parent of frontend/) so .env is found
   const rootDir = path.resolve(__dirname, '..');
-  const env = loadEnv(mode, rootDir, '');
+  const envFile = path.resolve(rootDir, '.env');
+
+  // Read .env directly from disk — loadEnv and envDir are unreliable
+  // in Vite 7 when the .env lives outside the project root.
+  const rawEnv = parseEnvFile(envFile);
+  // Also try loadEnv as a fallback
+  const viteLoadedEnv = loadEnv(mode, rootDir, '');
+  const env = { ...viteLoadedEnv, ...rawEnv };
 
   const backendPort = env.BACKEND_PORT || env.PORT || '4100';
-  // Use 127.0.0.1 instead of localhost to avoid IPv6 ECONNREFUSED on Windows
   const backendUrl = `http://127.0.0.1:${backendPort}`;
 
-  // Vite's import.meta.env handling is special — using `define` with
-  // import.meta.env.* keys gets overridden by Vite's built-in env plugin.
-  // Instead, inject a __ROOT_ENV__ global that config.js reads directly.
+  // Collect VITE_* vars for client-side injection
   const viteEnv = {};
   for (const [key, val] of Object.entries(env)) {
     if (key.startsWith('VITE_')) {
@@ -24,9 +49,12 @@ export default defineConfig(({ mode }) => {
     }
   }
 
+  // Log to terminal for debugging
+  const envKeys = Object.keys(viteEnv);
+  console.log(`[vite] Loaded ${envKeys.length} VITE_* vars from ${envFile} (exists: ${existsSync(envFile)})`);
+
   return {
     plugins: [react()],
-    envDir: rootDir,
     define: {
       __ROOT_ENV__: JSON.stringify(viteEnv),
     },
