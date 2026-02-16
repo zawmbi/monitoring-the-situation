@@ -631,14 +631,16 @@ body {
   100% { transform: translateX(200%); }
 }
 
-/* Starfield div — generated star PNG as background-image, masked to space area */
+/* Starfield — animated stars (starback library), masked to space outside globe.
+   z-index 3 puts it above .maplibregl-map (z-index 2). Rendered after <MapGL>
+   in the JSX so DOM order also helps stacking. */
 .starfield-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
   --globe-r: 0px;
   -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--globe-r), black calc(var(--globe-r) + 3px));
   mask: radial-gradient(circle at 50% 50%, transparent var(--globe-r), black calc(var(--globe-r) + 3px));
