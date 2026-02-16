@@ -2635,33 +2635,23 @@ function App() {
             {sidebarExpanded && sidebarTab === 'themes' && (
               <div className="themes-panel">
                 <div className="toggle-group-title">Theme</div>
-                <div className="themes-grid">
-                  <button
-                    className={`theme-card ${theme === 'cyber-control-room' ? 'theme-card-active' : ''}`}
-                    onClick={() => { setTheme('cyber-control-room'); saveTheme('cyber-control-room'); }}
-                  >
-                    <div className="theme-card-preview theme-preview-dark">
-                      <div className="theme-preview-bar" />
-                      <div className="theme-preview-body">
-                        <div className="theme-preview-sidebar" />
-                        <div className="theme-preview-map" />
+                <div className="themes-grid themes-grid-3">
+                  {THEMES.map(t => (
+                    <button
+                      key={t.id}
+                      className={`theme-card ${theme === t.id ? 'theme-card-active' : ''}`}
+                      onClick={() => { setTheme(t.id); saveTheme(t.id); }}
+                    >
+                      <div className={`theme-card-preview theme-preview-${t.id}`}>
+                        <div className="theme-preview-bar" />
+                        <div className="theme-preview-body">
+                          <div className="theme-preview-sidebar" />
+                          <div className="theme-preview-map" />
+                        </div>
                       </div>
-                    </div>
-                    <span className="theme-card-label">Dark</span>
-                  </button>
-                  <button
-                    className={`theme-card ${theme === 'light-analytic' ? 'theme-card-active' : ''}`}
-                    onClick={() => { setTheme('light-analytic'); saveTheme('light-analytic'); }}
-                  >
-                    <div className="theme-card-preview theme-preview-light">
-                      <div className="theme-preview-bar" />
-                      <div className="theme-preview-body">
-                        <div className="theme-preview-sidebar" />
-                        <div className="theme-preview-map" />
-                      </div>
-                    </div>
-                    <span className="theme-card-label">Light</span>
-                  </button>
+                      <span className="theme-card-label">{t.label.split(' ')[0]}</span>
+                    </button>
+                  ))}
                 </div>
 
                 <div className="toggle-group-title" style={{ marginTop: '20px' }}>Globe Effects</div>
@@ -2721,44 +2711,8 @@ function App() {
 
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
-                <div className="toggle-group-title">Visuals & App Appearance</div>
+                <div className="toggle-group-title">Map Overlays</div>
                 <div className="settings-group">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
-                    <span className="switch-label" style={{ fontSize: '0.85rem', fontWeight: 500 }}>Theme</span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {THEMES.map(t => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setTheme(t.id)}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '0.72rem',
-                            fontWeight: theme === t.id ? 700 : 500,
-                            fontFamily: 'var(--font-mono)',
-                            letterSpacing: '0.04em',
-                            border: `1px solid ${theme === t.id ? 'var(--color-border-light)' : 'var(--color-border)'}`,
-                            borderRadius: 'var(--radius-md)',
-                            background: theme === t.id ? 'rgba(var(--accent-rgb), 0.12)' : 'transparent',
-                            color: theme === t.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          {t.label.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">Holographic</span>
-                    <input
-                      type="checkbox"
-                      checked={holoMode}
-                      onChange={() => setHoloMode(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
                   <label className="switch switch-neutral switch-disabled">
                     <span className="switch-label">Timezones (WIP)</span>
                     <input
@@ -2792,46 +2746,6 @@ function App() {
                       type="checkbox"
                       checked={showEUCountries}
                       onChange={() => setShowEUCountries(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  {[
-                    { key: 'contours', label: 'Micro Topographic Contours' },
-                    { key: 'countryFill', label: 'Country Fill Color' },
-                    { key: 'hillshade', label: 'Elevation / Hillshade' },
-                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
-                  ].map(({ key, label }) => (
-                    <label key={key} className="switch switch-neutral">
-                      <span className="switch-label">{label}</span>
-                      <input
-                        type="checkbox"
-                        checked={visualLayers[key]}
-                        onChange={() => toggleVisualLayer(key)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>3D Globe Settings</div>
-                <div className="settings-group">
-                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Transparent Globe</span>
-                    <input
-                      type="checkbox"
-                      checked={transparentGlobe}
-                      onChange={() => setTransparentGlobe(prev => !prev)}
-                      disabled={!useGlobe}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Earth Atmosphere Halo</span>
-                    <input
-                      type="checkbox"
-                      checked={visualLayers.earthGlow}
-                      onChange={() => toggleVisualLayer('earthGlow')}
-                      disabled={!useGlobe}
                     />
                     <span className="slider" />
                   </label>

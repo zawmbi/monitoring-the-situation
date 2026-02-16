@@ -2391,6 +2391,9 @@ body {
   gap: 10px;
   margin-bottom: 16px;
 }
+.themes-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
 
 .theme-card {
   background: var(--panel-card-bg);
@@ -2425,21 +2428,31 @@ body {
   flex-direction: column;
 }
 
-.theme-preview-dark {
+.theme-preview-cyber-control-room {
   background: #060814;
 }
 
-.theme-preview-light {
+.theme-preview-dark-minimal {
+  background: #111118;
+}
+
+.theme-preview-light-analytic {
   background: #f5efe6;
 }
 
-.theme-preview-dark .theme-preview-bar {
+.theme-preview-cyber-control-room .theme-preview-bar {
   height: 12%;
   background: #0e1430;
   border-bottom: 1px solid rgba(115, 125, 210, 0.22);
 }
 
-.theme-preview-light .theme-preview-bar {
+.theme-preview-dark-minimal .theme-preview-bar {
+  height: 12%;
+  background: #1a1a24;
+  border-bottom: 1px solid rgba(128, 128, 255, 0.18);
+}
+
+.theme-preview-light-analytic .theme-preview-bar {
   height: 12%;
   background: #ede6d8;
   border-bottom: 1px solid rgba(166, 120, 80, 0.22);
@@ -2450,24 +2463,35 @@ body {
   display: flex;
 }
 
-.theme-preview-dark .theme-preview-sidebar {
+.theme-preview-cyber-control-room .theme-preview-sidebar {
   width: 30%;
   background: rgba(8, 10, 26, 0.95);
   border-right: 1px solid rgba(115, 125, 210, 0.22);
 }
 
-.theme-preview-light .theme-preview-sidebar {
+.theme-preview-dark-minimal .theme-preview-sidebar {
+  width: 30%;
+  background: rgba(14, 14, 22, 0.95);
+  border-right: 1px solid rgba(128, 128, 255, 0.18);
+}
+
+.theme-preview-light-analytic .theme-preview-sidebar {
   width: 30%;
   background: rgba(240, 232, 218, 0.95);
   border-right: 1px solid rgba(166, 120, 80, 0.22);
 }
 
-.theme-preview-dark .theme-preview-map {
+.theme-preview-cyber-control-room .theme-preview-map {
   flex: 1;
-  background: radial-gradient(circle at 60% 40%, rgba(123, 107, 255, 0.15), transparent 60%), #0c1126;
+  background: radial-gradient(circle at 60% 40%, rgba(0, 212, 255, 0.15), transparent 60%), #0c1126;
 }
 
-.theme-preview-light .theme-preview-map {
+.theme-preview-dark-minimal .theme-preview-map {
+  flex: 1;
+  background: radial-gradient(circle at 60% 40%, rgba(128, 128, 255, 0.12), transparent 60%), #161620;
+}
+
+.theme-preview-light-analytic .theme-preview-map {
   flex: 1;
   background: radial-gradient(circle at 60% 40%, rgba(100, 160, 200, 0.2), transparent 60%), #8ab4d8;
 }
