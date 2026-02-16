@@ -4136,10 +4136,11 @@ function App() {
           </div>
         )}
 
-        {/* Map controls - bottom right (collapsible) */}
-        <div className={`map-controls-br${mapControlsCollapsed ? ' collapsed' : ''}`}>
+        {/* Map controls - bottom left, grouped with zoom */}
+        <div className="map-controls-bl">
+          {/* Rotation controls (collapsible) */}
           {useGlobe && (
-            <>
+            <div className={`map-rotation-controls${mapControlsCollapsed ? ' collapsed' : ''}`}>
               {!mapControlsCollapsed && (
                 <>
                   {autoRotate && (
@@ -4213,12 +4214,9 @@ function App() {
                   )}
                 </svg>
               </button>
-            </>
+            </div>
           )}
-        </div>
-
-        {/* Recenter button - bottom left, next to zoom controls */}
-        <div className="map-controls-bl">
+          {/* Recenter / globe button */}
           <button
             className="map-recenter-btn"
             onClick={handleRecenter}

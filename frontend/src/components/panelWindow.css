@@ -290,7 +290,7 @@
 
 .pw-minimized-tray {
   position: fixed;
-  bottom: 0;
+  bottom: 88px; /* above GlobalStatusBar (28px) + TimelineNavigator (60px) */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -301,35 +301,66 @@
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
   border: 1px solid var(--glass-border);
-  border-bottom: none;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-radius: var(--radius-md);
   box-shadow: var(--glass-shadow-glow);
   animation: pw-tray-in 0.2s ease-out;
 }
 
 @keyframes pw-tray-in {
-  from { transform: translateX(-50%) translateY(100%); }
-  to   { transform: translateX(-50%) translateY(0); }
+  from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
 
 .pw-tray-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 0;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
 }
 .pw-tray-chip:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
+}
+
+.pw-tray-chip-restore {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pw-tray-chip-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin-right: 4px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.pw-tray-chip-close:hover {
+  background: rgba(255, 60, 60, 0.25);
+  color: #ff6b6b;
 }
 
 .pw-tray-restore {
