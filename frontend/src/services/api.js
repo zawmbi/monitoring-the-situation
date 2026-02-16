@@ -20,6 +20,40 @@ export const api = {
   getRss: () => api.fetch('/rss'),
   search: (q) => api.fetch(`/search?q=${encodeURIComponent(q)}`),
   getStats: () => api.fetch('/stats'),
+
+  // Conflict (Russia-Ukraine live data)
+  getConflictLive: () => api.fetch('/conflict'),
+  getConflictLosses: () => api.fetch('/conflict/losses'),
+  getConflictLossesHistory: (days = 30) => api.fetch(`/conflict/losses/history?days=${days}`),
+  getConflictNews: (limit = 30) => api.fetch(`/conflict/news?limit=${limit}`),
+
+  // Tariffs (US trade policy live data)
+  getTariffLive: () => api.fetch('/tariffs'),
+  getTariffNews: (limit = 30) => api.fetch(`/tariffs/news?limit=${limit}`),
+
+  // Economic data (World Bank live indicators)
+  getEconomicData: (cca2) => api.fetch(`/economic/${cca2}`),
+
+  // World leaders (Wikidata live data)
+  getWorldLeaders: () => api.fetch('/leaders'),
+  getLeaderByCountry: (country) => api.fetch(`/leaders/${encodeURIComponent(country)}`),
+
+  // Markets (stock indices & forex per country)
+  getMarketData: (countryCode) => api.fetch(`/markets/${countryCode}`),
+
+  // UCDP conflict events
+  getUCDPEvents: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return api.fetch(`/ucdp/events${query ? `?${query}` : ''}`);
+  },
+  getUCDPConflicts: () => api.fetch('/ucdp/conflicts'),
+
+  // Stability data (protests, military, instability)
+  getStabilityData: () => api.fetch('/stability'),
+  getProtestData: () => api.fetch('/stability/protests'),
+  getMilitaryData: () => api.fetch('/stability/military'),
+  getInstabilityData: () => api.fetch('/stability/instability'),
+
 };
 
 export default api;

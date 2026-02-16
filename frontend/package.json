@@ -8,12 +8,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@geoql/maplibre-gl-starfield": "^0.0.2",
+    "@vis.gl/react-maplibre": "^8.1.0",
     "d3-geo": "^3.1.0",
+    "firebase": "^10.8.0",
     "maplibre-gl": "^5.17.0",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@vis.gl/react-maplibre": "^8.1.0",
+    "three": "^0.182.0",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1",
     "world-atlas": "^2.0.2",

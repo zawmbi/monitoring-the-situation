@@ -1,0 +1,858 @@
+/* ═══════════════════════════════════════════
+   Stability — Protests, Military, Instability
+   ═══════════════════════════════════════════ */
+
+/* ── Panel ── */
+
+.stab-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stab-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.stab-panel-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stab-panel-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stab-live-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #5ee0ef;
+  background: rgba(94, 224, 239, 0.12);
+  border: 1px solid rgba(94, 224, 239, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stab-btn-refresh {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.stab-btn-refresh:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Tabs ── */
+
+.stab-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.stab-tab {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stab-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+.stab-tab--active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.stab-tab-count {
+  font-size: 0.68rem;
+  background: rgba(255, 80, 80, 0.2);
+  color: #ff8888;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* ── Content ── */
+
+.stab-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.stab-panel-content::-webkit-scrollbar { width: 6px; }
+.stab-panel-content::-webkit-scrollbar-track { background: transparent; }
+.stab-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+.stab-tab-body {
+  padding: 12px 16px;
+}
+
+.stab-section-note {
+  font-size: 10px;
+  color: var(--color-text-muted, #555);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.stab-loading, .stab-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.stab-loading-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: stab-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes stab-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.stab-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Severity Badge ── */
+
+.stab-severity-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #111;
+  white-space: nowrap;
+}
+
+/* ── Alert Cards ── */
+
+.stab-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s;
+  color: inherit;
+}
+
+.stab-alert-card:hover {
+  background: rgba(255, 50, 50, 0.04);
+}
+
+.stab-alert-card-left {
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.stab-alert-icon {
+  font-size: 1.2rem;
+}
+
+.stab-alert-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stab-alert-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.stab-alert-country {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stab-alert-type-chip {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+.stab-alert-headline {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.stab-alert-source {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── Military Cards ── */
+
+.stab-mil-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s;
+  color: inherit;
+}
+
+.stab-mil-card:hover {
+  background: rgba(255, 170, 0, 0.04);
+}
+
+.stab-mil-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.stab-mil-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stab-mil-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.stab-mil-country {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stab-mil-force {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.stab-mil-label {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Protest Cards ── */
+
+.stab-protest-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s;
+  color: inherit;
+}
+
+.stab-protest-card:hover {
+  background: rgba(255, 130, 0, 0.04);
+}
+
+.stab-protest-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stab-protest-country {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stab-protest-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stab-protest-bar-track {
+  width: 80px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.stab-protest-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 180, 0, 0.6), rgba(255, 60, 0, 0.8));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.stab-protest-intensity {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── News Headlines Section ── */
+
+.stab-news-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stab-news-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stab-news-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.stab-news-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stab-news-headline {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.stab-news-time {
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Footer ── */
+
+.stab-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.stab-panel-sources {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.stab-panel-updated {
+  font-size: 0.62rem;
+  color: rgba(0, 230, 118, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   Map Markers — Protest Labels
+   ═══════════════════════════════════════════ */
+
+.protest-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+  padding-top: 4px;
+}
+
+.protest-label-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6600;
+  box-shadow: 0 0 6px rgba(255, 102, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.protest-label-text {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 200, 150, 0.85);
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════
+   Map Markers — NATO APP-6 Military Symbols
+   ═══════════════════════════════════════════ */
+
+/* ── NATO symbol wrapper ── */
+.mil-nato {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.15s;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+
+.mil-nato:hover {
+  transform: scale(1.2);
+  z-index: 10;
+}
+
+/* ── Severity pip above the box ── */
+.mil-nato-pip {
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.3px;
+}
+
+.mil-nato-pip--base {
+  color: #5baaff;
+  font-size: 10px;
+}
+
+/* ── NATO box + flag row ── */
+.mil-nato-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── The rectangular NATO unit box ── */
+.mil-nato-box {
+  position: relative;
+  width: 32px;
+  height: 22px;
+  background: var(--nato-bg, #2a2a2a);
+  border: 2px solid var(--nato-border, #999);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mil-nato--base .mil-nato-box {
+  border-style: double;
+  border-width: 3px;
+}
+
+.mil-nato-icon {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+/* ── Country flag next to box ── */
+.mil-nato-flag {
+  font-size: 14px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* ── Pulse ring for critical / high severity ── */
+.mil-nato-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 22px;
+  border: 2px solid;
+  border-radius: 3px;
+  animation: mil-nato-pulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes mil-nato-pulse {
+  0% { width: 32px; height: 22px; opacity: 0.6; }
+  100% { width: 56px; height: 40px; opacity: 0; }
+}
+
+/* ── Label below the symbol ── */
+.mil-nato-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   Map Popup — Military Detail
+   ═══════════════════════════════════════════ */
+
+.mil-popup-anchor {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  margin-bottom: 8px;
+  pointer-events: auto;
+}
+
+.mil-popup {
+  width: 310px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--color-bg-primary, #0e0e12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  cursor: default;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.mil-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mil-popup-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mil-popup-flag {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mil-popup-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  line-height: 1.3;
+}
+
+.mil-popup-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #666);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.mil-popup-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+.mil-popup-severity {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  color: #111;
+}
+
+.mil-popup-base-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  background: rgba(91, 170, 255, 0.15);
+  color: #5baaff;
+  border: 1px solid rgba(91, 170, 255, 0.3);
+}
+
+/* ── Popup body rows ── */
+.mil-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mil-popup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mil-popup-key {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.mil-popup-val {
+  font-size: 11px;
+  color: var(--color-text-secondary, #aaa);
+  text-align: right;
+  line-height: 1.4;
+}
+
+.mil-popup-coords {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* ── Popup articles ── */
+.mil-popup-articles {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+
+.mil-popup-articles-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.mil-popup-article {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-secondary, #aaa);
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mil-popup-article:hover {
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+.mil-popup-source {
+  font-size: 9px;
+  color: var(--color-text-muted, #555);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════
+   Sidebar — Stability Info
+   ═══════════════════════════════════════════ */
+
+.stability-sidebar-info {
+  padding: 10px;
+  background: rgba(255, 100, 0, 0.04);
+  border: 1px solid rgba(255, 100, 0, 0.12);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.stability-sidebar-info strong {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-primary, #e8e8f0);
+  margin-bottom: 4px;
+}
+
+.stability-sidebar-info p {
+  font-size: 10px;
+  color: var(--color-text-muted, #666);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.stability-sidebar-stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stability-sidebar-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.stability-sidebar-stat-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-text-primary, #e8e8f0);
+  font-variant-numeric: tabular-nums;
+}
+
+.stability-sidebar-stat-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+.stability-sidebar-open-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 12px;
+  background: rgba(255, 100, 0, 0.08);
+  border: 1px solid rgba(255, 100, 0, 0.2);
+  border-radius: 6px;
+  color: var(--color-text-primary, #e8e8f0);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.stability-sidebar-open-btn:hover {
+  background: rgba(255, 100, 0, 0.15);
+  border-color: rgba(255, 100, 0, 0.35);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .stab-protest-bar-track { width: 50px; }
+}

@@ -921,7 +921,7 @@ export function isEmbargoed(countryName) {
  */
 export function getTariffColor(rate) {
   if (rate === -1) return '#1a1a2e'; // Dark purple-black for embargo
-  if (rate === 0) return 'rgba(100, 100, 120, 0.25)'; // Dim gray for US
+  if (rate === 0) return '#5b9bd5'; // Light blue for US
   if (rate <= 10) return '#22c55e';
   if (rate <= 15) return '#65d544';
   if (rate <= 20) return '#a3d930';
@@ -938,7 +938,7 @@ export function getTariffColor(rate) {
  */
 export function getTariffColorLight(rate) {
   if (rate === -1) return '#2d1f3d'; // Dark purple for embargo
-  if (rate === 0) return 'rgba(140, 140, 155, 0.2)';
+  if (rate === 0) return '#7fb8e0'; // Light blue for US
   if (rate <= 10) return '#86efac';
   if (rate <= 15) return '#a8e88c';
   if (rate <= 20) return '#d4e070';
@@ -951,6 +951,7 @@ export function getTariffColorLight(rate) {
 }
 
 export const TARIFF_LEGEND = [
+  { label: 'US (Self)', color: '#5b9bd5', colorLight: '#7fb8e0' },
   { label: 'Embargo', color: '#1a1a2e', colorLight: '#2d1f3d' },
   { label: '1-10%', color: '#22c55e', colorLight: '#86efac' },
   { label: '11-20%', color: '#a3d930', colorLight: '#d4e070' },

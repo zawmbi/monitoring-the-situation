@@ -1,137 +1,565 @@
-/* Country Panel Styles */
+/* Country Panel — right-side panel (matches Polymarket style) */
 
-.country-panel {
-  position: absolute;
+.cp-panel {
+  position: fixed;
+  top: var(--nav-height, 64px);
+  right: 0;
+  width: 360px;
+  height: calc(100vh - var(--nav-height, 64px));
+  background: var(--glass-bg);
+  border-left: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 1100;
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  box-shadow: var(--glass-shadow-glow);
+  animation: cp-slide-in 0.25s ease-out;
+}
+
+@keyframes cp-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Header ── */
+
+.cp-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cp-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cp-flag-emoji {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cp-flag-img {
+  width: 34px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.cp-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+}
+
+.cp-official-name {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.cp-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+  display: block;
+}
+
+.cp-close {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cp-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-primary);
+}
+
+/* ── Content area ── */
+
+.cp-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 16px;
+}
+
+.cp-content::-webkit-scrollbar {
+  width: 4px;
+}
+.cp-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cp-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* ── Sections ── */
+
+.cp-section {
+  margin-top: 12px;
+}
+
+.cp-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+  opacity: 0.7;
+}
+
+/* ── Leader card ── */
+
+.cp-leader-card {
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cp-leader-photo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.cp-leader-photo--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+}
+
+.cp-leader-info {
+  min-width: 0;
+}
+
+.cp-leader-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.cp-leader-title {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-party-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.cp-party-badge--dem {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.cp-party-badge--rep {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.cp-party-badge--other {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.cp-detail-val--italic {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* ── Approval button ── */
+
+.cp-approval-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.cp-approval-btn:hover {
+  background: rgba(123, 107, 255, 0.15);
+  border-color: rgba(123, 107, 255, 0.35);
+  color: var(--color-accent);
+}
+
+/* ── Approval popup ── */
+
+.cp-approval-popup {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
-  border: 1px solid var(--glass-border);
-  border-top: 1px solid var(--glass-border-accent);
+  border: 1px solid var(--panel-neon-color);
   border-radius: var(--radius-lg);
-  width: 320px;
-  box-shadow: var(--glass-shadow-glow);
-  z-index: 1002;
-  cursor: move;
+  box-shadow: var(--panel-neon-glow);
+  margin-top: 8px;
   overflow: hidden;
+  animation: cp-approval-in 0.2s ease-out;
 }
 
-/* Weather background image overlay */
-.country-panel-weather-bg {
+@keyframes cp-approval-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cp-approval-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-approval-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cp-approval-popup-close {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+}
+
+/* Current stats row */
+
+.cp-approval-current {
+  display: flex;
+  gap: 4px;
+  padding: 10px 10px 6px;
+}
+
+.cp-approval-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cp-approval-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cp-approval-stat--approve {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-approval-stat--disapprove {
+  color: var(--color-negative, #ef4444);
+}
+
+.cp-approval-stat-label {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Chart area */
+
+.cp-approval-chart-wrap {
+  padding: 6px 10px 4px;
+}
+
+.cp-approval-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+}
+
+.cp-approval-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 0 2px;
+}
+
+/* Horizontal bar for single-point / wiki-only approval data */
+
+.cp-approval-bar-wrap {
+  padding: 8px 10px 4px;
+}
+
+.cp-approval-bar {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  gap: 2px;
+}
+
+.cp-approval-bar-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  transition: width 0.4s ease;
+}
+
+.cp-approval-bar-fill--approve {
+  background: rgba(34, 197, 94, 0.6);
+  border-radius: 6px 0 0 6px;
+}
+
+.cp-approval-bar-fill--disapprove {
+  background: rgba(239, 68, 68, 0.5);
+  border-radius: 0 6px 6px 0;
+}
+
+.cp-approval-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-approval-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.cp-approval-dot--approve {
+  background: #22c55e;
+}
+
+.cp-approval-dot--disapprove {
+  background: #ef4444;
+}
+
+/* Info rows */
+
+.cp-approval-info {
+  padding: 2px 10px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-approval-info .cp-detail-row {
+  padding: 5px 0;
+  font-size: 11px;
+}
+
+.cp-approval-info .cp-detail-val {
+  max-width: 55%;
+  font-size: 11px;
+}
+
+.cp-approval-countdown {
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Note */
+
+.cp-approval-note {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 4px 10px 8px;
+  line-height: 1.4;
+  font-style: italic;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── Currency card ── */
+
+.cp-currency-card {
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.cp-currency-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cp-currency-symbol {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  min-width: 28px;
+  text-align: center;
+}
+
+.cp-currency-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.cp-currency-code {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+.cp-currency-rate {
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cp-currency-rate-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.cp-currency-rate-value.cp-muted {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.cp-currency-ytd {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.cp-currency-ytd.positive {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-currency-ytd.negative {
+  color: var(--color-negative, #ef4444);
+}
+
+/* ── Weather card ── */
+
+.cp-weather-card {
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.cp-weather-bg {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.15;
+  opacity: 0.12;
   z-index: 0;
   pointer-events: none;
-  border-radius: inherit;
 }
 
-.country-panel-header,
-.country-panel-weather-banner,
-.country-panel-body {
+.cp-weather-content {
   position: relative;
   z-index: 1;
-}
-
-.country-panel-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.country-panel-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 2px;
-}
-
-.country-panel-subtitle {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.country-panel-close {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.country-panel-close:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--color-text-primary);
-}
-
-/* ---- Weather banner ---- */
-.country-panel-weather-banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
 }
 
-.country-panel-weather-banner--loading {
-  gap: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  padding: 14px 16px;
-}
-
-.country-panel-weather-loading-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-  animation: weatherPulse 1s ease-in-out infinite;
-}
-
-@keyframes weatherPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-.country-panel-weather-icon {
+.cp-weather-icon {
   flex-shrink: 0;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
 }
 
-.country-panel-weather-main {
+.cp-weather-main {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
 
-.country-panel-weather-temp {
+.cp-weather-temp {
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.1;
 }
 
-.country-panel-weather-desc {
+.cp-weather-desc {
   font-size: 11px;
   color: var(--color-text-secondary);
   text-transform: capitalize;
 }
 
-.country-panel-weather-meta {
+.cp-weather-meta {
   margin-left: auto;
   display: flex;
   flex-direction: column;
@@ -142,56 +570,1298 @@
   flex-shrink: 0;
 }
 
-/* ---- Info rows ---- */
-.country-panel-body {
-  padding: 12px 16px 14px;
-}
-
-.country-panel-row {
+.cp-weather-card--loading {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 7px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  font-size: 13px;
-}
-
-.country-panel-row:last-of-type {
-  border-bottom: none;
-}
-
-.country-panel-row span {
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
-.country-panel-row strong {
+.cp-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: cp-pulse 1s ease-in-out infinite;
+}
+
+@keyframes cp-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.cp-photo-credit {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  padding: 4px 12px 6px;
+  text-align: center;
+  opacity: 0.7;
+  position: relative;
+  z-index: 1;
+}
+
+.cp-photo-credit a {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+}
+
+/* ── Details card ── */
+
+.cp-details-card {
+  background: var(--panel-card-bg);
+  border: 1px solid var(--panel-card-border);
+  border-radius: 8px;
+  padding: 4px 12px;
+}
+
+.cp-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+
+.cp-detail-row:last-child {
+  border-bottom: none;
+}
+
+.cp-detail-key {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.cp-detail-val {
   color: var(--color-text-primary);
   font-weight: 600;
   text-align: right;
   max-width: 60%;
 }
 
-.country-panel-row--error strong {
+/* ── Badges ── */
+
+.cp-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cp-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.cp-badge--neutral {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.cp-badge--accent {
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
   color: var(--color-accent);
 }
 
-.country-panel-photo-credit {
-  font-size: 9px;
-  color: var(--color-text-muted);
-  margin-top: 8px;
-  text-align: center;
+/* ── Gini bar ── */
+
+.cp-gini-bar-container {
+  padding: 6px 0 4px;
+}
+
+.cp-gini-bar {
+  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.cp-gini-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-positive, #22c55e) 0%, #eab308 50%, var(--color-negative, #ef4444) 100%);
   opacity: 0.7;
 }
 
-.country-panel-photo-credit a {
-  color: var(--color-text-secondary);
-  text-decoration: underline;
+.cp-gini-marker {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 12px;
+  background: var(--color-text-primary);
+  border-radius: 2px;
+  transform: translateX(-1px);
 }
 
-.country-panel-note {
-  margin-top: 8px;
-  font-size: 10px;
+.cp-gini-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
   color: var(--color-text-muted);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+
+/* ── Loading skeleton ── */
+
+.cp-loading-line {
+  height: 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: cp-shimmer 1.5s infinite;
+}
+
+.cp-loading-line--small {
+  height: 12px;
+  width: 100px;
+}
+
+@keyframes cp-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Error ── */
+
+.cp-error-notice {
+  font-size: 12px;
+  color: var(--color-negative, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* ── Economic Indicators Button ── */
+
+.cp-econ-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 8px;
+  color: #c7d2fe;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-econ-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.cp-econ-btn svg {
+  opacity: 0.7;
+}
+
+.cp-econ-loading {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* ── Economic Popup ── */
+
+.cp-econ-popup {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 8px;
+  animation: cp-popup-in 0.18s ease-out;
+}
+
+@keyframes cp-popup-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cp-econ-section {
+  margin-bottom: 12px;
+}
+
+.cp-econ-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+.cp-econ-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-econ-section-note {
+  font-weight: 500;
+  color: rgba(16, 185, 129, 0.6);
+  letter-spacing: 0.3px;
+}
+
+.cp-econ-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cp-econ-indicator {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cp-econ-indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.cp-econ-indicator-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.cp-econ-indicator-date {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.cp-econ-indicator-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+/* ═══════════════════════════════════════════
+   Markets Section (Stock Indices & Forex)
+   ═══════════════════════════════════════════ */
+
+/* ── Markets trigger button ── */
+
+.cp-markets-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 8px;
+  color: #a7f3d0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-markets-btn:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.cp-markets-btn svg {
+  opacity: 0.7;
+}
+
+.cp-markets-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+/* ── Markets popup ── */
+
+.cp-markets-popup {
+  background: rgba(15, 15, 30, 0.97);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 8px;
+  animation: cp-popup-in 0.18s ease-out;
+}
+
+.cp-markets-section {
+  margin-bottom: 12px;
+}
+
+.cp-markets-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+/* ── Index cards ── */
+
+.cp-markets-indices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-market-index-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.cp-market-index-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.cp-market-index-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.cp-market-index-exchange {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.cp-market-index-data {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cp-market-index-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-market-index-change {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-market-index-change.positive {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-market-index-change.negative {
+  color: var(--color-negative, #ef4444);
+}
+
+.cp-market-index-range {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cp-market-range-label {
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-market-range-val {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Top Stocks grid ── */
+
+.cp-stocks-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cp-stock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.cp-stock-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cp-stock-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cp-stock-ticker {
+  font-size: 10px;
+  font-weight: 700;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-stock-name {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-stock-numbers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cp-stock-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-stock-change {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: center;
+}
+
+.cp-stock-change.positive {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.cp-stock-change.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ── Commodities & Crypto grid ── */
+
+.cp-commodities-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cp-commodity-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+
+.cp-commodity-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
+}
+
+.cp-commodity-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.cp-commodity-unit {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.cp-commodity-change {
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-commodity-change.positive {
+  color: var(--color-positive, #22c55e);
+}
+
+.cp-commodity-change.negative {
+  color: var(--color-negative, #ef4444);
+}
+
+/* ── Forex grid ── */
+
+.cp-markets-forex-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cp-forex-pair {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cp-forex-pair-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.cp-forex-pair-rate {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Live-ticking number animations ── */
+
+.cp-tick-num {
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+.cp-tick-num.tick-up {
+  color: #22c55e !important;
+  animation: tickFlash 1.2s ease-out;
+}
+
+.cp-tick-num.tick-down {
+  color: #ef4444 !important;
+  animation: tickFlash 1.2s ease-out;
+}
+
+@keyframes tickFlash {
+  0% { opacity: 1; }
+  15% { opacity: 0.6; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.cp-market-index-price .cp-tick-num,
+.cp-stock-price .cp-tick-num {
+  font-weight: 600;
+  font-size: inherit;
+}
+
+/* Pulsing dot to show live refresh */
+.cp-markets-tick-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-left: auto;
+  animation: tickDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes tickDotPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ── Sovereign Bond Yields ── */
+
+.cp-bonds-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cp-bond-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 70px 52px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+}
+
+.cp-bond-row:last-child { border-bottom: none; }
+
+.cp-bond-maturity {
+  font-weight: 700;
+  font-size: 10px;
+  color: #60a5fa;
+  letter-spacing: 0.03em;
+}
+
+.cp-bond-name {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-bond-row .cp-tick-num {
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #e2e8f0;
+  text-align: right;
+}
+
+.cp-bond-change {
+  font-size: 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-yield-inverted {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  margin-left: 4px;
+  animation: tickFlash 2s ease-in-out infinite;
+}
+
+.cp-yield-spreads {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding: 4px 0;
+}
+
+.cp-yield-spread-tag {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cp-yield-spread-tag .positive { color: #22c55e; }
+.cp-yield-spread-tag .negative { color: #ef4444; }
+
+/* ── Volatility Section ── */
+
+.cp-vol-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cp-vol-card {
+  flex: 1;
+  min-width: 90px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+
+.cp-vol-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.cp-vol-name {
+  font-weight: 600;
+  font-size: 11px;
+  color: #e2e8f0;
+}
+
+.cp-vol-signal {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.cp-vol-signal--calm { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.cp-vol-signal--moderate { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.cp-vol-signal--elevated { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+.cp-vol-level {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+}
+
+.cp-vol-change {
+  font-size: 10px;
+  margin-top: 1px;
+}
+
+.cp-vol-desc {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 3px;
+}
+
+/* ── Credit / CDS Proxy Section ── */
+
+.cp-credit-note {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  padding-bottom: 4px;
+}
+
+.cp-credit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.cp-credit-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+
+.cp-credit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cp-credit-ticker {
+  font-weight: 700;
+  font-size: 11px;
+  color: #60a5fa;
+}
+
+.cp-credit-name {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
+.cp-credit-price {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #e2e8f0 !important;
+  margin-top: 3px;
+}
+
+.cp-credit-change {
+  font-size: 10px;
+  margin-top: 1px;
+}
+
+.cp-credit-desc {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+/* ── DXY Section ── */
+
+.cp-dxy-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cp-dxy-price {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+}
+
+.cp-dxy-change {
+  font-size: 11px;
+}
+
+/* ── Commodity group labels ── */
+
+.cp-commodity-group {
+  margin-bottom: 6px;
+}
+
+.cp-commodity-group-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
+}
+
+/* ── Light theme overrides for new sections ── */
+
+[data-theme="light"] .cp-bond-maturity { color: #2563eb; }
+[data-theme="light"] .cp-bond-name { color: rgba(0, 0, 0, 0.4); }
+[data-theme="light"] .cp-bond-row .cp-tick-num { color: #1e293b; }
+[data-theme="light"] .cp-bond-row { border-bottom-color: rgba(0, 0, 0, 0.04); }
+[data-theme="light"] .cp-yield-inverted { color: #dc2626; }
+[data-theme="light"] .cp-yield-spread-tag { background: rgba(0, 0, 0, 0.03); color: rgba(0, 0, 0, 0.5); }
+[data-theme="light"] .cp-vol-card,
+[data-theme="light"] .cp-credit-card,
+[data-theme="light"] .cp-dxy-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .cp-vol-name { color: #1e293b; }
+[data-theme="light"] .cp-vol-level { color: #1e293b !important; }
+[data-theme="light"] .cp-vol-desc { color: rgba(0, 0, 0, 0.35); }
+[data-theme="light"] .cp-credit-ticker { color: #2563eb; }
+[data-theme="light"] .cp-credit-name { color: rgba(0, 0, 0, 0.45); }
+[data-theme="light"] .cp-credit-price { color: #1e293b !important; }
+[data-theme="light"] .cp-credit-desc { color: rgba(0, 0, 0, 0.3); }
+[data-theme="light"] .cp-credit-note { color: rgba(0, 0, 0, 0.35); }
+[data-theme="light"] .cp-dxy-price { color: #1e293b !important; }
+[data-theme="light"] .cp-commodity-group-label { color: rgba(0, 0, 0, 0.4); }
+[data-theme="light"] .cp-markets-tick-dot { background: #16a34a; }
+
+/* ═══════════════════════════════════════════
+   Supreme Court (SCOTUS) Section
+   ═══════════════════════════════════════════ */
+
+/* ── Trigger button ── */
+
+.cp-scotus-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.2px;
+}
+
+.cp-scotus-btn:hover {
+  background: rgba(123, 107, 255, 0.1);
+  border-color: rgba(123, 107, 255, 0.3);
+  color: var(--color-text-primary);
+}
+
+.cp-scotus-btn svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.cp-scotus-btn-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.5px;
+}
+
+/* ── Popup container ── */
+
+.cp-scotus-popup {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow-glow);
+  overflow: hidden;
+  animation: cp-approval-in 0.2s ease-out;
+}
+
+.cp-scotus-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-scotus-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cp-scotus-popup-close {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+}
+
+/* ── Composition bar ── */
+
+.cp-scotus-comp {
+  padding: 10px 12px 6px;
+}
+
+.cp-scotus-comp-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-comp-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  transition: width 0.4s ease;
+}
+
+.cp-scotus-comp-fill--con {
+  background: rgba(239, 68, 68, 0.55);
+  border-radius: 6px 0 0 6px;
+}
+
+.cp-scotus-comp-fill--lib {
+  background: rgba(59, 130, 246, 0.55);
+  border-radius: 0 6px 6px 0;
+}
+
+.cp-scotus-comp-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.cp-scotus-comp-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cp-scotus-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── Section labels ── */
+
+.cp-scotus-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 8px 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-scotus-case-count {
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(123, 107, 255, 0.15);
+  color: var(--color-accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.3;
+}
+
+/* ── Justices grid ── */
+
+.cp-scotus-justices {
+  padding: 0 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cp-scotus-justice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  transition: background 0.12s ease;
+}
+
+.cp-scotus-justice:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-justice-lean {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.cp-scotus-justice-info {
+  min-width: 0;
+}
+
+.cp-scotus-justice-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cp-scotus-chief {
+  font-size: 8px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.cp-scotus-justice-meta {
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ── Pending cases ── */
+
+.cp-scotus-cases {
+  padding: 0 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cp-scotus-case {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.cp-scotus-case:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cp-scotus-case--open {
+  border-color: rgba(123, 107, 255, 0.25);
+}
+
+.cp-scotus-case-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cp-scotus-case-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cp-scotus-case-topic {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+  background: rgba(123, 107, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cp-scotus-case-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+}
+
+.cp-scotus-case-chevron {
+  flex-shrink: 0;
+  opacity: 0.4;
+  transition: transform 0.2s ease;
+}
+
+.cp-scotus-case-chevron--open {
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+
+/* ── Case body ── */
+
+.cp-scotus-case-body {
+  padding: 0 10px 10px;
+  animation: cp-approval-in 0.15s ease-out;
+}
+
+.cp-scotus-case-question {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cp-scotus-case-q-label {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin-bottom: 3px;
+}
+
+.cp-scotus-case-meta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+}
+
+/* ── Petitioner / Respondent sides ── */
+
+.cp-scotus-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cp-scotus-side {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid;
+}
+
+.cp-scotus-side--pet {
+  background: rgba(59, 130, 246, 0.06);
+  border-left-color: rgba(59, 130, 246, 0.5);
+}
+
+.cp-scotus-side--resp {
+  background: rgba(239, 68, 68, 0.06);
+  border-left-color: rgba(239, 68, 68, 0.5);
+}
+
+.cp-scotus-side-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.cp-scotus-side--pet .cp-scotus-side-label {
+  color: #60a5fa;
+}
+
+.cp-scotus-side--resp .cp-scotus-side-label {
+  color: #f87171;
+}
+
+.cp-scotus-side-text {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ── Footer ── */
+
+.cp-scotus-footer {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  padding: 6px 12px 10px;
   text-align: center;
   opacity: 0.5;
+  font-style: italic;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .cp-panel {
+    width: 100%;
+  }
 }

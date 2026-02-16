@@ -1,0 +1,1644 @@
+/* Election Panel — 2026 Midterm Elections */
+
+.el-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--glass-border);
+  border-top: 2px solid rgba(166, 123, 194, 0.5);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  height: 100%;
+  box-shadow: var(--glass-shadow-glow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: el-fade-in 0.2s ease-out;
+}
+
+@keyframes el-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+
+.el-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.el-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.el-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.3px;
+}
+
+.el-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.el-subtitle {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.el-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.el-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-primary);
+}
+
+/* ── Tabs ── */
+
+.el-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.el-tab {
+  flex: 1;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.el-tab:hover {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.el-tab.active {
+  color: var(--color-text-primary);
+  border-bottom-color: rgba(166, 123, 194, 0.7);
+  background: rgba(166, 123, 194, 0.06);
+}
+
+/* ── Primary / General toggle ── */
+
+.el-view-toggle {
+  display: flex;
+  padding: 8px 14px;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.el-view-btn {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.el-view-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.el-view-btn.active {
+  background: rgba(166, 123, 194, 0.15);
+  border-color: rgba(166, 123, 194, 0.4);
+  color: var(--color-text-primary);
+}
+
+/* ── Content area ── */
+
+.el-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+.el-content::-webkit-scrollbar {
+  width: 4px;
+}
+.el-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.el-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* ── Race section ── */
+
+.el-race {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.el-race-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.el-rating-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.el-special-badge,
+.el-open-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.el-special-badge {
+  background: rgba(245, 197, 66, 0.15);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: #f5c542;
+}
+
+.el-open-badge {
+  background: rgba(73, 198, 255, 0.12);
+  border: 1px solid rgba(73, 198, 255, 0.3);
+  color: var(--color-accent-2);
+}
+
+/* ── Incumbent row ── */
+
+.el-incumbent-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.el-incumbent-label {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.el-incumbent-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-party-tag {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.el-status-detail {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.el-note {
+  font-size: 11px;
+  color: var(--color-accent-2);
+  padding: 5px 8px;
+  background: rgba(73, 198, 255, 0.06);
+  border: 1px solid rgba(73, 198, 255, 0.15);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* ── Section title ── */
+
+.el-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-party-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Poll bar (general election) ── */
+
+.el-poll-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.el-poll-bar {
+  display: flex;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.el-poll-bar-segment {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+  opacity: 0.85;
+}
+
+.el-poll-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.el-poll-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.el-poll-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.el-poll-name {
+  color: var(--color-text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-poll-pct {
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.el-poll-empty {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 8px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Primary view ── */
+
+.el-primary-section {
+  margin-bottom: 4px;
+}
+
+.el-primary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.el-primary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.el-primary-rank {
+  width: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.el-primary-name {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  min-width: 80px;
+  max-width: 40%;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-primary-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.el-primary-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  opacity: 0.8;
+}
+
+.el-primary-pct {
+  font-size: 11px;
+  font-weight: 700;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Trend chart ── */
+
+.el-trend-chart {
+  margin-top: 8px;
+  padding: 10px 12px 8px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.el-trend-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+
+.el-trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.el-trend-tooltip rect {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
+
+/* ── House mini map ── */
+
+.el-house-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.el-house-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.el-house-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.el-house-lean {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.el-house-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.el-house-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.el-house-seg-d { background: #3b8bd4; opacity: 0.85; }
+.el-house-seg-comp { background: #a67bc2; opacity: 0.7; }
+.el-house-seg-r { background: #d44040; opacity: 0.85; }
+
+.el-house-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.el-house-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.el-house-tossups {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.el-house-tossup-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.el-house-district-tag {
+  padding: 1px 5px;
+  background: rgba(166, 123, 194, 0.12);
+  border: 1px solid rgba(166, 123, 194, 0.25);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #c9a0dc;
+  letter-spacing: 0.3px;
+}
+
+/* ── National context ── */
+
+.el-national-context {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.el-national-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.el-national-row span {
+  color: var(--color-text-muted);
+}
+
+.el-national-row strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* ── Dates section ── */
+
+.el-dates-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.el-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+}
+
+.el-date-row.el-date-past {
+  opacity: 0.5;
+}
+
+.el-date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.el-date-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-date-type-primary { color: #f5c542; }
+.el-date-type-runoff { color: #ff8c6b; }
+.el-date-type-general { color: #7df7cc; }
+.el-date-type-default { color: var(--color-text-secondary); }
+
+.el-date-row:has(.el-date-type-primary) { border-left-color: #f5c542; }
+.el-date-row:has(.el-date-type-runoff) { border-left-color: #ff8c6b; }
+.el-date-row:has(.el-date-type-general) { border-left-color: #7df7cc; }
+
+.el-date-formatted {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.el-date-countdown {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: rgba(125, 247, 204, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.el-date-countdown.el-date-done {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ── State context bar (PVI) ── */
+
+.el-state-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+}
+
+.el-pvi-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-pvi-value {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.el-pvi-d {
+  color: #7ab8e8;
+  background: rgba(59, 139, 212, 0.12);
+}
+
+.el-pvi-r {
+  color: #e88a8a;
+  background: rgba(212, 64, 64, 0.12);
+}
+
+.el-pvi-even {
+  color: #c9a0dc;
+  background: rgba(166, 123, 194, 0.12);
+}
+
+/* ── Race details (fundraising, endorsements, issues) ── */
+
+.el-race-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.el-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.el-detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-detail-value {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.el-prev-margin {
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.el-margin-d {
+  color: #7ab8e8;
+  background: rgba(59, 139, 212, 0.12);
+}
+
+.el-margin-r {
+  color: #e88a8a;
+  background: rgba(212, 64, 64, 0.12);
+}
+
+.el-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.el-fundraising-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.el-fundraise-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.el-fundraise-party {
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.el-endorsements {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.el-endorse-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.el-endorse-party {
+  font-weight: 700;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.el-endorse-names {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.el-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.el-issue-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  background: rgba(166, 123, 194, 0.1);
+  border: 1px solid rgba(166, 123, 194, 0.2);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #c9a0dc;
+  letter-spacing: 0.2px;
+}
+
+/* ── Data footer ── */
+
+.el-data-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.el-data-updated {
+  font-style: italic;
+}
+
+.el-data-sources {
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+}
+
+/* ── Live Indicator ── */
+
+.el-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: auto;
+  padding: 2px 8px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 4px;
+}
+
+.el-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: el-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes el-live-pulse {
+  0%, 100% { opacity: 0.4; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 4px 2px rgba(74, 222, 128, 0.2); }
+}
+
+/* ── Rating Shift Label ── */
+
+.el-rating-shift {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ── Market Probability Bar ── */
+
+.el-market-prob {
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.el-market-prob-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.el-market-prob-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.el-market-prob-source {
+  font-size: 8px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: opacity 0.15s;
+}
+
+.el-market-prob-source:hover {
+  opacity: 0.9;
+  color: #4ade80;
+}
+
+.el-market-prob-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  gap: 1px;
+}
+
+.el-market-prob-fill-d {
+  background: #3b8bd4;
+  border-radius: 3px 0 0 3px;
+  transition: width 0.8s ease;
+}
+
+.el-market-prob-fill-r {
+  background: #d44040;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.8s ease;
+}
+
+.el-market-prob-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── PVI mini badge (in district view) ── */
+
+.el-pvi-mini {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* ── District Selector ── */
+
+.el-district-selector {
+  margin-top: 6px;
+}
+
+.el-district-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.el-district-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.el-district-tag-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary);
+}
+
+.el-district-tag-btn.active {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.el-district-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── District Detail Panel ── */
+
+.el-district-detail {
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.el-district-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.el-district-detail-code {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.3px;
+}
+
+.el-district-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.el-district-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-primary);
+}
+
+/* ── Redistricting Panel ── */
+
+.el-redistricting {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.el-redistricting-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.el-redistricting-status {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border: 1px solid;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.el-redistricting-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.el-redistricting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+/* ── Court Cases ── */
+
+.el-court-cases {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.el-court-cases-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.el-court-case {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid rgba(255, 140, 107, 0.5);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.el-court-case:last-child {
+  margin-bottom: 0;
+}
+
+.el-court-case-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.el-court-case-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.el-court-case-status {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-court-status-decided {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.el-court-status-pending {
+  background: rgba(255, 140, 107, 0.12);
+  color: #ff8c6b;
+}
+
+.el-court-case-court {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.el-court-case-date {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  margin-top: 1px;
+}
+
+.el-court-case-summary {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* ── Election mode map legend (bottom overlay) ── */
+
+.el-map-legend {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 14px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  z-index: 900;
+  animation: el-fade-in 0.3s ease-out;
+}
+
+.el-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.el-legend-swatch {
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.el-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 4px;
+}
+
+/* ── Election mode badge (sidebar toggle area) ── */
+
+.el-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(166, 123, 194, 0.12);
+  border: 1px solid rgba(166, 123, 194, 0.3);
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c9a0dc;
+  letter-spacing: 0.3px;
+}
+
+.el-mode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9a0dc;
+  animation: el-pulse 2s ease-in-out infinite;
+}
+
+@keyframes el-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .el-panel {
+    width: calc(100vw - 32px);
+    max-width: 420px;
+  }
+}
+
+/* ── Super PAC Panel ── */
+
+.el-superpac {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.el-superpac-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.el-superpac-total {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  padding: 2px 8px;
+  background: rgba(245, 197, 66, 0.1);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  border-radius: 4px;
+  color: #f5c542;
+}
+
+.el-superpac-parties {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.el-superpac-party-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.el-superpac-party-label {
+  font-size: 12px;
+  font-weight: 700;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.el-superpac-party-amounts {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
+
+.el-superpac-for {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.el-superpac-against {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #f87171;
+  font-weight: 600;
+}
+
+.el-superpac-committees {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.el-superpac-committees-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.el-superpac-committee {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 3px 0;
+  gap: 8px;
+}
+
+.el-superpac-committee-name {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  flex: 1;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-superpac-committee-amount {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+/* ── Upcoming Elections ── */
+
+.el-upcoming-elections {
+  margin-bottom: 10px;
+}
+
+.el-upcoming-election-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.el-upcoming-election-name {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-upcoming-election-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* ── Voter Info Lookup ── */
+
+.el-voter-lookup {
+  margin-bottom: 10px;
+}
+
+.el-voter-lookup-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.el-voter-lookup-input {
+  flex: 1;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.el-voter-lookup-input:focus {
+  border-color: rgba(166, 123, 194, 0.5);
+}
+
+.el-voter-lookup-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.el-voter-lookup-btn {
+  padding: 6px 12px;
+  background: rgba(166, 123, 194, 0.15);
+  border: 1px solid rgba(166, 123, 194, 0.3);
+  border-radius: 5px;
+  color: #c9a0dc;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.el-voter-lookup-btn:hover:not(:disabled) {
+  background: rgba(166, 123, 194, 0.25);
+}
+
+.el-voter-lookup-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.el-voter-lookup-error {
+  font-size: 10px;
+  color: #f87171;
+  margin-top: 4px;
+  padding: 4px 8px;
+}
+
+.el-voter-results {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.el-voter-section {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.el-voter-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.el-voter-location {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.el-voter-location:last-child {
+  border-bottom: none;
+}
+
+.el-voter-location-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.el-voter-location-addr {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.el-voter-location-hours {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.el-voter-contest {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.el-voter-contest:last-child {
+  border-bottom: none;
+}
+
+.el-voter-contest-office {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: block;
+}
+
+.el-voter-contest-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.el-voter-contest-candidate {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+
+.el-voter-contest-party {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.el-voter-contest-ref-text {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  display: block;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.el-voter-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.el-voter-link {
+  font-size: 10px;
+  color: #7ab8e8;
+  text-decoration: none;
+  padding: 3px 8px;
+  background: rgba(59, 139, 212, 0.08);
+  border: 1px solid rgba(59, 139, 212, 0.2);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.el-voter-link:hover {
+  background: rgba(59, 139, 212, 0.15);
+  color: #a0d0f8;
+}
+
+/* ── Info Tab — sources & status ── */
+
+.el-info-sources {
+  margin-top: 10px;
+}
+
+.el-info-source-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.el-info-source-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.el-info-source-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.el-info-source-desc {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.el-info-api-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.el-info-api-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.el-info-api-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.el-info-api-dot.el-info-api-on {
+  background: #4ade80;
+  box-shadow: 0 0 4px rgba(74, 222, 128, 0.4);
+}
+
+/* ── Light theme overrides ── */
+
+[data-theme="light"] .el-panel {
+  border-top-color: rgba(130, 80, 170, 0.5);
+}
+
+[data-theme="light"] .el-note {
+  background: rgba(73, 198, 255, 0.08);
+  color: #2a6f9a;
+}
+
+[data-theme="light"] .el-trend-chart {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
