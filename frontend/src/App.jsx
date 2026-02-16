@@ -2156,7 +2156,7 @@ function App() {
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Politics & Economy</div>
+                  <div className="source-group-title">US Politics & Economy</div>
                   <div className="source-group-items">
                     <label className="switch switch-elections">
                       <span className="switch-label">2026 Midterm Elections</span>
@@ -2183,6 +2183,11 @@ function App() {
                         checked={showTariffHeatmap}
                         onChange={() => setShowTariffHeatmap(prev => !prev)}
                       />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">US Installations (OSINT)</span>
+                      <input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} />
                       <span className="slider" />
                     </label>
                   </div>
@@ -2396,11 +2401,6 @@ function App() {
                         <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
                           <span className="switch-label">Military Indicators</span>
                           <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">US Installations (OSINT)</span>
-                          <input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} />
                           <span className="slider" />
                         </label>
                       </div>
