@@ -34,6 +34,14 @@ import { useAuth } from './hooks/useAuth';
 import ConflictOverlay from './features/conflicts/ConflictOverlay';
 import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
+import GenericConflictOverlay from './features/conflicts/GenericConflictOverlay';
+import GenericConflictPanel from './features/conflicts/GenericConflictPanel';
+import * as israelGazaData from './features/conflicts/israelGazaData';
+import * as sudanData from './features/conflicts/sudanData';
+import * as myanmarData from './features/conflicts/myanmarData';
+import * as yemenData from './features/conflicts/yemenData';
+import * as ethiopiaData from './features/conflicts/ethiopiaData';
+import * as drcData from './features/conflicts/drcData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 import ProtestHeatmap from './features/stability/ProtestHeatmap';
@@ -786,6 +794,18 @@ function App() {
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
   const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  // ─── Additional conflict modes ───
+  const [activeConflicts, setActiveConflicts] = useState({});
+  const [conflictPanels, setConflictPanels] = useState({});
+  const [conflictTroops, setConflictTroops] = useState({});
+  const ADDITIONAL_CONFLICTS = [
+    { id: 'israel-gaza', label: 'Israel\u2013Gaza War', data: israelGazaData },
+    { id: 'sudan', label: 'Sudan Civil War', data: sudanData },
+    { id: 'myanmar', label: 'Myanmar Civil War', data: myanmarData },
+    { id: 'yemen', label: 'Yemen / Houthi Crisis', data: yemenData },
+    { id: 'ethiopia', label: 'Ethiopia Conflicts', data: ethiopiaData },
+    { id: 'drc', label: 'Eastern Congo (M23)', data: drcData },
+  ];
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
   const [showEUCountries, setShowEUCountries] = useState(false);
@@ -2283,6 +2303,74 @@ function App() {
                       </button>
                     </div>
                   )}
+
+                  {/* ─── Additional Conflict Modes ─── */}
+                  {ADDITIONAL_CONFLICTS.map((conflict) => (
+                    <div key={conflict.id}>
+                      <div className="source-group-items" style={{ marginTop: 4 }}>
+                        <label className="switch switch-frontline">
+                          <span className="switch-label">{conflict.label}</span>
+                          <input
+                            type="checkbox"
+                            checked={!!activeConflicts[conflict.id]}
+                            onChange={() => {
+                              setActiveConflicts(prev => {
+                                const next = { ...prev };
+                                if (next[conflict.id]) {
+                                  delete next[conflict.id];
+                                  setConflictPanels(p => { const n = { ...p }; delete n[conflict.id]; return n; });
+                                } else {
+                                  next[conflict.id] = true;
+                                  setConflictTroops(p => ({ ...p, [conflict.id]: true }));
+                                }
+                                return next;
+                              });
+                            }}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </div>
+
+                      {activeConflicts[conflict.id] && (
+                        <div className="conflict-sidebar-info" style={{ marginTop: '6px', marginBottom: '4px' }}>
+                          <span className="conflict-sidebar-day">Day {conflict.data.CONFLICT_SUMMARY.daysSince()}</span>
+                          <strong>{conflict.data.CONFLICT_SUMMARY.name}</strong>
+                          <p style={{ fontSize: '10px', margin: '4px 0', opacity: 0.8 }}>
+                            {conflict.data.CONFLICT_SUMMARY.phase}
+                          </p>
+                          <div className="conflict-sidebar-toggles">
+                            <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                              <span className="switch-label">Show Troop Positions</span>
+                              <input
+                                type="checkbox"
+                                checked={conflictTroops[conflict.id] !== false}
+                                onChange={() => setConflictTroops(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
+                              />
+                              <span className="slider" />
+                            </label>
+                          </div>
+                          <button
+                            className="conflict-sidebar-open-btn"
+                            style={{
+                              marginTop: '6px',
+                              width: '100%',
+                              padding: '6px 10px',
+                              background: `${conflict.data.CONFLICT_SUMMARY.sideA.color}1f`,
+                              border: `1px solid ${conflict.data.CONFLICT_SUMMARY.sideA.color}40`,
+                              borderRadius: '6px',
+                              color: conflict.data.CONFLICT_SUMMARY.sideA.color,
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => setConflictPanels(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
+                          >
+                            {conflictPanels[conflict.id] ? 'Close' : 'Open'} Statistics Panel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="source-group">
@@ -2939,6 +3027,25 @@ function App() {
           </PanelWindow>
         )}
 
+        {/* ══════════ Additional Conflict Panels ══════════ */}
+        {ADDITIONAL_CONFLICTS.map((conflict) => (
+          activeConflicts[conflict.id] && conflictPanels[conflict.id] && (
+            <PanelWindow
+              key={`conflict-panel-${conflict.id}`}
+              id={`conflict-${conflict.id}`}
+              title={conflict.data.CONFLICT_SUMMARY.name}
+              onClose={() => setConflictPanels(prev => ({ ...prev, [conflict.id]: false }))}
+              defaultWidth={420}
+              defaultHeight={600}
+            >
+              <GenericConflictPanel
+                open={true}
+                onClose={() => setConflictPanels(prev => ({ ...prev, [conflict.id]: false }))}
+                conflictData={conflict.data}
+              />
+            </PanelWindow>
+          )
+        ))}
 
         {/* ══════════ Stability Panel ══════════ */}
         {stabilityMode && showStabilityPanel && (
@@ -3861,6 +3968,22 @@ function App() {
               }
             }}
           />
+
+          {/* ══════════ Additional Conflict Overlays ══════════ */}
+          {ADDITIONAL_CONFLICTS.map((conflict) => (
+            <GenericConflictOverlay
+              key={`conflict-overlay-${conflict.id}`}
+              visible={!!activeConflicts[conflict.id]}
+              conflictData={conflict.data}
+              showTroops={conflictTroops[conflict.id] !== false}
+              zoom={mapZoom}
+              onTroopClick={() => {
+                if (!conflictPanels[conflict.id]) {
+                  setConflictPanels(prev => ({ ...prev, [conflict.id]: true }));
+                }
+              }}
+            />
+          ))}
 
           {/* ══════════ Protest / Unrest Heatmap ══════════ */}
           <ProtestHeatmap
