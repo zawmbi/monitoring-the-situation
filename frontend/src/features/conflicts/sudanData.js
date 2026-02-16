@@ -60,8 +60,8 @@ export const CAPITALS = [
 ];
 
 export const MAJOR_CITIES = [
-  { id: 'omdurman', name: 'Omdurman', country: 'contested', lat: 15.6445, lon: 32.4776, population: '2.8M', note: 'Heavy fighting; largely RSF-controlled' },
-  { id: 'khartoum-north', name: 'Khartoum North (Bahri)', country: 'contested', lat: 15.6361, lon: 32.5511, population: '1.5M', note: 'Contested between SAF and RSF' },
+  { id: 'omdurman', name: 'Omdurman', country: 'sideA', lat: 15.6445, lon: 32.4776, population: '2.8M', note: 'SAF recaptured Jan 2025; RSF launched new attack on western Khartoum State near Omdurman Jan 2026' },
+  { id: 'khartoum-north', name: 'Khartoum North (Bahri)', country: 'sideA', lat: 15.6361, lon: 32.5511, population: '1.5M', note: 'SAF recaptured Jan 2025; part of Khartoum tri-city recapture' },
   { id: 'port-sudan', name: 'Port Sudan', country: 'sideA', lat: 19.6158, lon: 37.2164, population: '490K', note: 'De facto SAF capital / government seat' },
   { id: 'el-fasher', name: 'El Fasher', country: 'sideB', lat: 13.6289, lon: 25.3494, population: '500K', note: 'Fell to RSF Oct 26-28, 2025 after ~500-day siege; 6,000+ killed in mass atrocity; RSF now controls all Darfur' },
   { id: 'nyala', name: 'Nyala', country: 'sideB', lat: 12.0500, lon: 24.8833, population: '560K', note: 'RSF-controlled; ethnic cleansing reported' },
@@ -89,13 +89,13 @@ export const TROOP_POSITIONS = [
   // SAF
   { id: 'saf-khartoum', side: 'sideA', unitType: 'infantry', unitSize: 'division', name: 'SAF Khartoum Garrison', lat: 15.55, lon: 32.58, sector: 'Khartoum' },
   { id: 'saf-port-sudan', side: 'sideA', unitType: 'infantry', unitSize: 'division', name: 'SAF Eastern Command', lat: 19.62, lon: 37.22, sector: 'Port Sudan' },
-  { id: 'saf-el-fasher', side: 'sideA', unitType: 'infantry', unitSize: 'brigade', name: 'SAF El Fasher Garrison', lat: 13.63, lon: 25.35, sector: 'El Fasher' },
+  { id: 'saf-wad-medani', side: 'sideA', unitType: 'infantry', unitSize: 'brigade', name: 'SAF Gezira Command (recaptured)', lat: 14.40, lon: 33.52, sector: 'Gezira' },
   { id: 'saf-kassala', side: 'sideA', unitType: 'infantry', unitSize: 'brigade', name: 'SAF Eastern Brigade', lat: 15.45, lon: 36.40, sector: 'Kassala' },
   { id: 'saf-sennar', side: 'sideA', unitType: 'infantry', unitSize: 'brigade', name: 'SAF Sennar Front', lat: 13.50, lon: 33.60, sector: 'Sennar' },
   // RSF
-  { id: 'rsf-khartoum', side: 'sideB', unitType: 'mechanized', unitSize: 'division', name: 'RSF Khartoum Force', lat: 15.65, lon: 32.48, sector: 'Khartoum' },
+  { id: 'rsf-kordofan-north', side: 'sideB', unitType: 'mechanized', unitSize: 'division', name: 'RSF North Kordofan Force', lat: 13.18, lon: 30.22, sector: 'Kordofan' },
   { id: 'rsf-darfur', side: 'sideB', unitType: 'mechanized', unitSize: 'division', name: 'RSF Darfur Command', lat: 12.50, lon: 25.00, sector: 'Darfur' },
-  { id: 'rsf-gezira', side: 'sideB', unitType: 'mechanized', unitSize: 'brigade', name: 'RSF Gezira Force', lat: 14.40, lon: 33.00, sector: 'Gezira' },
+  { id: 'rsf-el-fasher', side: 'sideB', unitType: 'mechanized', unitSize: 'brigade', name: 'RSF El Fasher Occupation Force', lat: 13.63, lon: 25.35, sector: 'El Fasher' },
   { id: 'rsf-kordofan', side: 'sideB', unitType: 'infantry', unitSize: 'brigade', name: 'RSF Kordofan Force', lat: 13.50, lon: 30.00, sector: 'Kordofan' },
   { id: 'rsf-el-geneina', side: 'sideB', unitType: 'infantry', unitSize: 'brigade', name: 'RSF West Darfur', lat: 13.45, lon: 22.45, sector: 'West Darfur' },
 ];
@@ -167,9 +167,9 @@ export const CASUALTIES = {
     source: 'ACLED / OSINT (est.)',
   },
   civilian: {
-    killed: { low: 30000, high: 150000, label: '30,000–150,000+' },
-    note: 'ACLED reports ~30K+ verified conflict deaths; MSF/LSE/ACLED excess mortality studies suggest 100K-150K+ total deaths including disease and famine. True toll likely far higher due to reporting gaps in RSF-controlled areas.',
-    source: 'ACLED / MSF / OCHA / Lancet',
+    killed: { low: 30000, high: 150000, label: '30,000–150,000+ (possibly 225,000–400,000)' },
+    note: 'ACLED reports ~31K verified conflict deaths. LSHTM/Lancet study found 90% underreporting — Khartoum alone had 61K+ deaths (Apr 2023–Jun 2024). Former US envoy cited up to 400K. El Fasher massacre (Oct 2025, 6,000+ killed) further increased toll.',
+    source: 'ACLED / LSHTM (Lancet) / OCHA / US envoy estimates',
   },
   asOf: 'February 2026',
 };
@@ -182,7 +182,8 @@ export const EQUIPMENT = {
       { type: 'Attack Helicopters', count: '~20', note: 'Mi-24/35' },
       { type: 'Tanks', count: '~200', note: 'T-72, T-55 (many inoperable)' },
       { type: 'Artillery', count: '~150', note: 'Various calibers' },
-      { type: 'UAVs', count: '~20+', note: 'Iranian-supplied Mohajer-6 (documented via satellite/wreckage)' },
+      { type: 'UAVs (Iranian)', count: '~10+', note: 'Mohajer-6 (documented via satellite/wreckage); also locally-produced Safaroog' },
+      { type: 'UAVs (Turkish)', count: '~8+', note: 'Bayraktar TB2, Akinci ($120M Baykar deal Nov 2023; 600 warheads; 48 Turkish personnel)' },
     ],
     source: 'IISS / OSINT',
   },
@@ -272,7 +273,7 @@ export const HUMANITARIAN = {
   famine: {
     atRisk: 25000000,
     label: '~25 million facing acute hunger',
-    famineAreas: 'Parts of Darfur, Kordofan, Khartoum declared famine (IPC Phase 5)',
+    famineAreas: 'IPC Phase 5 confirmed in El Fasher (North Darfur) and Kadugli (South Kordofan); 20+ additional areas at famine risk',
     source: 'WFP / IPC',
   },
   infrastructureDamage: {
