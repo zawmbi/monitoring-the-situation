@@ -631,23 +631,6 @@ body {
   100% { transform: translateX(200%); }
 }
 
-/* Starfield — stars as box-shadow dots on a centered 1x1 div.
-   Same technique as .globe-halo-ring (which is proven visible).
-   Rendered BEFORE MapGL so it sits behind the transparent globe space. */
-.starfield-canvas {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
-  z-index: 2;
-  overflow: visible;
-  --globe-r: 0px;
-  -webkit-mask: none;
-  mask: none;
-}
-
 /* Globe atmosphere halo — uniform blue glow ring around the earth edge */
 .globe-halo-ring {
   position: absolute;
@@ -2471,15 +2454,6 @@ body {
 }
 
 /* ===========================================
-   STARFIELD BACKGROUND  (overrides handled by rule near .globe-halo-ring)
-   =========================================== */
-
-/* Light theme hides starfield */
-[data-theme="light-analytic"] .starfield-canvas {
-  display: none;
-}
-
-/* ===========================================
    CYBER PANEL MICRO-INTERACTIONS
    =========================================== */
 
@@ -2606,5 +2580,5 @@ body {
   .earth-scan-line { animation: none; display: none; }
   .breathe circle { animation: none; }
   .hotspot-marker { transition: none; }
-  .starfield-canvas { display: none; }
+
 }

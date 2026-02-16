@@ -25,7 +25,7 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
-import StarfieldCanvas from './StarfieldCanvas';
+import { useStarfield } from './StarfieldCanvas';
 import EarthOverlay from './EarthOverlay';
 import { useSettings } from './hooks/useSettings';
 import { getStoredTheme, applyTheme } from './themes/index.js';
@@ -896,6 +896,9 @@ function App() {
     if (!map || !mapLoaded) return;
     try { map.setSky({ 'atmosphere-blend': 0 }); } catch {}
   }, [mapLoaded]);
+
+  // Starfield — WebGL custom layer rendered directly in the map's pipeline
+  useStarfield(mapRef.current, useGlobe && !isLightTheme && mapLoaded);
 
   useEffect(() => {
     const handleResize = () => {
@@ -2342,10 +2345,6 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
-        {/* Starfield — stars behind globe (same layer as halo, which is proven visible) */}
-        {!isLightTheme && useGlobe && (
-          <StarfieldCanvas useGlobe={useGlobe} map={mapRef.current} />
-        )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
