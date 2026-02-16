@@ -46,7 +46,11 @@ try {
 } catch (err) {
   initError = err;
   console.error('Firebase initialization failed:', err.message);
-  console.error('Check that VITE_FIREBASE_* environment variables are set in the root .env file.');
+  console.error('Firebase config:', JSON.stringify({
+    apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.slice(0, 8)}...` : undefined,
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+  }));
 }
 
 export { auth, db, functions, initError };
