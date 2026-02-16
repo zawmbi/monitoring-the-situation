@@ -1777,9 +1777,6 @@ function App() {
   return (
     <WindowManagerProvider>
     <>
-    {!isLightTheme && (
-      <StarfieldCanvas mapBearing={mapBearing} mapPitch={mapPitch} useGlobe={useGlobe} />
-    )}
     <div className="app">
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
@@ -2345,6 +2342,10 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        {/* Starfield — twinkling stars masked to space area outside globe */}
+        {!isLightTheme && useGlobe && (
+          <StarfieldCanvas mapBearing={mapBearing} mapPitch={mapPitch} useGlobe={useGlobe} map={mapRef.current} />
+        )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
