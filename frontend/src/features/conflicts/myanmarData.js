@@ -217,10 +217,9 @@ export const WAR_TIMELINE = [
   { date: '2024-08-03', event: 'Lashio falls to MNDAA — largest city ever taken by resistance forces', phase: 'offensive' },
   { date: '2024-11-15', event: 'Junta air force loses multiple aircraft; resistance FPV drones increasingly effective', phase: 'offensive' },
   { date: '2025-02-01', event: 'Anniversary of coup: NUG claims 60%+ of territory; independent estimates ~40-50% (ISP Myanmar/BBC)', phase: 'offensive' },
-  { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces collapsed in peripheral states', phase: 'attrition' },
-  { date: '2025-09-01', event: 'AA controls most of Rakhine State; establishes parallel administration; Sittwe and Kyaukpyu remain junta-held', phase: 'offensive' },
   { date: '2025-03-28', event: 'Major earthquake severely damages Naypyidaw; ~80% of govt buildings affected', phase: 'disaster' },
-  { date: '2025-09-01', event: 'Junta surges conscription to replenish forces; frontline reaches outskirts of Mandalay', phase: 'attrition' },
+  { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces collapsed in peripheral states', phase: 'attrition' },
+  { date: '2025-09-01', event: 'AA controls most of Rakhine State; establishes parallel administration; Sittwe and Kyaukpyu remain junta-held. Junta surges conscription; frontline near Mandalay', phase: 'offensive' },
   { date: '2025-12-01', event: 'Junta holds sham elections (USDP wins predictably); international community rejects results', phase: 'political' },
   { date: '2026-01-01', event: 'NUG and some EAOs continue fragmented federal constitution consultations (NUCC process); key actors (AA, KNU) absent from unified framework', phase: 'political' },
 ];
