@@ -25,8 +25,7 @@ export function useStarfield(map, enabled) {
       const layer = new TwinklingStarfieldLayer({
         id: LAYER_ID,
         starCount: 4000,
-        starSize: 2.0,
-        starColor: 0xffffff,
+        starSize: 3.0,
       });
       layerRef.current = layer;
 

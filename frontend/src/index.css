@@ -636,7 +636,7 @@ body {
   100% { transform: translateX(200%); }
 }
 
-/* Globe atmosphere halo — uniform blue glow ring around the earth edge */
+/* Globe atmosphere halo — Fresnel-inspired blue glow (à la 3jsEarth 0x0088ff) */
 .globe-halo-ring {
   position: absolute;
   top: 50%;
@@ -646,10 +646,18 @@ body {
   pointer-events: none;
   z-index: 2;
   box-shadow:
-    0 0 30px 6px rgba(80, 180, 255, 0.45),
-    0 0 60px 15px rgba(50, 150, 255, 0.22),
-    0 0 100px 30px rgba(30, 120, 255, 0.10),
-    0 0 160px 50px rgba(20, 90, 255, 0.04);
+    0 0 6px 1px  rgba(0, 136, 255, 0.70),
+    0 0 16px 4px rgba(0, 136, 255, 0.50),
+    0 0 35px 10px rgba(40, 160, 255, 0.35),
+    0 0 60px 18px rgba(50, 150, 255, 0.22),
+    0 0 100px 35px rgba(30, 120, 255, 0.12),
+    0 0 160px 55px rgba(20, 90, 255, 0.05);
+  animation: haloBreath 6s ease-in-out infinite;
+}
+
+@keyframes haloBreath {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.82; }
 }
 
 .map-controls-bl {
