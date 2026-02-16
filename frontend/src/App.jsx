@@ -776,7 +776,7 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [mapControlsCollapsed, setMapControlsCollapsed] = useState(false);
-  const [holoMode, setHoloMode] = useState(false);
+  const [holoMode, setHoloMode] = useState(true);
   const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
@@ -2584,7 +2584,7 @@ function App() {
                 <div className="toggle-group-title" style={{ marginTop: '20px' }}>Globe Effects</div>
                 <div className="settings-group">
                   <label className="switch switch-neutral">
-                    <span className="switch-label">Holographic</span>
+                    <span className="switch-label">Holographic Borders</span>
                     <input
                       type="checkbox"
                       checked={holoMode}
