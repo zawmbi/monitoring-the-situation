@@ -889,24 +889,13 @@ function App() {
     } catch {}
   }, [useGlobe]);
 
-  // Globe atmosphere halo — uses MapLibre's setSky API (NOT setFog, which is Mapbox-only)
+  // Disable MapLibre's built-in atmosphere (it's directional/one-sided).
+  // The uniform halo is rendered by EarthOverlay instead.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    try {
-      if (useGlobe) {
-        map.setSky({
-          'sky-color': '#0b1a30',
-          'horizon-color': '#1a80dd',
-          'atmosphere-blend': visualLayers.earthGlow ? 1.0 : 0,
-        });
-      } else {
-        map.setSky({
-          'atmosphere-blend': 0,
-        });
-      }
-    } catch (e) { console.warn('setSky failed:', e); }
-  }, [useGlobe, mapLoaded, visualLayers.earthGlow]);
+    try { map.setSky({ 'atmosphere-blend': 0 }); } catch {}
+  }, [mapLoaded]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -2357,7 +2346,7 @@ function App() {
         {/* Map */}
         <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
         {/* Earth Overlay - scan line, atmospheric glow */}
-        <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} />
+        <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
