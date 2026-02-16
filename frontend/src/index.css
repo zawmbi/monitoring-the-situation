@@ -754,8 +754,8 @@ body {
 }
 
 .map-container .maplibregl-ctrl-bottom-left {
-  bottom: 96px;
-  left: 17px;
+  bottom: 80px;
+  left: 6px;
 }
 
 .map-container .maplibregl-ctrl-group {
