@@ -3,13 +3,18 @@
   "private": true,
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "functions"
   ],
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix functions",
     "dev:frontend": "npm run dev --prefix frontend -- --host 0.0.0.0 --port 3000",
     "dev:backend": "npm run start --prefix backend",
-    "build:frontend": "npm run build --prefix frontend"
+    "dev:functions": "npm run serve --prefix functions",
+    "build:frontend": "npm run build --prefix frontend",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:indexes": "firebase deploy --only firestore:indexes"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -25,6 +25,12 @@ import { getUniversalRate, getTariffColor, getTariffColorLight, TARIFF_LEGEND } 
 import { timeAgo } from './utils/time';
 import Navbar, { PagePanel } from './navbar/Navbar';
 import FrontlineOverlay from './features/frontline/FrontlineOverlay';
+import { useStarfield } from './StarfieldCanvas';
+import EarthOverlay from './EarthOverlay';
+import { useSettings } from './hooks/useSettings';
+import { getStoredTheme, applyTheme } from './themes/index.js';
+import { useChat } from './hooks/useChat';
+import { useAuth } from './hooks/useAuth';
 import ConflictOverlay from './features/conflicts/ConflictOverlay';
 import ConflictPanel from './features/conflicts/ConflictPanel';
 import { CONFLICT_SUMMARY } from './features/conflicts/conflictData';
@@ -38,6 +44,7 @@ import { getCountryFillColor } from './features/country/countryColors';
 import { WindowManagerProvider } from './hooks/useWindowManager.jsx';
 import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
+import AccountPanel from './components/AccountPanel';
 import GlobalStatusBar from './components/GlobalStatusBar';
 import { useDisasters } from './hooks/useDisasters';
 import { useCyber } from './hooks/useCyber';
@@ -587,15 +594,101 @@ function NewsPanel({ hotspot, position, onClose, onPositionChange }) {
   );
 }
 
-const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'dark';
-  const stored = window.localStorage.getItem('theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    return 'light';
+const THEMES = [
+  { id: 'cyber-control-room', label: 'Cyber Control Room', swatch: '#00d4ff' },
+  { id: 'dark-minimal', label: 'Dark Minimal', swatch: '#8080ff' },
+  { id: 'light-analytic', label: 'Light Analytic', swatch: '#2060c0' },
+];
+
+// Chat Panel Component (sidebar inline)
+function ChatPanel({ chatId }) {
+  const { messages, loading, error, sending, send } = useChat(chatId || 'global');
+  const { user, isAuthenticated } = useAuth();
+  const [draft, setDraft] = useState('');
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!draft.trim() || sending) return;
+    const text = draft;
+    setDraft('');
+    await send(text);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="chat-panel">
+        <div className="chat-login-prompt">
+          <p>Sign in to join the chat</p>
+        </div>
+      </div>
+    );
   }
-  return 'dark';
-};
+
+  return (
+    <div className="chat-panel">
+      <div className="chat-messages">
+        {loading && messages.length === 0 && (
+          <div className="chat-loading">Loading messages...</div>
+        )}
+        {error && (
+          <div className="chat-error">{error}</div>
+        )}
+        {!loading && messages.length === 0 && !error && (
+          <div className="chat-empty">No messages yet. Start the conversation!</div>
+        )}
+        {messages.map((msg) => {
+          const isOwn = msg.sender_id === user?.uid;
+          return (
+            <div key={msg.id} className={`chat-msg ${isOwn ? 'chat-msg-own' : ''}`}>
+              <div className="chat-msg-header">
+                <span className="chat-msg-sender">{isOwn ? 'You' : (msg.sender_display_name || 'Anonymous')}</span>
+                <span className="chat-msg-time">{msg.created_at ? timeAgo(msg.created_at.toDate ? msg.created_at.toDate() : msg.created_at) : ''}</span>
+              </div>
+              <div className="chat-msg-body">{msg.message}</div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="chat-input-row">
+        <input
+          type="text"
+          className="chat-input"
+          placeholder="Type a message..."
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={sending}
+          maxLength={500}
+        />
+        <button
+          className="chat-send-btn"
+          onClick={handleSend}
+          disabled={sending || !draft.trim()}
+          aria-label="Send message"
+        >
+          {sending ? '...' : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const getInitialNavCollapsed = () => {
   if (typeof window === 'undefined') return false;
@@ -606,6 +699,7 @@ const getInitialNavCollapsed = () => {
 
 const VISUAL_LAYER_DEFAULTS = {
   atmosphere: false,
+  earthGlow: true,
   contours: true,
   hillshade: true,
   heatmap: false,
@@ -630,13 +724,22 @@ const getInitialVisualLayers = () => {
 };
 
 function App() {
+  const { user, profile, loading: authLoading } = useAuth();
+
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState(getStoredTheme);
   const [activePage, setActivePage] = useState(null);
+  const [showAccount, setShowAccount] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(getInitialNavCollapsed);
+
+  // Settings persistence — restores theme/layout from Firestore after login.
+  // onThemeRestored syncs the Firestore theme into local state without flicker.
+  const { saveTheme, saveDesktopPreferences } = useSettings({
+    onThemeRestored: (restoredTheme) => setTheme(restoredTheme),
+  });
 
   // Country panel hook
   const {
@@ -672,7 +775,8 @@ function App() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
-  const [holoMode, setHoloMode] = useState(false);
+  const [mapControlsCollapsed, setMapControlsCollapsed] = useState(false);
+  const [holoMode, setHoloMode] = useState(true);
   const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
   const [musicPlaying, setMusicPlaying] = useState(true);
@@ -821,13 +925,12 @@ function App() {
   const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showCredibilityPanel);
   const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel);
 
-  const isLightTheme = theme === 'light';
+  const isLightTheme = theme === 'light-analytic';
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    applyTheme(theme);
     window.localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, isLightTheme]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
@@ -882,10 +985,22 @@ function App() {
       }
       // Update background color without triggering full style reload
       if (map.getLayer('background')) {
-        map.setPaintProperty('background', 'background-color', useGlobe ? '#050c14' : '#060e18');
+        const bg = isLightTheme ? '#3a7ab0' : (holoMode ? '#020810' : '#060e18');
+        map.setPaintProperty('background', 'background-color', bg);
       }
     } catch {}
-  }, [useGlobe]);
+  }, [useGlobe, isLightTheme, holoMode]);
+
+  // Disable MapLibre's built-in atmosphere (it's directional/one-sided).
+  // The uniform halo is rendered by EarthOverlay instead.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    try { map.setSky({ 'atmosphere-blend': 0 }); } catch {}
+  }, [mapLoaded]);
+
+  // Starfield — WebGL custom layer rendered directly in the map's pipeline
+  useStarfield(mapRef.current, useGlobe && mapLoaded);
 
   // ── Keyboard Navigation ──
   useEffect(() => {
@@ -1202,7 +1317,7 @@ function App() {
     let bgColor;
     // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
-      bgColor = '#3a7ab0';
+      bgColor = '#488FACFB';
     } else {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
@@ -1648,7 +1763,12 @@ function App() {
   };
 
   const handleToggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme(prev => {
+      const idx = THEMES.findIndex(t => t.id === prev);
+      const next = THEMES[(idx + 1) % THEMES.length].id;
+      saveTheme(next);
+      return next;
+    });
   };
 
   const handleToggleMusic = () => {
@@ -1670,6 +1790,7 @@ function App() {
 
   const handleNavigate = (pageId) => {
     setActivePage(prev => (prev === pageId ? null : pageId));
+    setShowAccount(false);
   };
 
   const handleToggleNav = () => {
@@ -1772,11 +1893,14 @@ function App() {
     }
   }, []);
 
-  // Track map center for globe hemisphere visibility check
+  // Track map center for globe hemisphere visibility check + starfield parallax
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
     if (c) {
       mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      // Update bearing/pitch for starfield parallax (throttled by rAF)
+      setMapBearing(c.bearing || 0);
+      setMapPitch(c.pitch || 0);
       if (c.zoom !== undefined) setMapZoom(c.zoom);
     }
   }, []);
@@ -1874,6 +1998,10 @@ function App() {
     };
   }, [useGlobe, autoRotate, mapLoaded]);
 
+  // Track map bearing and pitch for starfield parallax
+  const [mapBearing, setMapBearing] = useState(0);
+  const [mapPitch, setMapPitch] = useState(0);
+
   return (
     <WindowManagerProvider>
     <>
@@ -1885,7 +2013,9 @@ function App() {
         activePage={activePage}
         onNavigate={handleNavigate}
         theme={theme}
+        themes={THEMES}
         onToggleTheme={handleToggleTheme}
+        onSetTheme={setTheme}
         useGlobe={useGlobe}
         onToggleGlobe={() => setUseGlobe(prev => !prev)}
         musicPlaying={musicPlaying}
@@ -1894,6 +2024,7 @@ function App() {
         onVolumeChange={handleVolumeChange}
         collapsed={navCollapsed}
         onToggleCollapse={handleToggleNav}
+        onOpenAccount={() => { setShowAccount(true); setActivePage(null); }}
       />
 
       <div className="app-body">
@@ -1926,6 +2057,24 @@ function App() {
                     aria-selected={sidebarTab === 'world'}
                   >
                     World
+                  </button>
+                  <button
+                    type="button"
+                    className={`sidebar-tab ${sidebarTab === 'chat' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('chat')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'chat'}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    type="button"
+                    className={`sidebar-tab ${sidebarTab === 'themes' ? 'active' : ''}`}
+                    onClick={() => setSidebarTab('themes')}
+                    role="tab"
+                    aria-selected={sidebarTab === 'themes'}
+                  >
+                    Themes
                   </button>
                   <button
                     type="button"
@@ -2394,19 +2543,130 @@ function App() {
               />
             )}
 
+            {/* Chat Tab */}
+            {sidebarExpanded && sidebarTab === 'chat' && (
+              <ChatPanel chatId="global" />
+            )}
+
+            {/* Themes Tab */}
+            {sidebarExpanded && sidebarTab === 'themes' && (
+              <div className="themes-panel">
+                <div className="toggle-group-title">Theme</div>
+                <div className="themes-grid">
+                  <button
+                    className={`theme-card ${theme === 'cyber-control-room' ? 'theme-card-active' : ''}`}
+                    onClick={() => { setTheme('cyber-control-room'); saveTheme('cyber-control-room'); }}
+                  >
+                    <div className="theme-card-preview theme-preview-dark">
+                      <div className="theme-preview-bar" />
+                      <div className="theme-preview-body">
+                        <div className="theme-preview-sidebar" />
+                        <div className="theme-preview-map" />
+                      </div>
+                    </div>
+                    <span className="theme-card-label">Dark</span>
+                  </button>
+                  <button
+                    className={`theme-card ${theme === 'light-analytic' ? 'theme-card-active' : ''}`}
+                    onClick={() => { setTheme('light-analytic'); saveTheme('light-analytic'); }}
+                  >
+                    <div className="theme-card-preview theme-preview-light">
+                      <div className="theme-preview-bar" />
+                      <div className="theme-preview-body">
+                        <div className="theme-preview-sidebar" />
+                        <div className="theme-preview-map" />
+                      </div>
+                    </div>
+                    <span className="theme-card-label">Light</span>
+                  </button>
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '20px' }}>Globe Effects</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">Holographic Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={holoMode}
+                      onChange={() => setHoloMode(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Transparent Globe</span>
+                    <input
+                      type="checkbox"
+                      checked={transparentGlobe}
+                      onChange={() => setTransparentGlobe(prev => !prev)}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">Earth Atmosphere Halo</span>
+                    <input
+                      type="checkbox"
+                      checked={visualLayers.earthGlow}
+                      onChange={() => toggleVisualLayer('earthGlow')}
+                      disabled={!useGlobe}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '20px' }}>Map Visuals</div>
+                <div className="settings-group">
+                  {[
+                    { key: 'contours', label: 'Micro Topographic Contours' },
+                    { key: 'countryFill', label: 'Country Fill Color' },
+                    { key: 'hillshade', label: 'Elevation / Hillshade (WIP)' },
+                    { key: 'heatmap', label: 'Population Heatmap (WIP)' },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="switch switch-neutral">
+                      <span className="switch-label">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={visualLayers[key]}
+                        onChange={() => toggleVisualLayer(key)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
                 <div className="toggle-group-title">Visuals & App Appearance</div>
                 <div className="settings-group">
-                  <label className="switch switch-theme">
-                    <span className="switch-label">Light mode</span>
-                    <input
-                      type="checkbox"
-                      checked={isLightTheme}
-                      onChange={(event) => setTheme(event.target.checked ? 'light' : 'dark')}
-                    />
-                    <span className="slider" />
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <span className="switch-label" style={{ fontSize: '0.85rem', fontWeight: 500 }}>Theme</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {THEMES.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTheme(t.id)}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '0.72rem',
+                            fontWeight: theme === t.id ? 700 : 500,
+                            fontFamily: 'var(--font-mono)',
+                            letterSpacing: '0.04em',
+                            border: `1px solid ${theme === t.id ? 'var(--color-border-light)' : 'var(--color-border)'}`,
+                            borderRadius: 'var(--radius-md)',
+                            background: theme === t.id ? 'rgba(var(--accent-rgb), 0.12)' : 'transparent',
+                            color: theme === t.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {t.label.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="switch switch-neutral">
                     <span className="switch-label">Holographic</span>
                     <input
@@ -2483,11 +2743,11 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className={`switch switch-neutral ${!useGlobe ? 'switch-disabled' : ''}`}>
-                    <span className="switch-label">Atmospheric Edge Glow</span>
+                    <span className="switch-label">Earth Atmosphere Halo</span>
                     <input
                       type="checkbox"
-                      checked={visualLayers.atmosphere}
-                      onChange={() => toggleVisualLayer('atmosphere')}
+                      checked={visualLayers.earthGlow}
+                      onChange={() => toggleVisualLayer('earthGlow')}
                       disabled={!useGlobe}
                     />
                     <span className="slider" />
@@ -2525,7 +2785,9 @@ function App() {
         </div>
 
         {/* Map */}
-        <div className={`map-container${visualLayers.atmosphere ? '' : ' hide-atmosphere'}${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        <div className={`map-container${useGlobe ? ' globe-mode' : ''}${mapControlsCollapsed ? ' map-controls-hidden' : ''}`} ref={mapContainerRef}>
+        {/* Earth Overlay - scan line, atmospheric glow */}
+        <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -3282,7 +3544,7 @@ function App() {
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
@@ -3295,7 +3557,7 @@ function App() {
               id="equator-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': 1,
                 'line-dasharray': [6, 4],
               }}
@@ -3309,7 +3571,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -3319,7 +3581,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -3352,7 +3614,7 @@ function App() {
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? '#a8c090' : '#1c3040',
+                        isLightTheme ? '#FFFD7C' : '#1c3040',
                         ['get', 'fillColor'],
                       ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
@@ -3390,7 +3652,7 @@ function App() {
                 'line-color': showTariffHeatmap
                   ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
+                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
                         ? 'rgba(30, 25, 50, 0.5)'
                         : 'rgba(15, 20, 30, 0.7)'),
@@ -3426,7 +3688,7 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
                       : 'rgba(61, 194, 208, 0.25)'),
@@ -3469,14 +3731,14 @@ function App() {
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : 'rgba(200, 180, 255, 0.3)',
                         ['get', 'electionColor'],
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
                         isLightTheme
-                          ? 'rgba(194, 120, 62, 0.15)'
+                          ? 'rgba(0, 18, 22, 0.15)'
                           : 'rgba(61, 194, 208, 0.15)',
                         'rgba(0, 0, 0, 0)',
                       ],
@@ -3488,9 +3750,9 @@ function App() {
                 type="line"
                 paint={{
                   'line-color': isLightTheme
-                    ? 'rgba(166, 120, 80, 0.35)'
-                    : 'rgba(160, 145, 255, 0.35)',
-                  'line-width': 1,
+                    ? 'rgba(11, 84, 167, 0.35)'
+                    : 'rgba(35, 220, 245, 0.35)',
+                  'line-width': 2,
                 }}
               />
               <Layer
@@ -3499,7 +3761,7 @@ function App() {
                 filter={selectedStateFilter}
                 paint={{
                   'fill-color': isLightTheme
-                    ? 'rgba(194, 120, 62, 0.25)'
+                    ? 'rgba(0, 153, 255, 0.22)'
                     : 'rgba(61, 194, 208, 0.25)',
                 }}
               />
@@ -3508,8 +3770,8 @@ function App() {
                 type="line"
                 filter={selectedStateFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
-                  'line-width': 1.5,
+                  'line-color': isLightTheme ? '#3F3CD896' : '#3dc2d0',
+                  'line-width': 2.5,
                 }}
               />
             </Source>
@@ -3522,7 +3784,7 @@ function App() {
               <Layer
                 id="ca-provinces-fill"
                 type="fill"
-                paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
+                paint={{ 'fill-color': 'rgba(37, 96, 173, 0.15)', 'fill-opacity': 1 }}
               />
               {/* Province border lines */}
               <Layer
@@ -3532,8 +3794,8 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
-                    isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(3, 165, 157, 0.6)',
+                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : 'rgb(0, 238, 226)',
                   ],
                   'line-width': [
                     'case',
@@ -3864,7 +4126,6 @@ function App() {
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
 
-
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (
           <div className="cardinal-overlay">
@@ -3875,16 +4136,17 @@ function App() {
           </div>
         )}
 
-        {/* Map controls - bottom right */}
-        <div className="map-controls-br">
-          {useGlobe && (
-            <>
+        {/* Map controls - bottom left, grouped with zoom */}
+        <div className="map-controls-bl">
+          {/* Rotation controls (collapsible) */}
+          {useGlobe && !mapControlsCollapsed && (
+            <div className="map-rotation-controls">
               {autoRotate && (
                 <input
                   type="range"
                   className="rotate-speed-slider"
                   min="0.005"
-                  max="0.12"
+                  max="0.2"
                   step="0.005"
                   value={rotateSpeed}
                   onChange={(e) => setRotateSpeed(Number(e.target.value))}
@@ -3933,22 +4195,39 @@ function App() {
                   </svg>
                 </button>
               )}
-            </>
+            </div>
+          )}
+          {/* Recenter / globe button */}
+          {!mapControlsCollapsed && (
+            <button
+              className="map-recenter-btn"
+              onClick={handleRecenter}
+              title="Recenter map"
+              aria-label="Recenter map to default view"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <ellipse cx="12" cy="12" rx="4" ry="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+              </svg>
+            </button>
           )}
         </div>
 
-        {/* Recenter button - bottom left, next to zoom controls */}
-        <div className="map-controls-bl">
+        {/* Collapse / expand toggle - below all controls */}
+        <div className="map-collapse-toggle-bl">
           <button
-            className="map-recenter-btn"
-            onClick={handleRecenter}
-            title="Recenter map"
-            aria-label="Recenter map to default view"
+            className="map-autorotate-btn map-controls-collapse-btn"
+            onClick={() => setMapControlsCollapsed(prev => !prev)}
+            title={mapControlsCollapsed ? 'Show controls' : 'Hide controls'}
+            aria-label="Toggle map controls"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <ellipse cx="12" cy="12" rx="4" ry="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {mapControlsCollapsed ? (
+                <polyline points="6 15 12 9 18 15" />
+              ) : (
+                <polyline points="6 9 12 15 18 9" />
+              )}
             </svg>
           </button>
         </div>
@@ -3971,6 +4250,7 @@ function App() {
     </div>
     </div>
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
+    {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
     <MinimizedTray />
     </>
     </WindowManagerProvider>

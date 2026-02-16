@@ -20,6 +20,7 @@ export function useWindowManager() {
 function useWindowManagerInternal() {
   const [windows, setWindows] = useState({});
   const zCounter = useRef(1200);
+  const closeCallbacks = useRef({});
 
   const register = useCallback((id, opts = {}) => {
     setWindows(prev => {
@@ -107,6 +108,19 @@ function useWindowManagerInternal() {
     });
   }, []);
 
+  const registerClose = useCallback((id, fn) => {
+    if (fn) {
+      closeCallbacks.current[id] = fn;
+    } else {
+      delete closeCallbacks.current[id];
+    }
+  }, []);
+
+  const closeWindow = useCallback((id) => {
+    const fn = closeCallbacks.current[id];
+    if (fn) fn();
+  }, []);
+
   const minimizedWindows = Object.values(windows).filter(w => w.mode === 'minimized');
 
   return {
@@ -119,6 +133,8 @@ function useWindowManagerInternal() {
     updateSize,
     updateTitle,
     restore,
+    registerClose,
+    closeWindow,
     minimizedWindows,
   };
 }

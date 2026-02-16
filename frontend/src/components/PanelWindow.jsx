@@ -49,6 +49,12 @@ export default function PanelWindow({
     if (win) wm.updateTitle(id, title);
   }, [id, title, win, wm]);
 
+  // Register close callback so minimized tray can close windows
+  useEffect(() => {
+    wm.registerClose(id, onClose);
+    return () => wm.registerClose(id, null);
+  }, [id, onClose, wm]);
+
   // ── Drag handling ──
   // Use refs so event handlers always see latest values
   const wmRef = useRef(wm);
