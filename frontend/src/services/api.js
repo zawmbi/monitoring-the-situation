@@ -57,6 +57,7 @@ export const api = {
   getProtestData: () => api.fetch('/stability/protests'),
   getMilitaryData: () => api.fetch('/stability/military'),
   getInstabilityData: () => api.fetch('/stability/instability'),
+  getFleetPositions: () => api.fetch('/stability/fleet'),
 
 };
 

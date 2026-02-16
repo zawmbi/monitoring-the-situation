@@ -3902,6 +3902,7 @@ function App() {
             zoom={mapZoom}
             showBases={showUSBases}
             isMarkerVisible={isMarkerVisible}
+            fleetPositions={stabilityData?.fleetPositions}
           />
 
           {/* Disaster markers on map */}

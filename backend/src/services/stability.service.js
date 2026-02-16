@@ -274,6 +274,118 @@ async function fetchInstabilityData() {
   };
 }
 
+// ─── Region coordinates for fleet position matching ───
+const FLEET_REGIONS = {
+  'mediterranean': { lat: 35.00, lon: 18.00 },
+  'persian gulf': { lat: 26.00, lon: 52.00 },
+  'arabian gulf': { lat: 26.00, lon: 52.00 },
+  'arabian sea': { lat: 18.00, lon: 64.00 },
+  'red sea': { lat: 20.00, lon: 38.50 },
+  'south china sea': { lat: 14.00, lon: 114.00 },
+  'western pacific': { lat: 25.00, lon: 140.00 },
+  'west pacific': { lat: 25.00, lon: 140.00 },
+  'indian ocean': { lat: -5.00, lon: 73.00 },
+  'atlantic': { lat: 35.00, lon: -40.00 },
+  'pacific ocean': { lat: 20.00, lon: -150.00 },
+  'gulf of aden': { lat: 12.50, lon: 45.00 },
+  'east china sea': { lat: 28.00, lon: 125.00 },
+  'sea of japan': { lat: 40.00, lon: 135.00 },
+  'philippine sea': { lat: 18.00, lon: 132.00 },
+  'baltic': { lat: 58.00, lon: 19.00 },
+  'north sea': { lat: 57.00, lon: 3.00 },
+  'arctic': { lat: 72.00, lon: 10.00 },
+  'strait of hormuz': { lat: 26.50, lon: 56.30 },
+  'taiwan strait': { lat: 24.50, lon: 119.50 },
+  'black sea': { lat: 43.00, lon: 35.00 },
+  'suez': { lat: 30.50, lon: 32.30 },
+  'horn of africa': { lat: 11.00, lon: 49.00 },
+  'bab el-mandeb': { lat: 12.60, lon: 43.30 },
+  'north atlantic': { lat: 50.00, lon: -30.00 },
+  'coral sea': { lat: -18.00, lon: 155.00 },
+  'yellow sea': { lat: 35.00, lon: 124.00 },
+  'norfolk': { lat: 36.95, lon: -76.33 },
+  'san diego': { lat: 32.68, lon: -117.23 },
+  'yokosuka': { lat: 35.28, lon: 139.67 },
+  'hawaii': { lat: 21.35, lon: -157.97 },
+  'guam': { lat: 13.45, lon: 144.65 },
+  'bahrain': { lat: 26.23, lon: 50.62 },
+};
+
+// Fleet assets to track — name variants for GDELT search
+const FLEET_SEARCH_TERMS = [
+  { id: 'csg-cvn78', queries: ['"Gerald Ford" carrier', '"CVN-78"'] },
+  { id: 'csg-cvn77', queries: ['"George H.W. Bush" carrier', '"CVN-77"'] },
+  { id: 'csg-cvn75', queries: ['"Harry Truman" carrier', '"CVN-75"'] },
+  { id: 'csg-cvn69', queries: ['"Eisenhower" carrier', '"CVN-69"'] },
+  { id: 'csg-cvn72', queries: ['"Abraham Lincoln" carrier', '"CVN-72"'] },
+  { id: 'csg-cvn71', queries: ['"Theodore Roosevelt" carrier', '"CVN-71"'] },
+  { id: 'csg-cvn70', queries: ['"Carl Vinson" carrier', '"CVN-70"'] },
+  { id: 'csg-cvn73', queries: ['"George Washington" carrier CVN', '"CVN-73"'] },
+  { id: 'csg-cvn68', queries: ['"USS Nimitz" carrier', '"CVN-68"'] },
+  { id: 'arg-lha6', queries: ['"USS America" amphibious', '"LHA-6"'] },
+  { id: 'arg-lhd1', queries: ['"USS Wasp" amphibious', '"LHD-1"'] },
+  { id: 'arg-lhd5', queries: ['"USS Bataan" amphibious', '"LHD-5"'] },
+  { id: 'arg-lhd2', queries: ['"USS Essex" amphibious', '"LHD-2"'] },
+  { id: 'arg-lhd8', queries: ['"Makin Island" amphibious', '"LHD-8"'] },
+  { id: 'ssgn-727', queries: ['"USS Michigan" submarine', '"SSGN-727"'] },
+];
+
+// Extract the best matching region from article titles
+function matchRegion(articles) {
+  const text = articles.map((a) => a.title).join(' ').toLowerCase();
+  let bestMatch = null;
+  let bestIdx = Infinity;
+  for (const [region, coords] of Object.entries(FLEET_REGIONS)) {
+    const idx = text.indexOf(region);
+    if (idx !== -1 && idx < bestIdx) {
+      bestIdx = idx;
+      bestMatch = { region, ...coords };
+    }
+  }
+  return bestMatch;
+}
+
+// ─── Build fleet position data from GDELT ───
+async function fetchFleetPositions() {
+  const positions = {};
+
+  // Query GDELT for each fleet asset (batch with concurrency limit)
+  const batchSize = 5;
+  for (let i = 0; i < FLEET_SEARCH_TERMS.length; i += batchSize) {
+    const batch = FLEET_SEARCH_TERMS.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (asset) => {
+        const query = asset.queries.join(' OR ');
+        const articles = await fetchGDELT(query, 15, '30d');
+        if (articles.length === 0) return null;
+
+        const regionMatch = matchRegion(articles);
+        return {
+          id: asset.id,
+          articles: articles.slice(0, 5).map((a) => ({
+            title: a.title,
+            url: a.url,
+            date: a.date,
+            source: a.source,
+          })),
+          ...(regionMatch ? { lat: regionMatch.lat, lon: regionMatch.lon, region: regionMatch.region } : {}),
+        };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        positions[result.value.id] = result.value;
+      }
+    }
+  }
+
+  return {
+    positions,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
 // ─── Public API ───
 
 export const stabilityService = {
@@ -307,21 +419,33 @@ export const stabilityService = {
     return data;
   },
 
+  async getFleetPositions() {
+    const cacheKey = 'stability:fleet';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const data = await fetchFleetPositions();
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  },
+
   async getCombinedData() {
     const cacheKey = 'stability:combined';
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    const [protests, military, instability] = await Promise.allSettled([
+    const [protests, military, instability, fleet] = await Promise.allSettled([
       this.getProtestData(),
       this.getMilitaryData(),
       this.getInstabilityData(),
+      this.getFleetPositions(),
     ]);
 
     const data = {
       protests: protests.status === 'fulfilled' ? protests.value : { heatmapPoints: [], newsHeadlines: [], totalArticles: 0 },
       military: military.status === 'fulfilled' ? military.value : { indicators: [], newsHeadlines: [], totalArticles: 0 },
       instability: instability.status === 'fulfilled' ? instability.value : { alerts: [], newsHeadlines: [], totalArticles: 0 },
+      fleet: fleet.status === 'fulfilled' ? fleet.value : { positions: {} },
       lastUpdated: new Date().toISOString(),
     };
 

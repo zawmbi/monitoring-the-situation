@@ -884,6 +884,20 @@ router.get('/stability/military', async (req, res) => {
 });
 
 /**
+ * GET /api/stability/fleet
+ * US fleet asset positions (CSGs, ARGs, SSGNs) updated from GDELT news
+ */
+router.get('/stability/fleet', async (req, res) => {
+  try {
+    const data = await stabilityService.getFleetPositions();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Fleet positions error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch fleet positions' });
+  }
+});
+
+/**
  * GET /api/stability/instability
  * Assassinations, coups, regime instability alerts
  */

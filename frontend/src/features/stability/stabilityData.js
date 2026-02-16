@@ -126,6 +126,71 @@ export const US_INSTALLATIONS = [
   { id: 'usb-curacao', name: 'FOL Curacao', code: 'US', lat: 12.17, lon: -68.96, type: 'Cooperative Security Location', milType: 'air_base', branch: 'US Air Force / CBP', cocom: 'SOUTHCOM', personnel: 200, label: 'Counter-narcotics FOL. P-3, E-2C patrol aircraft rotations.' },
 ];
 
+// ── US Deployable Fleet Assets (CSGs, ARGs, SSGNs, Bomber TFs) ──
+// Positions are baseline OSINT estimates — overridden by live GDELT news when available.
+export const US_FLEET_ASSETS = [
+  // ═══ Carrier Strike Groups ═══
+  { id: 'csg-cvn78', name: 'CSG-12 Gerald R. Ford', hull: 'CVN-78', code: 'US', lat: 36.95, lon: -76.33, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'LANT', personnel: 6500, label: 'USS Gerald R. Ford CSG. F/A-18E/F, E-2D, CMV-22B. Norfolk homeport.', fleetAsset: true },
+  { id: 'csg-cvn77', name: 'CSG-10 George H.W. Bush', hull: 'CVN-77', code: 'US', lat: 35.00, lon: 18.00, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'EUCOM', personnel: 6500, label: 'USS George H.W. Bush CSG. Deployed Mediterranean. 6th Fleet AOR.', fleetAsset: true },
+  { id: 'csg-cvn75', name: 'CSG-8 Harry S. Truman', hull: 'CVN-75', code: 'US', lat: 18.00, lon: 64.00, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'CENTCOM', personnel: 6500, label: 'USS Harry S. Truman CSG. Arabian Sea / 5th Fleet AOR.', fleetAsset: true },
+  { id: 'csg-cvn69', name: 'CSG-2 Dwight D. Eisenhower', hull: 'CVN-69', code: 'US', lat: 36.95, lon: -76.33, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'LANT', personnel: 6500, label: 'USS Dwight D. Eisenhower CSG. Post-deployment Norfolk. Red Sea/Houthi veteran.', fleetAsset: true },
+  { id: 'csg-cvn72', name: 'CSG-3 Abraham Lincoln', hull: 'CVN-72', code: 'US', lat: 25.00, lon: 140.00, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 6500, label: 'USS Abraham Lincoln CSG. Western Pacific deployment. 7th Fleet AOR.', fleetAsset: true },
+  { id: 'csg-cvn71', name: 'CSG-9 Theodore Roosevelt', hull: 'CVN-71', code: 'US', lat: 32.68, lon: -117.23, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'PAC', personnel: 6500, label: 'USS Theodore Roosevelt CSG. San Diego homeport. Pacific Fleet.', fleetAsset: true },
+  { id: 'csg-cvn70', name: 'CSG-1 Carl Vinson', hull: 'CVN-70', code: 'US', lat: 21.35, lon: -157.97, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 6500, label: 'USS Carl Vinson CSG. Pacific operations. San Diego homeport.', fleetAsset: true },
+  { id: 'csg-cvn73', name: 'CSG-5 George Washington', hull: 'CVN-73', code: 'US', lat: 35.28, lon: 139.67, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 6500, label: 'USS George Washington CSG. Forward-Deployed Naval Force, Yokosuka Japan.', fleetAsset: true },
+  { id: 'csg-cvn68', name: 'CSG-11 Nimitz', hull: 'CVN-68', code: 'US', lat: 47.55, lon: -122.65, type: 'Carrier Strike Group', milType: 'csg', branch: 'US Navy', cocom: 'PAC', personnel: 6500, label: 'USS Nimitz CSG. Bremerton homeport. Pacific Fleet ready reserve.', fleetAsset: true },
+
+  // ═══ Amphibious Ready Groups / MEUs ═══
+  { id: 'arg-lha6', name: 'America ARG / 31st MEU', hull: 'LHA-6', code: 'US', lat: 33.16, lon: 129.72, type: 'Amphibious Ready Group', milType: 'arg', branch: 'USN / USMC', cocom: 'INDOPACOM', personnel: 4500, label: 'USS America ARG w/ 31st MEU. Forward-deployed Sasebo. F-35B capable.', fleetAsset: true },
+  { id: 'arg-lhd1', name: 'Wasp ARG / 22nd MEU', hull: 'LHD-1', code: 'US', lat: 35.00, lon: 18.00, type: 'Amphibious Ready Group', milType: 'arg', branch: 'USN / USMC', cocom: 'EUCOM', personnel: 4500, label: 'USS Wasp ARG w/ 22nd MEU. Mediterranean deployment. 6th Fleet AOR.', fleetAsset: true },
+  { id: 'arg-lhd5', name: 'Bataan ARG / 26th MEU', hull: 'LHD-5', code: 'US', lat: 12.50, lon: 45.00, type: 'Amphibious Ready Group', milType: 'arg', branch: 'USN / USMC', cocom: 'CENTCOM', personnel: 4500, label: 'USS Bataan ARG w/ 26th MEU. Gulf of Aden / 5th Fleet AOR.', fleetAsset: true },
+  { id: 'arg-lhd2', name: 'Essex ARG / 13th MEU', hull: 'LHD-2', code: 'US', lat: 32.68, lon: -117.23, type: 'Amphibious Ready Group', milType: 'arg', branch: 'USN / USMC', cocom: 'PAC', personnel: 4500, label: 'USS Essex ARG w/ 13th MEU. San Diego homeport. Pacific Fleet.', fleetAsset: true },
+  { id: 'arg-lhd8', name: 'Makin Island ARG / 15th MEU', hull: 'LHD-8', code: 'US', lat: 18.00, lon: 132.00, type: 'Amphibious Ready Group', milType: 'arg', branch: 'USN / USMC', cocom: 'INDOPACOM', personnel: 4500, label: 'USS Makin Island ARG w/ 15th MEU. Philippine Sea / Western Pacific.', fleetAsset: true },
+
+  // ═══ SSGNs (Ohio-class guided-missile submarines — approximate patrol areas) ═══
+  { id: 'ssgn-726', name: 'USS Ohio (SSGN-726)', hull: 'SSGN-726', code: 'US', lat: 20.00, lon: 140.00, type: 'Guided-Missile Submarine', milType: 'ssgn', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 155, label: 'Ohio-class SSGN. 154 Tomahawk TLAM. Pacific patrol area (approx).', fleetAsset: true },
+  { id: 'ssgn-727', name: 'USS Michigan (SSGN-727)', hull: 'SSGN-727', code: 'US', lat: 13.45, lon: 144.65, type: 'Guided-Missile Submarine', milType: 'ssgn', branch: 'US Navy', cocom: 'INDOPACOM', personnel: 155, label: 'Ohio-class SSGN. 154 Tomahawk TLAM. INDOPACOM forward-deployed.', fleetAsset: true },
+  { id: 'ssgn-728', name: 'USS Florida (SSGN-728)', hull: 'SSGN-728', code: 'US', lat: 35.00, lon: 18.00, type: 'Guided-Missile Submarine', milType: 'ssgn', branch: 'US Navy', cocom: 'EUCOM', personnel: 155, label: 'Ohio-class SSGN. 154 Tomahawk TLAM. EUCOM/6th Fleet patrol area.', fleetAsset: true },
+  { id: 'ssgn-729', name: 'USS Georgia (SSGN-729)', hull: 'SSGN-729', code: 'US', lat: 26.00, lon: 52.00, type: 'Guided-Missile Submarine', milType: 'ssgn', branch: 'US Navy', cocom: 'CENTCOM', personnel: 155, label: 'Ohio-class SSGN. 154 Tomahawk TLAM. Persian Gulf / 5th Fleet AOR.', fleetAsset: true },
+
+  // ═══ Bomber Task Forces (rotational deployments) ═══
+  { id: 'btf-guam', name: 'BTF Guam (B-52H)', hull: null, code: 'US', lat: 13.58, lon: 144.92, type: 'Bomber Task Force', milType: 'btf', branch: 'US Air Force (AFGSC)', cocom: 'INDOPACOM', personnel: 200, label: 'Continuous Bomber Presence. B-52H Stratofortress rotation at Andersen AFB.', fleetAsset: true },
+  { id: 'btf-fairford', name: 'BTF Europe (B-1B)', hull: null, code: 'US', lat: 51.68, lon: -1.79, type: 'Bomber Task Force', milType: 'btf', branch: 'US Air Force (AFGSC)', cocom: 'EUCOM', personnel: 200, label: 'Bomber Task Force Europe. B-1B Lancer rotation at RAF Fairford, UK.', fleetAsset: true },
+  { id: 'btf-diego', name: 'BTF Indian Ocean (B-2)', hull: null, code: 'US', lat: -7.32, lon: 72.41, type: 'Bomber Task Force', milType: 'btf', branch: 'US Air Force (AFGSC)', cocom: 'INDOPACOM', personnel: 150, label: 'B-2 Spirit rotational deployment. Diego Garcia forward staging.', fleetAsset: true },
+];
+
+// ── Region coordinates for GDELT fleet position matching ──
+export const FLEET_REGIONS = {
+  'mediterranean': { lat: 35.00, lon: 18.00 },
+  'persian gulf': { lat: 26.00, lon: 52.00 },
+  'arabian gulf': { lat: 26.00, lon: 52.00 },
+  'arabian sea': { lat: 18.00, lon: 64.00 },
+  'red sea': { lat: 20.00, lon: 38.50 },
+  'south china sea': { lat: 14.00, lon: 114.00 },
+  'western pacific': { lat: 25.00, lon: 140.00 },
+  'west pacific': { lat: 25.00, lon: 140.00 },
+  'indian ocean': { lat: -5.00, lon: 73.00 },
+  'atlantic': { lat: 35.00, lon: -40.00 },
+  'pacific': { lat: 20.00, lon: -150.00 },
+  'gulf of aden': { lat: 12.50, lon: 45.00 },
+  'east china sea': { lat: 28.00, lon: 125.00 },
+  'sea of japan': { lat: 40.00, lon: 135.00 },
+  'philippine sea': { lat: 18.00, lon: 132.00 },
+  'baltic sea': { lat: 58.00, lon: 19.00 },
+  'north sea': { lat: 57.00, lon: 3.00 },
+  'arctic': { lat: 72.00, lon: 10.00 },
+  'strait of hormuz': { lat: 26.50, lon: 56.30 },
+  'taiwan strait': { lat: 24.50, lon: 119.50 },
+  'black sea': { lat: 43.00, lon: 35.00 },
+  'suez canal': { lat: 30.50, lon: 32.30 },
+  'horn of africa': { lat: 11.00, lon: 49.00 },
+  'bab el-mandeb': { lat: 12.60, lon: 43.30 },
+  'north atlantic': { lat: 50.00, lon: -30.00 },
+  'south atlantic': { lat: -15.00, lon: -25.00 },
+  'coral sea': { lat: -18.00, lon: 155.00 },
+  'yellow sea': { lat: 35.00, lon: 124.00 },
+};
+
 // ── Severity color map ──
 export const SEVERITY_COLORS = {
   critical: '#ff2222',
