@@ -884,11 +884,20 @@ function App() {
         hoveredEUIdRef.current = null;
       }
       // Update background color without triggering full style reload
+      // Globe mode always uses near-black space regardless of theme
       if (map.getLayer('background')) {
-        map.setPaintProperty('background', 'background-color', useGlobe ? '#000208' : '#060e18');
+        let bg;
+        if (useGlobe) {
+          bg = '#000208';
+        } else if (isLightTheme) {
+          bg = '#3a7ab0';
+        } else {
+          bg = holoMode ? '#020810' : '#060e18';
+        }
+        map.setPaintProperty('background', 'background-color', bg);
       }
     } catch {}
-  }, [useGlobe]);
+  }, [useGlobe, isLightTheme, holoMode]);
 
   // Disable MapLibre's built-in atmosphere (it's directional/one-sided).
   // The uniform halo is rendered by EarthOverlay instead.
