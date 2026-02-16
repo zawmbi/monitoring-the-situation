@@ -13,6 +13,7 @@ import { wsHandler } from '../services/websocket.service.js';
 import { stocksService } from '../services/stocks.service.js';
 import { polymarketService } from '../services/polymarket.service.js';
 import { conflictService } from '../services/conflict.service.js';
+import { conflictNewsService } from '../services/conflictNews.service.js';
 import { tariffService } from '../services/tariff.service.js';
 import { worldBankService } from '../services/worldbank.service.js';
 import { wikidataService } from '../services/wikidata.service.js';
@@ -404,6 +405,54 @@ router.get('/conflict/news', async (req, res) => {
   } catch (error) {
     console.error('[API] Conflict news error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch war news' });
+  }
+});
+
+// ===========================================
+// CONFLICT NEWS (Per-conflict live news feeds)
+// ===========================================
+
+/**
+ * GET /api/conflict-news
+ * Get news for all tracked conflicts
+ * Query params:
+ *   - limit: articles per conflict (default 10)
+ */
+router.get('/conflict-news', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '10', 10), 30);
+    const data = await conflictNewsService.getAllConflictNews(limit);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Conflict news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch conflict news' });
+  }
+});
+
+/**
+ * GET /api/conflict-news/sources
+ * List available conflict news feeds
+ */
+router.get('/conflict-news/sources', (req, res) => {
+  const sources = conflictNewsService.getAvailableConflicts();
+  res.json({ success: true, data: sources });
+});
+
+/**
+ * GET /api/conflict-news/:conflictId
+ * Get news for a specific conflict
+ * Query params:
+ *   - limit: max articles (default 20)
+ */
+router.get('/conflict-news/:conflictId', async (req, res) => {
+  try {
+    const { conflictId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+    const data = await conflictNewsService.getNewsByConflict(conflictId, limit);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error(`[API] Conflict news error (${req.params.conflictId}):`, error);
+    res.status(500).json({ success: false, error: 'Failed to fetch conflict news' });
   }
 });
 

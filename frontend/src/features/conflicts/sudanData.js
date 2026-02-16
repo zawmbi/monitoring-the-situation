@@ -21,12 +21,12 @@ export const CONFLICT_SUMMARY = {
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
-  phase: 'Full-scale civil war / ethnic cleansing in Darfur',
+  phase: 'Full-scale civil war / SAF counteroffensives / Ethnic cleansing in Darfur / El Fasher siege',
   sideA: { name: 'Sudanese Armed Forces (SAF)', shortName: 'SAF', color: SAF_GREEN, flag: '\u{1F1F8}\u{1F1E9}' },
   sideB: { name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: '\u{1F1F8}\u{1F1E9}' },
   internationalSupport: {
-    sideA: 'Egypt, Iran, Turkey (varying degrees)',
-    sideB: 'UAE (alleged), Wagner Group / Africa Corps (alleged), Chad (transit)',
+    sideA: 'Egypt (military aid), Iran (drones — Mohajer-6), Turkey (TB2 drones), Eritrea (alleged)',
+    sideB: 'UAE (documented arms transfers via Chad/Libya), Russia/Africa Corps (Wagner successor), Chad (transit route for weapons)',
   },
 };
 
@@ -209,9 +209,9 @@ export const CASUALTIES = {
     source: 'ACLED / OSINT (est.)',
   },
   civilian: {
-    killed: { low: 24000, high: 150000, label: '24,000–150,000' },
-    note: 'ACLED reports ~24K verified; MSF/LSE study suggests up to 150K total excess deaths',
-    source: 'ACLED / MSF / OCHA',
+    killed: { low: 30000, high: 150000, label: '30,000–150,000+' },
+    note: 'ACLED reports ~30K+ verified conflict deaths; MSF/LSE/ACLED excess mortality studies suggest 100K-150K+ total deaths including disease and famine. True toll likely far higher due to reporting gaps in RSF-controlled areas.',
+    source: 'ACLED / MSF / OCHA / Lancet',
   },
   asOf: 'February 2026',
 };
@@ -280,11 +280,14 @@ export const WAR_TIMELINE = [
   { date: '2024-06-01', event: 'RSF pushes into Sennar state', phase: 'expansion' },
   { date: '2024-09-01', event: 'UN reports 10M+ displaced; world\'s worst displacement crisis', phase: 'humanitarian' },
   { date: '2024-12-01', event: 'Famine declared in parts of Darfur and Kordofan', phase: 'humanitarian' },
-  { date: '2025-03-01', event: 'SAF recaptures parts of Khartoum with Iranian drone support (alleged)', phase: 'counteroffensive' },
-  { date: '2025-06-01', event: 'ICC investigation into Darfur atrocities expanded', phase: 'legal' },
-  { date: '2025-09-01', event: 'El Fasher siege intensifies; UN warns of genocide risk', phase: 'siege' },
-  { date: '2025-12-01', event: 'SAF launches major offensive toward Gezira state', phase: 'counteroffensive' },
-  { date: '2026-01-15', event: 'Ceasefire talks in Jeddah collapse again', phase: 'diplomatic' },
+  { date: '2025-01-01', event: 'SAF recaptures large parts of Khartoum using drone warfare (Iranian Mohajer-6, Turkish TB2)', phase: 'counteroffensive' },
+  { date: '2025-03-01', event: 'SAF pushes RSF out of most of central Khartoum; Omdurman fighting continues', phase: 'counteroffensive' },
+  { date: '2025-05-01', event: 'El Fasher siege at critical point; mass starvation reported; UN calls it potential genocide', phase: 'siege' },
+  { date: '2025-06-01', event: 'ICC investigation into Darfur atrocities expanded; new warrants sought', phase: 'legal' },
+  { date: '2025-09-01', event: 'SAF launches offensive toward Gezira state with drone and artillery support', phase: 'counteroffensive' },
+  { date: '2025-11-01', event: 'Famine declared in 5+ regions; 26M+ in acute food crisis (IPC Phase 3+)', phase: 'humanitarian' },
+  { date: '2025-12-01', event: 'SAF advances in Khartoum area but stalls in Gezira; RSF retains Darfur control', phase: 'counteroffensive' },
+  { date: '2026-01-15', event: 'Jeddah/Switzerland ceasefire talks collapse again; both sides recruit heavily; war of attrition continues', phase: 'diplomatic' },
 ];
 
 // ─── Humanitarian ───

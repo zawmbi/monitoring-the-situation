@@ -21,7 +21,7 @@ export const CONFLICT_SUMMARY = {
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
-  phase: 'M23 offensive / Regional proxy war',
+  phase: 'M23/RDF captured Goma / Regional crisis / Angola-mediated talks',
   sideA: { name: 'DRC Armed Forces (FARDC)', shortName: 'FARDC', color: FARDC_GREEN, flag: '\u{1F1E8}\u{1F1E9}' },
   sideB: { name: 'M23 / Rwanda-backed forces', shortName: 'M23', color: M23_RED, flag: '' },
   internationalSupport: {
@@ -86,7 +86,7 @@ export const CAPITALS = [
 ];
 
 export const MAJOR_CITIES = [
-  { id: 'goma', name: 'Goma', country: 'contested', lat: -1.6585, lon: 29.2200, population: '1.5M', note: 'North Kivu capital; M23 approaching/at gates' },
+  { id: 'goma', name: 'Goma', country: 'sideB', lat: -1.6585, lon: 29.2200, population: '1.5M', note: 'North Kivu capital; fell to M23/RDF forces Jan 27, 2025; humanitarian catastrophe' },
   { id: 'bukavu', name: 'Bukavu', country: 'sideA', lat: -2.5083, lon: 28.8608, population: '870K', note: 'South Kivu capital; FARDC-held' },
   { id: 'bunia', name: 'Bunia', country: 'sideA', lat: 1.5592, lon: 30.2522, population: '400K', note: 'Ituri capital; ADF/CODECO activity' },
   { id: 'beni', name: 'Beni', country: 'contested', lat: 0.4921, lon: 29.4682, population: '280K', note: 'ADF attacks; civilian massacres' },
@@ -126,14 +126,14 @@ export const TROOP_POSITIONS = [
 // ─── Battle sites ───
 export const BATTLE_SITES = [
   {
-    id: 'battle-goma-2025', name: 'Battle of Goma', lat: -1.6585, lon: 29.2200,
-    date: 'Jan 2025 – ongoing', result: 'Contested',
-    note: 'M23/RDF forces approach or enter Goma; humanitarian catastrophe',
-    sideACommander: 'FARDC / SAMIDRC', sideBCommander: 'M23 / RDF',
-    sideATroops: '~20,000 FARDC + 5,000 SAMIDRC', sideBTroops: '~10,000 M23 + ~3,000 RDF',
-    sideAEquipment: 'Infantry, limited armor, air support', sideBEquipment: 'Artillery, mortars, small arms, night vision',
-    sideACasualties: 'Hundreds killed; SAMIDRC troops killed', sideBCasualties: 'Moderate',
-    significance: 'Fall or siege of Goma would displace 1.5M+ people. Regional escalation risk. Congo severed diplomatic ties with Rwanda.',
+    id: 'battle-goma-2025', name: 'Fall of Goma', lat: -1.6585, lon: 29.2200,
+    date: 'Jan 26-27, 2025', result: 'M23/RDF captured',
+    note: 'M23 and Rwandan forces captured Goma, North Kivu\'s capital of 1.5M people — worst escalation since 2012',
+    sideACommander: 'FARDC / SAMIDRC (South Africa, Tanzania, Malawi)', sideBCommander: 'M23 / RDF (Rwandan Defense Forces)',
+    sideATroops: '~20,000 FARDC + 5,000 SAMIDRC', sideBTroops: '~10,000 M23 + ~3,000-4,000 RDF (UN documented)',
+    sideAEquipment: 'Infantry, limited armor, SAMIDRC Rooikats', sideBEquipment: 'Artillery, mortars, night vision, Rwanda-supplied heavy weapons',
+    sideACasualties: '~500+ killed incl. 13 SAMIDRC peacekeepers (South African troops KIA); ~1,000 civilians killed in Goma during takeover', sideBCasualties: 'Moderate; M23 suffered losses in urban fighting',
+    significance: 'Largest city ever captured by M23. 1.5M+ residents trapped. South Africa threatened military escalation against Rwanda. International outrage; UN Security Council emergency session. DRC severed all diplomatic ties with Rwanda. Regional war risk between DRC-Rwanda escalated to highest level.',
   },
   {
     id: 'battle-rutshuru', name: 'Rutshuru Territory', lat: -1.1833, lon: 29.4500,
@@ -233,10 +233,13 @@ export const WAR_TIMELINE = [
   { date: '2024-06-01', event: 'DRC severs diplomatic ties with Rwanda', phase: 'escalation' },
   { date: '2024-09-01', event: 'MONUSCO begins withdrawal from eastern DRC', phase: 'peacekeeping' },
   { date: '2024-12-01', event: 'M23 advances toward Goma; heavy fighting in Sake area', phase: 'offensive' },
-  { date: '2025-01-27', event: 'M23/RDF enter Goma outskirts; regional crisis intensifies', phase: 'offensive' },
-  { date: '2025-03-01', event: 'Angola-mediated ceasefire attempts; fighting continues', phase: 'diplomatic' },
-  { date: '2025-06-01', event: 'SAMIDRC troops killed in fighting; South Africa threatens escalation', phase: 'escalation' },
-  { date: '2026-01-01', event: 'Goma under pressure; humanitarian crisis deepens; 7M+ displaced in DRC', phase: 'offensive' },
+  { date: '2025-01-27', event: 'M23/RDF capture Goma — 1.5M people trapped; 13 SAMIDRC peacekeepers killed; international outcry', phase: 'offensive' },
+  { date: '2025-02-01', event: 'M23 advances south toward Bukavu (South Kivu capital); regional war fears peak', phase: 'offensive' },
+  { date: '2025-02-15', event: 'South Africa deploys additional forces; threatens direct action against Rwanda', phase: 'escalation' },
+  { date: '2025-03-01', event: 'Angola-mediated ceasefire signed but immediately violated; M23 consolidates Goma control', phase: 'diplomatic' },
+  { date: '2025-06-01', event: 'UN Security Council imposes targeted sanctions on M23/RDF commanders', phase: 'diplomatic' },
+  { date: '2025-09-01', event: 'Humanitarian crisis: 8M+ displaced in eastern DRC; Goma under M23 administration', phase: 'humanitarian' },
+  { date: '2026-01-01', event: 'Fragile ceasefire talks resume in Luanda; M23 controls most of North Kivu; FARDC counteroffensive stalls', phase: 'diplomatic' },
 ];
 
 // ─── Humanitarian ───
@@ -253,9 +256,9 @@ export const HUMANITARIAN = {
     source: 'UNHCR (Jan 2026)',
   },
   internallyDisplaced: {
-    total: 7200000,
-    label: '~7.2 million internally displaced',
-    note: 'Largest IDP crisis in Africa; mostly eastern provinces',
+    total: 8000000,
+    label: '~8 million internally displaced',
+    note: 'Largest IDP crisis in Africa; surged after fall of Goma in Jan 2025',
     source: 'OCHA / IOM',
   },
   hunger: {
@@ -275,7 +278,7 @@ export const HUMANITARIAN = {
 // ─── Territorial control ───
 export const TERRITORIAL_CONTROL = {
   totalArea: 2344858,
-  m23Controlled: '~5,000 km\u00B2 in North Kivu',
+  m23Controlled: '~15,000 km\u00B2 in North Kivu including Goma (since Jan 2025)',
   adfPresence: 'Beni territory / Ituri',
   govtControlled: 'Most of DRC; eastern provinces contested',
   note: 'Over 100 armed groups operate in eastern DRC',

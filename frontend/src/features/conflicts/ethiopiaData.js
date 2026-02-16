@@ -232,9 +232,12 @@ export const WAR_TIMELINE = [
   { date: '2023-08-05', event: 'State of emergency declared in Amhara region', phase: 'amhara' },
   { date: '2024-01-01', event: 'Fano controls significant rural territory in Amhara', phase: 'amhara' },
   { date: '2024-06-01', event: 'OLA intensifies operations in western Oromia', phase: 'oromia' },
-  { date: '2025-01-01', event: 'Amhara conflict becomes Ethiopia\'s primary security crisis', phase: 'amhara' },
-  { date: '2025-06-01', event: 'Tigray reconstruction begins but very slow; Western Tigray disputed', phase: 'ceasefire' },
-  { date: '2026-01-01', event: 'Multiple active fronts; ENDF stretched across Amhara and Oromia', phase: 'amhara' },
+  { date: '2025-01-01', event: 'Amhara conflict becomes Ethiopia\'s primary security crisis; ENDF deploys 100K+ troops', phase: 'amhara' },
+  { date: '2025-03-01', event: 'Fano captures several towns in North/South Gondar; ENDF retakes with air strikes', phase: 'amhara' },
+  { date: '2025-06-01', event: 'Tigray reconstruction begins but extremely slow; Western Tigray still occupied by Amhara forces/ENDF; humanitarian access limited', phase: 'ceasefire' },
+  { date: '2025-09-01', event: 'OLA intensifies attacks in western Oromia; government-OLA peace talks collapse', phase: 'oromia' },
+  { date: '2025-12-01', event: 'Ethiopia-Somalia tensions over Somaliland port deal; new external pressure on Abiy government', phase: 'political' },
+  { date: '2026-01-01', event: 'Multiple active fronts; ENDF stretched thin across Amhara, Oromia; Tigray ceasefire fragile; 20M+ food insecure', phase: 'amhara' },
 ];
 
 // ─── Humanitarian ───

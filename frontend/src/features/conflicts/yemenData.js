@@ -142,8 +142,8 @@ export const BATTLE_SITES = [
     sideACommander: 'Houthi Naval/Missile Forces', sideBCommander: 'US CENTCOM / UK Royal Navy',
     sideATroops: 'Missile and drone units', sideBTroops: 'USN carrier groups + coalition navies',
     sideAEquipment: 'Anti-ship ballistic missiles, UAVs, mines, USVs', sideBEquipment: 'Aircraft carriers, destroyers, Tomahawk missiles',
-    sideACasualties: 'Targets struck; degraded but operational', sideBCasualties: '2 commercial crew killed; dozens of ships damaged',
-    significance: '60+ commercial vessels attacked. Global shipping rerouted via Cape of Good Hope. $100B+ in economic disruption. Iran-backed proxy war dimension.',
+    sideACasualties: 'Targets struck; degraded but resilient; rebuild capability', sideBCasualties: '4+ commercial crew killed; MV Rubymar sunk (Feb 2024); 100+ ships damaged/attacked',
+    significance: '100+ commercial vessels attacked since Nov 2023. Global shipping rerouted via Cape of Good Hope adding 10-14 days. $200B+ cumulative economic disruption. Suez Canal revenue dropped 50%+. Iran-backed proxy war dimension.',
   },
   {
     id: 'battle-hodeidah-strikes', name: 'US/UK Strikes on Hodeidah', lat: 14.7980, lon: 42.9536,
@@ -239,9 +239,12 @@ export const WAR_TIMELINE = [
   { date: '2024-03-01', event: 'Global shipping diversions cost $100B+; Suez traffic drops 50%', phase: 'red_sea' },
   { date: '2024-06-01', event: 'Houthis claim hypersonic missile capability', phase: 'escalation' },
   { date: '2024-10-01', event: 'US deploys B-2 bombers against underground Houthi sites', phase: 'red_sea' },
-  { date: '2025-03-01', event: 'Houthi attacks continue despite 100+ US/UK strike rounds', phase: 'red_sea' },
-  { date: '2025-09-01', event: 'Red Sea attacks decrease slightly after Gaza ceasefire attempts', phase: 'red_sea' },
-  { date: '2026-01-01', event: 'Houthis remain operational; internal Yemen talks stalled', phase: 'stalemate' },
+  { date: '2025-01-19', event: 'Gaza ceasefire leads to temporary reduction in Houthi Red Sea attacks', phase: 'red_sea' },
+  { date: '2025-03-01', event: 'Houthi attacks resume after Gaza ceasefire collapses; shipping disruption continues', phase: 'red_sea' },
+  { date: '2025-06-01', event: 'US intensifies strikes on Houthi infrastructure; limited degradation of capability', phase: 'red_sea' },
+  { date: '2025-09-01', event: 'Red Sea shipping rerouting becomes semi-permanent; insurance costs remain elevated 10x+', phase: 'red_sea' },
+  { date: '2025-12-01', event: 'Internal Yemen peace talks stall; Saudi Arabia continues backchannel with Houthis', phase: 'stalemate' },
+  { date: '2026-01-01', event: 'Houthis maintain operational capability; 100+ commercial vessels attacked since Nov 2023; Red Sea crisis enters 3rd year', phase: 'stalemate' },
 ];
 
 // ─── Humanitarian ───

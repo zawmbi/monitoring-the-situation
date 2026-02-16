@@ -26,8 +26,8 @@ export const CONFLICT_SUMMARY = {
   sideA: { name: 'Military Junta (SAC/Tatmadaw)', shortName: 'Junta', color: JUNTA_RED, flag: '\u{1F1F2}\u{1F1F2}' },
   sideB: { name: 'NUG / PDF / Ethnic Armed Orgs', shortName: 'Resistance', color: NUG_BLUE, flag: '\u{1F1F2}\u{1F1F2}' },
   internationalSupport: {
-    sideA: 'Russia (arms), China (economic/political)',
-    sideB: 'Limited; diaspora funding, some cross-border support',
+    sideA: 'Russia (arms — Su-30, Yak-130), China (economic/political, brokered Shan ceasefire), India (limited engagement)',
+    sideB: 'Limited; diaspora funding, cross-border support from Thailand/India border areas; China leverages ethnic armed orgs as proxies',
   },
 };
 
@@ -271,12 +271,15 @@ export const WAR_TIMELINE = [
   { date: '2024-01-11', event: 'China brokers ceasefire in Shan State (partially holds)', phase: 'ceasefire' },
   { date: '2024-04-11', event: 'KNLA captures Myawaddy border town', phase: 'offensive' },
   { date: '2024-06-01', event: 'AA captures most of Rakhine State; navy bases fall', phase: 'offensive' },
-  { date: '2024-08-01', event: 'Junta introduces conscription law amid manpower crisis', phase: 'war' },
-  { date: '2024-11-15', event: 'MNDAA captures Lashio — largest city taken by resistance', phase: 'offensive' },
-  { date: '2025-03-01', event: 'Resistance controls estimated 60% of territory', phase: 'offensive' },
-  { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces stretched', phase: 'attrition' },
-  { date: '2025-12-01', event: 'AA effectively controls entire Rakhine State', phase: 'offensive' },
-  { date: '2026-01-01', event: 'NUG announces plans for federal democratic constitution', phase: 'political' },
+  { date: '2024-02-10', event: 'Junta introduces conscription law (People\'s Military Service Law) amid severe manpower crisis', phase: 'war' },
+  { date: '2024-06-25', event: 'AA captures Sittwe port area; junta navy retreats from Rakhine coast', phase: 'offensive' },
+  { date: '2024-08-03', event: 'Lashio falls to MNDAA — largest city ever taken by resistance forces', phase: 'offensive' },
+  { date: '2024-11-15', event: 'Junta air force loses multiple aircraft; resistance FPV drones increasingly effective', phase: 'offensive' },
+  { date: '2025-02-01', event: 'Anniversary of coup: NUG/resistance control estimated 60%+ of territory', phase: 'offensive' },
+  { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces collapsed in peripheral states', phase: 'attrition' },
+  { date: '2025-09-01', event: 'AA effectively controls all of Rakhine State; establishes parallel administration', phase: 'offensive' },
+  { date: '2025-12-01', event: 'Tatmadaw effective strength below 100K; controls only central corridor (Yangon-Mandalay-Naypyidaw)', phase: 'attrition' },
+  { date: '2026-01-01', event: 'NUG and EAOs begin federal constitution consultations; junta regime isolated internationally', phase: 'political' },
 ];
 
 // ─── Humanitarian ───

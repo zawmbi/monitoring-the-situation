@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import InlineMarkets from '../../components/InlineMarkets';
+import useConflictNews from '../../hooks/useConflictNews';
 import './conflicts.css';
 
 /* ─── Utility: format relative time ─── */
@@ -32,14 +33,19 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
     HUMANITARIAN: humanitarian,
     TERRITORIAL_CONTROL: territorial,
     BATTLE_SITES: battles = [],
+    INTERNATIONAL_RESPONSE: intlResponse,
   } = conflictData;
 
   const days = summary.daysSince();
   const sideAColor = summary.sideA.color;
   const sideBColor = summary.sideB.color;
 
+  // Live news feed for this conflict
+  const { news: liveNews, loading: newsLoading, lastUpdated: newsUpdated } = useConflictNews(summary.id, open);
+
   const TABS = [
     { id: 'overview', label: 'Overview' },
+    { id: 'news', label: `News${liveNews.length ? ` (${liveNews.length})` : ''}` },
     { id: 'equipment', label: 'Equipment' },
     { id: 'command', label: 'Command' },
     { id: 'timeline', label: 'Timeline' },
@@ -97,7 +103,11 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
             sideAColor={sideAColor}
             sideBColor={sideBColor}
             marketKeywords={marketKeywords}
+            intlResponse={intlResponse}
           />
+        )}
+        {tab === 'news' && (
+          <NewsTab news={liveNews} loading={newsLoading} lastUpdated={newsUpdated} conflictLabel={summary.name} />
         )}
         {tab === 'equipment' && (
           <EquipmentTab equipment={equipment} summary={summary} sideAColor={sideAColor} sideBColor={sideBColor} />
@@ -131,7 +141,7 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
 }
 
 /* ─── Overview Tab ─── */
-function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor, marketKeywords }) {
+function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor, marketKeywords, intlResponse }) {
   return (
     <div className="conflict-tab-body">
       <div className="conflict-section-note">
@@ -227,6 +237,23 @@ function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor,
         </>
       )}
 
+      {/* International Response (Israel-Gaza etc.) */}
+      {intlResponse && (
+        <div className="conflict-stat-group">
+          <div className="conflict-stat-group-title">International Response</div>
+          {Object.entries(intlResponse).filter(([k]) => !['asOf'].includes(k)).map(([key, val]) => (
+            typeof val === 'string' && (
+              <div key={key} className="conflict-territory-details" style={{ marginBottom: 4 }}>
+                <span style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', opacity: 0.7 }}>
+                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+                </span>
+                <div style={{ fontSize: 11, lineHeight: 1.3 }}>{val}</div>
+              </div>
+            )
+          ))}
+        </div>
+      )}
+
       <InlineMarkets
         require={marketKeywords.require}
         boost={marketKeywords.boost}
@@ -234,6 +261,48 @@ function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor,
         enabled={true}
         maxItems={4}
       />
+    </div>
+  );
+}
+
+/* ─── News Tab (Live Feed) ─── */
+function NewsTab({ news, loading, lastUpdated, conflictLabel }) {
+  return (
+    <div className="conflict-tab-body">
+      <div className="conflict-section-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Live news feed for {conflictLabel}</span>
+        {loading && <span className="conflict-live-badge conflict-live-badge--loading">UPDATING</span>}
+        {!loading && lastUpdated && (
+          <span className="conflict-live-badge" title={`Last updated: ${new Date(lastUpdated).toLocaleString()}`}>
+            LIVE
+          </span>
+        )}
+      </div>
+
+      {!news.length && !loading && (
+        <div className="conflict-section-note" style={{ textAlign: 'center', padding: '20px 0' }}>
+          No news available. The backend may be offline or news feeds unavailable.
+        </div>
+      )}
+
+      <div className="conflict-news-list">
+        {news.map((item) => (
+          <a
+            key={item.id}
+            className="conflict-news-item"
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <div className="conflict-news-item-source">{item.source || 'News'}</div>
+            <div className="conflict-news-item-title">{item.title}</div>
+            {item.summary && (
+              <div className="conflict-news-item-summary">{item.summary}</div>
+            )}
+            <div className="conflict-news-item-time">{timeAgo(item.publishedAt)}</div>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
