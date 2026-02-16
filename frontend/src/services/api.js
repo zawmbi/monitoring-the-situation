@@ -47,6 +47,13 @@ export const api = {
     return api.fetch(`/ucdp/events${query ? `?${query}` : ''}`);
   },
   getUCDPConflicts: () => api.fetch('/ucdp/conflicts'),
+
+  // Stability data (protests, military, instability)
+  getStabilityData: () => api.fetch('/stability'),
+  getProtestData: () => api.fetch('/stability/protests'),
+  getMilitaryData: () => api.fetch('/stability/military'),
+  getInstabilityData: () => api.fetch('/stability/instability'),
+
 };
 
 export default api;

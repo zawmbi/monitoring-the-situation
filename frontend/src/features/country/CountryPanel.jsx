@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { SCOTUS_JUSTICES, SCOTUS_PENDING_CASES, SCOTUS_TERM, SCOTUS_COMPOSITION } from './scotusData';
+import InlineMarkets from '../../components/InlineMarkets';
 import './country.css';
 
 function getCurrentTimeForOffset(offsetHours) {
@@ -42,6 +43,33 @@ function formatPopDensity(pop, area) {
   const density = pop / area;
   if (density >= 1000) return `${(density / 1000).toFixed(1)}k/km²`;
   return `${Math.round(density)}/km²`;
+}
+
+/* ── Live-ticking number component ── */
+function TickingNumber({ value, decimals = 2, prefix = '', suffix = '', className = '' }) {
+  const prevRef = useRef(value);
+  const [flash, setFlash] = useState('');
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = value;
+    if (prev == null || value == null || prev === value) return;
+    setFlash(value > prev ? 'tick-up' : 'tick-down');
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setFlash(''), 1200);
+    return () => clearTimeout(timerRef.current);
+  }, [value]);
+
+  if (value == null || !Number.isFinite(Number(value))) {
+    return <span className={`cp-tick-num ${className}`}>--</span>;
+  }
+
+  return (
+    <span className={`cp-tick-num ${flash} ${className}`}>
+      {prefix}{Number(value).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+    </span>
+  );
 }
 
 /* ── Helpers ── */
@@ -586,6 +614,14 @@ function SCOTUSPanel({ onClose }) {
         })}
       </div>
 
+      <InlineMarkets
+        require={['supreme court', 'scotus']}
+        boost={['ruling', 'justice', 'overturn']}
+        title="SCOTUS Markets"
+        enabled={true}
+        maxItems={4}
+      />
+
       <div className="cp-scotus-footer">
         Data reflects the {SCOTUS_TERM} term. Decisions pending.
       </div>
@@ -595,6 +631,7 @@ function SCOTUSPanel({ onClose }) {
 
 export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit = 'F', currencyData, currencyLoading, approvalData, approvalLoading, economicData, economicLoading, marketData, marketLoading }) {
   const [leaderImgError, setLeaderImgError] = useState(false);
+  useEffect(() => { setLeaderImgError(false); }, [data?.name, data?.leaderPhoto]);
   const [showApproval, setShowApproval] = useState(false);
   const [showEconomic, setShowEconomic] = useState(false);
   const [showSCOTUS, setShowSCOTUS] = useState(false);
@@ -616,6 +653,9 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
       <div className="cp-header">
         <div className="cp-header-left">
           {data.flag && <span className="cp-flag-emoji">{data.flag}</span>}
+          {!data.flag && data.flagUrl && (
+            <img className="cp-flag-img" src={data.flagUrl} alt="" />
+          )}
           <div>
             <h3 className="cp-title">{data.name}</h3>
             {data.officialName && data.officialName !== data.name && (
@@ -632,7 +672,42 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
 
       {/* Scrollable content */}
       <div className="cp-content">
-        {/* Leader section */}
+        {/* State/Province leader + nickname */}
+        {isScope && data.leader && (
+          <div className="cp-section">
+            <div className="cp-section-label">{data.leaderTitle || 'Leader'}</div>
+            <div className="cp-leader-card">
+              {data.leaderPhoto && !leaderImgError ? (
+                <img
+                  className="cp-leader-photo"
+                  src={data.leaderPhoto}
+                  alt={data.leader}
+                  onError={() => setLeaderImgError(true)}
+                />
+              ) : (
+                <div className="cp-leader-photo cp-leader-photo--placeholder">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+              )}
+              <div className="cp-leader-info">
+                <div className="cp-leader-name">{data.leader}</div>
+                <div className="cp-leader-title">
+                  {data.leaderTitle || 'Governor'}
+                  {data.leaderParty && (
+                    <span className={`cp-party-badge cp-party-badge--${data.leaderParty === 'D' ? 'dem' : data.leaderParty === 'R' ? 'rep' : 'other'}`}>
+                      {data.leaderParty}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Country leader section */}
         {!isScope && data.leader && data.leader !== 'Unavailable' && data.leader !== 'Loading...' && (
           <div className="cp-section">
             <div className="cp-section-label">Head of State / Government</div>
@@ -770,7 +845,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
-        {/* Markets section (stock indices, top stocks, commodities, forex) */}
+        {/* Markets section (stock indices, top stocks, bonds, vol, credit, commodities, forex) */}
         {!isScope && hasMarkets && (
           <div className="cp-section">
             <button
@@ -786,6 +861,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                   {marketData.indices[0].marketState === 'REGULAR' ? 'LIVE' : marketData.indices[0].marketState === 'PRE' ? 'PRE' : 'CLOSED'}
                 </span>
               )}
+              <span className="cp-markets-tick-dot" />
             </button>
             {showMarkets && (
               <div className="cp-markets-popup">
@@ -801,9 +877,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                             <div className="cp-market-index-exchange">{idx.exchange}</div>
                           </div>
                           <div className="cp-market-index-data">
-                            <span className="cp-market-index-price">
-                              {idx.price != null ? idx.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
-                            </span>
+                            <TickingNumber value={idx.price} decimals={2} key={`${idx.symbol}-p`} />
                             {idx.change != null && (
                               <span className={`cp-market-index-change ${idx.change >= 0 ? 'positive' : 'negative'}`}>
                                 {idx.change >= 0 ? '+' : ''}{idx.change.toFixed(2)}
@@ -818,13 +892,124 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                               <span className="cp-market-range-label">Day Range</span>
                               <span className="cp-market-range-val">
                                 {idx.dayLow?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '--'}
-                                {' — '}
+                                {' \u2014 '}
                                 {idx.dayHigh?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '--'}
                               </span>
                             </div>
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sovereign Bond Yields */}
+                {marketData.bonds?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">
+                      Sovereign Bond Yields
+                      {marketData.yieldSpreads && (
+                        <span className="cp-econ-section-note">
+                          {' \u2014 '}10Y-2Y: <span className={marketData.yieldSpreads['10Y-2Y'] < 0 ? 'negative' : 'positive'}>
+                            {marketData.yieldSpreads['10Y-2Y'] >= 0 ? '+' : ''}{marketData.yieldSpreads['10Y-2Y']}%
+                          </span>
+                          {marketData.yieldSpreads['10Y-2Y'] < 0 && <span className="cp-yield-inverted"> INVERTED</span>}
+                        </span>
+                      )}
+                    </div>
+                    <div className="cp-bonds-grid">
+                      {marketData.bonds.map((b) => (
+                        <div key={b.symbol} className="cp-bond-row">
+                          <span className="cp-bond-maturity">{b.maturity}</span>
+                          <span className="cp-bond-name">{b.name}</span>
+                          <TickingNumber value={b.yield} decimals={3} suffix="%" key={`${b.symbol}-y`} />
+                          {b.change != null && (
+                            <span className={`cp-bond-change ${b.change >= 0 ? 'positive' : 'negative'}`}>
+                              {b.change >= 0 ? '+' : ''}{b.change.toFixed(3)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {marketData.yieldSpreads && Object.keys(marketData.yieldSpreads).length > 1 && (
+                      <div className="cp-yield-spreads">
+                        {Object.entries(marketData.yieldSpreads).map(([k, v]) => (
+                          <span key={k} className="cp-yield-spread-tag">
+                            {k}: <span className={v < 0 ? 'negative' : 'positive'}>{v >= 0 ? '+' : ''}{v}%</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Volatility Indices */}
+                {marketData.volatility?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Volatility</div>
+                    <div className="cp-vol-grid">
+                      {marketData.volatility.map((v) => (
+                        <div key={v.symbol} className="cp-vol-card">
+                          <div className="cp-vol-header">
+                            <span className="cp-vol-name">{v.name}</span>
+                            {v.signal && (
+                              <span className={`cp-vol-signal cp-vol-signal--${v.signal}`}>
+                                {v.signal.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <TickingNumber value={v.level} decimals={2} className="cp-vol-level" key={`${v.symbol}-l`} />
+                          {v.change != null && (
+                            <span className={`cp-vol-change ${v.change >= 0 ? 'positive' : 'negative'}`}>
+                              {v.change >= 0 ? '+' : ''}{v.change.toFixed(2)} ({v.changePercent?.toFixed(2)}%)
+                            </span>
+                          )}
+                          <div className="cp-vol-desc">{v.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Credit / CDS Proxies */}
+                {marketData.credit?.length > 0 && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">Credit / CDS Proxies</div>
+                    <div className="cp-credit-note">Bond ETFs as credit spread proxies</div>
+                    <div className="cp-credit-grid">
+                      {marketData.credit.map((c) => (
+                        <div key={c.symbol} className="cp-credit-card">
+                          <div className="cp-credit-header">
+                            <span className="cp-credit-ticker">{c.symbol}</span>
+                          </div>
+                          <div className="cp-credit-name">{c.name}</div>
+                          <TickingNumber value={c.price} decimals={2} prefix="$" className="cp-credit-price" key={`${c.symbol}-cr`} />
+                          {c.changePercent != null && (
+                            <span className={`cp-credit-change ${c.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                              {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
+                            </span>
+                          )}
+                          <div className="cp-credit-desc">{c.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* DXY */}
+                {marketData.dxy && (
+                  <div className="cp-markets-section">
+                    <div className="cp-econ-section-title">US Dollar Index (DXY)</div>
+                    <div className="cp-dxy-card">
+                      <TickingNumber value={marketData.dxy.price} decimals={3} className="cp-dxy-price" key="dxy-p" />
+                      {marketData.dxy.change != null && (
+                        <span className={`cp-dxy-change ${marketData.dxy.change >= 0 ? 'positive' : 'negative'}`}>
+                          {marketData.dxy.change >= 0 ? '+' : ''}{marketData.dxy.change.toFixed(3)}
+                          {marketData.dxy.changePercent != null && (
+                            <> ({marketData.dxy.changePercent >= 0 ? '+' : ''}{marketData.dxy.changePercent.toFixed(2)}%)</>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
@@ -841,9 +1026,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                             <span className="cp-stock-name">{stock.name}</span>
                           </div>
                           <div className="cp-stock-numbers">
-                            <span className="cp-stock-price">
-                              {stock.price != null ? stock.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
-                            </span>
+                            <TickingNumber value={stock.price} decimals={2} key={`${stock.symbol}-sp`} />
                             {stock.changePercent != null && (
                               <span className={`cp-stock-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
                                 {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
@@ -858,10 +1041,8 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
 
                 {/* Commodities & Crypto */}
                 {marketData.commodities?.length > 0 && (() => {
-                  // Convert USD prices to local currency using forex rates
                   const currency = marketData.forex?.base || 'USD';
                   const usdPair = marketData.forex?.pairs?.find(p => p.quote === 'USD');
-                  // usdPair.rate = "1 LOCAL = X USD", so "1 USD = 1/X LOCAL"
                   const formatPrice = (usdPrice) => {
                     const localPrice = usdPair && currency !== 'USD' ? usdPrice / usdPair.rate : usdPrice;
                     try {
@@ -876,28 +1057,42 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                     }
                   };
 
+                  // Group commodities by category
+                  const grouped = {};
+                  marketData.commodities.forEach(c => {
+                    const cat = c.category || 'other';
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(c);
+                  });
+                  const catLabels = { precious: 'Precious Metals', energy: 'Energy', industrial: 'Industrial', agriculture: 'Agriculture', crypto: 'Crypto' };
+
                   return (
                   <div className="cp-markets-section">
                     <div className="cp-econ-section-title">
                       Commodities & Crypto
-                      {currency !== 'USD' && <span className="cp-econ-section-note"> — {currency}</span>}
+                      {currency !== 'USD' && <span className="cp-econ-section-note"> \u2014 {currency}</span>}
                     </div>
-                    <div className="cp-commodities-grid">
-                      {marketData.commodities.map((c) => (
-                        <div key={c.symbol} className="cp-commodity-card">
-                          <div className="cp-commodity-name">{c.name}</div>
-                          <div className="cp-commodity-price">
-                            {c.price != null ? formatPrice(c.price) : '--'}
-                            {c.unit && <span className="cp-commodity-unit">{c.unit}</span>}
-                          </div>
-                          {c.changePercent != null && (
-                            <div className={`cp-commodity-change ${c.changePercent >= 0 ? 'positive' : 'negative'}`}>
-                              {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
+                    {Object.entries(grouped).map(([cat, items]) => (
+                      <div key={cat} className="cp-commodity-group">
+                        <div className="cp-commodity-group-label">{catLabels[cat] || cat}</div>
+                        <div className="cp-commodities-grid">
+                          {items.map((c) => (
+                            <div key={c.symbol} className="cp-commodity-card">
+                              <div className="cp-commodity-name">{c.name}</div>
+                              <div className="cp-commodity-price">
+                                {c.price != null ? formatPrice(c.price) : '--'}
+                                {c.unit && <span className="cp-commodity-unit">{c.unit}</span>}
+                              </div>
+                              {c.changePercent != null && (
+                                <div className={`cp-commodity-change ${c.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                                  {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                   );
                 })()}
@@ -905,12 +1100,12 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 {/* Forex rates */}
                 {marketData.forex && marketData.forex.pairs?.length > 0 && (
                   <div className="cp-markets-section">
-                    <div className="cp-econ-section-title">Forex — {marketData.forex.base}</div>
+                    <div className="cp-econ-section-title">Forex \u2014 {marketData.forex.base}</div>
                     <div className="cp-markets-forex-grid">
                       {marketData.forex.pairs.map((pair) => (
                         <div key={pair.pair} className="cp-forex-pair">
                           <span className="cp-forex-pair-name">{pair.pair}</span>
-                          <span className="cp-forex-pair-rate">{pair.rate.toFixed(4)}</span>
+                          <TickingNumber value={pair.rate} decimals={4} key={`${pair.pair}-fx`} />
                         </div>
                       ))}
                     </div>
@@ -919,7 +1114,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
 
                 {marketData.lastUpdated && (
                   <div className="cp-approval-note" style={{ marginTop: 4, opacity: 0.6, fontSize: '0.7rem' }}>
-                    Via Yahoo Finance & Frankfurter &middot; {new Date(marketData.lastUpdated).toLocaleTimeString()}
+                    Live \u00b7 refreshes every 30s \u00b7 {new Date(marketData.lastUpdated).toLocaleTimeString()}
                   </div>
                 )}
               </div>
@@ -931,6 +1126,17 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
             <div className="cp-loading-line" />
           </div>
         )}
+
+        {/* Prediction Markets */}
+        <div className="cp-section">
+          <InlineMarkets
+            require={[data.name]}
+            boost={isScope ? [data.region || '', data.leader || ''] : []}
+            title={`${data.name} Markets`}
+            enabled={true}
+            maxItems={4}
+          />
+        </div>
 
         {/* Weather section */}
         {(weather || weatherLoading) && (
@@ -981,10 +1187,18 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
           </div>
         )}
 
-        {/* Country details */}
+        {/* Country / State / Province details */}
         <div className="cp-section">
-          <div className="cp-section-label">{isScope ? 'Details' : 'Country Details'}</div>
+          <div className="cp-section-label">
+            {data.scope === 'state' ? 'State Details' : data.scope === 'province' ? `${data.regionType || 'Province'} Details` : 'Country Details'}
+          </div>
           <div className="cp-details-card">
+            {data.nickname && isScope && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Nickname</span>
+                <span className="cp-detail-val cp-detail-val--italic">{data.nickname}</span>
+              </div>
+            )}
             {data.population && data.population !== 'Loading...' && (
               <div className="cp-detail-row">
                 <span className="cp-detail-key">Population</span>
@@ -1003,10 +1217,40 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
                 <span className="cp-detail-val">{data.capital}</span>
               </div>
             )}
+            {isScope && data.largestCity && data.largestCity !== data.capital && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Largest City</span>
+                <span className="cp-detail-val">{data.largestCity}</span>
+              </div>
+            )}
             <div className="cp-detail-row">
               <span className="cp-detail-key">Local Time</span>
               <span className="cp-detail-val">{localTime} ({data.timezone})</span>
             </div>
+            {isScope && data.area && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Area</span>
+                <span className="cp-detail-val">{formatArea(data.area)}</span>
+              </div>
+            )}
+            {isScope && data.populationRaw && data.area && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Pop. Density</span>
+                <span className="cp-detail-val">{formatPopDensity(data.populationRaw, data.area)}</span>
+              </div>
+            )}
+            {data.scope === 'state' && data.statehood && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Statehood</span>
+                <span className="cp-detail-val">{data.statehood}</span>
+              </div>
+            )}
+            {data.scope === 'province' && data.confederation && (
+              <div className="cp-detail-row">
+                <span className="cp-detail-key">Confederation</span>
+                <span className="cp-detail-val">{data.confederation}</span>
+              </div>
+            )}
             {!isScope && data.languages && data.languages.length > 0 && (
               <div className="cp-detail-row">
                 <span className="cp-detail-key">Language{data.languages.length > 1 ? 's' : ''}</span>

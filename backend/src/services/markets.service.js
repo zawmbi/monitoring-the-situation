@@ -7,8 +7,8 @@
 
 import { cacheService } from './cache.service.js';
 
-const CACHE_TTL = 300; // 5 minutes
-const FOREX_CACHE_TTL = 600; // 10 minutes
+const CACHE_TTL = 30; // 30 seconds — live ticking
+const FOREX_CACHE_TTL = 120; // 2 minutes (forex moves slower)
 
 // ── Fetch a quote directly from Yahoo Finance's chart API ──
 async function fetchQuote(symbol) {
@@ -450,15 +450,118 @@ const COUNTRY_TOP_STOCKS = {
   ],
 };
 
-// ── Global commodities & crypto ──
+// ── Global commodities & crypto (extended) ──
 const COMMODITIES = [
-  { symbol: 'GC=F', name: 'Gold', unit: '/oz' },
-  { symbol: 'CL=F', name: 'Crude Oil (WTI)', unit: '/bbl' },
-  { symbol: 'SI=F', name: 'Silver', unit: '/oz' },
-  { symbol: 'NG=F', name: 'Natural Gas', unit: '/MMBtu' },
-  { symbol: 'BTC-USD', name: 'Bitcoin', unit: '' },
-  { symbol: 'ETH-USD', name: 'Ethereum', unit: '' },
+  { symbol: 'GC=F', name: 'Gold', unit: '/oz', category: 'precious' },
+  { symbol: 'SI=F', name: 'Silver', unit: '/oz', category: 'precious' },
+  { symbol: 'CL=F', name: 'Crude Oil (WTI)', unit: '/bbl', category: 'energy' },
+  { symbol: 'BZ=F', name: 'Brent Crude', unit: '/bbl', category: 'energy' },
+  { symbol: 'NG=F', name: 'Natural Gas', unit: '/MMBtu', category: 'energy' },
+  { symbol: 'HG=F', name: 'Copper', unit: '/lb', category: 'industrial' },
+  { symbol: 'ZW=F', name: 'Wheat', unit: '/bu', category: 'agriculture' },
+  { symbol: 'ZC=F', name: 'Corn', unit: '/bu', category: 'agriculture' },
+  { symbol: 'BTC-USD', name: 'Bitcoin', unit: '', category: 'crypto' },
+  { symbol: 'ETH-USD', name: 'Ethereum', unit: '', category: 'crypto' },
 ];
+
+// ── Country-specific 10Y sovereign bond yield symbols ──
+const COUNTRY_BOND_YIELDS = {
+  US: [
+    { symbol: '^IRX', name: '13-Week T-Bill', maturity: '13W' },
+    { symbol: '2YY=F', name: '2-Year Yield', maturity: '2Y' },
+    { symbol: '^FVX', name: '5-Year Yield', maturity: '5Y' },
+    { symbol: '^TNX', name: '10-Year Yield', maturity: '10Y' },
+    { symbol: '^TYX', name: '30-Year Yield', maturity: '30Y' },
+  ],
+  GB: [{ symbol: '^TMBMKGB-10Y', name: 'UK 10Y Gilt', maturity: '10Y' }],
+  DE: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y', maturity: '10Y' }],
+  JP: [{ symbol: '^TMBMKJP-10Y', name: 'JGB 10Y', maturity: '10Y' }],
+  FR: [{ symbol: '^TMBMKFR-10Y', name: 'OAT 10Y', maturity: '10Y' }],
+  IT: [{ symbol: '^TMBMKIT-10Y', name: 'BTP 10Y', maturity: '10Y' }],
+  ES: [{ symbol: '^TMBMKES-10Y', name: 'Bono 10Y', maturity: '10Y' }],
+  AU: [{ symbol: '^TMBMKAU-10Y', name: 'ACGB 10Y', maturity: '10Y' }],
+  CA: [{ symbol: '^TMBMKCA-10Y', name: 'Canada 10Y', maturity: '10Y' }],
+  IN: [{ symbol: '^TMBMKIN-10Y', name: 'India 10Y', maturity: '10Y' }],
+  CN: [{ symbol: '^TMBMKCN-10Y', name: 'China 10Y', maturity: '10Y' }],
+  BR: [{ symbol: '^TMBMKBR-10Y', name: 'Brazil 10Y', maturity: '10Y' }],
+  KR: [{ symbol: '^TMBMKKR-10Y', name: 'Korea 10Y', maturity: '10Y' }],
+  MX: [{ symbol: '^TMBMKMX-10Y', name: 'Mexico 10Y', maturity: '10Y' }],
+  ZA: [{ symbol: '^TMBMKZA-10Y', name: 'South Africa 10Y', maturity: '10Y' }],
+  TR: [{ symbol: '^TMBMKTR-10Y', name: 'Turkey 10Y', maturity: '10Y' }],
+  PL: [{ symbol: '^TMBMKPL-10Y', name: 'Poland 10Y', maturity: '10Y' }],
+  NL: [{ symbol: '^TMBMKNL-10Y', name: 'Netherlands 10Y', maturity: '10Y' }],
+  SE: [{ symbol: '^TMBMKSE-10Y', name: 'Sweden 10Y', maturity: '10Y' }],
+  NO: [{ symbol: '^TMBMKNO-10Y', name: 'Norway 10Y', maturity: '10Y' }],
+  CH: [{ symbol: '^TMBMKCH-10Y', name: 'Swiss 10Y', maturity: '10Y' }],
+  RU: [{ symbol: '^TMBMKRU-10Y', name: 'Russia 10Y', maturity: '10Y' }],
+  // Share Eurozone bonds with members
+  AT: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
+  BE: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
+  FI: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
+  IE: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
+  PT: [{ symbol: '^TMBMKES-10Y', name: 'Bono 10Y (ref)', maturity: '10Y' }],
+  GR: [{ symbol: '^TMBMKIT-10Y', name: 'BTP 10Y (ref)', maturity: '10Y' }],
+  EU: [
+    { symbol: '^TMBMKDE-10Y', name: 'Bund 10Y', maturity: '10Y' },
+    { symbol: '^TMBMKIT-10Y', name: 'BTP 10Y', maturity: '10Y' },
+    { symbol: '^TMBMKFR-10Y', name: 'OAT 10Y', maturity: '10Y' },
+  ],
+};
+
+// ── Country-specific volatility indices ──
+const COUNTRY_VOLATILITY = {
+  US: [
+    { symbol: '^VIX', name: 'VIX', description: 'S&P 500 implied vol' },
+    { symbol: '^MOVE', name: 'MOVE', description: 'Treasury bond vol' },
+    { symbol: '^VXN', name: 'VXN', description: 'NASDAQ 100 vol' },
+  ],
+  EU: [{ symbol: '^V2X', name: 'VSTOXX', description: 'Euro Stoxx 50 vol' }],
+  DE: [{ symbol: '^V2X', name: 'VSTOXX', description: 'Euro Stoxx 50 vol' }],
+  FR: [{ symbol: '^V2X', name: 'VSTOXX', description: 'Euro Stoxx 50 vol' }],
+  JP: [{ symbol: '^JNV', name: 'Nikkei VI', description: 'Nikkei vol' }],
+  HK: [{ symbol: '^VHSI', name: 'VHSI', description: 'HSI vol' }],
+  IN: [{ symbol: '^INDIAVIX.NS', name: 'India VIX', description: 'Nifty vol' }],
+  GB: [{ symbol: '^VIX', name: 'VIX (ref)', description: 'S&P 500 vol (ref)' }],
+  CA: [{ symbol: '^VIX', name: 'VIX (ref)', description: 'S&P 500 vol (ref)' }],
+  AU: [{ symbol: '^VIX', name: 'VIX (ref)', description: 'S&P 500 vol (ref)' }],
+};
+
+// ── Country-specific credit / CDS proxy ETFs ──
+const COUNTRY_CREDIT_ETFS = {
+  US: [
+    { symbol: 'HYG', name: 'US High Yield', description: 'iShares HY Corp Bond' },
+    { symbol: 'LQD', name: 'US Invest. Grade', description: 'iShares IG Corp Bond' },
+    { symbol: 'TLT', name: 'Long Treasury', description: 'iShares 20+ Yr Treasury' },
+    { symbol: 'JNK', name: 'Junk Bonds', description: 'SPDR HY Bond' },
+  ],
+  GB: [
+    { symbol: 'IGLT.L', name: 'UK Gilts', description: 'iShares UK Gilts' },
+    { symbol: 'SLXX.L', name: 'GBP Corp Bond', description: 'iShares GBP Corp Bond' },
+  ],
+  EU: [
+    { symbol: 'IEAC.AS', name: 'EUR Corp Bond', description: 'iShares EUR Corp Bond' },
+    { symbol: 'IBGS.AS', name: 'EUR Govt 1-3Y', description: 'iShares EUR Govt Bond' },
+  ],
+  DE: [
+    { symbol: 'IEAC.AS', name: 'EUR Corp Bond', description: 'iShares EUR Corp Bond' },
+  ],
+  FR: [
+    { symbol: 'IEAC.AS', name: 'EUR Corp Bond', description: 'iShares EUR Corp Bond' },
+  ],
+  // Emerging markets — all share EMB
+  BR: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
+  MX: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
+  ZA: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
+  TR: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
+  IN: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
+  CN: [{ symbol: 'CBON', name: 'China Bond', description: 'VanEck China Bond' }],
+  JP: [
+    { symbol: '2621.T', name: 'Japan Govt Bond', description: 'iShares JGB ETF' },
+  ],
+};
+
+// ── DXY / Dollar index symbol ──
+const DXY_SYMBOL = { symbol: 'DX-Y.NYB', name: 'US Dollar Index', description: 'DXY' };
 
 // Country code → primary currency code
 const COUNTRY_CURRENCIES = {
@@ -615,6 +718,126 @@ class MarketsService {
     }
   }
 
+  async getBondYields(countryCode) {
+    const code = countryCode.toUpperCase();
+    const bondDefs = COUNTRY_BOND_YIELDS[code];
+    if (!bondDefs || bondDefs.length === 0) return null;
+
+    const cacheKey = `markets:bonds:${code}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const results = await Promise.all(
+      bondDefs.map(async (def) => {
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          maturity: def.maturity,
+          yield: q.price, // Yahoo represents yields as "price"
+          change: q.change,
+          changePercent: q.changePercent,
+        };
+      })
+    );
+
+    const data = results.filter(Boolean);
+    if (data.length > 0) {
+      await cacheService.set(cacheKey, data, CACHE_TTL);
+    }
+    return data.length > 0 ? data : null;
+  }
+
+  async getVolatility(countryCode) {
+    const code = countryCode.toUpperCase();
+    const volDefs = COUNTRY_VOLATILITY[code];
+    if (!volDefs || volDefs.length === 0) return null;
+
+    const cacheKey = `markets:vol:${code}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const results = await Promise.all(
+      volDefs.map(async (def) => {
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          description: def.description,
+          level: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          signal: def.symbol === '^VIX'
+            ? (q.price > 30 ? 'elevated' : q.price > 20 ? 'moderate' : 'calm')
+            : (def.symbol === '^MOVE'
+              ? (q.price > 120 ? 'elevated' : q.price > 80 ? 'moderate' : 'calm')
+              : null),
+        };
+      })
+    );
+
+    const data = results.filter(Boolean);
+    if (data.length > 0) {
+      await cacheService.set(cacheKey, data, CACHE_TTL);
+    }
+    return data.length > 0 ? data : null;
+  }
+
+  async getCreditETFs(countryCode) {
+    const code = countryCode.toUpperCase();
+    const creditDefs = COUNTRY_CREDIT_ETFS[code];
+    if (!creditDefs || creditDefs.length === 0) return null;
+
+    const cacheKey = `markets:credit:${code}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const results = await Promise.all(
+      creditDefs.map(async (def) => {
+        const q = await fetchQuote(def.symbol);
+        if (!q) return null;
+        return {
+          symbol: def.symbol,
+          name: def.name,
+          description: def.description,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+        };
+      })
+    );
+
+    const data = results.filter(Boolean);
+    if (data.length > 0) {
+      await cacheService.set(cacheKey, data, CACHE_TTL);
+    }
+    return data.length > 0 ? data : null;
+  }
+
+  async getDollarIndex() {
+    const cacheKey = 'markets:dxy';
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const q = await fetchQuote(DXY_SYMBOL.symbol);
+    if (!q) return null;
+
+    const data = {
+      symbol: DXY_SYMBOL.symbol,
+      name: DXY_SYMBOL.name,
+      price: q.price,
+      change: q.change,
+      changePercent: q.changePercent,
+      dayHigh: q.dayHigh,
+      dayLow: q.dayLow,
+    };
+
+    await cacheService.set(cacheKey, data, CACHE_TTL);
+    return data;
+  }
+
   async getMarketData(countryCode) {
     const code = countryCode.toUpperCase();
     const cacheKey = `markets:combined:${code}`;
@@ -622,14 +845,31 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    const [indices, topStocks, commodities, forex] = await Promise.all([
+    const [indices, topStocks, commodities, forex, bonds, volatility, credit, dxy] = await Promise.all([
       this.getIndices(code).catch(() => null),
       this.getTopStocks(code).catch(() => null),
       this.getCommodities().catch(() => null),
       this.getForex(code).catch(() => null),
+      this.getBondYields(code).catch(() => null),
+      this.getVolatility(code).catch(() => null),
+      this.getCreditETFs(code).catch(() => null),
+      this.getDollarIndex().catch(() => null),
     ]);
 
-    if (!indices && !topStocks && !commodities && !forex) return null;
+    if (!indices && !topStocks && !commodities && !forex && !bonds && !volatility && !credit) return null;
+
+    // Compute yield curve spread for US
+    let yieldSpreads = null;
+    if (bonds && code === 'US') {
+      const y2 = bonds.find(b => b.maturity === '2Y');
+      const y10 = bonds.find(b => b.maturity === '10Y');
+      const y30 = bonds.find(b => b.maturity === '30Y');
+      const y3m = bonds.find(b => b.maturity === '13W');
+      yieldSpreads = {};
+      if (y10 && y2) yieldSpreads['10Y-2Y'] = +(y10.yield - y2.yield).toFixed(3);
+      if (y30 && y2) yieldSpreads['30Y-2Y'] = +(y30.yield - y2.yield).toFixed(3);
+      if (y10 && y3m) yieldSpreads['10Y-3M'] = +(y10.yield - y3m.yield).toFixed(3);
+    }
 
     const data = {
       countryCode: code,
@@ -637,6 +877,11 @@ class MarketsService {
       topStocks: topStocks || [],
       commodities: commodities || [],
       forex: forex || null,
+      bonds: bonds || [],
+      volatility: volatility || [],
+      credit: credit || [],
+      dxy: dxy || null,
+      yieldSpreads,
       lastUpdated: new Date().toISOString(),
     };
 

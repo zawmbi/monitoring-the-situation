@@ -14,6 +14,20 @@ import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
 
+// Helper to compute Wikimedia flag image URL from state/province name
+function getFlagUrl(name) {
+  const exceptions = {
+    'Georgia': 'Flag_of_Georgia_(U.S._state).svg',
+    'District of Columbia': 'Flag_of_the_District_of_Columbia.svg',
+    'Puerto Rico': 'Flag_of_Puerto_Rico.svg',
+    'Newfoundland and Labrador': 'Flag_of_Newfoundland_and_Labrador.svg',
+    'Northwest Territories': 'Flag_of_the_Northwest_Territories.svg',
+    'Prince Edward Island': 'Flag_of_Prince_Edward_Island.svg',
+  };
+  const file = exceptions[name] || `Flag_of_${name.replace(/ /g, '_')}.svg`;
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${file}`;
+}
+
 // Kick off Wikipedia approval data preload on module init
 preloadApprovals();
 
@@ -95,7 +109,7 @@ export function useCountryPanel() {
     return () => { cancelled = true; };
   }, [countryPanel.open, countryPanel.data?.name, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
-  // Fetch market data (stock indices + forex) when country panel opens
+  // Fetch market data when country panel opens; re-fetch every 30s for live ticking
   useEffect(() => {
     const cca2 = countryPanel.data?.cca2;
     if (!countryPanel.open || !cca2 || countryPanel.data?.scope) {
@@ -106,14 +120,19 @@ export function useCountryPanel() {
     let cancelled = false;
     setMarketLoading(true);
 
-    fetchMarketData(cca2).then(result => {
-      if (!cancelled) {
-        setMarketData(result);
-        setMarketLoading(false);
-      }
-    });
+    const doFetch = (skipCache = false) => {
+      fetchMarketData(cca2, skipCache).then(result => {
+        if (!cancelled) {
+          setMarketData(result);
+          setMarketLoading(false);
+        }
+      });
+    };
 
-    return () => { cancelled = true; };
+    doFetch(false);
+    const interval = setInterval(() => doFetch(true), 30000);
+
+    return () => { cancelled = true; clearInterval(interval); };
   }, [countryPanel.open, countryPanel.data?.cca2, countryPanel.data?.scope]);
 
   const openCountryPanel = async (rawName) => {
@@ -227,6 +246,7 @@ export function useCountryPanel() {
 
   const openStatePanel = (stateName) => {
     const info = US_STATE_INFO[stateName];
+    const pop = info?.population;
     setCountryPanel({
       open: true,
       data: {
@@ -235,15 +255,38 @@ export function useCountryPanel() {
         region: 'United States',
         subregion: info?.abbr || '',
         timezone: info?.timezone || 'UTC-5',
-        population: '',
-        leader: '',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.governor || '',
+        leaderTitle: info?.leaderTitle || 'Governor',
+        leaderParty: info?.governorParty || null,
+        leaderPhoto: null,
+        largestCity: info?.largestCity || null,
+        statehood: info?.statehood || null,
+        nickname: info?.nickname || null,
+        flagUrl: getFlagUrl(stateName),
         scope: 'state',
+        loading: false,
       },
     });
+
+    // Fetch leader photo asynchronously from Wikipedia
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== stateName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
   };
 
   const openProvincePanel = (provinceName) => {
     const info = CA_PROVINCE_INFO[provinceName] || CA_PROVINCE_INFO[provinceName.replace(' Territory', '')];
+    const pop = info?.population;
     setCountryPanel({
       open: true,
       data: {
@@ -252,11 +295,34 @@ export function useCountryPanel() {
         region: 'Canada',
         subregion: info?.abbr || '',
         timezone: info?.timezone || 'UTC-5',
-        population: '',
-        leader: '',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.premier || '',
+        leaderTitle: 'Premier',
+        leaderParty: info?.premierParty || null,
+        leaderPhoto: null,
+        largestCity: info?.largestCity || null,
+        confederation: info?.confederation || null,
+        regionType: info?.type || 'Province',
+        nickname: info?.nickname || null,
+        flagUrl: getFlagUrl(provinceName),
         scope: 'province',
+        loading: false,
       },
     });
+
+    // Fetch leader photo asynchronously from Wikipedia
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== provinceName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
   };
 
   const openEUPanel = () => {

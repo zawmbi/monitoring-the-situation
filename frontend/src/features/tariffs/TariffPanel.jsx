@@ -7,6 +7,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { getTariffByName } from './tariffData';
 import useTariffData from '../../hooks/useTariffData';
+import InlineMarkets from '../../components/InlineMarkets';
 import { timeAgo } from '../../utils/time';
 import './tariffs.css';
 
@@ -117,6 +118,9 @@ export function TariffPanel({ countryName, position, onClose, onPositionChange, 
           Live News
           {news.length > 0 && <span className="tariff-tab-count">{news.length}</span>}
         </button>
+        <button className={`tariff-tab ${tab === 'markets' ? 'tariff-tab--active' : ''}`} onClick={() => setTab('markets')}>
+          Markets
+        </button>
       </div>
 
       <div className="tariff-panel-body">
@@ -220,6 +224,18 @@ export function TariffPanel({ countryName, position, onClose, onPositionChange, 
                 </a>
               );
             })}
+          </div>
+        )}
+
+        {tab === 'markets' && (
+          <div style={{ padding: '8px 0' }}>
+            <InlineMarkets
+              require={['tariff', 'trade war', 'trade deal']}
+              boost={[countryName, 'sanctions', 'embargo']}
+              title="Trade & Tariff Markets"
+              enabled={true}
+              maxItems={6}
+            />
           </div>
         )}
 

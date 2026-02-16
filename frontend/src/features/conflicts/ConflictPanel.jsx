@@ -8,6 +8,7 @@
  */
 import { useState } from 'react';
 import useConflictData from '../../hooks/useConflictData';
+import InlineMarkets from '../../components/InlineMarkets';
 import {
   CASUALTIES,
   EQUIPMENT,
@@ -71,6 +72,7 @@ export default function ConflictPanel({ open, onClose }) {
     { id: 'command', label: 'Command' },
     { id: 'timeline', label: 'Timeline' },
     { id: 'news', label: 'Live Feed' },
+    { id: 'markets', label: 'Markets' },
     { id: 'donate', label: 'Donate' },
   ];
 
@@ -113,6 +115,17 @@ export default function ConflictPanel({ open, onClose }) {
         {tab === 'command' && <CommandTab />}
         {tab === 'timeline' && <TimelineTab />}
         {tab === 'news' && <LiveFeedTab news={news} loading={loading} lastUpdated={lastUpdated} />}
+        {tab === 'markets' && (
+          <div className="conflict-panel-markets-tab">
+            <InlineMarkets
+              require={['ukraine', 'russia', 'zelensky', 'kyiv']}
+              boost={['ceasefire', 'war', 'invasion', 'crimea', 'donbas', 'nato']}
+              title="Ukraine-Russia Markets"
+              enabled={open}
+              maxItems={12}
+            />
+          </div>
+        )}
         {tab === 'donate' && <DonateTab />}
       </div>
 
@@ -411,6 +424,14 @@ function OverviewTab({ losses }) {
         <div className="conflict-stat-group-title">Ukrainian Civilian Casualties</div>
         <div className="conflict-stat-single">{CASUALTIES.ukraine.civilian.label} killed (UN est.)</div>
       </div>
+
+      <InlineMarkets
+        require={['ukraine', 'russia', 'zelensky', 'kyiv']}
+        boost={['ceasefire', 'war', 'crimea']}
+        title="Related Markets"
+        enabled={true}
+        maxItems={4}
+      />
 
       <div className="conflict-sources">Sources: {CASUALTIES.russia.source}; {CASUALTIES.ukraine.source}; {tc.source}</div>
     </div>
