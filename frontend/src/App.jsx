@@ -3893,6 +3893,7 @@ function App() {
             visible={stabilityMode && showProtestHeatmap}
             protests={stabilityData?.protests || []}
             zoom={mapZoom}
+            isMarkerVisible={isMarkerVisible}
           />
 
           {/* ══════════ Military Movement Indicators ══════════ */}
