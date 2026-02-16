@@ -1317,7 +1317,7 @@ function App() {
     let bgColor;
     // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
-      bgColor = '#3a7ab0';
+      bgColor = '#488FACFB';
     } else {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
@@ -3544,7 +3544,7 @@ function App() {
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.2)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
@@ -3557,7 +3557,7 @@ function App() {
               id="equator-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.25)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : 'rgba(73, 198, 255, 0.25)',
                 'line-width': 1,
                 'line-dasharray': [6, 4],
               }}
@@ -3571,7 +3571,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -3581,7 +3581,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(166, 120, 80, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -3614,7 +3614,7 @@ function App() {
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? '#a8c090' : '#1c3040',
+                        isLightTheme ? '#FFFD7C' : '#1c3040',
                         ['get', 'fillColor'],
                       ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
@@ -3652,7 +3652,7 @@ function App() {
                 'line-color': showTariffHeatmap
                   ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(73, 198, 255, 0.65)')
+                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
                         ? 'rgba(30, 25, 50, 0.5)'
                         : 'rgba(15, 20, 30, 0.7)'),
@@ -3688,7 +3688,7 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(194, 120, 62, 0.12)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
                       : 'rgba(61, 194, 208, 0.25)'),
@@ -3731,14 +3731,14 @@ function App() {
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? 'rgba(194, 120, 62, 0.15)' : 'rgba(200, 180, 255, 0.3)',
+                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : 'rgba(200, 180, 255, 0.3)',
                         ['get', 'electionColor'],
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
                         isLightTheme
-                          ? 'rgba(194, 120, 62, 0.15)'
+                          ? 'rgba(0, 18, 22, 0.15)'
                           : 'rgba(61, 194, 208, 0.15)',
                         'rgba(0, 0, 0, 0)',
                       ],
@@ -3750,9 +3750,9 @@ function App() {
                 type="line"
                 paint={{
                   'line-color': isLightTheme
-                    ? 'rgba(166, 120, 80, 0.35)'
+                    ? 'rgba(11, 84, 167, 0.35)'
                     : 'rgba(160, 145, 255, 0.35)',
-                  'line-width': 1,
+                  'line-width': 2,
                 }}
               />
               <Layer
@@ -3761,7 +3761,7 @@ function App() {
                 filter={selectedStateFilter}
                 paint={{
                   'fill-color': isLightTheme
-                    ? 'rgba(194, 120, 62, 0.25)'
+                    ? 'rgba(0, 153, 255, 0.22)'
                     : 'rgba(61, 194, 208, 0.25)',
                 }}
               />
@@ -3770,8 +3770,8 @@ function App() {
                 type="line"
                 filter={selectedStateFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
-                  'line-width': 1.5,
+                  'line-color': isLightTheme ? '#3F3CD896' : '#3dc2d0',
+                  'line-width': 2.5,
                 }}
               />
             </Source>
@@ -3784,7 +3784,7 @@ function App() {
               <Layer
                 id="ca-provinces-fill"
                 type="fill"
-                paint={{ 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 1 }}
+                paint={{ 'fill-color': 'rgba(105, 160, 148, 0.7)', 'fill-opacity': 1 }}
               />
               {/* Province border lines */}
               <Layer
@@ -3794,8 +3794,8 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(166, 120, 80, 0.6)' : 'rgba(180, 165, 255, 0.6)',
-                    isLightTheme ? 'rgba(166, 120, 80, 0.3)' : 'rgba(160, 145, 255, 0.3)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(30, 3, 165, 0.6)',
+                    isLightTheme ? 'rgba(0, 58, 216, 0.3)' : 'rgb(32, 0, 238)',
                   ],
                   'line-width': [
                     'case',
