@@ -758,6 +758,10 @@ body {
   left: 6px;
 }
 
+.map-container.map-controls-hidden .maplibregl-ctrl-bottom-left {
+  display: none;
+}
+
 .map-container .maplibregl-ctrl-group {
   background: var(--glass-bg-dense);
   backdrop-filter: var(--glass-blur);
