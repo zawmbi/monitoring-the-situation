@@ -25,8 +25,8 @@ const CONFLICT_FEEDS = {
   sudan: {
     label: 'Sudan Civil War',
     queries: [
-      'Sudan civil war SAF RSF',
-      'Sudan Darfur El Fasher',
+      'Sudan civil war SAF RSF Khartoum',
+      'Sudan Darfur genocide El Fasher',
       'Sudan famine humanitarian crisis',
     ],
   },
@@ -57,8 +57,8 @@ const CONFLICT_FEEDS = {
   drc: {
     label: 'Eastern Congo / DRC',
     queries: [
-      'Congo M23 Goma DRC',
-      'DRC Rwanda M23 conflict',
+      'Congo M23 Goma Bukavu DRC',
+      'DRC Rwanda M23 ceasefire',
       'Eastern Congo humanitarian crisis',
     ],
   },

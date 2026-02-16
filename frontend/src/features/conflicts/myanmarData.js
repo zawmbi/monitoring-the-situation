@@ -69,13 +69,13 @@ export const CAPITALS = [
 export const MAJOR_CITIES = [
   { id: 'yangon', name: 'Yangon', country: 'sideA', lat: 16.8661, lon: 96.1951, population: '5.4M', note: 'Largest city; junta-controlled' },
   { id: 'mandalay', name: 'Mandalay', country: 'sideA', lat: 21.9588, lon: 96.0891, population: '1.2M', note: 'Second city; junta-controlled' },
-  { id: 'lashio', name: 'Lashio', country: 'sideB', lat: 22.9362, lon: 97.7500, note: 'MNDAA captured Nov 2024' },
+  { id: 'lashio', name: 'Lashio', country: 'sideB', lat: 22.9362, lon: 97.7500, note: 'MNDAA captured Aug 2024 — largest city taken by resistance' },
   { id: 'myitkyina', name: 'Myitkyina', country: 'contested', lat: 25.3867, lon: 97.3958, population: '150K', note: 'Kachin State capital; under pressure' },
   { id: 'hakha', name: 'Hakha', country: 'sideB', lat: 21.9588, lon: 93.6100, population: '30K', note: 'Chin State capital; resistance-controlled' },
   { id: 'loikaw', name: 'Loikaw', country: 'sideB', lat: 19.6747, lon: 97.2097, population: '50K', note: 'Kayah State capital; KNPP-controlled' },
   { id: 'monywa', name: 'Monywa', country: 'contested', lat: 21.9147, lon: 95.1336, population: '370K', note: 'Sagaing; junta losing control' },
-  { id: 'sittwe', name: 'Sittwe', country: 'contested', lat: 20.1460, lon: 92.8987, population: '150K', note: 'Rakhine capital; AA advancing' },
-  { id: 'myawaddy', name: 'Myawaddy', country: 'sideB', lat: 16.6933, lon: 98.5089, population: '115K', note: 'Border town; fell to KNLA Apr 2024' },
+  { id: 'sittwe', name: 'Sittwe', country: 'sideA', lat: 20.1460, lon: 92.8987, population: '150K', note: 'Rakhine capital; still junta-held but AA besieging; isolated' },
+  { id: 'myawaddy', name: 'Myawaddy', country: 'contested', lat: 16.6933, lon: 98.5089, population: '115K', note: 'Border town; briefly fell to KNLA Apr 2024; junta recaptured ~Apr 24; contested' },
   { id: 'taunggyi', name: 'Taunggyi', country: 'sideA', lat: 20.7833, lon: 97.0333, population: '380K', note: 'Shan State capital; junta-held' },
 ];
 
@@ -137,7 +137,7 @@ export const BATTLE_SITES = [
     sideATroops: '~15,000', sideBTroops: '~20,000 AA',
     sideAEquipment: 'Navy, air force, coastal defenses', sideBEquipment: 'Infantry, captured weapons, naval drones',
     sideACasualties: '~3,000+ captured', sideBCasualties: '~1,000 killed/wounded (est.)',
-    significance: 'AA controls most of Rakhine State. Navy bases captured. Junta losing access to Bay of Bengal coast.',
+    significance: 'AA controls most of Rakhine State except Sittwe and Kyaukpyu. Navy bases captured. Junta losing access to Bay of Bengal coast.',
   },
   {
     id: 'battle-sagaing', name: 'Sagaing Resistance', lat: 22.00, lon: 95.00,
@@ -182,7 +182,7 @@ export const COMMAND = {
       { name: 'Soe Win', role: 'Vice Senior General / Deputy PM' },
       { name: 'Mya Tun Oo', role: 'Minister of Defence' },
     ],
-    totalPersonnel: '~150,000 (from ~350K pre-coup; massive attrition)',
+    totalPersonnel: '~150,000 (from ~300K pre-coup; massive attrition offset partially by conscription since Feb 2024)',
   },
   sideB: {
     title: 'National Unity Government (NUG) & Ethnic Armed Organizations',
@@ -211,14 +211,14 @@ export const WAR_TIMELINE = [
   { date: '2023-11-25', event: 'MNDAA captures Kokang capital Laukkaing', phase: 'offensive' },
   { date: '2024-01-11', event: 'China brokers ceasefire in Shan State (partially holds)', phase: 'ceasefire' },
   { date: '2024-02-10', event: 'Junta introduces conscription law (People\'s Military Service Law) amid severe manpower crisis', phase: 'war' },
-  { date: '2024-04-11', event: 'KNLA captures Myawaddy border town', phase: 'offensive' },
+  { date: '2024-04-11', event: 'KNLA captures Myawaddy border town (junta recaptures ~Apr 24; remains contested)', phase: 'offensive' },
   { date: '2024-06-01', event: 'AA captures most of Rakhine State; navy bases fall', phase: 'offensive' },
-  { date: '2024-06-25', event: 'AA captures Sittwe port area; junta navy retreats from Rakhine coast', phase: 'offensive' },
+  { date: '2024-06-25', event: 'AA captures multiple Rakhine towns and navy bases; Sittwe besieged but still junta-held', phase: 'offensive' },
   { date: '2024-08-03', event: 'Lashio falls to MNDAA — largest city ever taken by resistance forces', phase: 'offensive' },
   { date: '2024-11-15', event: 'Junta air force loses multiple aircraft; resistance FPV drones increasingly effective', phase: 'offensive' },
   { date: '2025-02-01', event: 'Anniversary of coup: NUG/resistance control estimated 60%+ of territory', phase: 'offensive' },
   { date: '2025-06-01', event: 'Junta increasingly reliant on air strikes; ground forces collapsed in peripheral states', phase: 'attrition' },
-  { date: '2025-09-01', event: 'AA effectively controls all of Rakhine State; establishes parallel administration', phase: 'offensive' },
+  { date: '2025-09-01', event: 'AA controls most of Rakhine State; establishes parallel administration; Sittwe and Kyaukpyu remain junta-held', phase: 'offensive' },
   { date: '2025-12-01', event: 'Tatmadaw effective strength below 100K; controls only central corridor (Yangon-Mandalay-Naypyidaw)', phase: 'attrition' },
   { date: '2026-01-01', event: 'NUG and EAOs begin federal constitution consultations; junta regime isolated internationally', phase: 'political' },
 ];
@@ -279,10 +279,10 @@ export const EQUIPMENT = {
 // ─── Territorial control ───
 export const TERRITORIAL_CONTROL = {
   totalArea: 676578,
-  resistanceControlled: '~55-65% of territory',
-  juntaControlled: '~25-35% (major cities, central plains)',
-  contested: '~10-15%',
-  note: 'Junta controls cities and major transport routes; resistance controls rural areas and border regions',
+  resistanceControlled: '~40-50% of territory (ISP Myanmar/BBC estimates; NUG claims 60%+)',
+  juntaControlled: '~35-45% (major cities, central corridor Yangon-Mandalay-Naypyidaw)',
+  contested: '~10-20%',
+  note: 'Junta controls cities and major transport routes; resistance controls rural areas and border regions. Exact percentages disputed — NUG claims higher, independent analysts lower.',
   asOf: 'February 2026',
   source: 'ISP Myanmar / Special Advisory Council',
 };

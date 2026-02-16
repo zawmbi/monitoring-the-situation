@@ -21,11 +21,11 @@ export const CONFLICT_SUMMARY = {
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
-  phase: 'Full-scale civil war / SAF counteroffensives / Ethnic cleansing in Darfur / El Fasher siege',
+  phase: 'Full-scale civil war / SAF recaptured Khartoum & Wad Medani / El Fasher fell to RSF (Oct 2025) / Darfur genocide',
   sideA: { name: 'Sudanese Armed Forces (SAF)', shortName: 'SAF', color: SAF_GREEN, flag: '\u{1F1F8}\u{1F1E9}' },
   sideB: { name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: '\u{1F1F8}\u{1F1E9}' },
   internationalSupport: {
-    sideA: 'Egypt (military aid), Iran (drones — Mohajer-6), Turkey (TB2 drones), Eritrea (alleged)',
+    sideA: 'Egypt (military aid), Iran (drones — Mohajer-6, documented), Turkey (TB2 drones), Eritrea (alleged)',
     sideB: 'UAE (documented arms transfers via Chad/Libya), Russia/Africa Corps (Wagner successor), Chad (transit route for weapons)',
   },
 };
@@ -42,14 +42,12 @@ export const OCCUPIED_TERRITORY = {
   geometry: {
     type: 'Polygon',
     coordinates: [[
-      // Darfur (most of it RSF-controlled)
+      // Darfur (all RSF-controlled incl. El Fasher since Oct 2025)
       [22.00, 16.00], [24.00, 16.00], [26.00, 15.50], [27.00, 15.00],
-      // Kordofan / Gezira corridor
-      [29.00, 14.50], [31.00, 14.00], [32.50, 14.50], [32.55, 15.45],
-      // Parts of Khartoum
-      [32.50, 15.60], [32.30, 15.70], [31.50, 15.80],
+      // Kordofan (much RSF-controlled, but not Gezira/Khartoum anymore)
+      [29.00, 14.50], [30.50, 14.00], [30.50, 15.00],
       // West back through Kordofan
-      [30.00, 15.50], [28.00, 15.80], [26.00, 16.00],
+      [29.00, 15.50], [28.00, 15.80], [26.00, 16.00],
       // Southern Darfur
       [24.00, 12.00], [22.50, 12.00], [22.00, 13.00], [22.00, 16.00],
     ]],
@@ -58,17 +56,17 @@ export const OCCUPIED_TERRITORY = {
 
 // ─── Capitals & cities ───
 export const CAPITALS = [
-  { id: 'khartoum', name: 'Khartoum', country: 'contested', lat: 15.5007, lon: 32.5599, population: '6M (metro)', note: 'Capital; contested — SAF holds parts' },
+  { id: 'khartoum', name: 'Khartoum', country: 'sideA', lat: 15.5007, lon: 32.5599, population: '6M (metro)', note: 'Capital; SAF recaptured most of Khartoum by mid-2025 using drone warfare' },
 ];
 
 export const MAJOR_CITIES = [
   { id: 'omdurman', name: 'Omdurman', country: 'contested', lat: 15.6445, lon: 32.4776, population: '2.8M', note: 'Heavy fighting; largely RSF-controlled' },
   { id: 'khartoum-north', name: 'Khartoum North (Bahri)', country: 'contested', lat: 15.6361, lon: 32.5511, population: '1.5M', note: 'Contested between SAF and RSF' },
   { id: 'port-sudan', name: 'Port Sudan', country: 'sideA', lat: 19.6158, lon: 37.2164, population: '490K', note: 'De facto SAF capital / government seat' },
-  { id: 'el-fasher', name: 'El Fasher', country: 'contested', lat: 13.6289, lon: 25.3494, population: '500K', note: 'Last SAF holdout in Darfur; under RSF siege' },
+  { id: 'el-fasher', name: 'El Fasher', country: 'sideB', lat: 13.6289, lon: 25.3494, population: '500K', note: 'Fell to RSF Oct 26-28, 2025 after ~500-day siege; 6,000+ killed in mass atrocity; RSF now controls all Darfur' },
   { id: 'nyala', name: 'Nyala', country: 'sideB', lat: 12.0500, lon: 24.8833, population: '560K', note: 'RSF-controlled; ethnic cleansing reported' },
   { id: 'el-geneina', name: 'El Geneina', country: 'sideB', lat: 13.4522, lon: 22.4408, population: '220K', note: 'Masalit genocide site; largely destroyed' },
-  { id: 'wad-medani', name: 'Wad Medani', country: 'sideB', lat: 14.4012, lon: 33.5199, population: '360K', note: 'Fell to RSF Dec 2023' },
+  { id: 'wad-medani', name: 'Wad Medani', country: 'sideA', lat: 14.4012, lon: 33.5199, population: '360K', note: 'Fell to RSF Dec 2023; SAF recaptured Jan 2025 in Gezira counteroffensive' },
   { id: 'kassala', name: 'Kassala', country: 'sideA', lat: 15.4536, lon: 36.3997, population: '400K', note: 'SAF-controlled eastern city' },
   { id: 'atbara', name: 'Atbara', country: 'sideA', lat: 17.7020, lon: 33.9720, population: '110K', note: 'SAF-controlled; Nile corridor' },
   { id: 'el-obeid', name: 'El Obeid', country: 'contested', lat: 13.1833, lon: 30.2167, population: '440K', note: 'North Kordofan; contested' },
@@ -106,13 +104,13 @@ export const TROOP_POSITIONS = [
 export const BATTLE_SITES = [
   {
     id: 'battle-khartoum', name: 'Battle of Khartoum', lat: 15.5007, lon: 32.5599,
-    date: 'Apr 2023 – ongoing', result: 'Contested',
-    note: 'Urban warfare in the capital; massive civilian displacement',
+    date: 'Apr 2023 – mid 2025', result: 'SAF recaptured',
+    note: 'Urban warfare in the capital; SAF used drone warfare (Mohajer-6, TB2) to recapture most of the city by mid-2025',
     sideACommander: 'Gen. Abdel Fattah al-Burhan', sideBCommander: 'Gen. Mohamed Hamdan Dagalo (Hemedti)',
     sideATroops: '~40,000 SAF + allied militias', sideBTroops: '~30,000 RSF',
     sideAEquipment: 'Air force, armor, artillery', sideBEquipment: 'Technicals, AA guns, small arms',
     sideACasualties: 'Thousands killed/wounded', sideBCasualties: 'Thousands killed/wounded',
-    significance: 'The capital has been the primary battleground since day one. SAF maintains parts of central Khartoum; RSF controls most residential areas.',
+    significance: 'The capital was the primary battleground since day one. SAF recaptured most of the city using drone strikes and artillery by mid-2025, though pockets of RSF resistance remain.',
   },
   {
     id: 'battle-el-geneina', name: 'El Geneina Massacres', lat: 13.4522, lon: 22.4408,
@@ -135,14 +133,14 @@ export const BATTLE_SITES = [
     significance: 'Shocked Sudanese public. RSF captured major city rapidly. Opened path to Sennar and Blue Nile states.',
   },
   {
-    id: 'battle-el-fasher', name: 'Siege of El Fasher', lat: 13.6289, lon: 25.3494,
-    date: 'May 2024 – ongoing', result: 'Contested',
-    note: 'Last SAF stronghold in Darfur; humanitarian catastrophe',
+    id: 'battle-el-fasher', name: 'Fall of El Fasher', lat: 13.6289, lon: 25.3494,
+    date: 'May 2024 – Oct 2025', result: 'RSF captured',
+    note: 'RSF captured last SAF stronghold in Darfur after ~500-day siege; mass atrocity — 6,000+ killed',
     sideACommander: 'SAF North Darfur + JEM/SLM allies', sideBCommander: 'RSF Darfur Command',
     sideATroops: '~15,000 (SAF + rebel allies)', sideBTroops: '~20,000 RSF',
-    sideAEquipment: 'Air drops, limited armor', sideBEquipment: 'Technicals, siege weapons',
-    sideACasualties: 'Heavy; 1M+ civilians trapped', sideBCasualties: 'Moderate',
-    significance: 'Fall of El Fasher would give RSF complete control of Darfur. UN warns of potential genocide. International community focused on preventing fall.',
+    sideAEquipment: 'Air drops, limited armor', sideBEquipment: 'Technicals, siege weapons, heavy weaponry',
+    sideACasualties: 'Heavy; 6,000+ killed including massive civilian toll', sideBCasualties: 'Moderate',
+    significance: 'Fall of El Fasher gave RSF complete control of all Darfur. Mass atrocity documented — civilians systematically targeted. UN called it genocide. International community failed to prevent the fall despite months of warnings.',
   },
   {
     id: 'battle-sennar', name: 'Battle of Sennar', lat: 13.5500, lon: 33.6000,
@@ -184,7 +182,7 @@ export const EQUIPMENT = {
       { type: 'Attack Helicopters', count: '~20', note: 'Mi-24/35' },
       { type: 'Tanks', count: '~200', note: 'T-72, T-55 (many inoperable)' },
       { type: 'Artillery', count: '~150', note: 'Various calibers' },
-      { type: 'UAVs', count: '~20', note: 'Iranian-supplied Mohajer (alleged)' },
+      { type: 'UAVs', count: '~20+', note: 'Iranian-supplied Mohajer-6 (documented via satellite/wreckage)' },
     ],
     source: 'IISS / OSINT',
   },
@@ -241,34 +239,35 @@ export const WAR_TIMELINE = [
   { date: '2024-09-01', event: 'UN reports 10M+ displaced; world\'s worst displacement crisis', phase: 'humanitarian' },
   { date: '2024-12-01', event: 'Famine declared in parts of Darfur and Kordofan', phase: 'humanitarian' },
   { date: '2025-01-01', event: 'SAF recaptures large parts of Khartoum using drone warfare (Iranian Mohajer-6, Turkish TB2)', phase: 'counteroffensive' },
+  { date: '2025-01-11', event: 'SAF recaptures Wad Medani (Gezira state capital) in Gezira counteroffensive', phase: 'counteroffensive' },
   { date: '2025-03-01', event: 'SAF pushes RSF out of most of central Khartoum; Omdurman fighting continues', phase: 'counteroffensive' },
   { date: '2025-05-01', event: 'El Fasher siege at critical point; mass starvation reported; UN calls it potential genocide', phase: 'siege' },
   { date: '2025-06-01', event: 'ICC investigation into Darfur atrocities expanded; new warrants sought', phase: 'legal' },
-  { date: '2025-09-01', event: 'SAF launches offensive toward Gezira state with drone and artillery support', phase: 'counteroffensive' },
+  { date: '2025-10-26', event: 'El Fasher falls to RSF after ~500-day siege; 6,000+ killed in mass atrocity; RSF now controls all of Darfur', phase: 'atrocity' },
   { date: '2025-11-01', event: 'Famine declared in 5+ regions; 26M+ in acute food crisis (IPC Phase 3+)', phase: 'humanitarian' },
-  { date: '2025-12-01', event: 'SAF advances in Khartoum area but stalls in Gezira; RSF retains Darfur control', phase: 'counteroffensive' },
-  { date: '2026-01-15', event: 'Jeddah/Switzerland ceasefire talks collapse again; both sides recruit heavily; war of attrition continues', phase: 'diplomatic' },
+  { date: '2025-12-01', event: 'SAF controls most of Khartoum and recaptured Gezira; RSF retains all of Darfur and much of Kordofan', phase: 'counteroffensive' },
+  { date: '2026-01-15', event: 'Quad diplomatic initiative (Jeddah format) advances with preliminary approval from both sides; war of attrition continues', phase: 'diplomatic' },
 ];
 
 // ─── Humanitarian ───
 export const HUMANITARIAN = {
   refugees: {
-    total: 3200000,
-    label: '~3.2 million refugees',
+    total: 4200000,
+    label: '~4.2 million refugees',
     topCountries: [
-      { country: 'Chad', count: 1100000 },
-      { country: 'South Sudan', count: 800000 },
-      { country: 'Egypt', count: 500000 },
-      { country: 'Ethiopia', count: 350000 },
-      { country: 'Central African Republic', count: 250000 },
+      { country: 'Chad', count: 1300000 },
+      { country: 'South Sudan', count: 900000 },
+      { country: 'Egypt', count: 600000 },
+      { country: 'Ethiopia', count: 400000 },
+      { country: 'Central African Republic', count: 300000 },
     ],
-    source: 'UNHCR (Jan 2026)',
+    source: 'UNHCR (Feb 2026)',
   },
   internallyDisplaced: {
-    total: 10800000,
-    label: '~10.8 million internally displaced',
-    note: 'World\'s largest displacement crisis',
-    source: 'OCHA / IOM',
+    total: 9300000,
+    label: '~9.3 million internally displaced',
+    note: 'World\'s largest displacement crisis; some returns to Khartoum after SAF recapture',
+    source: 'OCHA / IOM (Feb 2026)',
   },
   famine: {
     atRisk: 25000000,
@@ -297,9 +296,9 @@ export const FORTIFICATION_LINES = [];
 // ─── Territorial control ───
 export const TERRITORIAL_CONTROL = {
   totalArea: 1886068,
-  safControlled: 'Eastern Sudan, parts of Khartoum, northern corridor',
-  rsfControlled: 'Most of Darfur, Kordofan, Gezira, parts of Khartoum',
-  contested: 'Khartoum, El Fasher, Sennar',
+  safControlled: 'Eastern Sudan, most of Khartoum (recaptured), Gezira (recaptured Wad Medani), northern corridor',
+  rsfControlled: 'All of Darfur (incl. El Fasher since Oct 2025), much of Kordofan',
+  contested: 'Parts of Omdurman, Sennar, Kordofan border areas',
   asOf: 'February 2026',
   source: 'ACLED / ISS Africa',
 };
