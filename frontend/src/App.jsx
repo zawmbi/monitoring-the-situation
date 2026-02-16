@@ -2342,6 +2342,10 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${useGlobe ? ' globe-mode' : ''}`} ref={mapContainerRef}>
+        {/* Starfield — stars behind globe (same layer as halo, which is proven visible) */}
+        {!isLightTheme && useGlobe && (
+          <StarfieldCanvas useGlobe={useGlobe} map={mapRef.current} />
+        )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
@@ -3123,11 +3127,6 @@ function App() {
 
           <NavigationControl position="bottom-left" showCompass={false} />
         </MapGL>
-
-        {/* Starfield — twinkling stars rendered AFTER MapGL so they stack above the map canvas */}
-        {!isLightTheme && useGlobe && (
-          <StarfieldCanvas useGlobe={useGlobe} map={mapRef.current} />
-        )}
 
         {/* Fixed cardinal directions for 3D globe */}
         {useGlobe && (

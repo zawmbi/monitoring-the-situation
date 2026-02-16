@@ -1,16 +1,16 @@
-import { useRef, useEffect } from 'react';
-import Starback from 'starback';
+import { useRef, useEffect, useMemo } from 'react';
 
 /**
- * StarfieldCanvas — animated twinkling stars using the starback library.
+ * StarfieldCanvas — stars rendered as CSS box-shadows on a plain div.
  *
- * Key fix: rendered AFTER <MapGL> in the JSX so it stacks above the map
- * (MapLibre's .maplibregl-map is explicitly z-index: 2 in our CSS, so our
- * canvas must be z-index: 3+ and come later in DOM order to appear on top).
+ * Uses the exact same rendering approach as the working globe-halo-ring:
+ * a positioned div with box-shadow, z-index 2, inside map-container.
  *
- * A CSS radial-gradient mask hides stars over the globe, with --globe-r
- * tracked dynamically from map projection.
+ * Each star is a tiny box-shadow at a random (x, y) offset from center.
+ * A CSS radial-gradient mask hides stars over the globe disc.
  */
+
+const STAR_COUNT = 500;
 
 function getGlobeScreenRadius(map) {
   try {
@@ -34,49 +34,46 @@ function getGlobeScreenRadius(map) {
   }
 }
 
+/** Build a box-shadow string with STAR_COUNT random star dots.
+ *  Coordinates are relative to a 1x1 element at (0,0), so each shadow
+ *  offset is (x - halfW, y - halfH) to spread stars from center. */
+function generateStarShadows(w, h) {
+  const shadows = [];
+  const halfW = Math.round(w / 2);
+  const halfH = Math.round(h / 2);
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const x = Math.round(Math.random() * w) - halfW;
+    const y = Math.round(Math.random() * h) - halfH;
+    const bright = Math.random();
+    const size = bright < 0.92 ? 0.5 : bright < 0.98 ? 1 : 1.5;
+    const alpha = (0.2 + Math.random() * 0.7).toFixed(2);
+
+    // box-shadow: offsetX offsetY blurRadius spreadRadius color
+    shadows.push(`${x}px ${y}px 0px ${size}px rgba(255,255,255,${alpha})`);
+  }
+  return shadows.join(',');
+}
+
 export default function StarfieldCanvas({ useGlobe = false, map = null }) {
-  const canvasRef = useRef(null);
-  const starbackRef = useRef(null);
+  const divRef = useRef(null);
 
-  // Initialize starback on mount
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const parent = canvas.parentElement;
-    const w = parent ? parent.offsetWidth : window.innerWidth;
-    const h = parent ? parent.offsetHeight : window.innerHeight;
-
-    starbackRef.current = new Starback(canvas, {
-      type: 'dot',
-      width: w,
-      height: h,
-      quantity: 450,
-      starSize: [0.3, 1.6],
-      speed: [0.1, 0.3],
-      direction: 225,
-      backgroundColor: 'transparent',
-      starColor: 'white',
-      randomOpacity: [0.2, 0.9],
-    });
-
-    return () => {
-      // Neutralize the animation loop on unmount — starback has no destroy()
-      canvas.width = 0;
-      canvas.height = 0;
-      starbackRef.current = null;
-    };
+  // Pre-generate star shadows once — stable across re-renders
+  const starShadow = useMemo(() => {
+    const w = window.innerWidth || 1920;
+    const h = window.innerHeight || 1080;
+    return generateStarShadows(w, h);
   }, []);
 
   // Track globe radius → update CSS --globe-r for the mask
   useEffect(() => {
     if (!map || !useGlobe) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const el = divRef.current;
+    if (!el) return;
 
     const update = () => {
       const r = getGlobeScreenRadius(map);
-      canvas.style.setProperty('--globe-r', r > 0 ? r + 'px' : '0px');
+      el.style.setProperty('--globe-r', r > 0 ? r + 'px' : '0px');
     };
     update();
     map.on('render', update);
@@ -84,10 +81,11 @@ export default function StarfieldCanvas({ useGlobe = false, map = null }) {
   }, [map, useGlobe]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={divRef}
       className="starfield-canvas"
       aria-hidden="true"
+      style={{ boxShadow: starShadow }}
     />
   );
 }
