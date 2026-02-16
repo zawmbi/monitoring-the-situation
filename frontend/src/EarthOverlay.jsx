@@ -1,17 +1,17 @@
 /**
  * EarthOverlay - Transparent overlay layer above the Earth map for:
  * - Scanning sweep line animation
- * - Atmospheric electric blue glow (for 3D globe)
+ * - Atmospheric blue glow halo (Apple Maps style, for 3D globe)
  * - Future: data indicators, highlighted regions
  *
  * DOES NOT block map interactions (pointer-events: none).
  * DOES NOT interfere with 2D/3D map logic.
  */
-export default function EarthOverlay({ useGlobe = false }) {
+export default function EarthOverlay({ useGlobe = false, earthGlow = true }) {
   return (
     <>
-      {/* Atmospheric glow - more visible in globe mode */}
-      {useGlobe && (
+      {/* Atmospheric blue glow halo — Apple Maps style limb glow */}
+      {useGlobe && earthGlow && (
         <div className="earth-atmosphere-glow" aria-hidden="true" />
       )}
 

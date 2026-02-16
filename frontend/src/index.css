@@ -631,20 +631,50 @@ body {
   100% { transform: translateX(200%); }
 }
 
-/* Atmospheric glow ring around Earth (for 3D globe mode) */
+/* Atmospheric glow ring around Earth — Apple Maps style blue halo (3D globe mode) */
 .earth-atmosphere-glow {
   position: absolute;
-  inset: 0;
+  inset: -25%;
   pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(
-    ellipse at 50% 50%,
-    transparent 30%,
-    rgba(var(--neon-cyan-rgb, 0, 240, 255), 0.02) 45%,
-    rgba(var(--neon-blue-rgb, 0, 136, 255), 0.04) 55%,
-    transparent 70%
-  );
+  z-index: 3;
+  background:
+    /* Sharp limb glow — concentrated bright band at the globe edge */
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 29%,
+      rgba(120, 200, 255, 0.05) 33%,
+      rgba(60, 170, 255, 0.14) 36%,
+      rgba(30, 150, 255, 0.22) 38%,
+      rgba(50, 170, 255, 0.18) 40%,
+      rgba(30, 130, 255, 0.10) 43%,
+      rgba(0, 90, 220, 0.04) 48%,
+      transparent 55%
+    ),
+    /* Soft outer bloom — diffuse blue extending into space */
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 26%,
+      rgba(0, 120, 255, 0.02) 34%,
+      rgba(0, 100, 255, 0.06) 40%,
+      rgba(0, 80, 220, 0.04) 46%,
+      rgba(0, 50, 180, 0.02) 54%,
+      transparent 62%
+    ),
+    /* Inner subtle warmth on the limb */
+    radial-gradient(
+      ellipse at 50% 50%,
+      transparent 34%,
+      rgba(140, 220, 255, 0.06) 37%,
+      rgba(100, 200, 255, 0.03) 40%,
+      transparent 44%
+    );
   mix-blend-mode: screen;
+  animation: atmosphereBreath 6s ease-in-out infinite;
+}
+
+@keyframes atmosphereBreath {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
 }
 
 .map-controls-br {

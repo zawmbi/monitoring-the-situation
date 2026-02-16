@@ -9,9 +9,16 @@ import { useRef, useEffect, useCallback } from 'react';
  */
 
 const STAR_LAYERS = [
-  { count: 200, speed: 0.02, sizeMin: 0.4, sizeMax: 1.0, opacity: 0.4 },  // far
-  { count: 120, speed: 0.06, sizeMin: 0.6, sizeMax: 1.4, opacity: 0.6 },  // mid
-  { count: 60,  speed: 0.12, sizeMin: 1.0, sizeMax: 2.0, opacity: 0.85 }, // near
+  { count: 280, speed: 0.03, sizeMin: 0.3, sizeMax: 0.9, opacity: 0.35 },  // far — faint, many
+  { count: 160, speed: 0.08, sizeMin: 0.5, sizeMax: 1.3, opacity: 0.55 },  // mid
+  { count: 80,  speed: 0.16, sizeMin: 0.8, sizeMax: 1.8, opacity: 0.80 },  // near — bright, few
+  { count: 12,  speed: 0.22, sizeMin: 1.6, sizeMax: 2.6, opacity: 0.95 },  // accent — rare bright stars
+];
+
+// Subtle color tints for realism (most stars white, a few blue/warm)
+const STAR_COLORS = [
+  '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff',
+  '#cce0ff', '#b8d4ff', '#ffeedd', '#ffd8b0',
 ];
 
 function createStars(width, height) {
@@ -23,8 +30,9 @@ function createStars(width, height) {
         y: Math.random() * height,
         size: layer.sizeMin + Math.random() * (layer.sizeMax - layer.sizeMin),
         baseOpacity: layer.opacity * (0.5 + Math.random() * 0.5),
-        twinkleSpeed: 0.5 + Math.random() * 2.0,
+        twinkleSpeed: 0.4 + Math.random() * 2.2,
         twinklePhase: Math.random() * Math.PI * 2,
+        color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
       });
     }
     return { ...layer, stars };
@@ -88,8 +96,9 @@ export default function StarfieldCanvas({ mapBearing = 0, mapPitch = 0, useGlobe
         const parallaxFactor = layer.speed;
 
         // In 3D globe mode, shift stars based on bearing and pitch for parallax
-        const bearingOffset = isGlobe ? bearing * parallaxFactor * 2 : 0;
-        const pitchOffset = isGlobe ? pitch * parallaxFactor * 0.5 : 0;
+        // Stronger multipliers for visible rotation with globe
+        const bearingOffset = isGlobe ? bearing * parallaxFactor * 4 : 0;
+        const pitchOffset = isGlobe ? pitch * parallaxFactor * 1.5 : 0;
 
         for (let si = 0; si < layer.stars.length; si++) {
           const star = layer.stars[si];
@@ -105,7 +114,7 @@ export default function StarfieldCanvas({ mapBearing = 0, mapPitch = 0, useGlobe
           if (sy < 0) sy += h;
 
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = star.color;
           ctx.beginPath();
           ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
           ctx.fill();
