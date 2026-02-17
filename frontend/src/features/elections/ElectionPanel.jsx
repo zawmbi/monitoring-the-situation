@@ -794,8 +794,10 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const [electionView, setElectionView] = useState('general'); // 'primary' | 'general'
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  const { getStateData, isLive, lastUpdated: liveUpdated } = useElectionLive(stateName);
+  const { getStateData, isLive, lastUpdated: liveUpdated, fetchStateNews } = useElectionLive(stateName);
   const data = getStateData(stateName);
+  const [stateNews, setStateNews] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(false);
 
   // Auto-select first available tab and reset district
   useEffect(() => {
@@ -803,7 +805,19 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
     else if (data.governor) setActiveTab('governor');
     else setActiveTab('house');
     setSelectedDistrict(null);
+    setStateNews(null);
   }, [stateName]);
+
+  // Fetch state news when news tab is activated
+  useEffect(() => {
+    if (activeTab === 'news' && !stateNews && !newsLoading && fetchStateNews) {
+      setNewsLoading(true);
+      fetchStateNews(stateName).then(news => {
+        setStateNews(news);
+        setNewsLoading(false);
+      });
+    }
+  }, [activeTab, stateName, stateNews, newsLoading, fetchStateNews]);
 
   const clampPos = (x, y) => {
     if (!bounds) return { x, y };
@@ -857,6 +871,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   if (senate) tabs.push({ id: 'senate', label: 'Senate' });
   if (governor) tabs.push({ id: 'governor', label: 'Governor' });
   tabs.push({ id: 'house', label: `House${houseDistricts.length > 0 ? ` (${houseDistricts.length})` : ''}` });
+  tabs.push({ id: 'news', label: 'News' });
   tabs.push({ id: 'info', label: 'Info' });
 
   const activeDistrict = selectedDistrict
@@ -1119,6 +1134,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   </div>
                 )}
                 <div className="el-info-source-row">
+                  <span className="el-info-source-name">GDELT Project</span>
+                  <span className="el-info-source-desc">Election news &amp; media tone (live)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Congress.gov</span>
+                  <span className="el-info-source-desc">Bills, votes, legislative tracking</span>
+                </div>
+                <div className="el-info-source-row">
                   <span className="el-info-source-name">Cook/Sabato</span>
                   <span className="el-info-source-desc">Race ratings, PVI (static)</span>
                 </div>
@@ -1142,6 +1165,64 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 </span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* News Tab Content */}
+        {activeTab === 'news' && (
+          <div className="el-news-section">
+            <div className="el-section-title">
+              Election Coverage
+              <span className="el-news-live-tag">GDELT LIVE</span>
+            </div>
+            {newsLoading && (
+              <div className="el-news-loading">Loading election news...</div>
+            )}
+            {stateNews && stateNews.articles && stateNews.articles.length > 0 ? (
+              <>
+                {stateNews.tone && (
+                  <div className="el-news-tone-bar">
+                    <span className="el-news-tone-label">Media Tone</span>
+                    <span className={`el-news-tone-val ${stateNews.tone.avgTone > 0.5 ? 'positive' : stateNews.tone.avgTone < -0.5 ? 'negative' : 'neutral'}`}>
+                      {stateNews.tone.avgTone > 0 ? '+' : ''}{stateNews.tone.avgTone}
+                    </span>
+                    <span className="el-news-tone-trend">
+                      {stateNews.tone.trend === 'improving' ? '\u2191' : stateNews.tone.trend === 'declining' ? '\u2193' : '\u2192'} {stateNews.tone.trend}
+                    </span>
+                  </div>
+                )}
+                <div className="el-news-list">
+                  {stateNews.articles.map((article, i) => (
+                    <a
+                      key={i}
+                      className="el-news-article"
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <div className="el-news-article-title">{article.title}</div>
+                      <div className="el-news-article-meta">
+                        {article.source && <span className="el-news-article-source">{article.source}</span>}
+                        {article.date && <span className="el-news-article-date">{article.date}</span>}
+                        {article.tone != null && (
+                          <span className={`el-news-article-tone ${article.tone > 0 ? 'positive' : article.tone < 0 ? 'negative' : 'neutral'}`}>
+                            {article.tone > 0 ? '+' : ''}{article.tone}
+                          </span>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                <div className="el-news-footer">
+                  {stateNews.articleCount} articles from GDELT (14-day window)
+                </div>
+              </>
+            ) : (!newsLoading && (
+              <div className="el-news-empty">
+                No recent election news found for {stateName}.
+                <br />Coverage increases as primaries approach.
+              </div>
+            ))}
           </div>
         )}
 
@@ -1208,7 +1289,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Markets + FEC + Static' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? 'Markets + FEC + GDELT + Static' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>

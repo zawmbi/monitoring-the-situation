@@ -19,6 +19,7 @@ import { wikidataService } from './services/wikidata.service.js';
 import { ucdpService } from './services/ucdp.service.js';
 import { wsHandler } from './services/websocket.service.js';
 import { electionLiveService } from './services/electionLive.service.js';
+import { electionNewsService } from './services/electionNews.service.js';
 import { stabilityService } from './services/stability.service.js';
 import { disastersService } from './services/disasters.service.js';
 import { cyberService } from './services/cyber.service.js';
@@ -151,6 +152,7 @@ let leadersRefreshInterval = null;
 let economicRefreshInterval = null;
 let ucdpRefreshInterval = null;
 let electionRefreshInterval = null;
+let electionNewsRefreshInterval = null;
 let stabilityRefreshInterval = null;
 let disasterRefreshInterval = null;
 let cyberRefreshInterval = null;
@@ -251,6 +253,21 @@ function startBackgroundRefresh() {
     console.log('[Worker] Refreshing election live data...');
     electionLiveService.getLiveData().catch(console.error);
   }, ELECTION_POLL_MS);
+
+  // Initial election news fetch (GDELT — no auth needed)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial election news fetch...');
+    electionNewsService.getTopElectionNews().catch(console.error);
+    electionNewsService.getBattlegroundOverview().catch(console.error);
+  }, 20000);
+
+  // Periodic refresh — election news (every 10 min)
+  const ELECTION_NEWS_POLL_MS = 10 * 60 * 1000;
+  electionNewsRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing election news...');
+    electionNewsService.getTopElectionNews().catch(console.error);
+    electionNewsService.getBattlegroundOverview().catch(console.error);
+  }, ELECTION_NEWS_POLL_MS);
 
   // Initial stability data fetch (delayed to avoid startup contention)
   setTimeout(() => {
@@ -527,6 +544,7 @@ async function shutdown(signal) {
   if (economicRefreshInterval) clearInterval(economicRefreshInterval);
   if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
   if (electionRefreshInterval) clearInterval(electionRefreshInterval);
+  if (electionNewsRefreshInterval) clearInterval(electionNewsRefreshInterval);
   if (stabilityRefreshInterval) clearInterval(stabilityRefreshInterval);
   if (disasterRefreshInterval) clearInterval(disasterRefreshInterval);
   if (cyberRefreshInterval) clearInterval(cyberRefreshInterval);

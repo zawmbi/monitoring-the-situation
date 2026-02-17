@@ -169,6 +169,58 @@ export function useElectionLive(stateName) {
     };
   }, [liveData]);
 
+  // Also fetch election news from GDELT
+  const [newsData, setNewsData] = useState(null);
+  const newsCache = useRef(null);
+
+  const fetchElectionNews = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+      const response = await fetch('/api/elections/news', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) return;
+      const result = await response.json();
+      if (!isMounted.current) return;
+      if (result.success && result.data) {
+        newsCache.current = result.data;
+        setNewsData(result.data);
+      }
+    } catch (err) {
+      // Keep stale news on error
+    }
+  }, []);
+
+  // Fetch state-specific election news
+  const fetchStateNews = useCallback(async (state) => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+      const response = await fetch(`/api/elections/news/${encodeURIComponent(state)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  // Fetch news on mount
+  useEffect(() => {
+    if (!newsCache.current) fetchElectionNews();
+    const newsInterval = setInterval(fetchElectionNews, 10 * 60 * 1000);
+    return () => clearInterval(newsInterval);
+  }, [fetchElectionNews]);
+
   return {
     liveData,
     loading,
@@ -176,6 +228,8 @@ export function useElectionLive(stateName) {
     refresh: fetchLiveData,
     getStateData,
     isLive: !!liveData && Object.keys(liveData.marketRatings || {}).length > 0,
+    newsData,
+    fetchStateNews,
   };
 }
 

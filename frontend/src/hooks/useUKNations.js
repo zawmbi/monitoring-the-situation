@@ -1,25 +1,20 @@
 /**
  * Hook to lazily fetch UK nations boundary GeoJSON.
  * Only downloads when UK nations are toggled on.
+ * Uses georgique/world-geojson for reliable boundaries,
+ * then injects nation names into the empty properties.
  */
 import { useState, useEffect } from 'react';
 
-const UK_GEOJSON_URL =
-  'https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/administrative/gb/lad.json';
+const BASE_URL =
+  'https://raw.githubusercontent.com/georgique/world-geojson/develop/areas/united_kingdom';
 
-// We use a simpler source: countries of the UK from Natural Earth via GitHub
-const UK_NATIONS_GEOJSON_URL =
-  'https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/administrative/uk/countries.json';
-
-const NAME_ALIASES = {
-  'Great Britain': 'England',
-};
-
-function normalizeNationName(raw) {
-  if (!raw) return raw;
-  const trimmed = raw.trim();
-  return NAME_ALIASES[trimmed] || trimmed;
-}
+const NATIONS = [
+  { file: 'england.json', name: 'England' },
+  { file: 'scotland.json', name: 'Scotland' },
+  { file: 'wales.json', name: 'Wales' },
+  { file: 'northern_ireland.json', name: 'Northern Ireland' },
+];
 
 let cachedData = null;
 
@@ -36,32 +31,38 @@ export function useUKNations(enabled) {
     let cancelled = false;
     setLoading(true);
 
-    fetch(UK_NATIONS_GEOJSON_URL)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+    Promise.all(
+      NATIONS.map(async (nation) => {
+        const res = await fetch(`${BASE_URL}/${nation.file}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${nation.file}`);
+        const geojson = await res.json();
+        // Each file is a FeatureCollection with possibly multiple polygons
+        // (islands etc.). Merge them all under one name.
+        return (geojson.features || []).map((f) => ({
+          ...f,
+          properties: {
+            ...f.properties,
+            name: nation.name,
+          },
+        }));
       })
-      .then(geojson => {
+    )
+      .then((allFeatureArrays) => {
         if (cancelled) return;
-        const features = (geojson.features || []).map((f, i) => {
-          const rawName = f.properties?.CTRY21NM || f.properties?.name || f.properties?.NAME || '';
-          const name = normalizeNationName(rawName);
-          return {
-            ...f,
-            id: i,
-            properties: {
-              ...f.properties,
-              name,
-              originalName: rawName,
-            },
-          };
-        });
+        const features = allFeatureArrays.flat().map((f, i) => ({
+          ...f,
+          id: i,
+          properties: {
+            ...f.properties,
+            originalId: String(i),
+          },
+        }));
         const result = { type: 'FeatureCollection', features };
         cachedData = result;
         setData(result);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         if (cancelled) return;
         console.error('[useUKNations] Failed to load UK GeoJSON:', err);
         setLoading(false);

@@ -7,32 +7,70 @@ import { useState, useEffect } from 'react';
 const RUSSIA_GEOJSON_URL =
   'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/russia.geojson';
 
+// Maps name_latin (English) and Cyrillic-derived names to our RU_OBLAST_INFO keys
 const NAME_ALIASES = {
+  // name_latin → RU_OBLAST_INFO key mappings (from codeforamerica GeoJSON)
+  'Republic of Adygea': 'Adygea',
+  'Republic of Buryatia': 'Buryatia',
+  'Republic of Altai': 'Altai Republic',
+  'Republic of Bashkortostan': 'Bashkortostan',
+  'Republic of Dagestan': 'Dagestan',
+  'Republic of Ingushetia': 'Ingushetia',
+  'Kabardino-Balkar Republic': 'Kabardino-Balkaria',
+  'Republic of Kalmykia': 'Kalmykia',
+  'Karachay-Cherkess Republic': 'Karachay-Cherkessia',
+  'Republic of Karelia': 'Karelia',
+  'Komi Republic': 'Komi Republic',
+  'Republic of Mari El': 'Mari El',
+  'Republic of Mordovia': 'Mordovia',
+  'Republic of North Ossetia-Alania': 'North Ossetia-Alania',
+  'Republic of Sakha (Yakutia)': 'Sakha (Yakutia)',
+  'Republic of Tatarstan': 'Tatarstan',
+  'Republic of Tuva': 'Tuva',
+  'Tyva Republic': 'Tuva',
+  'Udmurt Republic': 'Udmurtia',
+  'Republic of Khakassia': 'Khakassia',
+  'Chechen Republic': 'Chechnya',
+  'Chuvash Republic': 'Chuvashia',
+  'Republic of Crimea': 'Crimea',
+  'Trans-Baikal Territory': 'Zabaykalsky Krai',
+  'Zabaykalsky Territory': 'Zabaykalsky Krai',
+  'Kamchatka Territory': 'Kamchatka Krai',
+  'Krasnoyarsk Territory': 'Krasnoyarsk Krai',
+  'Primorsky Territory': 'Primorsky Krai',
+  'Khabarovsk Territory': 'Khabarovsk Krai',
+  'Perm Territory': 'Perm Krai',
+  'Stavropol Territory': 'Stavropol Krai',
+  'Altai Territory': 'Altai Krai',
+  'Krasnodar Territory': 'Krasnodar Krai',
+  'Chukotka Autonomous Area': 'Chukotka Autonomous Okrug',
+  'Khanty-Mansi Autonomous Area': 'Khanty-Mansi Autonomous Okrug',
+  'Nenets Autonomous Area': 'Nenets Autonomous Okrug',
+  'Yamalo-Nenets Autonomous Area': 'Yamalo-Nenets Autonomous Okrug',
+  'Jewish Autonomous Area': 'Jewish Autonomous Oblast',
+  'City of Moscow': 'Moscow',
+  'City of Saint Petersburg': 'Saint Petersburg',
+  'City of St. Petersburg': 'Saint Petersburg',
+  'City of Sevastopol': 'Sevastopol',
+  'St. Petersburg': 'Saint Petersburg',
+
+  // Additional Cyrillic / transliterated fallbacks
   'Adygeya': 'Adygea',
   'Altay': 'Altai Republic',
-  'Bashkortostan': 'Bashkortostan',
   'Buryat': 'Buryatia',
   'Buryatiya': 'Buryatia',
-  'Chechnya': 'Chechnya',
   'Chuvash': 'Chuvashia',
-  'Dagestan': 'Dagestan',
   'Ingush': 'Ingushetia',
   'Ingushetiya': 'Ingushetia',
   'Kabardin-Balkar': 'Kabardino-Balkaria',
   'Kalmyk': 'Kalmykia',
   'Kalmykiya': 'Kalmykia',
   'Karachay-Cherkess': 'Karachay-Cherkessia',
-  'Karelia': 'Karelia',
   'Khakass': 'Khakassia',
   'Khakasiya': 'Khakassia',
-  'Komi': 'Komi',
   'Mariy-El': 'Mari El',
-  'Mordovia': 'Mordovia',
   'Mordoviya': 'Mordovia',
   'North Ossetia': 'North Ossetia-Alania',
-  'Sakha': 'Sakha',
-  'Tatarstan': 'Tatarstan',
-  'Tuva': 'Tuva',
   'Tyva': 'Tuva',
   'Udmurt': 'Udmurtia',
   'Udmurtiya': 'Udmurtia',
@@ -52,10 +90,8 @@ const NAME_ALIASES = {
   'Primor\'ye': 'Primorsky Krai',
   'Primorye': 'Primorsky Krai',
   'Primor\'sk': 'Primorsky Krai',
-  'City of St. Petersburg': 'Saint Petersburg',
   'St.-Petersburg': 'Saint Petersburg',
   'Moskva': 'Moscow',
-  'City of Moscow': 'Moscow',
   'Sevastopol\'': 'Sevastopol',
 };
 
@@ -68,7 +104,11 @@ function normalizeRegionName(raw) {
     .replace(/ Oblast$/i, '')
     .replace(/ Krai$/i, '')
     .replace(/ Republic$/i, '')
-    .replace(/ Autonomous Okrug$/i, '');
+    .replace(/ Region$/i, '')
+    .replace(/ Territory$/i, '')
+    .replace(/ Area$/i, '')
+    .replace(/ Autonomous Okrug$/i, '')
+    .replace(/ Autonomous Area$/i, '');
   if (NAME_ALIASES[stripped]) return NAME_ALIASES[stripped];
   return trimmed;
 }
@@ -96,7 +136,8 @@ export function useRussianOblasts(enabled) {
       .then(geojson => {
         if (cancelled) return;
         const features = (geojson.features || []).map((f, i) => {
-          const rawName = f.properties?.name || f.properties?.NAME || f.properties?.NAME_1 || '';
+          // Prefer name_latin (English) over name (Cyrillic)
+          const rawName = f.properties?.name_latin || f.properties?.name || f.properties?.NAME || f.properties?.NAME_1 || '';
           const name = normalizeRegionName(rawName);
           return {
             ...f,

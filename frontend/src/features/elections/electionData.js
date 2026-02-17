@@ -5,7 +5,7 @@
  */
 
 export const GENERAL_ELECTION_DATE = '2026-11-03';
-export const DATA_LAST_UPDATED = '2026-02-13';
+export const DATA_LAST_UPDATED = '2026-02-17';
 
 // Cook Partisan Voting Index (PVI) by state
 export const STATE_PVI = {

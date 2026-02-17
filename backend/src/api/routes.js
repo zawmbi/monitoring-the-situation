@@ -838,6 +838,96 @@ router.get('/fec/expenditures/:state', async (req, res) => {
 });
 
 // ===========================================
+// ELECTION NEWS (GDELT-powered)
+// ===========================================
+
+/**
+ * GET /api/elections/news
+ * Top election news articles from GDELT (free, no auth)
+ */
+router.get('/elections/news', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getTopElectionNews();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Election news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch election news' });
+  }
+});
+
+/**
+ * GET /api/elections/news/:state
+ * State-specific election news + tone analysis
+ */
+router.get('/elections/news/:state', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getStateElectionNews(req.params.state);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] State election news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch state election news' });
+  }
+});
+
+/**
+ * GET /api/elections/battleground
+ * Battleground state news coverage overview
+ */
+router.get('/elections/battleground', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getBattlegroundOverview();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Battleground overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch battleground data' });
+  }
+});
+
+// ===========================================
+// CONGRESS.GOV LEGISLATIVE DATA
+// ===========================================
+
+/**
+ * GET /api/congress/overview
+ * Recent bills and votes from 119th Congress
+ */
+router.get('/congress/overview', async (req, res) => {
+  try {
+    const { default: congressService } = await import('../services/congress.service.js');
+    if (!congressService.isConfigured) {
+      return res.json({ success: true, data: { configured: false }, timestamp: new Date().toISOString() });
+    }
+    const data = await congressService.getLegislativeOverview();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Congress overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch legislative data' });
+  }
+});
+
+/**
+ * GET /api/congress/votes
+ * Recent Senate/House roll-call votes
+ */
+router.get('/congress/votes', async (req, res) => {
+  try {
+    const { default: congressService } = await import('../services/congress.service.js');
+    if (!congressService.isConfigured) {
+      return res.json({ success: true, data: [], configured: false, timestamp: new Date().toISOString() });
+    }
+    const chamber = req.query.chamber || 'senate';
+    const data = await congressService.getRecentVotes(chamber);
+    res.json({ success: true, data, configured: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Congress votes error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch vote data' });
+  }
+});
+
+// ===========================================
 // STABILITY DATA (Protests, Military, Instability)
 // ===========================================
 
