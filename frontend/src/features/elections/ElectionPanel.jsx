@@ -1204,10 +1204,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                       <div className="el-news-article-meta">
                         {article.source && <span className="el-news-article-source">{article.source}</span>}
                         {article.date && <span className="el-news-article-date">{article.date}</span>}
-                        {article.tone != null && (
-                          <span className={`el-news-article-tone ${article.tone > 0 ? 'positive' : article.tone < 0 ? 'negative' : 'neutral'}`}>
-                            {article.tone > 0 ? '+' : ''}{article.tone}
-                          </span>
+                        {article.sourceCountry && (
+                          <span className="el-news-article-date">{article.sourceCountry}</span>
                         )}
                       </div>
                     </a>

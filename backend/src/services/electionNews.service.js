@@ -141,7 +141,7 @@ class ElectionNewsService {
 
     const [articlesData, toneData] = await Promise.allSettled([
       this._fetchGDELT(query, 'ArtList', 25, '14d'),
-      this._fetchGDELT(query, 'ToneChart', 25, '30d'),
+      this._fetchGDELT(query, 'TimelineTone', 25, '30d'),
     ]);
 
     const articles = this._parseArticles(
@@ -196,9 +196,6 @@ class ElectionNewsService {
         results[state] = {
           articleCount: articles.length,
           topArticle: articles[0] || null,
-          avgTone: articles.length > 0
-            ? Math.round(articles.reduce((s, a) => s + (a.tone || 0), 0) / articles.length * 10) / 10
-            : null,
         };
       });
 
@@ -231,11 +228,11 @@ class ElectionNewsService {
       .map(a => ({
         title: a.title,
         url: a.url,
-        source: a.domain || a.source || null,
+        source: a.domain || null,
         date: a.seendate ? this._parseGdeltDate(a.seendate) : null,
-        tone: a.tone != null ? Math.round(a.tone * 10) / 10 : null,
         image: a.socialimage || null,
         language: a.language || 'English',
+        sourceCountry: a.sourcecountry || null,
       }))
       .filter((a, i, arr) => {
         // Deduplicate by domain (keep first per source)

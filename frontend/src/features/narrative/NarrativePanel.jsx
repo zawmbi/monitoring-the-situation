@@ -241,12 +241,13 @@ function NarrativeCard({ narrative }) {
               >
                 {article.title}
               </a>
-              <span style={{
-                fontSize: 9, fontVariantNumeric: 'tabular-nums',
-                color: toneColor(article.tone), whiteSpace: 'nowrap',
-              }}>
-                {article.tone > 0 ? '+' : ''}{article.tone?.toFixed(1)}
-              </span>
+              {article.source && (
+                <span style={{
+                  fontSize: 9, color: '#667788', whiteSpace: 'nowrap',
+                }}>
+                  {article.source}
+                </span>
+              )}
             </div>
           ))}
         </div>
