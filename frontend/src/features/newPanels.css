@@ -1561,10 +1561,12 @@
 .ct-case-title {
   font-size: 12px;
   font-weight: 500;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.ct-case-title a:hover {
+  color: var(--color-accent, #5ee0ef) !important;
 }
 
 .ct-case-meta {

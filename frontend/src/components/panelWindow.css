@@ -39,8 +39,7 @@
   border: 1px solid var(--glass-border);
   border-top: 1px solid var(--glass-border-accent);
   box-shadow: var(--glass-shadow-glow);
-  resize: both;
-  min-width: 320px;
+  min-width: 250px;
   min-height: 200px;
   max-width: calc(100vw - 40px);
   max-height: calc(100vh - 80px);
@@ -145,6 +144,23 @@
   overflow: auto;
   position: relative;
   min-height: 0;
+}
+
+/* ── Resize handle (SE corner) ── */
+.pw-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.pw-resize-handle:hover svg {
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════════

@@ -76,26 +76,49 @@ function StatusBadge({ status }) {
 function CaseCard({ caseItem, onClick }) {
   const borderColor = IMPACT_COLORS[caseItem.impact] || '#666';
   return (
-    <button
-      className="ct-case-card"
-      type="button"
-      onClick={() => onClick?.(caseItem)}
-      style={{ borderLeftColor: borderColor }}
+    <div
+      className="ct-case"
+      style={{ borderLeft: `3px solid ${borderColor}` }}
     >
       <div className="ct-case-card-top">
         <CourtBadge court={caseItem.court} />
         <StatusBadge status={caseItem.status} />
         <ImpactBadge impact={caseItem.impact} />
       </div>
-      <div className="ct-case-title">{caseItem.title}</div>
+      <div className="ct-case-title" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'unset' }}>
+        {caseItem.link ? (
+          <a href={caseItem.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+            {caseItem.title}
+            <span style={{ marginLeft: 4, fontSize: '10px', opacity: 0.5 }}>↗</span>
+          </a>
+        ) : (
+          caseItem.title
+        )}
+      </div>
       {caseItem.description && (
         <div className="ct-case-desc">{caseItem.description}</div>
       )}
       <div className="ct-case-meta">
         {caseItem.category && <span className="ct-case-category">{caseItem.category}</span>}
         {caseItem.date && <span className="ct-case-date">{timeAgoShort(caseItem.date)}</span>}
+        {caseItem.link && (
+          <a
+            className="ct-case-link"
+            href={caseItem.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--color-accent, #5ee0ef)',
+              fontSize: '10px',
+              textDecoration: 'none',
+              marginLeft: 'auto',
+            }}
+          >
+            View Case ↗
+          </a>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
 

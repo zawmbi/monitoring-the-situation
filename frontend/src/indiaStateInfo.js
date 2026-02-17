@@ -1,0 +1,48 @@
+/**
+ * Indian States & Union Territories info for the state info panel.
+ * Used when an Indian state is clicked on the map.
+ * Population: 2024 estimates. Area in km².
+ * Chief Ministers current as of early 2026.
+ */
+
+const IN_STATE_INFO = {
+  'Andhra Pradesh': { capital: 'Amaravati', abbr: 'AP', timezone: 'UTC+5:30', capitalCoords: [16.5062, 80.6480], population: 53903393, area: 162968, chiefMinister: 'N. Chandrababu Naidu', party: 'TDP', largestCity: 'Visakhapatnam', formed: 1956, type: 'State' },
+  'Arunachal Pradesh': { capital: 'Itanagar', abbr: 'AR', timezone: 'UTC+5:30', capitalCoords: [27.0844, 93.6053], population: 1570458, area: 83743, chiefMinister: 'Pema Khandu', party: 'BJP', largestCity: 'Itanagar', formed: 1987, type: 'State' },
+  'Assam': { capital: 'Dispur', abbr: 'AS', timezone: 'UTC+5:30', capitalCoords: [26.1445, 91.7898], population: 35607039, area: 78438, chiefMinister: 'Himanta Biswa Sarma', party: 'BJP', largestCity: 'Guwahati', formed: 1950, type: 'State' },
+  'Bihar': { capital: 'Patna', abbr: 'BR', timezone: 'UTC+5:30', capitalCoords: [25.6093, 85.1376], population: 124799926, area: 94163, chiefMinister: 'Nitish Kumar', party: 'JD(U)', largestCity: 'Patna', formed: 1950, type: 'State' },
+  'Chhattisgarh': { capital: 'Raipur', abbr: 'CG', timezone: 'UTC+5:30', capitalCoords: [21.2514, 81.6296], population: 29436231, area: 135192, chiefMinister: 'Vishnu Deo Sai', party: 'BJP', largestCity: 'Raipur', formed: 2000, type: 'State' },
+  'Goa': { capital: 'Panaji', abbr: 'GA', timezone: 'UTC+5:30', capitalCoords: [15.4909, 73.8278], population: 1586250, area: 3702, chiefMinister: 'Pramod Sawant', party: 'BJP', largestCity: 'Vasco da Gama', formed: 1987, type: 'State' },
+  'Gujarat': { capital: 'Gandhinagar', abbr: 'GJ', timezone: 'UTC+5:30', capitalCoords: [23.2156, 72.6369], population: 63872399, area: 196024, chiefMinister: 'Bhupendra Patel', party: 'BJP', largestCity: 'Ahmedabad', formed: 1960, type: 'State' },
+  'Haryana': { capital: 'Chandigarh', abbr: 'HR', timezone: 'UTC+5:30', capitalCoords: [30.7333, 76.7794], population: 28204692, area: 44212, chiefMinister: 'Nayab Singh Saini', party: 'BJP', largestCity: 'Faridabad', formed: 1966, type: 'State' },
+  'Himachal Pradesh': { capital: 'Shimla', abbr: 'HP', timezone: 'UTC+5:30', capitalCoords: [31.1048, 77.1734], population: 7451955, area: 55673, chiefMinister: 'Sukhvinder Singh Sukhu', party: 'INC', largestCity: 'Shimla', formed: 1971, type: 'State' },
+  'Jharkhand': { capital: 'Ranchi', abbr: 'JH', timezone: 'UTC+5:30', capitalCoords: [23.3441, 85.3096], population: 38593948, area: 79710, chiefMinister: 'Hemant Soren', party: 'JMM', largestCity: 'Jamshedpur', formed: 2000, type: 'State' },
+  'Karnataka': { capital: 'Bengaluru', abbr: 'KA', timezone: 'UTC+5:30', capitalCoords: [12.9716, 77.5946], population: 67562686, area: 191791, chiefMinister: 'Siddaramaiah', party: 'INC', largestCity: 'Bengaluru', formed: 1956, type: 'State' },
+  'Kerala': { capital: 'Thiruvananthapuram', abbr: 'KL', timezone: 'UTC+5:30', capitalCoords: [8.5241, 76.9366], population: 35699443, area: 38863, chiefMinister: 'Pinarayi Vijayan', party: 'CPI(M)', largestCity: 'Kochi', formed: 1956, type: 'State' },
+  'Madhya Pradesh': { capital: 'Bhopal', abbr: 'MP', timezone: 'UTC+5:30', capitalCoords: [23.2599, 77.4126], population: 85358965, area: 308252, chiefMinister: 'Mohan Yadav', party: 'BJP', largestCity: 'Indore', formed: 1956, type: 'State' },
+  'Maharashtra': { capital: 'Mumbai', abbr: 'MH', timezone: 'UTC+5:30', capitalCoords: [19.0760, 72.8777], population: 126014470, area: 307713, chiefMinister: 'Devendra Fadnavis', party: 'BJP', largestCity: 'Mumbai', formed: 1960, type: 'State' },
+  'Manipur': { capital: 'Imphal', abbr: 'MN', timezone: 'UTC+5:30', capitalCoords: [24.8170, 93.9368], population: 3091545, area: 22327, chiefMinister: 'N. Biren Singh', party: 'BJP', largestCity: 'Imphal', formed: 1972, type: 'State' },
+  'Meghalaya': { capital: 'Shillong', abbr: 'ML', timezone: 'UTC+5:30', capitalCoords: [25.5788, 91.8933], population: 3366710, area: 22429, chiefMinister: 'Conrad Sangma', party: 'NPP', largestCity: 'Shillong', formed: 1972, type: 'State' },
+  'Mizoram': { capital: 'Aizawl', abbr: 'MZ', timezone: 'UTC+5:30', capitalCoords: [23.7271, 92.7176], population: 1239244, area: 21081, chiefMinister: 'Lalduhoma', party: 'ZPM', largestCity: 'Aizawl', formed: 1987, type: 'State' },
+  'Nagaland': { capital: 'Kohima', abbr: 'NL', timezone: 'UTC+5:30', capitalCoords: [25.6751, 94.1086], population: 2249695, area: 16579, chiefMinister: 'Neiphiu Rio', party: 'NDPP', largestCity: 'Dimapur', formed: 1963, type: 'State' },
+  'Odisha': { capital: 'Bhubaneswar', abbr: 'OD', timezone: 'UTC+5:30', capitalCoords: [20.2961, 85.8245], population: 46356334, area: 155707, chiefMinister: 'Mohan Charan Majhi', party: 'BJP', largestCity: 'Bhubaneswar', formed: 1950, type: 'State' },
+  'Punjab': { capital: 'Chandigarh', abbr: 'PB', timezone: 'UTC+5:30', capitalCoords: [30.7333, 76.7794], population: 30141373, area: 50362, chiefMinister: 'Bhagwant Mann', party: 'AAP', largestCity: 'Ludhiana', formed: 1966, type: 'State' },
+  'Rajasthan': { capital: 'Jaipur', abbr: 'RJ', timezone: 'UTC+5:30', capitalCoords: [26.9124, 75.7873], population: 79502477, area: 342239, chiefMinister: 'Bhajan Lal Sharma', party: 'BJP', largestCity: 'Jaipur', formed: 1950, type: 'State' },
+  'Sikkim': { capital: 'Gangtok', abbr: 'SK', timezone: 'UTC+5:30', capitalCoords: [27.3389, 88.6065], population: 690251, area: 7096, chiefMinister: 'Prem Singh Tamang', party: 'SKM', largestCity: 'Gangtok', formed: 1975, type: 'State' },
+  'Tamil Nadu': { capital: 'Chennai', abbr: 'TN', timezone: 'UTC+5:30', capitalCoords: [13.0827, 80.2707], population: 77841267, area: 130060, chiefMinister: 'M. K. Stalin', party: 'DMK', largestCity: 'Chennai', formed: 1950, type: 'State' },
+  'Telangana': { capital: 'Hyderabad', abbr: 'TS', timezone: 'UTC+5:30', capitalCoords: [17.3850, 78.4867], population: 37220677, area: 112077, chiefMinister: 'A. Revanth Reddy', party: 'INC', largestCity: 'Hyderabad', formed: 2014, type: 'State' },
+  'Tripura': { capital: 'Agartala', abbr: 'TR', timezone: 'UTC+5:30', capitalCoords: [23.8315, 91.2868], population: 4169794, area: 10486, chiefMinister: 'Manik Saha', party: 'BJP', largestCity: 'Agartala', formed: 1972, type: 'State' },
+  'Uttar Pradesh': { capital: 'Lucknow', abbr: 'UP', timezone: 'UTC+5:30', capitalCoords: [26.8467, 80.9462], population: 231502578, area: 240928, chiefMinister: 'Yogi Adityanath', party: 'BJP', largestCity: 'Lucknow', formed: 1950, type: 'State' },
+  'Uttarakhand': { capital: 'Dehradun', abbr: 'UK', timezone: 'UTC+5:30', capitalCoords: [30.3165, 78.0322], population: 11250858, area: 53483, chiefMinister: 'Pushkar Singh Dhami', party: 'BJP', largestCity: 'Dehradun', formed: 2000, type: 'State' },
+  'West Bengal': { capital: 'Kolkata', abbr: 'WB', timezone: 'UTC+5:30', capitalCoords: [22.5726, 88.3639], population: 99085853, area: 88752, chiefMinister: 'Mamata Banerjee', party: 'TMC', largestCity: 'Kolkata', formed: 1950, type: 'State' },
+  // Union Territories
+  'Andaman and Nicobar Islands': { capital: 'Port Blair', abbr: 'AN', timezone: 'UTC+5:30', capitalCoords: [11.6234, 92.7265], population: 400000, area: 8249, administrator: 'D. K. Joshi', largestCity: 'Port Blair', formed: 1956, type: 'Union Territory' },
+  'Chandigarh': { capital: 'Chandigarh', abbr: 'CH', timezone: 'UTC+5:30', capitalCoords: [30.7333, 76.7794], population: 1179000, area: 114, administrator: 'Banwarilal Purohit', largestCity: 'Chandigarh', formed: 1966, type: 'Union Territory' },
+  'Dadra and Nagar Haveli and Daman and Diu': { capital: 'Daman', abbr: 'DD', timezone: 'UTC+5:30', capitalCoords: [20.3974, 72.8328], population: 615724, area: 603, administrator: 'Praful Patel', largestCity: 'Silvassa', formed: 2020, type: 'Union Territory' },
+  'Delhi': { capital: 'New Delhi', abbr: 'DL', timezone: 'UTC+5:30', capitalCoords: [28.6139, 77.2090], population: 20000000, area: 1484, chiefMinister: 'Atishi', party: 'AAP', largestCity: 'Delhi', formed: 1992, type: 'Union Territory' },
+  'Jammu and Kashmir': { capital: 'Srinagar', abbr: 'JK', timezone: 'UTC+5:30', capitalCoords: [34.0837, 74.7973], population: 13606320, area: 42241, chiefMinister: 'Omar Abdullah', party: 'NC', largestCity: 'Srinagar', formed: 2019, type: 'Union Territory' },
+  'Ladakh': { capital: 'Leh', abbr: 'LA', timezone: 'UTC+5:30', capitalCoords: [34.1526, 77.5771], population: 290000, area: 59146, administrator: 'B. D. Mishra', largestCity: 'Leh', formed: 2019, type: 'Union Territory' },
+  'Lakshadweep': { capital: 'Kavaratti', abbr: 'LD', timezone: 'UTC+5:30', capitalCoords: [10.5626, 72.6369], population: 70365, area: 32, administrator: 'Praful Patel', largestCity: 'Kavaratti', formed: 1956, type: 'Union Territory' },
+  'Puducherry': { capital: 'Puducherry', abbr: 'PY', timezone: 'UTC+5:30', capitalCoords: [11.9416, 79.8083], population: 1413726, area: 479, chiefMinister: 'N. Rangasamy', party: 'AINRC', largestCity: 'Puducherry', formed: 1963, type: 'Union Territory' },
+};
+
+export default IN_STATE_INFO;
