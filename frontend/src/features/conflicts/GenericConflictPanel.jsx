@@ -7,6 +7,7 @@ import { useState } from 'react';
 import InlineMarkets from '../../components/InlineMarkets';
 import useConflictNews from '../../hooks/useConflictNews';
 import { timeAgo } from '../../utils/time';
+import ConflictFlag from './ConflictFlag';
 import './conflicts.css';
 
 export default function GenericConflictPanel({ open, onClose, conflictData }) {
@@ -64,9 +65,9 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
       <div className="conflict-panel-header">
         <div className="conflict-panel-header-left">
           <div className="conflict-panel-flags">
-            <span className="conflict-panel-flag" title={summary.sideA.name}>{summary.sideA.flag}</span>
+            <span className="conflict-panel-flag" title={summary.sideA.name}><ConflictFlag flag={summary.sideA.flag} color={summary.sideA.color} size={22} /></span>
             <span className="conflict-panel-vs">vs</span>
-            <span className="conflict-panel-flag" title={summary.sideB.name}>{summary.sideB.flag}</span>
+            <span className="conflict-panel-flag" title={summary.sideB.name}><ConflictFlag flag={summary.sideB.flag} color={summary.sideB.color} size={22} /></span>
           </div>
           <div>
             <h3 className="conflict-panel-title">{summary.name}</h3>
@@ -369,7 +370,7 @@ function CommandTab({ command, summary }) {
 
       {/* Side A */}
       <div className="conflict-cmd-section">
-        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}>{summary.sideA.flag}</span>{command.sideA?.title}</div>
+        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}><ConflictFlag flag={summary.sideA.flag} color={summary.sideA.color} size={18} /></span>{command.sideA?.title}</div>
         {command.sideA?.totalPersonnel && <div className="conflict-cmd-personnel">Personnel: {command.sideA.totalPersonnel}</div>}
         <div className="conflict-cmd-list">
           {(command.sideA?.keyCommanders || []).map((cmd) => (
@@ -383,7 +384,7 @@ function CommandTab({ command, summary }) {
 
       {/* Side B */}
       <div className="conflict-cmd-section">
-        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}>{summary.sideB.flag}</span>{command.sideB?.title}</div>
+        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}><ConflictFlag flag={summary.sideB.flag} color={summary.sideB.color} size={18} /></span>{command.sideB?.title}</div>
         {command.sideB?.totalPersonnel && <div className="conflict-cmd-personnel">Personnel: {command.sideB.totalPersonnel}</div>}
         <div className="conflict-cmd-list">
           {(command.sideB?.keyCommanders || []).map((cmd) => (

@@ -25,7 +25,7 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'Post-Tigray ceasefire / Amhara & Oromia insurgencies',
   sideA: { name: 'Ethiopian Federal Govt (ENDF)', shortName: 'ENDF', color: GOVT_GREEN, flag: '\u{1F1EA}\u{1F1F9}' },
-  sideB: { name: 'Fano / OLA / TPLF (various)', shortName: 'Armed Groups', color: FANO_RED, flag: '\u2694\uFE0F' },
+  sideB: { name: 'Fano / OLA / TPLF (various)', shortName: 'Armed Groups', color: FANO_RED, flag: 'svg:militia' },
   internationalSupport: {
     sideA: 'UAE (drones), Eritrea (Tigray war), Turkey, Iran, China',
     sideB: 'Limited; diaspora funding',

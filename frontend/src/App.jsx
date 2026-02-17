@@ -981,8 +981,8 @@ function App() {
   const [showTimeline, setShowTimeline] = useState(false);
 
   // ── New data hooks ──
-  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather);
-  const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel);
+  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather || showTimeline);
+  const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel || showTimeline);
   const { data: commoditiesData, loading: commoditiesLoading, refresh: refreshCommodities } = useCommodities(showCommoditiesPanel);
   const { data: shippingData, loading: shippingLoading, refresh: refreshShipping } = useShipping(showShippingMode);
   const { data: tensionData, loading: tensionLoading, refresh: refreshTension } = useTension(true);
@@ -996,8 +996,8 @@ function App() {
   const { data: allianceData, loading: allianceLoading, refresh: refreshAlliance } = useAlliance(showAlliancePanel);
   const { data: infrastructureData, loading: infrastructureLoading, refresh: refreshInfrastructure } = useInfrastructure(showInfrastructurePanel);
   const { data: demographicData, loading: demographicLoading, refresh: refreshDemographic } = useDemographic(showDemographicPanel);
-  const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showCredibilityPanel);
-  const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel);
+  const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showTimeline);
+  const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel || showTimeline);
 
   const isLightTheme = theme === 'light-analytic';
 
@@ -1314,15 +1314,17 @@ function App() {
     const events = [];
     let id = 0;
     // Tension conflicts
-    if (tensionData?.conflicts) {
-      for (const c of tensionData.conflicts) {
+    if (tensionData?.activeConflicts) {
+      for (const c of tensionData.activeConflicts) {
         events.push({
           id: `conflict-${id++}`,
           title: c.name || c.label,
-          date: c.lastEvent || c.updatedAt || new Date().toISOString(),
+          date: c.since || tensionData.updatedAt || new Date().toISOString(),
           category: 'conflict',
-          severity: c.nuclear ? 3 : c.intensity >= 7 ? 3 : c.intensity >= 4 ? 2 : 1,
-          country: c.region || c.countries?.[0],
+          severity: c.nuclearRisk === 'elevated' || c.nuclearRisk === 'high' ? 3 : c.intensity >= 70 ? 3 : c.intensity >= 40 ? 2 : 1,
+          country: c.region || c.parties?.[0],
+          lat: c.lat,
+          lon: c.lon,
         });
       }
     }
@@ -1332,25 +1334,31 @@ function App() {
         events.push({
           id: `flash-${id++}`,
           title: f.name || f.label,
-          date: f.updatedAt || new Date().toISOString(),
+          date: tensionData.updatedAt || new Date().toISOString(),
           category: 'conflict',
           severity: f.nuclear ? 3 : f.tension >= 70 ? 3 : f.tension >= 40 ? 2 : 1,
-          country: f.region,
+          country: f.category || f.parties?.[0],
+          lat: f.lat,
+          lon: f.lon,
         });
       }
     }
-    // Disaster events
-    if (disasterData?.events) {
-      for (const ev of disasterData.events) {
-        events.push({
-          id: `disaster-${id++}`,
-          title: ev.title || ev.name,
-          date: ev.date || ev.updatedAt || new Date().toISOString(),
-          category: 'disaster',
-          severity: ev.severity === 'critical' ? 3 : ev.severity === 'high' ? 2 : 1,
-          country: ev.country || ev.region,
-        });
-      }
+    // Disaster events (EONET active events + ReliefWeb recent disasters)
+    const allDisasters = [
+      ...(disasterData?.activeEvents || []),
+      ...(disasterData?.recentDisasters || []),
+    ];
+    for (const ev of allDisasters) {
+      events.push({
+        id: `disaster-${id++}`,
+        title: ev.title || ev.name,
+        date: ev.date || disasterData?.lastUpdated || new Date().toISOString(),
+        category: 'disaster',
+        severity: ev.severity === 'critical' ? 3 : ev.severity === 'high' ? 2 : 1,
+        country: ev.country || ev.region,
+        lat: ev.lat,
+        lon: ev.lon,
+      });
     }
     // Cyber incidents
     if (cyberData?.incidents) {
@@ -2529,11 +2537,7 @@ function App() {
                       <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
                       <span className="slider" />
                     </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Source Credibility</span>
-                      <input type="checkbox" checked={showCredibilityPanel} onChange={() => setShowCredibilityPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
+                    {/* Source Credibility toggle removed — lean indicators shown inline on news articles */}
                   </div>
 
                   {showTensionPanel && tensionData && (
@@ -3423,24 +3427,7 @@ function App() {
           </PanelWindow>
         )}
 
-        {/* ══════════ Source Credibility Panel ══════════ */}
-        {showCredibilityPanel && (
-          <PanelWindow
-            id="credibility"
-            title="Source Credibility Engine"
-            onClose={() => setShowCredibilityPanel(false)}
-            defaultWidth={440}
-            defaultHeight={600}
-            defaultMode="floating"
-            defaultPosition={{ x: 100, y: 65 }}
-          >
-            <CredibilityPanel
-              data={credibilityData}
-              loading={credibilityLoading}
-              onRefresh={refreshCredibility}
-            />
-          </PanelWindow>
-        )}
+        {/* Source Credibility Panel removed — lean indicators shown inline on news articles */}
 
         {/* ══════════ Leadership Intelligence Panel ══════════ */}
         {showLeadershipPanel && (
@@ -3471,12 +3458,11 @@ function App() {
           <TimelineNavigator
             events={timelineEvents}
             onTimeSelect={(date) => {
-              console.log('[Timeline] Selected:', date);
+              // Timeline scrub — no-op for now, events handle navigation
             }}
             onEventClick={(event) => {
-              if (event.country && mapRef.current) {
-                // Try to fly to the event's country/region
-                console.log('[Timeline] Event clicked:', event.title);
+              if (mapRef.current && event.lat && event.lon) {
+                mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
               }
             }}
           />

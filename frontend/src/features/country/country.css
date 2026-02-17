@@ -5,7 +5,7 @@
   top: var(--nav-height, 64px);
   right: 0;
   width: 360px;
-  height: calc(100vh - var(--nav-height, 64px));
+  height: calc(100vh - var(--nav-height, 64px) - 28px);
   background: var(--glass-bg);
   border-left: 1px solid var(--glass-border);
   display: flex;

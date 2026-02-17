@@ -8,6 +8,7 @@
 import { useState, useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 import { getFrontlineColor as defaultGetColor } from './utils';
+import ConflictFlag from './ConflictFlag';
 
 const ZOOM_SHOW_DETAIL = 4;
 const ZOOM_SHOW_LABELS = 5;
@@ -145,7 +146,7 @@ function TroopPopup({ unit, onClose, sideAColor, sideBColor, sideAName, sideBNam
   return (
     <div className="conflict-troop-popup" onClick={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
       <div className="conflict-troop-popup-header">
-        <div className="conflict-troop-popup-title">{flag && <span style={{ marginRight: 6 }}>{flag}</span>}{unit.name}</div>
+        <div className="conflict-troop-popup-title">{flag && <span style={{ marginRight: 6 }}><ConflictFlag flag={flag} color={color} size={18} /></span>}{unit.name}</div>
         <button className="conflict-troop-popup-close" onClick={onClose}>{'\u2715'}</button>
       </div>
       <div className="conflict-troop-popup-side-badge" style={{ background: `${color}22`, color, borderColor: `${color}44` }}>

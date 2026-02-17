@@ -23,7 +23,7 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'Full-scale civil war / SAF recaptured Khartoum & Wad Medani / El Fasher fell to RSF (Oct 2025) / Darfur genocide',
   sideA: { name: 'Sudanese Armed Forces (SAF)', shortName: 'SAF', color: SAF_GREEN, flag: '\u{1F1F8}\u{1F1E9}' },
-  sideB: { name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: '\u2694\uFE0F' },
+  sideB: { name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: 'svg:paramilitary' },
   internationalSupport: {
     sideA: 'Egypt (military aid), Iran (drones — Mohajer-6, documented), Turkey (TB2 drones), Eritrea (alleged)',
     sideB: 'UAE (documented arms transfers via Chad/Libya), Russia/Africa Corps (Wagner successor), Chad (transit route for weapons)',
