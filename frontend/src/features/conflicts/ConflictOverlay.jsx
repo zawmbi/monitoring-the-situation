@@ -357,6 +357,38 @@ function BattlePopup({ site, onClose }) {
   );
 }
 
+const UNIT_TYPE_LABELS = { infantry: 'Infantry', mechanized: 'Mechanized Infantry', armor: 'Armor / Tanks', artillery: 'Artillery', marines: 'Marines' };
+const UNIT_SIZE_LABELS = { battalion: 'Battalion (~300–1,000)', regiment: 'Regiment (~1,000–3,000)', brigade: 'Brigade (~3,000–5,000)', division: 'Division (~10,000–20,000)', corps: 'Corps (~20,000–40,000)' };
+
+function TroopPopup({ unit, onClose }) {
+  if (!unit) return null;
+  const isUA = unit.side === 'ukraine';
+  const color = isUA ? UA_BLUE : RU_RED;
+  const sideName = isUA ? 'Ukraine' : 'Russia';
+  const flag = isUA ? '\u{1F1FA}\u{1F1E6}' : '\u{1F1F7}\u{1F1FA}';
+  const newsQuery = encodeURIComponent(`${unit.name} ${sideName} military`);
+  return (
+    <div className="conflict-troop-popup" onClick={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
+      <div className="conflict-troop-popup-header">
+        <div className="conflict-troop-popup-title">{flag && <span style={{ marginRight: 6 }}>{flag}</span>}{unit.name}</div>
+        <button className="conflict-troop-popup-close" onClick={onClose}>{'\u2715'}</button>
+      </div>
+      <div className="conflict-troop-popup-side-badge" style={{ background: `${color}22`, color, borderColor: `${color}44` }}>
+        {sideName}
+      </div>
+      <div className="conflict-troop-popup-body">
+        <div className="conflict-troop-popup-row"><span>Unit Type</span><span>{UNIT_TYPE_LABELS[unit.unitType] || unit.unitType}</span></div>
+        <div className="conflict-troop-popup-row"><span>Unit Size</span><span>{UNIT_SIZE_LABELS[unit.unitSize] || unit.unitSize}</span></div>
+        <div className="conflict-troop-popup-row"><span>Sector</span><span>{unit.sector}</span></div>
+        <div className="conflict-troop-popup-row"><span>Position</span><span className="conflict-troop-popup-coords">{unit.lat.toFixed(2)}°N, {unit.lon.toFixed(2)}°E</span></div>
+      </div>
+      <div className="conflict-troop-popup-footer">
+        <a className="conflict-troop-popup-news-link" href={`https://news.google.com/search?q=${newsQuery}`} target="_blank" rel="noopener noreferrer">Search latest news →</a>
+      </div>
+    </div>
+  );
+}
+
 function NppIcon({ color }) {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
@@ -578,6 +610,7 @@ export { INFRA_SVG, NAVAL_SVG, BattleIcon, NppIcon };
 export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2 }) {
   const visibility = visible ? 'visible' : 'none';
   const [selectedBattle, setSelectedBattle] = useState(null);
+  const [selectedTroop, setSelectedTroop] = useState(null);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
   const showLabels = zoom >= ZOOM_SHOW_LABELS;
@@ -692,7 +725,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
 
       {/* ══════════ Battle popup ══════════ */}
       {visible && selectedBattle && (
-        <Marker longitude={selectedBattle.lon} latitude={selectedBattle.lat} anchor="bottom">
+        <Marker longitude={selectedBattle.lon} latitude={selectedBattle.lat} anchor="bottom" style={{ zIndex: 1000 }}>
           <BattlePopup site={selectedBattle} onClose={() => setSelectedBattle(null)} />
         </Marker>
       )}
@@ -748,9 +781,16 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       {/* ══════════ NATO troop symbols (zoom-gated) ══════════ */}
       {visible && showDetail && showTroops && TROOP_POSITIONS.map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
-          <NatoSymbol unit={unit} onClick={onTroopClick} />
+          <NatoSymbol unit={unit} onClick={(u) => { setSelectedTroop(u); onTroopClick?.(u); }} />
         </Marker>
       ))}
+
+      {/* ══════════ Troop popup ══════════ */}
+      {visible && selectedTroop && (
+        <Marker longitude={selectedTroop.lon} latitude={selectedTroop.lat} anchor="bottom" style={{ zIndex: 1000 }}>
+          <TroopPopup unit={selectedTroop} onClose={() => setSelectedTroop(null)} />
+        </Marker>
+      )}
 
     </>
   );

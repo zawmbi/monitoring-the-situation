@@ -37,17 +37,20 @@ function getGlobeScreenRadius(map) {
  */
 export default function EarthOverlay({ useGlobe = false, earthGlow = true, map = null }) {
   const haloRef = useRef(null);
+  const lastRadiusRef = useRef(0);
 
   // ---------- Globe radius tracking ----------
-  // Uses 'render' event (fires every frame during animations) and updates
-  // the DOM synchronously — no rAF delay — so the halo stays locked to the globe.
+  // Uses 'render' event but only writes to the DOM when the radius actually
+  // changes (±2px tolerance) to avoid layout thrashing every frame.
   useEffect(() => {
     if (!map || !useGlobe) return;
 
     const update = () => {
       const r = getGlobeScreenRadius(map);
-      if (r > 0) {
-        if (haloRef.current) {
+      if (r > 0 && haloRef.current) {
+        // Only update DOM when radius changes meaningfully
+        if (Math.abs(r - lastRadiusRef.current) > 2) {
+          lastRadiusRef.current = r;
           haloRef.current.style.width = r * 2 + 'px';
           haloRef.current.style.height = r * 2 + 'px';
           haloRef.current.style.display = '';

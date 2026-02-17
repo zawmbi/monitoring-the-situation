@@ -142,9 +142,15 @@ export async function fetchEONETEvents() {
 /**
  * Fetch all severe weather / disaster events combined.
  */
+const SEVERITY_RANK = { extreme: 0, severe: 1, major: 2, moderate: 3 };
+
 export async function fetchAllSevereEvents() {
   const [quakes, eonet] = await Promise.all([fetchEarthquakes(), fetchEONETEvents()]);
   const all = [...quakes, ...eonet];
-  all.sort((a, b) => b.timestamp - a.timestamp);
+  // Sort by severity first (so .slice() keeps the most important), then by time
+  all.sort((a, b) => {
+    const sr = (SEVERITY_RANK[a.severity] ?? 9) - (SEVERITY_RANK[b.severity] ?? 9);
+    return sr !== 0 ? sr : b.timestamp - a.timestamp;
+  });
   return all;
 }

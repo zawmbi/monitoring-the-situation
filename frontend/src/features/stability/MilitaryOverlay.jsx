@@ -82,9 +82,17 @@ const ZOOM_SHOW = 2;
 const ZOOM_LABELS = 3;
 
 // ── Detail Popup ──
+function buildNewsSearchUrl(query) {
+  return `https://news.google.com/search?q=${encodeURIComponent(query)}&hl=en`;
+}
+
 function MilPopup({ item, isBase, onClose }) {
   const flag = countryFlag(item.code || item.countryCode);
   const color = SEVERITY_COLORS[item.severity] || '#999';
+  const hasArticles = item.articles?.length > 0;
+  const searchQuery = isBase
+    ? `${item.name || ''} military`
+    : `${item.country || ''} military ${(item.label || '').split(' ').slice(0, 3).join(' ')}`;
 
   return (
     <div className="mil-popup" onClick={(e) => e.stopPropagation()}>
@@ -92,6 +100,9 @@ function MilPopup({ item, isBase, onClose }) {
         <div className="mil-popup-title-row">
           <span className="mil-popup-flag">{flag}</span>
           <span className="mil-popup-title">{isBase ? item.name : item.country}</span>
+          {item.live && (
+            <span className="mil-popup-live-badge">LIVE</span>
+          )}
         </div>
         <button className="mil-popup-close" onClick={onClose}>✕</button>
       </div>
@@ -129,6 +140,13 @@ function MilPopup({ item, isBase, onClose }) {
             <span className="mil-popup-val">
               {MOVEMENT_TYPES[item.type] || item.type.replace(/_/g, ' ')}
             </span>
+          </div>
+        )}
+
+        {!isBase && item.live && item.count && (
+          <div className="mil-popup-row">
+            <span className="mil-popup-key">GDELT Articles (14d)</span>
+            <span className="mil-popup-val" style={{ color: '#5baaff' }}>{item.count}</span>
           </div>
         )}
 
@@ -178,10 +196,10 @@ function MilPopup({ item, isBase, onClose }) {
       </div>
 
       {/* Articles from GDELT (live data) */}
-      {item.articles?.length > 0 && (
+      {hasArticles && (
         <div className="mil-popup-articles">
           <div className="mil-popup-articles-title">Recent OSINT</div>
-          {item.articles.slice(0, 3).map((a, i) => (
+          {item.articles.slice(0, 4).map((a, i) => (
             <a key={i} className="mil-popup-article" href={a.url} target="_blank" rel="noopener noreferrer">
               {a.title}
             </a>
@@ -189,10 +207,20 @@ function MilPopup({ item, isBase, onClose }) {
         </div>
       )}
 
-      <div className="mil-popup-source">
-        {isBase
-          ? (item.fleetAsset ? 'Source: OSINT / GDELT Fleet Tracking' : 'Source: Public OSINT / DOD')
-          : 'Source: GDELT + Baseline OSINT'}
+      <div className="mil-popup-footer">
+        <a
+          className="mil-popup-news-link"
+          href={buildNewsSearchUrl(searchQuery)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Search latest news
+        </a>
+        <span className="mil-popup-source">
+          {isBase
+            ? (item.fleetAsset ? 'OSINT / GDELT Fleet Tracking' : 'Public OSINT / DOD')
+            : (item.live ? 'GDELT Project (live)' : 'Baseline OSINT')}
+        </span>
       </div>
     </div>
   );

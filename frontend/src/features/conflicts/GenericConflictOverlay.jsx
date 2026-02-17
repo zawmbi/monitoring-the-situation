@@ -132,6 +132,38 @@ function BattleSiteMarker({ site, onClick, sideAName, sideBName }) {
   );
 }
 
+const UNIT_TYPE_LABELS = { infantry: 'Infantry', mechanized: 'Mechanized Infantry', armor: 'Armor / Tanks', artillery: 'Artillery', marines: 'Marines' };
+const UNIT_SIZE_LABELS = { battalion: 'Battalion (~300–1,000)', regiment: 'Regiment (~1,000–3,000)', brigade: 'Brigade (~3,000–5,000)', division: 'Division (~10,000–20,000)', corps: 'Corps (~20,000–40,000)' };
+
+function TroopPopup({ unit, onClose, sideAColor, sideBColor, sideAName, sideBName, sideAFlag, sideBFlag }) {
+  if (!unit) return null;
+  const isA = unit.side === 'sideA';
+  const color = isA ? sideAColor : sideBColor;
+  const sideName = isA ? sideAName : sideBName;
+  const flag = isA ? sideAFlag : sideBFlag;
+  const newsQuery = encodeURIComponent(`${unit.name} ${sideName} military`);
+  return (
+    <div className="conflict-troop-popup" onClick={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
+      <div className="conflict-troop-popup-header">
+        <div className="conflict-troop-popup-title">{flag && <span style={{ marginRight: 6 }}>{flag}</span>}{unit.name}</div>
+        <button className="conflict-troop-popup-close" onClick={onClose}>{'\u2715'}</button>
+      </div>
+      <div className="conflict-troop-popup-side-badge" style={{ background: `${color}22`, color, borderColor: `${color}44` }}>
+        {sideName}
+      </div>
+      <div className="conflict-troop-popup-body">
+        <div className="conflict-troop-popup-row"><span>Unit Type</span><span>{UNIT_TYPE_LABELS[unit.unitType] || unit.unitType}</span></div>
+        <div className="conflict-troop-popup-row"><span>Unit Size</span><span>{UNIT_SIZE_LABELS[unit.unitSize] || unit.unitSize}</span></div>
+        <div className="conflict-troop-popup-row"><span>Sector</span><span>{unit.sector}</span></div>
+        <div className="conflict-troop-popup-row"><span>Position</span><span className="conflict-troop-popup-coords">{unit.lat.toFixed(2)}°N, {unit.lon.toFixed(2)}°E</span></div>
+      </div>
+      <div className="conflict-troop-popup-footer">
+        <a className="conflict-troop-popup-news-link" href={`https://news.google.com/search?q=${newsQuery}`} target="_blank" rel="noopener noreferrer">Search latest news →</a>
+      </div>
+    </div>
+  );
+}
+
 function BattlePopup({ site, onClose, sideAColor, sideBColor, sideAName, sideBName }) {
   if (!site) return null;
   return (
@@ -179,6 +211,7 @@ function BattlePopup({ site, onClose, sideAColor, sideBColor, sideAName, sideBNa
 
 export default function GenericConflictOverlay({ visible, conflictData, showTroops = true, zoom = 2, onTroopClick }) {
   const [selectedBattle, setSelectedBattle] = useState(null);
+  const [selectedTroop, setSelectedTroop] = useState(null);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
   const showLabels = zoom >= ZOOM_SHOW_LABELS;
@@ -316,7 +349,7 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
 
       {/* Battle popup */}
       {visible && selectedBattle && (
-        <Marker longitude={selectedBattle.lon} latitude={selectedBattle.lat} anchor="bottom">
+        <Marker longitude={selectedBattle.lon} latitude={selectedBattle.lat} anchor="bottom" style={{ zIndex: 1000 }}>
           <BattlePopup
             site={selectedBattle}
             onClose={() => setSelectedBattle(null)}
@@ -352,9 +385,25 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
       {/* NATO troop symbols */}
       {visible && showDetail && showTroops && troops.map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
-          <NatoSymbol unit={unit} sideAColor={sideAColor} sideBColor={sideBColor} onClick={onTroopClick} />
+          <NatoSymbol unit={unit} sideAColor={sideAColor} sideBColor={sideBColor} onClick={(u) => { setSelectedTroop(u); onTroopClick?.(u); }} />
         </Marker>
       ))}
+
+      {/* Troop popup */}
+      {visible && selectedTroop && (
+        <Marker longitude={selectedTroop.lon} latitude={selectedTroop.lat} anchor="bottom" style={{ zIndex: 1000 }}>
+          <TroopPopup
+            unit={selectedTroop}
+            onClose={() => setSelectedTroop(null)}
+            sideAColor={sideAColor}
+            sideBColor={sideBColor}
+            sideAName={summary.sideA.name}
+            sideBName={summary.sideB.name}
+            sideAFlag={summary.sideA.flag}
+            sideBFlag={summary.sideB.flag}
+          />
+        </Marker>
+      )}
     </>
   );
 }

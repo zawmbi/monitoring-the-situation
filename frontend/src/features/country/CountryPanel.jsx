@@ -734,7 +734,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
               {hasApproval && (
                 <button
                   className="cp-approval-btn"
-                  onClick={() => setShowApproval(true)}
+                  onClick={() => setShowApproval(prev => !prev)}
                   aria-label="View approval rating"
                   title="Approval rating"
                 >

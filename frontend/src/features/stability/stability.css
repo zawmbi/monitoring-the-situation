@@ -690,14 +690,43 @@
   font-size: 9px;
   color: #777;
 }
-/* Source footer */
-.protest-popup-source {
+.protest-popup-live-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  letter-spacing: 0.5px;
+}
+
+.protest-popup-footer {
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.protest-popup-news-link {
+  font-size: 10px;
+  color: #5baaff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.protest-popup-news-link:hover {
+  text-decoration: underline;
+  color: #80c0ff;
+}
+
+.protest-popup-source {
   font-size: 9px;
   color: #666;
-  text-align: right;
+  font-style: italic;
 }
 
 /* ═══════════════════════════════════════════
@@ -969,6 +998,39 @@
 
 .mil-popup-article:hover {
   color: var(--color-text-primary, #e8e8f0);
+}
+
+.mil-popup-live-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  letter-spacing: 0.5px;
+}
+
+.mil-popup-footer {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mil-popup-news-link {
+  font-size: 10px;
+  color: #5baaff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mil-popup-news-link:hover {
+  text-decoration: underline;
+  color: #80c0ff;
 }
 
 .mil-popup-source {
