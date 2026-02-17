@@ -14,12 +14,12 @@ const PULSE_SIZES = {
   low: 8,
 };
 
-export default function DisasterOverlay({ events, onEventClick }) {
+export default function DisasterOverlay({ events, onEventClick, isMarkerVisible }) {
   if (!events || events.length === 0) return null;
 
   return (
     <>
-      {events.filter(e => e.lat && e.lon).map(event => (
+      {events.filter(e => e.lat && e.lon && (!isMarkerVisible || isMarkerVisible(e.lon, e.lat))).map(event => (
         <Marker key={event.id} longitude={event.lon} latitude={event.lat} anchor="center">
           <div
             className="disaster-marker"

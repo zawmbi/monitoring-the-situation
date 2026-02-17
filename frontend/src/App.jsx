@@ -3553,7 +3553,9 @@ function App() {
                   'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
-                  'line-opacity': 0.2,
+                  'line-opacity': showEUCountries
+                    ? ['case', ['boolean', ['get', 'isEU'], false], 0, 0.2]
+                    : 0.2,
                 }}
               />
             )}
@@ -3565,7 +3567,9 @@ function App() {
                   'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
-                  'line-opacity': 0.4,
+                  'line-opacity': showEUCountries
+                    ? ['case', ['boolean', ['get', 'isEU'], false], 0, 0.4]
+                    : 0.4,
                 }}
               />
             )}
@@ -3742,19 +3746,46 @@ function App() {
             </Source>
           )}
 
-          {/* EU unified entity — shown when toggled on */}
+          {/* EU unified entity — holographic gold glow when toggled on */}
           {showEUCountries && (
             <Source id="eu-countries" type="geojson" data={euCountriesGeoJSON}>
-              {/* Border rendered UNDER fill — internal shared edges hidden by fills on both sides */}
+              {/* Outer glow — wide soft halo */}
+              <Layer
+                id="eu-countries-glow-outer"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#b8960a' : '#ffd700',
+                  'line-width': 5,
+                  'line-blur': 8,
+                  'line-opacity': 0.2,
+                }}
+              />
+              {/* Mid glow — tighter bloom */}
+              <Layer
+                id="eu-countries-glow-mid"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#c4a000' : '#ffd700',
+                  'line-width': 3,
+                  'line-blur': 4,
+                  'line-opacity': 0.35,
+                }}
+              />
+              {/* Crisp holographic EU border */}
               <Layer
                 id="eu-countries-border"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(30, 70, 160, 0.6)' : 'rgba(80, 150, 255, 0.6)',
-                  'line-width': 2.5,
+                  'line-color': isLightTheme ? 'rgba(180, 150, 20, 0.7)' : 'rgba(255, 215, 0, 0.6)',
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    2.5,
+                    1.8,
+                  ],
                 }}
               />
-              {/* Unified EU fill — opaque enough to hide internal border artifacts */}
+              {/* Subtle EU tinted fill — interactive */}
               <Layer
                 id="eu-countries-fill"
                 type="fill"
@@ -3762,8 +3793,8 @@ function App() {
                   'fill-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(30, 60, 140, 0.32)' : 'rgba(60, 120, 220, 0.32)',
-                    isLightTheme ? 'rgba(30, 60, 140, 0.22)' : 'rgba(50, 100, 200, 0.22)',
+                    isLightTheme ? 'rgba(180, 160, 30, 0.18)' : 'rgba(255, 215, 0, 0.12)',
+                    isLightTheme ? 'rgba(180, 160, 30, 0.08)' : 'rgba(255, 215, 0, 0.05)',
                   ],
                   'fill-opacity': 1,
                 }}
@@ -3821,6 +3852,7 @@ function App() {
           {enabledLayers.severeWeather && disasterData?.activeEvents && (
             <DisasterOverlay
               events={disasterData.activeEvents}
+              isMarkerVisible={isMarkerVisible}
               onEventClick={(event) => {
                 if (event.lat && event.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
