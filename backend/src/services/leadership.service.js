@@ -18,6 +18,7 @@
 
 import { cacheService } from './cache.service.js';
 import { wikidataService } from './wikidata.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const CACHE_TTL = 3600; // 1 hour
@@ -161,17 +162,10 @@ class LeadershipService {
       const timespan = '7d';
       const url = `${GDELT_BASE}?query=${query}&mode=artlist&maxrecords=50&timespan=${timespan}&format=json&sort=datedesc`;
 
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'Monitored/1.0 (leadership-intelligence)' },
-        signal: AbortSignal.timeout(12000),
-      });
-
-      if (!res.ok) {
-        console.warn(`[Leadership] GDELT responded ${res.status} for ${leaderName}`);
+      const data = await fetchGDELTRaw(url, 'Leadership');
+      if (!data || Object.keys(data).length === 0) {
         return this._emptyActivity();
       }
-
-      const data = await res.json();
       const articles = data?.articles || [];
 
       // Calculate visibility index (article count normalized to 0-100)
@@ -313,13 +307,8 @@ class LeadershipService {
       const query = encodeURIComponent(keywords);
       const url = `${GDELT_BASE}?query=${query}&mode=artlist&maxrecords=75&timespan=3d&format=json&sort=datedesc`;
 
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'Monitored/1.0 (leadership-intelligence)' },
-        signal: AbortSignal.timeout(12000),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
+      const data = await fetchGDELTRaw(url, 'Leadership');
+      if (data && Object.keys(data).length > 0) {
         const articles = data?.articles || [];
 
         // Match articles to tracked leaders

@@ -11,6 +11,7 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_TTL = 600; // 10 minutes
 
@@ -127,6 +128,16 @@ function buildGdeltUrl(params) {
  * Returns null on any error.
  */
 async function safeFetchJson(url, label = 'GDELT') {
+  // Route GDELT URLs through rate-limited shared client
+  if (url.includes('gdeltproject.org')) {
+    try {
+      const data = await fetchGDELTRaw(url, 'Narrative');
+      return data && Object.keys(data).length > 0 ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(12000),

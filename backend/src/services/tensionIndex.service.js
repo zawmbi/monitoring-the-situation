@@ -12,6 +12,7 @@
 import { cacheService } from './cache.service.js';
 import { ucdpService } from './ucdp.service.js';
 import { stabilityService } from './stability.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_KEY = 'tension:index';
 const CACHE_TTL = 900; // 15 minutes
@@ -312,12 +313,9 @@ async function fetchGdeltArticleCount(query, timespan = '14d') {
       `${GDELT_DOC_URL}?query=${encodeURIComponent(query)}` +
       `&mode=ArtList&maxrecords=250&timespan=${timespan}&format=json`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) return 0;
-
-    const data = await resp.json();
-    const articles = data.articles || [];
-    return articles.length;
+    const data = await fetchGDELTRaw(url, 'TensionIndex');
+    if (!data) return 0;
+    return (data.articles || []).length;
   } catch {
     return 0;
   }

@@ -12,6 +12,7 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const CACHE_KEY_PREFIX = 'election-news';
@@ -58,25 +59,11 @@ class ElectionNewsService {
     });
 
     const url = `${GDELT_BASE}?${params}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        console.warn(`[ElectionNews] GDELT ${response.status} for query: ${query.slice(0, 50)}`);
-        return null;
-      }
-      const text = await response.text();
-      if (!text || text.trim() === '') return null;
-      return JSON.parse(text);
-    } catch (error) {
-      clearTimeout(timeout);
-      if (error.name === 'AbortError') {
-        console.warn('[ElectionNews] GDELT timeout');
-      }
+      const data = await fetchGDELTRaw(url, 'ElectionNews');
+      return data && Object.keys(data).length > 0 ? data : null;
+    } catch {
       return null;
     }
   }

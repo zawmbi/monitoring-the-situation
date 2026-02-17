@@ -9,6 +9,7 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_TTL = 3600; // 1 hour
 
@@ -383,10 +384,8 @@ async function fetchGdeltTone(query, timespan = '14d') {
       `${GDELT_BASE}?query=${encodeURIComponent(query)}` +
       `&mode=ToneChart&timespan=${timespan}&format=json`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!resp.ok) return { articleCount: 0, avgTone: 0 };
-
-    const data = await resp.json();
+    const data = await fetchGDELTRaw(url, 'Alliance');
+    if (!data || Object.keys(data).length === 0) return { articleCount: 0, avgTone: 0 };
     const timeline = data.timeline || [];
 
     if (timeline.length === 0) return { articleCount: 0, avgTone: 0 };
@@ -421,10 +420,8 @@ async function fetchGdeltArticleCount(query, timespan = '14d') {
       `${GDELT_BASE}?query=${encodeURIComponent(query)}` +
       `&mode=ArtList&maxrecords=250&timespan=${timespan}&format=json`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!resp.ok) return 0;
-
-    const data = await resp.json();
+    const data = await fetchGDELTRaw(url, 'Alliance');
+    if (!data) return 0;
     const articles = data.articles || [];
     return articles.length;
   } catch {
