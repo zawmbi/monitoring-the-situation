@@ -805,6 +805,92 @@ function StateContextBar({ pvi }) {
   );
 }
 
+function LivePolls({ polls, maxPolls = 5 }) {
+  if (!polls || polls.length === 0) return null;
+
+  return (
+    <div className="el-live-polls">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+        Latest Polls
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      {polls.slice(0, maxPolls).map((poll, i) => {
+        const total = poll.candidates.reduce((s, c) => s + c.pct, 0);
+        return (
+          <div key={i} className="el-live-poll-entry">
+            <div className="el-live-poll-meta">
+              <span className="el-live-poll-pollster">{poll.pollster}</span>
+              {poll.date && <span className="el-live-poll-date">{poll.date}</span>}
+              {poll.sampleSize && <span className="el-live-poll-sample">n={poll.sampleSize}</span>}
+            </div>
+            <div className="el-poll-bar">
+              {poll.candidates.map((c, j) => {
+                const color = PARTY_COLORS[c.party] || '#888';
+                const w = total > 0 ? (c.pct / total) * 100 : 50;
+                return (
+                  <div
+                    key={j}
+                    className="el-poll-bar-segment"
+                    style={{ width: `${Math.max(w, 3)}%`, background: color }}
+                    title={`${c.name} (${c.party}): ${c.pct}%`}
+                  />
+                );
+              })}
+            </div>
+            <div className="el-poll-labels">
+              {poll.candidates.map((c, j) => {
+                const color = PARTY_COLORS[c.party] || '#888';
+                return (
+                  <div key={j} className="el-poll-label">
+                    <span className="el-poll-dot" style={{ background: color }} />
+                    <span className="el-poll-name">{c.name}</span>
+                    <span className="el-poll-pct" style={{ color }}>{c.pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <div className="el-live-polls-attr">via Wikipedia / public polls</div>
+    </div>
+  );
+}
+
+function GenericBallotBanner({ genericBallot }) {
+  if (!genericBallot?.average) return null;
+  const avg = genericBallot.average;
+  // VoteHub uses "Democrat"/"Republican" as choice names
+  const dPct = avg.Democrat ?? avg.D ?? avg.Dem ?? null;
+  const rPct = avg.Republican ?? avg.R ?? avg.Rep ?? null;
+  if (dPct == null && rPct == null) return null;
+
+  return (
+    <div className="el-generic-ballot">
+      <div className="el-gb-header">
+        <span className="el-gb-title">2026 Generic Ballot</span>
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-gb-bar">
+        {dPct != null && (
+          <div className="el-gb-seg" style={{ width: `${dPct}%`, background: PARTY_COLORS.D }} />
+        )}
+        {rPct != null && (
+          <div className="el-gb-seg" style={{ width: `${rPct}%`, background: PARTY_COLORS.R }} />
+        )}
+      </div>
+      <div className="el-gb-labels">
+        {dPct != null && <span style={{ color: PARTY_COLORS.D }}>D {dPct}%</span>}
+        {rPct != null && <span style={{ color: PARTY_COLORS.R }}>R {rPct}%</span>}
+      </div>
+      <div className="el-live-polls-attr">via VoteHub</div>
+    </div>
+  );
+}
+
 export function ElectionPanel({ stateName, position, onClose, onPositionChange, bounds }) {
   const panelRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -1007,8 +1093,13 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             {/* Polling / Market data display */}
             {electionView === 'general' && (
               <>
-                {/* When live market data exists, show market probabilities as primary indicator */}
-                {activeRace.dWinProb != null ? (
+                {/* Live Wikipedia polls — primary data source */}
+                {activeRace.liveGeneralPolls && activeRace.liveGeneralPolls.length > 0 && (
+                  <LivePolls polls={activeRace.liveGeneralPolls} maxPolls={5} />
+                )}
+
+                {/* Market probabilities */}
+                {activeRace.dWinProb != null && (
                   <>
                     {activeRace.marketOutcomes && activeRace.marketOutcomes.length > 0 && (
                       <MarketOutcomes
@@ -1017,20 +1108,12 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                         marketUrl={activeRace.marketUrl}
                       />
                     )}
-                    {/* Show static candidate estimates as secondary, clearly labeled */}
-                    {activeRace.candidates?.general?.length > 0 && activeRace.candidates.general.some(c => c.name !== 'TBD' && !c.name.includes('Nominee')) && (
-                      <div className="el-static-polling">
-                        <div className="el-section-title el-static-label">
-                          Estimated Polling (Static)
-                          <span className="el-static-badge">EST</span>
-                        </div>
-                        <PollBar candidates={activeRace.candidates.general} partyColors={PARTY_COLORS} />
-                      </div>
-                    )}
                   </>
-                ) : (
+                )}
+
+                {/* Fallback: static estimates only when no live data at all */}
+                {!activeRace.liveGeneralPolls?.length && activeRace.dWinProb == null && (
                   <>
-                    {/* No live data — show static with clear caveat */}
                     <div className="el-section-title el-static-label">
                       General Election (Estimated)
                       <span className="el-static-badge">NO LIVE DATA</span>
@@ -1043,19 +1126,27 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
 
             {electionView === 'primary' && activeRace.candidates.primary && (
               <>
-                {Object.entries(activeRace.candidates.primary).map(([party, cands]) => {
-                  if (!cands || cands.length === 0) return null;
-                  return (
-                    <div key={party} className="el-primary-section">
-                      <div className="el-section-title">
-                        <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
-                        {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party === 'I' ? 'Independent' : party} Primary
-                        {!activeRace.dWinProb && <span className="el-static-badge">EST</span>}
+                {/* Live primary polls from Wikipedia */}
+                {activeRace.livePrimaryPolls && activeRace.livePrimaryPolls.length > 0 && (
+                  <LivePolls polls={activeRace.livePrimaryPolls} maxPolls={5} />
+                )}
+
+                {/* Static primary data as fallback */}
+                {(!activeRace.livePrimaryPolls || activeRace.livePrimaryPolls.length === 0) &&
+                  Object.entries(activeRace.candidates.primary).map(([party, cands]) => {
+                    if (!cands || cands.length === 0) return null;
+                    return (
+                      <div key={party} className="el-primary-section">
+                        <div className="el-section-title">
+                          <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
+                          {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party === 'I' ? 'Independent' : party} Primary
+                          <span className="el-static-badge">EST</span>
+                        </div>
+                        <PrimaryView party={party} candidates={cands} />
                       </div>
-                      <PrimaryView party={party} candidates={cands} />
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                }
               </>
             )}
 
@@ -1140,14 +1231,19 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   <span>D Need for Majority:</span>
                   <strong>Net +{NATIONAL_OVERVIEW.house.dNeedForMajority}</strong>
                 </div>
-                <div className="el-national-row">
-                  <span>Generic Ballot:</span>
-                  <strong>
-                    <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
-                    {' - '}
-                    <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
-                  </strong>
-                </div>
+                {data.genericBallot?.average ? (
+                  <GenericBallotBanner genericBallot={data.genericBallot} />
+                ) : (
+                  <div className="el-national-row">
+                    <span>Generic Ballot:</span>
+                    <strong>
+                      <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
+                      {' - '}
+                      <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
+                    </strong>
+                    <span className="el-static-badge" style={{ marginLeft: 6 }}>EST</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1172,6 +1268,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 Data Sources
               </div>
               <div className="el-info-source-list">
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Wikipedia Polls</span>
+                  <span className="el-info-source-desc">Senate race polling tables (live)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">VoteHub</span>
+                  <span className="el-info-source-desc">Generic ballot &amp; approval (live)</span>
+                </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">Prediction Markets</span>
                   <span className="el-info-source-desc">Polymarket + Kalshi + PredictIt (live)</span>

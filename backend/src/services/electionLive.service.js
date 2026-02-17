@@ -14,6 +14,8 @@ import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 import { fecService } from './fec.service.js';
 import { googleCivicService } from './googleCivic.service.js';
+import { wikipediaPollsService } from './wikipedia-polls.service.js';
+import { voteHubService } from './votehub.service.js';
 
 const CACHE_KEY = 'elections:live';
 const CACHE_TTL = 900; // 15 minutes
@@ -27,6 +29,9 @@ const SENATE_STATES = [
   'Oregon', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas',
   'Virginia', 'West Virginia', 'Wyoming',
 ];
+
+// Special elections use different Wikipedia article naming
+const SPECIAL_ELECTION_STATES = ['Florida'];
 
 // States with Governor races in 2026
 const GOVERNOR_STATES = [
@@ -289,11 +294,16 @@ class ElectionLiveService {
     try {
       // Fetch market data, FEC data, and Google Civic elections in parallel
       // FEC works with DEMO_KEY but may get rate-limited quickly; still try it
-      const [allMarkets, fecData, civicElections] = await Promise.allSettled([
+      // Build race type map for Wikipedia polls
+      const senateRaceTypes = {};
+      for (const s of SENATE_STATES) {
+        senateRaceTypes[s] = { type: SPECIAL_ELECTION_STATES.includes(s) ? 'special' : 'regular' };
+      }
+
+      const [allMarkets, fecData, civicElections, wikiPollsResult, genericBallotResult, approvalResult] = await Promise.allSettled([
         this._fetchAllElectionMarkets(),
         fecService.getAllSenateCandidates().catch(err => {
           if (!fecService.isConfigured) {
-            // Only log once for DEMO_KEY
             if (!this._fecDemoWarned) {
               console.log('[ElectionLive] FEC using DEMO_KEY — set FEC_API_KEY for reliable data');
               this._fecDemoWarned = true;
@@ -302,11 +312,26 @@ class ElectionLiveService {
           return {};
         }),
         googleCivicService.isConfigured ? googleCivicService.getUpcomingElections() : Promise.resolve([]),
+        wikipediaPollsService.fetchAllSenatePolls(senateRaceTypes).catch(err => {
+          console.warn('[ElectionLive] Wikipedia polls failed:', err.message);
+          return {};
+        }),
+        voteHubService.getGenericBallot().catch(err => {
+          console.warn('[ElectionLive] VoteHub generic ballot failed:', err.message);
+          return { polls: [], average: null };
+        }),
+        voteHubService.getApproval().catch(err => {
+          console.warn('[ElectionLive] VoteHub approval failed:', err.message);
+          return { polls: [], average: null };
+        }),
       ]);
 
       const markets = allMarkets.status === 'fulfilled' ? allMarkets.value : [];
       const fecCandidates = fecData.status === 'fulfilled' ? fecData.value : {};
       const upcomingElections = civicElections.status === 'fulfilled' ? civicElections.value : [];
+      const wikiPolls = wikiPollsResult.status === 'fulfilled' ? wikiPollsResult.value : {};
+      const genericBallot = genericBallotResult.status === 'fulfilled' ? genericBallotResult.value : { polls: [], average: null };
+      const approval = approvalResult.status === 'fulfilled' ? approvalResult.value : { polls: [], average: null };
 
       // Derive ratings from market probabilities
       const marketRatings = this._deriveRatingsFromMarkets(markets);
@@ -371,12 +396,29 @@ class ElectionLiveService {
           }));
       }
 
+      // Build compact polling data by state (only include states with polls)
+      const pollingByState = {};
+      for (const [state, data] of Object.entries(wikiPolls)) {
+        if (data.polls && data.polls.length > 0) {
+          pollingByState[state] = {
+            generalPolls: (data.generalPolls || []).slice(0, 10),
+            primaryPolls: (data.primaryPolls || []).slice(0, 10),
+            fetchedAt: data.fetchedAt,
+          };
+        }
+      }
+
       const result = {
         marketRatings,
         fecData: fecSummaries,
         fecCandidates: fecCandidatesByState,
         independentExpenditures: ieResults,
         upcomingElections,
+        pollingData: {
+          byState: pollingByState,
+          genericBallot,
+          approval,
+        },
         marketCount: markets.length,
         fecConfigured: fecService.isConfigured,
         civicConfigured: googleCivicService.isConfigured,
@@ -390,7 +432,8 @@ class ElectionLiveService {
 
       const ratingCount = Object.keys(marketRatings).length;
       const fecStateCount = Object.keys(fecSummaries).length;
-      console.log(`[ElectionLive] Done: ${ratingCount} market ratings, ${fecStateCount} FEC states, ${markets.length} total markets`);
+      const pollStates = Object.keys(pollingByState).length;
+      console.log(`[ElectionLive] Done: ${ratingCount} market ratings, ${fecStateCount} FEC states, ${pollStates} states w/ polls, ${markets.length} total markets`);
 
       return result;
     } catch (error) {

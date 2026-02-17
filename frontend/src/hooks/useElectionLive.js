@@ -80,6 +80,10 @@ export function useElectionLive(stateName) {
     const marketRatings = liveData.marketRatings || {};
     const fecData = liveData.fecData || {};
 
+    // Merge polling data from Wikipedia
+    const pollingData = liveData.pollingData || {};
+    const statePolls = pollingData.byState?.[state] || null;
+
     // Merge Senate data
     let senate = staticData.senate;
     const senateKey = `${state}:senate`;
@@ -94,6 +98,14 @@ export function useElectionLive(stateName) {
         marketSource: senateLive.marketSource,
         marketVolume: senateLive.marketVolume,
         marketOutcomes: senateLive.outcomes,
+      };
+    }
+    // Attach live polls to senate race
+    if (senate && statePolls) {
+      senate = {
+        ...senate,
+        liveGeneralPolls: statePolls.generalPolls || [],
+        livePrimaryPolls: statePolls.primaryPolls || [],
       };
     }
 
@@ -194,6 +206,8 @@ export function useElectionLive(stateName) {
       fecCandidates,
       fecSummary,
       upcomingElections: liveData.upcomingElections || [],
+      genericBallot: pollingData.genericBallot || null,
+      approval: pollingData.approval || null,
       live: {
         timestamp: liveData.timestamp,
         fecConfigured: liveData.fecConfigured,
