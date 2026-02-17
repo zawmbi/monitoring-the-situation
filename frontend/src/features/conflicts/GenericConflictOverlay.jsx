@@ -208,9 +208,206 @@ function BattlePopup({ site, onClose, sideAColor, sideBColor, sideAName, sideBNa
   );
 }
 
+/* ─── Map Legend (generic) ─── */
+
+export function GenericMapLegend({ open, onToggle, summary, hasFrontlines, hasBattles, hasInfra, hasTroops, hasForts }) {
+  const sideAColor = summary.sideA.color;
+  const sideBColor = summary.sideB.color;
+  return (
+    <div className={`conflict-map-legend ${open ? 'conflict-map-legend--open' : ''}`}>
+      <button className="conflict-map-legend-toggle" onClick={onToggle}>
+        {open ? '\u2715' : '?'} {!open && <span>Legend</span>}
+      </button>
+      {open && (
+        <div className="conflict-map-legend-body">
+          <div className="conflict-map-legend-title">{summary.name} — Map Symbols</div>
+
+          {/* Sides */}
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Belligerents</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: sideAColor }} />
+              <span>{summary.sideA.name}</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: sideBColor }} />
+              <span>{summary.sideB.name}</span>
+            </div>
+          </div>
+
+          {/* Frontlines */}
+          {hasFrontlines && (
+            <div className="conflict-map-legend-section">
+              <div className="conflict-map-legend-heading">Frontlines</div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-line" style={{ background: sideAColor }} />
+                <span>{summary.sideA.shortName} side</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-line" style={{ background: sideBColor }} />
+                <span>{summary.sideB.shortName} side</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-line" style={{ background: 'rgba(255,255,255,0.7)' }} />
+                <span>Line of contact</span>
+              </div>
+            </div>
+          )}
+
+          {hasForts && (
+            <div className="conflict-map-legend-section">
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-line conflict-map-legend-line--dashed" style={{ background: '#ff8c00' }} />
+                <span>Fortification line</span>
+              </div>
+            </div>
+          )}
+
+          {/* Cities */}
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Cities & Territory</div>
+            <div className="conflict-map-legend-row">
+              <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" fill={sideAColor} stroke="#FFD700" strokeWidth="2" /></svg>
+              <span>Capital city</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: sideAColor }} />
+              <span>{summary.sideA.shortName}-controlled city</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: sideBColor }} />
+              <span>{summary.sideB.shortName}-controlled city</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#ffa500' }} />
+              <span>Contested city</span>
+            </div>
+          </div>
+
+          {/* Military infrastructure */}
+          {hasInfra && (
+            <div className="conflict-map-legend-section">
+              <div className="conflict-map-legend-heading">Military Infrastructure</div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon">{INFRA_SVG.airbase('#9ec8ff')}</span>
+                <span>Airbase</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon">{INFRA_SVG.port('#9ec8ff')}</span>
+                <span>Port / Naval base</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon">{INFRA_SVG.airdefense('#9ec8ff')}</span>
+                <span>Air defense</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon">{INFRA_SVG.depot('#9ec8ff')}</span>
+                <span>Supply depot</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon">{INFRA_SVG.bridge('#ff9d91')}</span>
+                <span>Bridge</span>
+              </div>
+            </div>
+          )}
+
+          {/* Battle sites */}
+          {hasBattles && (
+            <div className="conflict-map-legend-section">
+              <div className="conflict-map-legend-heading">Combat</div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon"><BattleIcon color="#ffa500" /></span>
+                <span>Battle site (click for details)</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon"><BattleIcon color={sideAColor} /></span>
+                <span>{summary.sideA.shortName} victory</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-icon"><BattleIcon color={sideBColor} /></span>
+                <span>{summary.sideB.shortName} victory</span>
+              </div>
+            </div>
+          )}
+
+          {/* NATO unit symbols */}
+          {hasTroops && (
+            <div className="conflict-map-legend-section">
+              <div className="conflict-map-legend-heading">NATO Unit Symbols</div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-nato" style={{ background: sideAColor, borderColor: '#fff' }}>{'\u2573'}</span>
+                <span>{summary.sideA.shortName} unit</span>
+              </div>
+              <div className="conflict-map-legend-row">
+                <span className="conflict-map-legend-nato" style={{ background: sideBColor, borderColor: '#fff' }}>{'\u2573'}</span>
+                <span>{summary.sideB.shortName} unit</span>
+              </div>
+              <div className="conflict-map-legend-section" style={{ marginTop: 4 }}>
+                <div className="conflict-map-legend-heading">Unit Types</div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>{'\u2573'}</span>
+                  <span>Infantry</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>{'\u2299'}</span>
+                  <span>Armor / Tanks</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>{'\u25CF'}</span>
+                  <span>Artillery</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-nato" style={{ background: '#555', borderColor: '#888' }}>{'\u2693'}</span>
+                  <span>Marines</span>
+                </div>
+              </div>
+              <div className="conflict-map-legend-section" style={{ marginTop: 4 }}>
+                <div className="conflict-map-legend-heading">Unit Sizes (pips above box)</div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-pips">II</span>
+                  <span>Battalion (~300–1,000)</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-pips">III</span>
+                  <span>Regiment (~1,000–3,000)</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-pips">{'\u2573'}</span>
+                  <span>Brigade (~3,000–5,000)</span>
+                </div>
+                <div className="conflict-map-legend-row">
+                  <span className="conflict-map-legend-pips">{'\u2573\u2573'}</span>
+                  <span>Division (~10,000–20,000)</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status labels */}
+          <div className="conflict-map-legend-section">
+            <div className="conflict-map-legend-heading">Sector Status</div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#ff4444' }} />
+              <span>Active Combat</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#ffa500' }} />
+              <span>Contested</span>
+            </div>
+            <div className="conflict-map-legend-row">
+              <span className="conflict-map-legend-dot" style={{ background: '#44bb44' }} />
+              <span>Stable / Ceasefire</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main overlay ─── */
 
-export default function GenericConflictOverlay({ visible, conflictData, showTroops = true, zoom = 2, onTroopClick, isMarkerVisible }) {
+export default function GenericConflictOverlay({ visible, conflictData, showTroops = true, zoom = 2, onTroopClick, isMarkerVisible, showLegend = false, onLegendToggle }) {
   const [selectedBattle, setSelectedBattle] = useState(null);
   const [selectedTroop, setSelectedTroop] = useState(null);
 
@@ -405,6 +602,20 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
             sideBFlag={summary.sideB.flag}
           />
         </Marker>
+      )}
+
+      {/* Map Legend */}
+      {visible && (
+        <GenericMapLegend
+          open={showLegend}
+          onToggle={() => onLegendToggle?.()}
+          summary={summary}
+          hasFrontlines={frontlines.length > 0}
+          hasBattles={battles.length > 0}
+          hasInfra={infra.length > 0}
+          hasTroops={troops.length > 0}
+          hasForts={fortLines.length > 0}
+        />
       )}
     </>
   );

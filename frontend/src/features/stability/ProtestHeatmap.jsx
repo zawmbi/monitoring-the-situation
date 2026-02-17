@@ -99,11 +99,14 @@ function ProtestPopup({ protest, onClose }) {
       {/* News articles from GDELT */}
       {articles.length > 0 && (
         <div className="protest-popup-articles">
-          <div className="protest-popup-articles-title">Recent News</div>
-          {articles.slice(0, 4).map((a, i) => (
+          <div className="protest-popup-articles-title">Recent Coverage ({articles.length} source{articles.length !== 1 ? 's' : ''})</div>
+          {articles.slice(0, 6).map((a, i) => (
             <a key={i} className="protest-popup-article" href={a.url} target="_blank" rel="noopener noreferrer">
               <span className="protest-popup-article-text">{a.title}</span>
-              {a.source && <span className="protest-popup-article-source">{a.source}</span>}
+              <span className="protest-popup-article-meta">
+                {a.source && <span className="protest-popup-article-source">{a.source}</span>}
+                {a.date && <span className="protest-popup-article-date">{new Date(a.date).toLocaleDateString()}</span>}
+              </span>
             </a>
           ))}
         </div>
@@ -116,10 +119,18 @@ function ProtestPopup({ protest, onClose }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Search latest news
+          Google News &rarr;
+        </a>
+        <a
+          className="protest-popup-news-link"
+          href={`https://twitter.com/search?q=${encodeURIComponent(`${protest.country || protest.code} protest`)}&f=live`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          X/Twitter &rarr;
         </a>
         <span className="protest-popup-source">
-          {protest.live ? 'GDELT Project (live)' : 'Baseline OSINT'}
+          {protest.live ? 'GDELT (live 14d)' : 'Baseline OSINT'}
         </span>
       </div>
     </div>

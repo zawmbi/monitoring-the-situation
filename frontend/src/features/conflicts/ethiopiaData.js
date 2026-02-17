@@ -24,12 +24,23 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'Post-Tigray ceasefire / Amhara & Oromia insurgencies',
-  sideA: { name: 'Ethiopian Federal Govt (ENDF)', shortName: 'ENDF', color: GOVT_GREEN, flag: '\u{1F1EA}\u{1F1F9}' },
-  sideB: { name: 'Fano / OLA / TPLF (various)', shortName: 'Armed Groups', color: FANO_RED, flag: 'svg:militia' },
+  sideA: {
+    name: 'Ethiopian Federal Govt (ENDF)', shortName: 'ENDF', color: GOVT_GREEN, flag: '\u{1F1EA}\u{1F1F9}',
+    leader: 'PM Abiy Ahmed',
+    description: 'Ethiopian National Defense Force (ENDF) and federal government under PM Abiy Ahmed (2019 Nobel Peace laureate). Fought Tigray war 2020-2022, now facing Fano insurgency in Amhara and OLA in Oromia.',
+    goals: 'Maintain federal authority, implement national reforms, disarm regional forces, centralize power',
+  },
+  sideB: {
+    name: 'Fano / OLA / TPLF (various)', shortName: 'Armed Groups', color: FANO_RED, flag: 'svg:militia',
+    leader: 'Various (Fano commanders / OLA: Jaal Marroo / TPLF: Debretsion)',
+    description: 'Multiple armed groups: Fano (Amhara nationalist militia opposing disarmament), OLA (Oromo Liberation Army seeking Oromo self-determination), and TPLF (Tigray People\'s Liberation Front, signed ceasefire Nov 2022 but tensions remain). Each has distinct grievances.',
+    goals: 'Fano: preserve Amhara regional forces and disputed territories. OLA: Oromo self-determination. TPLF: Tigray autonomy and post-war justice.',
+  },
   internationalSupport: {
     sideA: 'UAE (drones), Eritrea (Tigray war), Turkey, Iran, China',
     sideB: 'Limited; diaspora funding',
   },
+  background: 'Ethiopia\'s internal conflicts stem from ethnic federalism tensions. The devastating Tigray war (2020-2022) killed an estimated 600,000+. Despite a ceasefire, the Amhara Fano insurgency erupted in 2023 after PM Abiy ordered regional forces to disarm. OLA continues guerrilla operations in Oromia. The country faces multiple overlapping conflicts along ethnic lines.',
 };
 
 // ─── Frontline segments ───

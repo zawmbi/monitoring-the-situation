@@ -2,8 +2,16 @@ const COUNTRY_INFO_API =
   import.meta.env.VITE_COUNTRY_INFO_API ||
   'https://restcountries.com/v3.1/name';
 
+// In-memory cache with 30-minute TTL
+const profileCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000;
+
 export async function fetchCountryProfile(name) {
   if (!name) return null;
+
+  // Check cache first
+  const cached = profileCache.get(name.toLowerCase());
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
   // Try exact match first, then fall back to partial search
   let response = await fetch(`${COUNTRY_INFO_API}/${encodeURIComponent(name)}?fullText=true`);
@@ -101,7 +109,7 @@ export async function fetchCountryProfile(name) {
   // Start of week
   const startOfWeek = country.startOfWeek || null;
 
-  return {
+  const profile = {
     name: country.name?.common || name,
     officialName: country.name?.official || name,
     population,
@@ -132,6 +140,11 @@ export async function fetchCountryProfile(name) {
     startOfWeek,
     raw: country,
   };
+
+  // Store in cache
+  profileCache.set(name.toLowerCase(), { data: profile, ts: Date.now() });
+
+  return profile;
 }
 
 export default { fetchCountryProfile };

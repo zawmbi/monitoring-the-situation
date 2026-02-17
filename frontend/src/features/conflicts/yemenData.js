@@ -24,8 +24,19 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'Post-STC crisis; Houthi Red Sea attacks ceased after Oct 2025 Gaza ceasefire; new govt cabinet formed Feb 2026',
-  sideA: { name: 'Houthis (Ansar Allah)', shortName: 'Houthis', color: HOUTHI_GREEN, flag: '\u{1F1FE}\u{1F1EA}' },
-  sideB: { name: 'Intl. Recognized Govt / Coalition', shortName: 'IRG/Coalition', color: GOVT_BLUE, flag: '\u{1F1F8}\u{1F1E6}' },
+  sideA: {
+    name: 'Houthis (Ansar Allah)', shortName: 'Houthis', color: HOUTHI_GREEN, flag: '\u{1F1FE}\u{1F1EA}',
+    leader: 'Abdul-Malik al-Houthi',
+    description: 'Ansar Allah (Houthi movement), a Zaydi Shia political and armed group. Controls northern Yemen including Sana\'a since 2014. Iran-backed with ballistic missiles and drones. Launched Red Sea shipping attacks in solidarity with Gaza.',
+    goals: 'Maintain control of northern Yemen, resist Saudi-led coalition, end blockade of Yemeni ports',
+  },
+  sideB: {
+    name: 'Intl. Recognized Govt / Coalition', shortName: 'IRG/Coalition', color: GOVT_BLUE, flag: '\u{1F1F8}\u{1F1E6}',
+    leader: 'Pres. Rashad al-Alimi (Presidential Leadership Council)',
+    description: 'Internationally Recognized Government backed by Saudi-led coalition. Fragmented between multiple factions including the Southern Transitional Council (STC) seeking southern independence. Coalition includes Saudi Arabia, UAE.',
+    goals: 'Restore legitimate government authority, counter Iranian influence, maintain Yemen\'s territorial unity',
+  },
+  background: 'Yemen\'s civil war began in 2014 when Houthis seized Sana\'a, escalating in 2015 with Saudi-led military intervention. The conflict created one of the world\'s worst humanitarian crises. A truce in 2022 reduced hostilities, but Houthi Red Sea attacks on shipping (2023-2025) brought renewed international military action. The conflict remains unresolved with Yemen effectively partitioned.',
   internationalSupport: {
     sideA: 'Iran (missiles, drones, advisors)',
     sideB: 'Saudi Arabia (dominant partner since UAE withdrawal Dec 2025), US/UK (anti-Houthi strikes)',

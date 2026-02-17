@@ -837,6 +837,7 @@ function App() {
   const [activeConflicts, setActiveConflicts] = useState({});
   const [conflictPanels, setConflictPanels] = useState({});
   const [conflictTroops, setConflictTroops] = useState({});
+  const [conflictLegends, setConflictLegends] = useState({});
   const ADDITIONAL_CONFLICTS = [
     { id: 'israel-gaza', label: 'Israel\u2013Gaza War', data: israelGazaData },
     { id: 'sudan', label: 'Sudan Civil War', data: sudanData },
@@ -2466,6 +2467,11 @@ function App() {
                           <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
                           <span className="slider" />
                         </label>
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Refugee Flows</span>
+                          <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
+                          <span className="slider" />
+                        </label>
                       </div>
                       <button
                         className="stability-sidebar-open-btn"
@@ -2763,11 +2769,6 @@ function App() {
                 <div className="source-group">
                   <div className="source-group-title">Migration & Humanitarian</div>
                   <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Refugee Flows</span>
-                      <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
                     <label className="switch switch-neutral">
                       <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
                       <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
@@ -4352,6 +4353,8 @@ function App() {
               showTroops={conflictTroops[conflict.id] !== false}
               zoom={mapZoom}
               isMarkerVisible={isMarkerVisible}
+              showLegend={!!conflictLegends[conflict.id]}
+              onLegendToggle={() => setConflictLegends(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
               onTroopClick={() => {
                 if (!conflictPanels[conflict.id]) {
                   setConflictPanels(prev => ({ ...prev, [conflict.id]: true }));

@@ -157,14 +157,59 @@ function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor,
         </div>
       )}
 
-      <div className="conflict-sides-header">
-        <div className="conflict-side-label">
-          <span className="conflict-side-dot" style={{ background: sideAColor }} /> {summary.sideA.name}
+      {/* Side descriptions */}
+      <div className="conflict-sides-detail">
+        <div className="conflict-side-card" style={{ borderColor: sideAColor }}>
+          <div className="conflict-side-card-header">
+            <span className="conflict-side-dot" style={{ background: sideAColor }} />
+            <span className="conflict-side-card-name">{summary.sideA.name}</span>
+          </div>
+          {summary.sideA.leader && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Leader</span>
+              <span className="conflict-side-card-val">{summary.sideA.leader}</span>
+            </div>
+          )}
+          {summary.sideA.description && (
+            <div className="conflict-side-card-desc">{summary.sideA.description}</div>
+          )}
+          {summary.sideA.goals && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Goals</span>
+              <span className="conflict-side-card-val">{summary.sideA.goals}</span>
+            </div>
+          )}
         </div>
-        <div className="conflict-side-label">
-          <span className="conflict-side-dot" style={{ background: sideBColor }} /> {summary.sideB.name}
+        <div className="conflict-side-card" style={{ borderColor: sideBColor }}>
+          <div className="conflict-side-card-header">
+            <span className="conflict-side-dot" style={{ background: sideBColor }} />
+            <span className="conflict-side-card-name">{summary.sideB.name}</span>
+          </div>
+          {summary.sideB.leader && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Leader</span>
+              <span className="conflict-side-card-val">{summary.sideB.leader}</span>
+            </div>
+          )}
+          {summary.sideB.description && (
+            <div className="conflict-side-card-desc">{summary.sideB.description}</div>
+          )}
+          {summary.sideB.goals && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Goals</span>
+              <span className="conflict-side-card-val">{summary.sideB.goals}</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Background context */}
+      {summary.background && (
+        <div className="conflict-stat-group">
+          <div className="conflict-stat-group-title">Background</div>
+          <div className="conflict-section-note" style={{ lineHeight: 1.5 }}>{summary.background}</div>
+        </div>
+      )}
 
       {/* Casualties */}
       {casualties && (

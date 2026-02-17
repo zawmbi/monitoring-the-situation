@@ -146,7 +146,8 @@ async function fetchProtestData() {
       countryCode: code,
       lat,
       lon,
-      intensity: Math.min(10, Math.max(1, Math.round(data.count / 3))),
+      // Logarithmic scaling: 1 article→1, 3→3, 10→5, 30→7, 80+→10
+      intensity: Math.min(10, Math.max(1, Math.round(2.0 * Math.log2(data.count + 1)))),
       count: data.count,
       articles: data.articles,
     };
