@@ -61,7 +61,6 @@ import { useTension } from './hooks/useTension';
 import { useBriefing } from './hooks/useBriefing';
 import { useCountryRisk } from './hooks/useCountryRisk';
 import { useRefugees } from './hooks/useRefugees';
-import { DisasterPanel } from './features/disasters/DisasterPanel';
 import DisasterOverlay from './features/disasters/DisasterOverlay';
 import { CyberPanel } from './features/cyber/CyberPanel';
 import { CommoditiesPanel } from './features/commodities/CommoditiesPanel';
@@ -893,8 +892,6 @@ function App() {
   } = useStability(stabilityMode);
 
   // ── New feature state ──
-  const [showDisasters, setShowDisasters] = useState(false);
-  const [showDisasterPanel, setShowDisasterPanel] = useState(false);
   const [showCyberPanel, setShowCyberPanel] = useState(false);
   const [showCommoditiesPanel, setShowCommoditiesPanel] = useState(false);
   const [showRefugeePanel, setShowRefugeePanel] = useState(false);
@@ -917,7 +914,7 @@ function App() {
   const [showTimeline, setShowTimeline] = useState(false);
 
   // ── New data hooks ──
-  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(showDisasters);
+  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather);
   const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel);
   const { data: commoditiesData, loading: commoditiesLoading, refresh: refreshCommodities } = useCommodities(showCommoditiesPanel);
   const { data: shippingData, loading: shippingLoading, refresh: refreshShipping } = useShipping(showShippingMode);
@@ -1025,7 +1022,7 @@ function App() {
         case '2': setShowTensionPanel(p => !p); break;
         case '3': setShowCountryRiskPanel(p => !p); setShowCountryRiskMode(true); break;
         case '4': setShowCommoditiesPanel(p => !p); break;
-        case '5': setShowDisasters(p => { if (!p) setShowDisasterPanel(true); return !p; }); break;
+        case '5': toggleLayer('severeWeather'); break;
         case '6': setShowCyberPanel(p => !p); break;
         case '7': setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); break;
         case '0': setShowWatchlistPanel(p => !p); break;
@@ -2128,11 +2125,11 @@ function App() {
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
                     {[
-                      { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false },
+                      { id: 'severeWeather', label: 'Severe Weather & Disasters', tone: 'flights', disabled: false, kbd: '5' },
                       { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
                     ].map((layer) => (
                       <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                        <span className="switch-label">{layer.label}</span>
+                        <span className="switch-label">{layer.label}{layer.kbd && <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>{layer.kbd}</kbd>}</span>
                         <input
                           type="checkbox"
                           checked={enabledLayers[layer.id]}
@@ -2446,11 +2443,6 @@ function App() {
                   <div className="source-group-title">Disasters & Security</div>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
-                      <span className="switch-label">Natural Disasters <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>5</kbd></span>
-                      <input type="checkbox" checked={showDisasters} onChange={() => { setShowDisasters(p => { if (!p) setShowDisasterPanel(true); return !p; }); }} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
                       <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
                       <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
                       <span className="slider" />
@@ -2472,15 +2464,6 @@ function App() {
                     </label>
                   </div>
 
-                  {showDisasters && disasterData && (
-                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                      <strong>{disasterData.summary?.totalActive || 0} Active Natural Events</strong>
-                      <p>NASA EONET live tracking. {disasterData.summary?.bySeverity?.critical || 0} critical, {disasterData.summary?.bySeverity?.high || 0} high severity.</p>
-                      <button className="stability-sidebar-open-btn" onClick={() => setShowDisasterPanel(p => !p)}>
-                        {showDisasterPanel ? 'Close' : 'Open'} Disaster Panel
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 <div className="source-group">
@@ -2817,10 +2800,10 @@ function App() {
         {showSeverePanel && (
           <PanelWindow
             id="severe-weather"
-            title="Severe Weather"
+            title="Severe Weather & Disasters"
             onClose={() => { setShowSeverePanel(false); setSelectedSevereEventId(null); setEnabledLayers(prev => ({ ...prev, severeWeather: false })); }}
-            defaultWidth={420}
-            defaultHeight={560}
+            defaultWidth={440}
+            defaultHeight={600}
             defaultMode="floating"
             defaultPosition={{ x: 90, y: 80 }}
           >
@@ -2834,6 +2817,14 @@ function App() {
               onEventClick={(event) => {
                 setSelectedSevereEventId(event.id);
                 if (event.lon && event.lat && mapRef.current) {
+                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
+                }
+              }}
+              disasterData={disasterData}
+              disasterLoading={disasterLoading}
+              onRefreshDisasters={refreshDisasters}
+              onDisasterEventClick={(event) => {
+                if (event.lat && event.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
                 }
               }}
@@ -2967,29 +2958,6 @@ function App() {
           </PanelWindow>
         )}
 
-        {/* ══════════ Disaster Panel ══════════ */}
-        {showDisasters && showDisasterPanel && (
-          <PanelWindow
-            id="disasters"
-            title="Natural Disasters"
-            onClose={() => setShowDisasterPanel(false)}
-            defaultWidth={400}
-            defaultHeight={560}
-            defaultMode="floating"
-            defaultPosition={{ x: 90, y: 80 }}
-          >
-            <DisasterPanel
-              data={disasterData}
-              loading={disasterLoading}
-              onRefresh={refreshDisasters}
-              onEventClick={(event) => {
-                if (event.lat && event.lon && mapRef.current) {
-                  mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
-                }
-              }}
-            />
-          </PanelWindow>
-        )}
 
         {/* ══════════ Cyber Panel ══════════ */}
         {showCyberPanel && (
@@ -3850,7 +3818,7 @@ function App() {
           />
 
           {/* Disaster markers on map */}
-          {showDisasters && disasterData?.activeEvents && (
+          {enabledLayers.severeWeather && disasterData?.activeEvents && (
             <DisasterOverlay
               events={disasterData.activeEvents}
               onEventClick={(event) => {

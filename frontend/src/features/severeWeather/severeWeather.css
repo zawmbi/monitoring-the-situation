@@ -34,6 +34,65 @@
   cursor: grabbing;
 }
 
+/* Mode toggle — Weather vs Disasters */
+
+.severe-weather-integrated {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.severe-mode-toggle {
+  display: flex;
+  padding: 8px 12px 0;
+  gap: 4px;
+}
+
+.severe-mode-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px 6px 0 0;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.severe-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.severe-mode-btn--active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-bottom-color: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid transparent;
+}
+
+.severe-mode-count {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.severe-mode-btn--active .severe-mode-count {
+  background: rgba(255, 140, 0, 0.25);
+  color: #ffaa44;
+}
+
 /* Header */
 
 .severe-panel-header {
