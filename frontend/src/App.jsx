@@ -857,8 +857,23 @@ function App() {
   const [newsPanelPosition, setNewsPanelPosition] = useState(null);
 
 
-  // Tooltip state
-  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
+  // Tooltip — ref-based to avoid React re-renders on every mousemove
+  const tooltipRef = useRef(null);
+  const tooltipDataRef = useRef({ show: false, text: '', x: 0, y: 0 });
+  const setTooltip = useCallback((val) => {
+    const el = tooltipRef.current;
+    const prev = tooltipDataRef.current;
+    tooltipDataRef.current = val;
+    if (!el) return;
+    if (val.show) {
+      el.style.display = '';
+      el.style.left = val.x + 'px';
+      el.style.top = val.y + 'px';
+      if (val.text !== prev.text) el.textContent = val.text;
+    } else {
+      el.style.display = 'none';
+    }
+  }, []);
 
   // Layer toggles (flights disabled by default)
   const [enabledLayers, setEnabledLayers] = useState({
@@ -876,7 +891,7 @@ function App() {
   const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
   const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
   const [showStabilityPanel, setShowStabilityPanel] = useState(false);
-  const [showUSBases, setShowUSBases] = useState(true);
+  const [showUSBases, setShowUSBases] = useState(false);
 
   const { feed, loading: feedLoading, error: feedError } = useFeed(80);
   const { flights, loading: flightsLoading, error: flightsError } = useFlights(enabledLayers.flights);
@@ -1910,15 +1925,20 @@ function App() {
     }
   }, []);
 
-  // Track map center for globe hemisphere visibility check + starfield parallax
+  // Track map center for globe hemisphere visibility check
+  const lastZoomRef = useRef(2);
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
     if (c) {
       mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
-      // Update bearing/pitch for starfield parallax (throttled by rAF)
-      setMapBearing(c.bearing || 0);
-      setMapPitch(c.pitch || 0);
-      if (c.zoom !== undefined) setMapZoom(c.zoom);
+      // Only update zoom state when it changes meaningfully (avoids re-render every frame)
+      if (c.zoom !== undefined) {
+        const rounded = Math.round(c.zoom * 10) / 10;
+        if (rounded !== lastZoomRef.current) {
+          lastZoomRef.current = rounded;
+          setMapZoom(rounded);
+        }
+      }
     }
   }, []);
 
@@ -2014,10 +2034,6 @@ function App() {
       map.off('zoomend', onInteractionEnd);
     };
   }, [useGlobe, autoRotate, mapLoaded]);
-
-  // Track map bearing and pitch for starfield parallax
-  const [mapBearing, setMapBearing] = useState(0);
-  const [mapPitch, setMapPitch] = useState(0);
 
   return (
     <WindowManagerProvider>
@@ -4220,20 +4236,12 @@ function App() {
           </button>
         </div>
 
-        {/* Tooltip */}
-        {tooltip.show && (
-          <div
-            className="map-tooltip"
-            style={{
-              position: 'absolute',
-              left: tooltip.x,
-              top: tooltip.y,
-              pointerEvents: 'none'
-            }}
-          >
-            {tooltip.text}
-          </div>
-        )}
+        {/* Tooltip — ref-based, updated imperatively to avoid re-renders */}
+        <div
+          ref={tooltipRef}
+          className="map-tooltip"
+          style={{ position: 'absolute', pointerEvents: 'none', display: 'none' }}
+        />
       </div>
     </div>
     </div>
