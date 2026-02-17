@@ -42,6 +42,9 @@ import * as myanmarData from './features/conflicts/myanmarData';
 import * as yemenData from './features/conflicts/yemenData';
 import * as ethiopiaData from './features/conflicts/ethiopiaData';
 import * as drcData from './features/conflicts/drcData';
+import * as iranIsraelData from './features/conflicts/iranIsraelData';
+import * as indiaPakistanData from './features/conflicts/indiaPakistanData';
+import * as sahelData from './features/conflicts/sahelData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 import ProtestHeatmap from './features/stability/ProtestHeatmap';
@@ -57,6 +60,7 @@ import GlobalStatusBar from './components/GlobalStatusBar';
 import NewsTicker from './components/NewsTicker';
 import { useDisasters } from './hooks/useDisasters';
 import { useCyber } from './hooks/useCyber';
+import { useHealth } from './hooks/useHealth';
 import { useCommodities } from './hooks/useCommodities';
 import { useShipping } from './hooks/useShipping';
 import { useTension } from './hooks/useTension';
@@ -65,6 +69,7 @@ import { useCountryRisk } from './hooks/useCountryRisk';
 import { useRefugees } from './hooks/useRefugees';
 import DisasterOverlay from './features/disasters/DisasterOverlay';
 import { CyberPanel } from './features/cyber/CyberPanel';
+import { HealthPanel } from './features/health/HealthPanel';
 import { CommoditiesPanel } from './features/commodities/CommoditiesPanel';
 import { RefugeePanel } from './features/refugees/RefugeePanel';
 import { ShippingPanel } from './features/shipping/ShippingPanel';
@@ -102,6 +107,19 @@ import { useIndiaStates } from './hooks/useIndiaStates';
 import { useRussianOblasts } from './hooks/useRussianOblasts';
 import { useUKNations } from './hooks/useUKNations';
 import { useMultiPanel } from './hooks/useMultiPanel';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { OnboardingTour } from './components/OnboardingTour';
+import { FreshnessIndicator } from './components/FreshnessIndicator';
+import { CommandPalette } from './components/CommandPalette';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { ClimatePanel } from './features/climate/ClimatePanel';
+import { NuclearPanel } from './features/nuclear/NuclearPanel';
+import { AITechPanel } from './features/aitech/AITechPanel';
+import { useClimate } from './hooks/useClimate';
+import { useNuclear } from './hooks/useNuclear';
+import { useAiTech } from './hooks/useAiTech';
+import { useDeepLink } from './hooks/useDeepLink';
+import { useNotifications } from './hooks/useNotifications';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -845,6 +863,9 @@ function App() {
     { id: 'yemen', label: 'Yemen / Houthi Crisis', data: yemenData },
     { id: 'ethiopia', label: 'Ethiopia Conflicts', data: ethiopiaData },
     { id: 'drc', label: 'Eastern Congo (M23)', data: drcData },
+    { id: 'iran-israel', label: 'Iran\u2013Israel War', data: iranIsraelData },
+    { id: 'india-pakistan', label: 'India\u2013Pakistan Crisis', data: indiaPakistanData },
+    { id: 'sahel', label: 'Sahel Insurgency', data: sahelData },
   ];
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
@@ -975,6 +996,7 @@ function App() {
   const { data: ukNationsGeoJSON } = useUKNations(showUKNations);
 
   // ── New feature state ──
+  const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [showCyberPanel, setShowCyberPanel] = useState(false);
   const [showCommoditiesPanel, setShowCommoditiesPanel] = useState(false);
   const [showRefugeePanel, setShowRefugeePanel] = useState(false);
@@ -995,10 +1017,16 @@ function App() {
   const [showCredibilityPanel, setShowCredibilityPanel] = useState(false);
   const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showClimatePanel, setShowClimatePanel] = useState(false);
+  const [showNuclearPanel, setShowNuclearPanel] = useState(false);
+  const [showAiTechPanel, setShowAiTechPanel] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // ── New data hooks ──
   const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather || showTimeline);
   const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel || showTimeline);
+  const { data: healthData, loading: healthLoading, refresh: refreshHealth } = useHealth(showHealthPanel);
   const { data: commoditiesData, loading: commoditiesLoading, refresh: refreshCommodities } = useCommodities(showCommoditiesPanel);
   const { data: shippingData, loading: shippingLoading, refresh: refreshShipping } = useShipping(showShippingMode);
   const { data: tensionData, loading: tensionLoading, refresh: refreshTension } = useTension(true);
@@ -1014,8 +1042,57 @@ function App() {
   const { data: demographicData, loading: demographicLoading, refresh: refreshDemographic } = useDemographic(showDemographicPanel);
   const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showTimeline);
   const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel || showTimeline);
+  const { data: climateData, loading: climateLoading, refresh: refreshClimate } = useClimate(showClimatePanel);
+  const { data: nuclearData, loading: nuclearLoading, refresh: refreshNuclear } = useNuclear(showNuclearPanel);
+  const { data: aitechData, loading: aitechLoading, refresh: refreshAiTech } = useAiTech(showAiTechPanel);
+
+  // Notifications system
+  const notifications = useNotifications();
 
   const isLightTheme = theme === 'light-analytic';
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearch: () => setShowCommandPalette(true),
+    onEscape: () => {
+      if (showCommandPalette) { setShowCommandPalette(false); return; }
+      // Close the most recently opened panel
+      const panelSetters = [
+        [showShortcutsHelp, setShowShortcutsHelp],
+        [showAiTechPanel, setShowAiTechPanel],
+        [showNuclearPanel, setShowNuclearPanel],
+        [showClimatePanel, setShowClimatePanel],
+        [showLeadershipPanel, setShowLeadershipPanel],
+        [showCredibilityPanel, setShowCredibilityPanel],
+        [showDemographicPanel, setShowDemographicPanel],
+        [showInfrastructurePanel, setShowInfrastructurePanel],
+        [showAlliancePanel, setShowAlliancePanel],
+        [showRegimePanel, setShowRegimePanel],
+        [showNarrativePanel, setShowNarrativePanel],
+        [showWatchlistPanel, setShowWatchlistPanel],
+        [showCountryRiskPanel, setShowCountryRiskPanel],
+        [showSanctionsPanel, setShowSanctionsPanel],
+        [showCourtPanel, setShowCourtPanel],
+        [showBriefingPanel, setShowBriefingPanel],
+        [showTensionPanel, setShowTensionPanel],
+        [showShippingPanel, setShowShippingPanel],
+        [showRefugeePanel, setShowRefugeePanel],
+        [showCommoditiesPanel, setShowCommoditiesPanel],
+        [showCyberPanel, setShowCyberPanel],
+        [showHealthPanel, setShowHealthPanel],
+        [showStabilityPanel, setShowStabilityPanel],
+        [showTimeline, setShowTimeline],
+      ];
+      for (const [isOpen, setter] of panelSetters) {
+        if (isOpen) { setter(false); return; }
+      }
+      if (countryPanel.open) closeCountryPanel();
+    },
+    onHelp: () => setShowShortcutsHelp(prev => !prev),
+    onToggleRotate: () => setAutoRotate(prev => !prev),
+    onPrevTab: () => setSidebarTab(t => t === 'country' ? 'world' : t === 'timeline' ? 'country' : t === 'chat' ? 'timeline' : 'chat'),
+    onNextTab: () => setSidebarTab(t => t === 'world' ? 'country' : t === 'country' ? 'timeline' : t === 'timeline' ? 'chat' : 'world'),
+  });
 
   useEffect(() => {
     applyTheme(theme);
@@ -2717,6 +2794,11 @@ function App() {
                   <div className="source-group-title">Disasters & Security</div>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
+                      <span className="switch-label">Health & Pandemics</span>
+                      <input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
                       <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
                       <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
                       <span className="slider" />
@@ -2736,8 +2818,29 @@ function App() {
                       <input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} />
                       <span className="slider" />
                     </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Nuclear Threats</span>
+                      <input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
                   </div>
 
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Environment & Technology</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Climate & Environment</span>
+                      <input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">AI & Technology</span>
+                      <input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="source-group">
@@ -3274,6 +3377,82 @@ function App() {
           </PanelWindow>
         )}
 
+
+        {/* ══════════ Health & Pandemic Panel ══════════ */}
+        {showHealthPanel && (
+          <PanelWindow
+            id="health"
+            title="Health & Pandemic Monitor"
+            onClose={() => setShowHealthPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+          >
+            <HealthPanel
+              data={healthData}
+              loading={healthLoading}
+              onRefresh={refreshHealth}
+            />
+          </PanelWindow>
+        )}
+
+
+        {/* ══════════ Climate Panel ══════════ */}
+        {showClimatePanel && (
+          <PanelWindow
+            id="climate"
+            title="Climate & Environment"
+            onClose={() => setShowClimatePanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 160, y: 100 }}
+          >
+            <ClimatePanel
+              data={climateData}
+              loading={climateLoading}
+              onRefresh={refreshClimate}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Nuclear Panel ══════════ */}
+        {showNuclearPanel && (
+          <PanelWindow
+            id="nuclear"
+            title="Nuclear Threat Monitor"
+            onClose={() => setShowNuclearPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 180, y: 80 }}
+          >
+            <NuclearPanel
+              data={nuclearData}
+              loading={nuclearLoading}
+              onRefresh={refreshNuclear}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ AI & Tech Panel ══════════ */}
+        {showAiTechPanel && (
+          <PanelWindow
+            id="aitech"
+            title="AI & Technology Monitor"
+            onClose={() => setShowAiTechPanel(false)}
+            defaultWidth={440}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 200, y: 100 }}
+          >
+            <AITechPanel
+              data={aitechData}
+              loading={aitechLoading}
+              onRefresh={refreshAiTech}
+            />
+          </PanelWindow>
+        )}
 
         {/* ══════════ Cyber Panel ══════════ */}
         {showCyberPanel && (
@@ -4752,6 +4931,100 @@ function App() {
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
     {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
     <MinimizedTray />
+    {showShortcutsHelp && (
+      <div
+        onClick={() => setShowShortcutsHelp(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99998,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: 'linear-gradient(135deg, rgba(20,25,35,0.98), rgba(30,40,55,0.98))',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '28px 32px',
+            minWidth: '320px',
+            color: '#fff',
+          }}
+        >
+          <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 600 }}>Keyboard Shortcuts</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+            {[
+              ['Ctrl+K', 'Global search'],
+              ['Esc', 'Close latest panel'],
+              ['Space', 'Toggle auto-rotate'],
+              ['[ / ]', 'Cycle sidebar tabs'],
+              ['?', 'Show/hide this help'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+                <kbd style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  minWidth: '48px',
+                  textAlign: 'center',
+                }}>{key}</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>{desc}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              onClick={() => setShowShortcutsHelp(false)}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                color: 'rgba(255,255,255,0.5)',
+                padding: '6px 20px',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >Close</button>
+          </div>
+        </div>
+      </div>
+    )}
+    <CommandPalette
+      open={showCommandPalette}
+      onClose={() => setShowCommandPalette(false)}
+      onSelect={(item) => {
+        // Handle navigation based on selected item
+        if (item.category === 'Panel') {
+          const panelMap = {
+            health: setShowHealthPanel,
+            cyber: setShowCyberPanel,
+            commodities: setShowCommoditiesPanel,
+            refugees: setShowRefugeePanel,
+            shipping: () => { setShowShippingMode(true); setShowShippingPanel(true); },
+            sanctions: setShowSanctionsPanel,
+            court: setShowCourtPanel,
+            stability: setShowStabilityPanel,
+            tension: setShowTensionPanel,
+            briefing: setShowBriefingPanel,
+            climate: setShowClimatePanel,
+            nuclear: setShowNuclearPanel,
+            aitech: setShowAiTechPanel,
+          };
+          const setter = panelMap[item.id];
+          if (typeof setter === 'function') setter(true);
+        }
+      }}
+    />
+    <OfflineIndicator />
+    <OnboardingTour />
     </>
     </WindowManagerProvider>
   );

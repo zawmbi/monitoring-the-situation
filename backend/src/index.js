@@ -39,6 +39,11 @@ import { infrastructureService } from './services/infrastructure.service.js';
 import { demographicService } from './services/demographic.service.js';
 import { credibilityService } from './services/credibility.service.js';
 import { leadershipService } from './services/leadership.service.js';
+import { healthService } from './services/health.service.js';
+import { timeseriesService } from './services/timeseries.service.js';
+import { climateService } from './services/climate.service.js';
+import { nuclearService } from './services/nuclear.service.js';
+import { aitechService } from './services/aitech.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -172,6 +177,10 @@ let infrastructureRefreshInterval = null;
 let demographicRefreshInterval = null;
 let credibilityRefreshInterval = null;
 let leadershipRefreshInterval = null;
+let healthRefreshInterval = null;
+let climateRefreshInterval = null;
+let nuclearRefreshInterval = null;
+let aitechRefreshInterval = null;
 
 // Network connectivity state
 let _networkOnline = false;
@@ -542,6 +551,68 @@ function startBackgroundRefresh() {
     leadershipService.getCombinedData().catch(console.error);
   }, LEADERSHIP_POLL_MS);
 
+  // Health & pandemic monitoring
+  setTimeout(() => {
+    console.log('[Worker] Starting initial health & pandemic fetch...');
+    healthService.getCombinedData().catch(console.error);
+  }, 82000);
+  const HEALTH_POLL_MS = 30 * 60 * 1000;
+  healthRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing health & pandemic data...');
+    healthService.getCombinedData().catch(console.error);
+  }, HEALTH_POLL_MS);
+
+  // Climate & environment monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial climate & environment fetch...');
+    climateService.getCombinedData().catch(console.error);
+  }, 85000);
+  const CLIMATE_POLL_MS = 30 * 60 * 1000;
+  climateRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing climate & environment data...');
+    climateService.getCombinedData().catch(console.error);
+  }, CLIMATE_POLL_MS);
+
+  // Nuclear threat monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial nuclear threat fetch...');
+    nuclearService.getCombinedData().catch(console.error);
+  }, 88000);
+  const NUCLEAR_POLL_MS = 30 * 60 * 1000;
+  nuclearRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing nuclear threat data...');
+    nuclearService.getCombinedData().catch(console.error);
+  }, NUCLEAR_POLL_MS);
+
+  // AI & technology monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial AI/tech fetch...');
+    aitechService.getCombinedData().catch(console.error);
+  }, 91000);
+  const AITECH_POLL_MS = 30 * 60 * 1000;
+  aitechRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing AI/tech data...');
+    aitechService.getCombinedData().catch(console.error);
+  }, AITECH_POLL_MS);
+
+  // Timeseries snapshots — piggyback on tension index refresh
+  const SNAPSHOT_POLL_MS = 15 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const tension = await tensionIndexService.getGlobalTension();
+      await timeseriesService.snapshot({
+        tensionIndex: tension?.index,
+        activeConflictCount: tension?.summary?.totalConflicts,
+        conflictIntensities: tension?.activeConflicts?.reduce((acc, c) => {
+          acc[c.id] = c.intensity;
+          return acc;
+        }, {}),
+      });
+    } catch (err) {
+      console.error('[Worker] Timeseries snapshot error:', err.message);
+    }
+  }, SNAPSHOT_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
@@ -622,6 +693,10 @@ async function shutdown(signal) {
   if (demographicRefreshInterval) clearInterval(demographicRefreshInterval);
   if (credibilityRefreshInterval) clearInterval(credibilityRefreshInterval);
   if (leadershipRefreshInterval) clearInterval(leadershipRefreshInterval);
+  if (healthRefreshInterval) clearInterval(healthRefreshInterval);
+  if (climateRefreshInterval) clearInterval(climateRefreshInterval);
+  if (nuclearRefreshInterval) clearInterval(nuclearRefreshInterval);
+  if (aitechRefreshInterval) clearInterval(aitechRefreshInterval);
   if (_networkCheckInterval) clearInterval(_networkCheckInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();

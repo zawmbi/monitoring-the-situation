@@ -62,6 +62,30 @@ const CONFLICT_FEEDS = {
       'Eastern Congo humanitarian crisis',
     ],
   },
+  'iran-israel': {
+    label: 'Iran–Israel War',
+    queries: [
+      'Iran Israel war nuclear strikes aftermath',
+      'Iran protests uprising regime crisis 2026',
+      'Iran Israel ceasefire nuclear program',
+    ],
+  },
+  'india-pakistan': {
+    label: 'India–Pakistan Crisis',
+    queries: [
+      'India Pakistan Operation Sindoor Kashmir',
+      'India Pakistan military tension 2026',
+      'Kashmir conflict India Pakistan nuclear',
+    ],
+  },
+  sahel: {
+    label: 'Sahel Insurgency',
+    queries: [
+      'Sahel JNIM Mali Burkina Faso insurgency',
+      'Mali jihadist Bamako blockade Wagner',
+      'Burkina Faso Niger terrorism Sahel crisis',
+    ],
+  },
 };
 
 class ConflictNewsService {

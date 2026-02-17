@@ -1,0 +1,260 @@
+/* --- Nuclear Threat Panel --- */
+.nu-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: rgba(255,255,255,0.9);
+  font-size: 11px;
+}
+
+.nu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.nu-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nu-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.nu-live-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+  letter-spacing: 1px;
+}
+
+.nu-btn-refresh {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.nu-btn-refresh:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* DEFCON-style risk bar */
+.nu-risk-bar-container {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.nu-risk-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 4px;
+}
+
+.nu-risk-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.nu-risk-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.nu-risk-bar-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 3px;
+}
+
+.nu-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.nu-tab {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 3px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  font-size: 10px;
+  font-family: inherit;
+  text-align: center;
+}
+.nu-tab:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+.nu-tab--active {
+  background: rgba(255,87,34,0.15);
+  color: #ff8a65;
+  border-color: rgba(255,87,34,0.3);
+}
+
+.nu-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+/* Nuclear states list */
+.nu-state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 3px;
+}
+
+.nu-state-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.8);
+}
+
+.nu-state-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nu-state-warheads {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ff8a65;
+}
+
+.nu-state-status {
+  font-size: 8px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nu-state-mentions {
+  font-size: 8px;
+  padding: 1px 4px;
+  background: rgba(255,87,34,0.15);
+  color: #ff8a65;
+  border-radius: 2px;
+  border: 1px solid rgba(255,87,34,0.25);
+}
+
+/* News cards */
+.nu-card {
+  display: block;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-left: 3px solid rgba(255,87,34,0.4);
+  border-radius: 3px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+.nu-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-left-color: #ff5722;
+}
+
+.nu-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.nu-severity-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.nu-card-source {
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  margin-left: auto;
+}
+
+.nu-card-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.3;
+  margin-bottom: 3px;
+}
+
+.nu-card-summary {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.3;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nu-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+}
+
+.nu-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+}
+
+.nu-empty {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255,255,255,0.3);
+  font-size: 11px;
+}
+
+.nu-skeleton {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nu-skeleton-bar {
+  height: 12px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  animation: shimmer 1.5s infinite;
+}
