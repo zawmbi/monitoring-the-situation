@@ -47,7 +47,7 @@ async function fetchMetaculusQuestions(topic = '', limit = 20) {
       communityPrediction: q.community_prediction?.full?.q2 ?? null,
       numForecasters: q.number_of_forecasters || 0,
       numPredictions: q.number_of_predictions || 0,
-      categories: (q.projects || []).map(p => p.name).filter(Boolean),
+      categories: (Array.isArray(q.projects) ? q.projects : []).map(p => p.name).filter(Boolean),
       description: q.description?.slice(0, 200) || '',
     }));
   } catch (err) {

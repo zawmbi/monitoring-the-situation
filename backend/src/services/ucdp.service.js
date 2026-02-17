@@ -40,7 +40,7 @@ class UCDPService {
 
     try {
       // GED API endpoint
-      let url = `${UCDP_BASE}/gedevents/24.1?pagesize=${Math.min(limit, 1000)}`;
+      let url = `${UCDP_BASE}/gedevents/25.1?pagesize=${Math.min(limit, 1000)}`;
 
       if (country) {
         url += `&Country=${encodeURIComponent(country)}`;
@@ -140,7 +140,7 @@ class UCDPService {
    * Fetch conflicts from the UCDP API.
    */
   async fetchConflicts(year) {
-    const url = `${UCDP_BASE}/ucdpconflict/24.1?pagesize=200&Year=${year}`;
+    const url = `${UCDP_BASE}/ucdpconflict/25.1?pagesize=200&Year=${year}`;
 
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },

@@ -894,7 +894,7 @@ class RegimeService {
     // ── Factor 7: Economic stress (World Bank) ──
     let economicFactor = 0;
     try {
-      const econ = await worldBankService.getCountryIndicators(countryCode);
+      const econ = await worldBankService.getEconomicData(countryCode);
       if (econ) {
         // High inflation stress
         const inflation = econ.inflation?.value;
