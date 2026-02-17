@@ -270,7 +270,8 @@ class ElectionLiveService {
    * Format FEC fundraising numbers for display
    */
   _formatMoney(num) {
-    if (!num || num === 0) return null;
+    num = Number(num);
+    if (!num || isNaN(num)) return null;
     if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
     return `$${num.toFixed(0)}`;
