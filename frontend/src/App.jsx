@@ -12,7 +12,7 @@ import CAPITAL_COORDS from './capitalCoords';
 import US_STATE_INFO from './usStateInfo';
 import CA_PROVINCE_INFO from './caProvinceInfo';
 import POPULATION_POINTS from './populationData';
-import { WATER_LAKES, WATER_CANALS } from './waterFeatures';
+import { WATER_CANALS } from './waterFeatures';
 import { useFeed } from './hooks/useFeed';
 import { useFlights } from './hooks/useFlights';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
@@ -888,7 +888,7 @@ function App() {
   const [selectedSevereEventId, setSelectedSevereEventId] = useState(null);
 
   // Stability state (protests, military, instability)
-  const [stabilityMode, setStabilityMode] = useState(false);
+  const [stabilityMode, setStabilityMode] = useState(true);
   const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
   const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
   const [showStabilityPanel, setShowStabilityPanel] = useState(false);
@@ -2153,6 +2153,20 @@ function App() {
                 <div className="source-group">
                   <div className="source-group-title">Live Data</div>
                   <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Stability Monitor</span>
+                      <input
+                        type="checkbox"
+                        checked={stabilityMode}
+                        onChange={() => {
+                          setStabilityMode(prev => {
+                            if (prev) setShowStabilityPanel(false);
+                            return !prev;
+                          });
+                        }}
+                      />
+                      <span className="slider" />
+                    </label>
                     {[
                       { id: 'severeWeather', label: 'Severe Weather & Disasters', tone: 'flights', disabled: false, kbd: '5' },
                       { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
@@ -2169,6 +2183,42 @@ function App() {
                       </label>
                     ))}
                   </div>
+                  {stabilityMode && (
+                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                      <div className="stability-sidebar-stats">
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Protests</span>
+                        </div>
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Military</span>
+                        </div>
+                        <div className="stability-sidebar-stat">
+                          <span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span>
+                          <span className="stability-sidebar-stat-label">Alerts</span>
+                        </div>
+                      </div>
+                      <div className="conflict-sidebar-toggles">
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Protest Heatmap</span>
+                          <input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} />
+                          <span className="slider" />
+                        </label>
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Military Indicators</span>
+                          <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                      <button
+                        className="stability-sidebar-open-btn"
+                        onClick={() => setShowStabilityPanel(prev => !prev)}
+                      >
+                        {showStabilityPanel ? 'Close' : 'Open'} Stability Panel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="source-group">
@@ -2365,69 +2415,6 @@ function App() {
                       )}
                     </div>
                   ))}
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Global Stability</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Stability Monitor</span>
-                      <input
-                        type="checkbox"
-                        checked={stabilityMode}
-                        onChange={() => {
-                          setStabilityMode(prev => {
-                            if (prev) {
-                              setShowStabilityPanel(false);
-                            }
-                            return !prev;
-                          });
-                        }}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  {stabilityMode && (
-                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                      <strong>Global Stability Monitor</strong>
-                      <p>
-                        Protest heatmap, military movement indicators, and regime instability alerts from OSINT sources.
-                      </p>
-                      <div className="stability-sidebar-stats">
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Protests</span>
-                        </div>
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Military</span>
-                        </div>
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Alerts</span>
-                        </div>
-                      </div>
-                      <div className="conflict-sidebar-toggles">
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Protest Heatmap</span>
-                          <input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Military Indicators</span>
-                          <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                      </div>
-                      <button
-                        className="stability-sidebar-open-btn"
-                        onClick={() => setShowStabilityPanel(prev => !prev)}
-                      >
-                        {showStabilityPanel ? 'Close' : 'Open'} Stability Panel
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 <div className="source-group">
@@ -3681,29 +3668,7 @@ function App() {
             />
           </Source>
 
-          {/* Water features — Lake Michigan, Suez Canal */}
-          <Source id="water-lakes" type="geojson" data={WATER_LAKES}>
-            <Layer
-              id="water-lakes-fill"
-              type="fill"
-              paint={{
-                'fill-color': isLightTheme ? '#488FACFB' : (holoMode ? '#020810' : '#060e18'),
-                'fill-opacity': 1,
-              }}
-            />
-            {holoMode && (
-              <Layer
-                id="water-lakes-glow"
-                type="line"
-                paint={{
-                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
-                  'line-width': 1.2,
-                  'line-blur': 3,
-                  'line-opacity': 0.25,
-                }}
-              />
-            )}
-          </Source>
+          {/* Water features — Suez Canal */}
           <Source id="water-canals" type="geojson" data={WATER_CANALS}>
             <Layer
               id="water-canals-line"
@@ -4032,19 +3997,15 @@ function App() {
           )}
 
           {/* Severe weather event markers */}
-          {enabledLayers.severeWeather && severeEvents.filter((e) => isMarkerVisible(e.lon, e.lat)).map((event) => {
-            const colors = {
-              earthquake: '#ff4444',
-              storm: '#6ee6ff',
-              wildfire: '#ff8c00',
-              volcano: '#ff5555',
-              flood: '#4488ff',
-              other: '#f5c542',
-            };
-            const color = colors[event.type] || colors.other;
+          {enabledLayers.severeWeather && severeEvents
+            .filter((e) => isMarkerVisible(e.lon, e.lat))
+            .slice(0, 150)
+            .map((event) => {
+            const color = { earthquake: '#ff4444', storm: '#6ee6ff', wildfire: '#ff8c00', volcano: '#ff5555', flood: '#4488ff' }[event.type] || '#f5c542';
             const size = event.type === 'earthquake'
               ? Math.max(8, Math.min(20, (event.magnitude || 5) * 2.5))
               : 10;
+            const shouldPulse = event.severity === 'extreme' || event.severity === 'severe';
             return (
               <Marker key={event.id} longitude={event.lon} latitude={event.lat} anchor="center">
                 <div
@@ -4068,7 +4029,7 @@ function App() {
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                  <div className="severe-marker-pulse" style={{ borderColor: color }} />
+                  {shouldPulse && <div className="severe-marker-pulse pulse-active" style={{ borderColor: color }} />}
                 </div>
               </Marker>
             );

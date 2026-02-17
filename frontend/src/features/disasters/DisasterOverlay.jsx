@@ -19,35 +19,43 @@ export default function DisasterOverlay({ events, onEventClick, isMarkerVisible 
 
   return (
     <>
-      {events.filter(e => e.lat && e.lon && (!isMarkerVisible || isMarkerVisible(e.lon, e.lat))).map(event => (
-        <Marker key={event.id} longitude={event.lon} latitude={event.lat} anchor="center">
-          <div
-            className="disaster-marker"
-            onClick={(e) => { e.stopPropagation(); onEventClick?.(event); }}
-            title={event.title}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="disaster-marker-pulse" style={{
-              width: PULSE_SIZES[event.severity] || 10,
-              height: PULSE_SIZES[event.severity] || 10,
-              background: SEVERITY_COLORS[event.severity] || '#ffd700',
-              borderRadius: '50%',
-              boxShadow: `0 0 ${PULSE_SIZES[event.severity]}px ${SEVERITY_COLORS[event.severity]}80`,
-              animation: event.severity === 'critical' ? 'pulse-disaster 2s infinite' : 'none',
-            }} />
-            <div className="disaster-marker-label" style={{
-              position: 'absolute',
-              top: '-18px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              fontSize: '12px',
-              whiteSpace: 'nowrap',
-            }}>
-              {event.icon}
-            </div>
-          </div>
-        </Marker>
-      ))}
+      {events
+        .filter(e => e.lat && e.lon && (!isMarkerVisible || isMarkerVisible(e.lon, e.lat)))
+        .slice(0, 100)
+        .map(event => {
+          const size = PULSE_SIZES[event.severity] || 10;
+          const color = SEVERITY_COLORS[event.severity] || '#ffd700';
+          return (
+            <Marker key={event.id} longitude={event.lon} latitude={event.lat} anchor="center">
+              <div
+                className="disaster-marker"
+                onClick={(e) => { e.stopPropagation(); onEventClick?.(event); }}
+                title={event.title}
+                style={{ cursor: 'pointer', contain: 'layout style' }}
+              >
+                <div className="disaster-marker-pulse" style={{
+                  width: size,
+                  height: size,
+                  background: color,
+                  borderRadius: '50%',
+                  boxShadow: `0 0 ${size}px ${color}80`,
+                  animation: event.severity === 'critical' ? 'pulse-disaster 2s infinite' : 'none',
+                  willChange: event.severity === 'critical' ? 'transform' : 'auto',
+                }} />
+                <div className="disaster-marker-label" style={{
+                  position: 'absolute',
+                  top: '-18px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  fontSize: '12px',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {event.icon}
+                </div>
+              </div>
+            </Marker>
+          );
+        })}
     </>
   );
 }
