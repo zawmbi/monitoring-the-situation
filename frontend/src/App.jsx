@@ -1932,9 +1932,11 @@ function App() {
     const c = evt.viewState;
     if (c) {
       mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
-      // Only update zoom state when it changes meaningfully (avoids re-render every frame)
+      // Only update zoom state when it changes meaningfully (avoids re-render every frame).
+      // Round to nearest 0.5 — overlay components use integer thresholds (2, 3, etc.)
+      // so finer resolution just causes unnecessary re-renders during smooth zoom.
       if (c.zoom !== undefined) {
-        const rounded = Math.round(c.zoom * 10) / 10;
+        const rounded = Math.round(c.zoom * 2) / 2;
         if (rounded !== lastZoomRef.current) {
           lastZoomRef.current = rounded;
           setMapZoom(rounded);
