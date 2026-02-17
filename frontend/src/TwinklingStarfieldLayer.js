@@ -76,6 +76,7 @@ export class TwinklingStarfieldLayer {
     this._material  = null;
     this._map       = null;
     this._startTime = performance.now();
+    this._lastRepaintTime = 0;
   }
 
   onAdd(map, gl) {
@@ -179,8 +180,12 @@ export class TwinklingStarfieldLayer {
 
     this._renderer.render(this._scene, this._camera);
 
-    // Request next frame to keep twinkling
-    this._map?.triggerRepaint();
+    // Request next frame for twinkling — throttled to ~24fps to reduce GPU load
+    const now = performance.now();
+    if (now - this._lastRepaintTime > 42) {
+      this._lastRepaintTime = now;
+      this._map?.triggerRepaint();
+    }
   }
 
   onRemove() {

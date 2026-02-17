@@ -885,6 +885,17 @@ body {
   outline: none;
 }
 
+/* GPU-accelerate marker positioning during zoom/pan */
+.maplibregl-marker {
+  will-change: transform;
+  contain: layout style;
+}
+
+/* Elevate markers with open popups above all other markers */
+.maplibregl-marker:has(.mil-popup-anchor, .protest-popup-anchor, .conflict-battle-popup, .conflict-troop-popup) {
+  z-index: 1000 !important;
+}
+
 /* Atmospheric edge glow */
 .map-container::before {
   content: '';

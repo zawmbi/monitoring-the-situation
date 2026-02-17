@@ -1888,6 +1888,116 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ═══════════════════════════════════════════
+   Map Popup — Troop Unit Detail
+   ═══════════════════════════════════════════ */
+
+.conflict-troop-popup {
+  width: 280px;
+  background: var(--color-bg-primary, #0e0e12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  cursor: default;
+  margin-bottom: 8px;
+}
+
+.conflict-troop-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.conflict-troop-popup-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e8f0);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+}
+
+.conflict-troop-popup-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #666);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.conflict-troop-popup-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary, #e8e8f0);
+}
+
+.conflict-troop-popup-side-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  border: 1px solid;
+}
+
+.conflict-troop-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.conflict-troop-popup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.conflict-troop-popup-row > span:first-child {
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  flex-shrink: 0;
+  min-width: 65px;
+}
+
+.conflict-troop-popup-row > span:last-child {
+  color: var(--color-text-secondary, #aaa);
+  text-align: right;
+}
+
+.conflict-troop-popup-coords {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.conflict-troop-popup-footer {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.conflict-troop-popup-news-link {
+  font-size: 10px;
+  color: #5baaff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.conflict-troop-popup-news-link:hover {
+  text-decoration: underline;
+  color: #80c0ff;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 600px) {

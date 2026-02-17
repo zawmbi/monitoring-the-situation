@@ -25,7 +25,7 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'Post-STC crisis; Houthi Red Sea attacks ceased after Oct 2025 Gaza ceasefire; new govt cabinet formed Feb 2026',
   sideA: { name: 'Houthis (Ansar Allah)', shortName: 'Houthis', color: HOUTHI_GREEN, flag: '\u{1F1FE}\u{1F1EA}' },
-  sideB: { name: 'Intl. Recognized Govt / Coalition', shortName: 'IRG/Coalition', color: GOVT_BLUE, flag: '\u{1F1FE}\u{1F1EA}' },
+  sideB: { name: 'Intl. Recognized Govt / Coalition', shortName: 'IRG/Coalition', color: GOVT_BLUE, flag: '\u{1F1F8}\u{1F1E6}' },
   internationalSupport: {
     sideA: 'Iran (missiles, drones, advisors)',
     sideB: 'Saudi Arabia (dominant partner since UAE withdrawal Dec 2025), US/UK (anti-Houthi strikes)',

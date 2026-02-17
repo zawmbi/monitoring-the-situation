@@ -23,7 +23,7 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'M23/RDF captured Goma & Bukavu / Regional crisis / US-brokered Washington Accords / Angola ceasefire talks',
   sideA: { name: 'DRC Armed Forces (FARDC)', shortName: 'FARDC', color: FARDC_GREEN, flag: '\u{1F1E8}\u{1F1E9}' },
-  sideB: { name: 'M23 / Rwanda-backed forces', shortName: 'M23', color: M23_RED, flag: '' },
+  sideB: { name: 'M23 / Rwanda-backed forces', shortName: 'M23', color: M23_RED, flag: '\u{1F1F7}\u{1F1FC}' },
   internationalSupport: {
     sideA: 'MONUSCO (drawdown paused), Burundi, SADC Mission (SAMIDRC — withdrawing since Mar 2025), Angola/US mediation',
     sideB: 'Rwanda (RDF troops embedded; UN documented), Uganda (alleged limited)',
