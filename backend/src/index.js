@@ -327,11 +327,11 @@ function startBackgroundRefresh() {
     electionNewsService.getBattlegroundOverview().catch(console.error);
   }, ELECTION_NEWS_POLL_MS);
 
-  // Initial stability data fetch (delayed to avoid startup contention)
+  // Initial stability data fetch (delayed to avoid GDELT contention with electionNews at 20s)
   setTimeout(() => {
     console.log('[Worker] Starting initial stability data fetch...');
     stabilityService.getCombinedData().catch(console.error);
-  }, 20000);
+  }, 35000);
 
   // Periodic refresh — stability data (every 15 min)
   const STABILITY_POLL_MS = 15 * 60 * 1000;

@@ -5,23 +5,24 @@
  * coordination, causing HTTP 429 (Too Many Requests) errors.
  *
  * Solution: A single request queue with:
- *   - Max 2 concurrent requests (GDELT is strict)
- *   - 300ms minimum gap between request starts
+ *   - Max 3 concurrent requests
+ *   - 250ms minimum gap between request starts
  *   - Automatic retry with exponential backoff on 429
  *   - Request deduplication (same URL within TTL returns cached result)
  *   - Circuit breaker: stops sending after repeated 429s, auto-recovers
+ *   - Queue drain on circuit trip (resolves waiting items with empty data)
  */
 
 const GDELT_DOC_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const FETCH_TIMEOUT = 12000;
 
 // ── Rate limiter config ───────────────────────────────────────────────────
-const MAX_CONCURRENT = 2;          // Max in-flight GDELT requests
-const MIN_GAP_MS = 300;            // Minimum ms between request starts
-const RETRY_MAX = 2;               // Max retries on 429
-const RETRY_BASE_MS = 2000;        // First retry delay
-const CIRCUIT_THRESHOLD = 8;       // Trip circuit after N consecutive 429s
-const CIRCUIT_RESET_MS = 60000;    // Re-open circuit after 60s
+const MAX_CONCURRENT = 3;          // Max in-flight GDELT requests
+const MIN_GAP_MS = 250;            // Minimum ms between request starts
+const RETRY_MAX = 3;               // Max retries on 429
+const RETRY_BASE_MS = 1500;        // First retry delay
+const CIRCUIT_THRESHOLD = 15;      // Trip circuit after N consecutive 429s
+const CIRCUIT_RESET_MS = 30000;    // Re-open circuit after 30s
 const DEDUP_TTL_MS = 30000;        // Deduplicate identical URLs within 30s
 
 // ── State ─────────────────────────────────────────────────────────────────
@@ -32,6 +33,22 @@ let circuitOpen = false;
 let circuitOpenedAt = 0;
 const pendingQueue = [];           // { resolve, reject, url, options }
 const recentResults = new Map();   // url -> { data, time }
+
+// ── Drain queue on circuit trip ──────────────────────────────────────────
+
+function drainQueueWithEmpty() {
+  const count = pendingQueue.length;
+  while (pendingQueue.length > 0) {
+    const item = pendingQueue.shift();
+    // Resolve directly (bypass the caching wrapper) so empty data isn't cached
+    item._rawResolve
+      ? item._rawResolve({ articles: [] })
+      : item.resolve({ articles: [] });
+  }
+  if (count > 0) {
+    console.warn(`[GDELT] Drained ${count} queued requests with empty data`);
+  }
+}
 
 // ── Queue processor ───────────────────────────────────────────────────────
 
@@ -45,7 +62,9 @@ function processQueue() {
       consecutive429s = 0;
       console.log('[GDELT] Circuit breaker reset — resuming requests');
     } else {
-      return; // Still tripped
+      // Drain any waiting items so their Promises resolve (with empty data)
+      drainQueueWithEmpty();
+      return;
     }
   }
 
@@ -92,6 +111,8 @@ async function executeRequest(url, options, attempt) {
         circuitOpen = true;
         circuitOpenedAt = Date.now();
         console.warn(`[GDELT] Circuit breaker OPEN — ${consecutive429s} consecutive 429s. Pausing for ${CIRCUIT_RESET_MS / 1000}s`);
+        // Drain remaining queued items so they don't hang
+        drainQueueWithEmpty();
         throw new Error('GDELT rate limited (circuit open)');
       }
       if (attempt < RETRY_MAX) {
@@ -140,16 +161,22 @@ function queuedFetch(url) {
       url,
       options: {},
       resolve: (data) => {
-        recentResults.set(url, { data, time: Date.now() });
-        // Prune old entries
-        if (recentResults.size > 200) {
-          const cutoff = Date.now() - DEDUP_TTL_MS;
-          for (const [k, v] of recentResults) {
-            if (v.time < cutoff) recentResults.delete(k);
+        // Only cache successful (non-empty) results
+        const hasArticles = data && Array.isArray(data.articles) && data.articles.length > 0;
+        const hasOtherData = data && !data.articles && Object.keys(data).length > 0;
+        if (hasArticles || hasOtherData) {
+          recentResults.set(url, { data, time: Date.now() });
+          // Prune old entries
+          if (recentResults.size > 200) {
+            const cutoff = Date.now() - DEDUP_TTL_MS;
+            for (const [k, v] of recentResults) {
+              if (v.time < cutoff) recentResults.delete(k);
+            }
           }
         }
         resolve(data);
       },
+      _rawResolve: resolve,
       reject,
     });
     processQueue();
