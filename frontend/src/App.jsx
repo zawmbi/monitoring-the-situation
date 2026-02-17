@@ -12,6 +12,7 @@ import CAPITAL_COORDS from './capitalCoords';
 import US_STATE_INFO from './usStateInfo';
 import CA_PROVINCE_INFO from './caProvinceInfo';
 import POPULATION_POINTS from './populationData';
+import { WATER_LAKES, WATER_CANALS } from './waterFeatures';
 import { useFeed } from './hooks/useFeed';
 import { useFlights } from './hooks/useFlights';
 import NewsFeed, { NewsItem } from './features/news/NewsFeed';
@@ -3678,6 +3679,64 @@ function App() {
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
+          </Source>
+
+          {/* Water features — Lake Michigan, Suez Canal */}
+          <Source id="water-lakes" type="geojson" data={WATER_LAKES}>
+            <Layer
+              id="water-lakes-fill"
+              type="fill"
+              paint={{
+                'fill-color': isLightTheme ? '#488FACFB' : (holoMode ? '#020810' : '#060e18'),
+                'fill-opacity': 1,
+              }}
+            />
+            {holoMode && (
+              <Layer
+                id="water-lakes-glow"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
+                  'line-width': 1.2,
+                  'line-blur': 3,
+                  'line-opacity': 0.25,
+                }}
+              />
+            )}
+          </Source>
+          <Source id="water-canals" type="geojson" data={WATER_CANALS}>
+            <Layer
+              id="water-canals-line"
+              type="line"
+              paint={{
+                'line-color': isLightTheme ? '#488FACFB' : (holoMode ? '#0a1a30' : '#0a1525'),
+                'line-width': [
+                  'interpolate', ['linear'], ['zoom'],
+                  2, 1,
+                  5, 2.5,
+                  8, 5,
+                  12, 10,
+                ],
+                'line-opacity': 1,
+              }}
+            />
+            {holoMode && (
+              <Layer
+                id="water-canals-glow"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
+                  'line-width': [
+                    'interpolate', ['linear'], ['zoom'],
+                    2, 2,
+                    5, 4,
+                    8, 7,
+                  ],
+                  'line-blur': 4,
+                  'line-opacity': 0.15,
+                }}
+              />
+            )}
           </Source>
 
           {/* US States — only shown when toggled on */}
