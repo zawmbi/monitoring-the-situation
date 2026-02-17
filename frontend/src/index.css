@@ -2755,6 +2755,14 @@ body {
 .sidebar-is-collapsed .news-ticker-bar {
   left: 64px;
 }
+/* Timeline navigator respects sidebar width */
+.sidebar-is-collapsed .timeline-navigator {
+  left: 64px !important;
+}
+/* Hide keyboard hint when timeline is open */
+.timeline-navigator ~ .keyboard-hint {
+  display: none;
+}
 .news-ticker-label {
   flex-shrink: 0;
   padding: 0 10px;

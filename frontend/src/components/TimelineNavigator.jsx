@@ -273,7 +273,7 @@ function TimelineBar({
 }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
-  const barHeight = expanded ? 80 : 40;
+  const barHeight = expanded ? 120 : 56;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -612,38 +612,40 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
   const wrapperStyle = {
     position: 'fixed',
     bottom: '28px', // above GlobalStatusBar
-    left: 0,
+    left: 'var(--sidebar-width, 400px)',
     right: 0,
     zIndex: 9998,
-    height: expanded ? '120px' : '60px',
-    background: 'rgba(10,12,18,0.95)',
-    borderTop: '1px solid rgba(255,255,255,0.08)',
+    height: expanded ? '160px' : '90px',
+    background: 'rgba(10,12,18,0.97)',
+    borderTop: '1px solid rgba(59,130,246,0.25)',
     display: 'flex',
     flexDirection: 'column',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     backdropFilter: 'blur(16px)',
-    transition: 'height 0.25s ease',
+    transition: 'height 0.25s ease, left 0.3s ease',
     userSelect: 'none',
+    boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
   };
 
   const topRowStyle = {
     display: 'flex',
     alignItems: 'center',
-    height: '24px',
+    height: '28px',
     flexShrink: 0,
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
   };
 
   const titleStyle = {
-    padding: '0 10px',
-    fontSize: '9px',
-    letterSpacing: '1px',
+    padding: '0 12px',
+    fontSize: '10px',
+    letterSpacing: '1.2px',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255,255,255,0.5)',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
-    gap: '5px',
+    gap: '6px',
+    fontWeight: 600,
   };
 
   const countBadgeStyle = {

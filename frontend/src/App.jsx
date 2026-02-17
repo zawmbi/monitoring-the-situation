@@ -1318,13 +1318,15 @@ function App() {
   const timelineEvents = useMemo(() => {
     const events = [];
     let id = 0;
-    // Tension conflicts
+    // Tension conflicts — use updatedAt (last refresh) as date, not c.since
+    // (c.since is the conflict start year, often years ago, outside timeline range)
     if (tensionData?.activeConflicts) {
+      const conflictDate = tensionData.updatedAt || new Date().toISOString();
       for (const c of tensionData.activeConflicts) {
         events.push({
           id: `conflict-${id++}`,
           title: c.name || c.label,
-          date: c.since || tensionData.updatedAt || new Date().toISOString(),
+          date: conflictDate,
           category: 'conflict',
           severity: c.nuclearRisk === 'elevated' || c.nuclearRisk === 'high' ? 3 : c.intensity >= 70 ? 3 : c.intensity >= 40 ? 2 : 1,
           country: c.region || c.parties?.[0],
