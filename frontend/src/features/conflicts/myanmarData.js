@@ -23,12 +23,29 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'Multi-front resistance war / junta losing territory',
-  sideA: { name: 'Military Junta (SAC/Tatmadaw)', shortName: 'Junta', color: JUNTA_RED, flag: '\u{1F1F2}\u{1F1F2}' },
-  sideB: { name: 'NUG / PDF / Ethnic Armed Orgs', shortName: 'Resistance', color: NUG_BLUE, flag: '\u270A' },
+  sideA: {
+    name: 'Military Junta (SAC/Tatmadaw)',
+    shortName: 'Junta',
+    color: JUNTA_RED,
+    flag: '\u{1F1F2}\u{1F1F2}',
+    leader: 'Sr. Gen. Min Aung Hlaing',
+    description: 'State Administration Council (SAC) / Tatmadaw military junta. Seized power in Feb 2021 coup overthrowing elected NLD government. Controls shrinking territory, relies on airstrikes against civilian areas.',
+    goals: 'Maintain military rule, crush democratic opposition, control natural resources and trade',
+  },
+  sideB: {
+    name: 'NUG / PDF / Ethnic Armed Orgs',
+    shortName: 'Resistance',
+    color: NUG_BLUE,
+    flag: 'svg:resistance',
+    leader: 'PM Mahn Win Khaing Than (NUG acting)',
+    description: 'National Unity Government (NUG, shadow civilian govt), People\'s Defence Forces (PDF, armed wing), and ethnic armed organizations (KIA, KNU, KNLA, AA, TNLA, MNDAA). A broad coalition of democratic and ethnic resistance movements.',
+    goals: 'Restore democracy, federal system with ethnic autonomy, end military impunity',
+  },
   internationalSupport: {
     sideA: 'Russia (arms — Su-30, Yak-130), China (economic/political, brokered Shan ceasefire), India (limited engagement)',
     sideB: 'Limited; diaspora funding, cross-border support from Thailand/India border areas; China leverages ethnic armed orgs as proxies',
   },
+  background: 'The military coup of Feb 1, 2021 overthrew Aung San Suu Kyi\'s elected government. Peaceful protests were met with lethal force, sparking armed resistance. By 2024-25, resistance forces captured significant territory through Operation 1027 and other offensives. The junta has lost control of much of the country\'s borders and rural areas.',
 };
 
 // ─── Frontline segments ───

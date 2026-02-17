@@ -19,6 +19,7 @@ import { wikidataService } from './services/wikidata.service.js';
 import { ucdpService } from './services/ucdp.service.js';
 import { wsHandler } from './services/websocket.service.js';
 import { electionLiveService } from './services/electionLive.service.js';
+import { electionNewsService } from './services/electionNews.service.js';
 import { stabilityService } from './services/stability.service.js';
 import { disastersService } from './services/disasters.service.js';
 import { cyberService } from './services/cyber.service.js';
@@ -38,6 +39,11 @@ import { infrastructureService } from './services/infrastructure.service.js';
 import { demographicService } from './services/demographic.service.js';
 import { credibilityService } from './services/credibility.service.js';
 import { leadershipService } from './services/leadership.service.js';
+import { healthService } from './services/health.service.js';
+import { timeseriesService } from './services/timeseries.service.js';
+import { climateService } from './services/climate.service.js';
+import { nuclearService } from './services/nuclear.service.js';
+import { aitechService } from './services/aitech.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -151,6 +157,7 @@ let leadersRefreshInterval = null;
 let economicRefreshInterval = null;
 let ucdpRefreshInterval = null;
 let electionRefreshInterval = null;
+let electionNewsRefreshInterval = null;
 let stabilityRefreshInterval = null;
 let disasterRefreshInterval = null;
 let cyberRefreshInterval = null;
@@ -170,6 +177,66 @@ let infrastructureRefreshInterval = null;
 let demographicRefreshInterval = null;
 let credibilityRefreshInterval = null;
 let leadershipRefreshInterval = null;
+let healthRefreshInterval = null;
+let climateRefreshInterval = null;
+let nuclearRefreshInterval = null;
+let aitechRefreshInterval = null;
+
+// Network connectivity state
+let _networkOnline = false;
+let _networkCheckInterval = null;
+
+/**
+ * Quick DNS probe to test if we have internet access.
+ * Tries to resolve a reliable hostname — if it fails, we're offline.
+ */
+async function checkNetworkConnectivity() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    // Use a small, fast endpoint for the probe
+    const resp = await fetch('https://dns.google/resolve?name=example.com&type=A', {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    clearTimeout(timeout);
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run background refresh only when network is available.
+ * If offline at startup, start a probe interval and defer all fetches.
+ */
+async function startBackgroundRefreshWhenReady() {
+  _networkOnline = await checkNetworkConnectivity();
+
+  if (!_networkOnline) {
+    console.warn('===========================================');
+    console.warn('  [Network] No internet access detected');
+    console.warn('  All external API calls will be skipped');
+    console.warn('  Retrying connectivity every 60s...');
+    console.warn('  Server is still running with cached/mock data');
+    console.warn('===========================================');
+
+    _networkCheckInterval = setInterval(async () => {
+      const online = await checkNetworkConnectivity();
+      if (online && !_networkOnline) {
+        _networkOnline = true;
+        console.log('[Network] Internet access restored — starting data fetches');
+        clearInterval(_networkCheckInterval);
+        _networkCheckInterval = null;
+        startBackgroundRefresh();
+      }
+    }, 60000);
+    return;
+  }
+
+  console.log('[Network] Internet access confirmed');
+  startBackgroundRefresh();
+}
 
 function startBackgroundRefresh() {
   // Initial fetch
@@ -242,8 +309,10 @@ function startBackgroundRefresh() {
   // Initial election live data fetch (delayed to let market services warm up)
   setTimeout(() => {
     console.log('[Worker] Starting initial election live data fetch...');
-    electionLiveService.getLiveData().catch(console.error);
-  }, 15000);
+    electionLiveService.getLiveData().catch(err => {
+      console.warn('[Worker] Election live data initial fetch incomplete:', err.message);
+    });
+  }, 30000);
 
   // Periodic refresh — election live data (every 15 min)
   const ELECTION_POLL_MS = 15 * 60 * 1000;
@@ -252,11 +321,26 @@ function startBackgroundRefresh() {
     electionLiveService.getLiveData().catch(console.error);
   }, ELECTION_POLL_MS);
 
-  // Initial stability data fetch (delayed to avoid startup contention)
+  // Initial election news fetch (GDELT — no auth needed)
+  setTimeout(() => {
+    console.log('[Worker] Starting initial election news fetch...');
+    electionNewsService.getTopElectionNews().catch(console.error);
+    electionNewsService.getBattlegroundOverview().catch(console.error);
+  }, 20000);
+
+  // Periodic refresh — election news (every 10 min)
+  const ELECTION_NEWS_POLL_MS = 10 * 60 * 1000;
+  electionNewsRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing election news...');
+    electionNewsService.getTopElectionNews().catch(console.error);
+    electionNewsService.getBattlegroundOverview().catch(console.error);
+  }, ELECTION_NEWS_POLL_MS);
+
+  // Initial stability data fetch (delayed to avoid GDELT contention with electionNews at 20s)
   setTimeout(() => {
     console.log('[Worker] Starting initial stability data fetch...');
     stabilityService.getCombinedData().catch(console.error);
-  }, 20000);
+  }, 35000);
 
   // Periodic refresh — stability data (every 15 min)
   const STABILITY_POLL_MS = 15 * 60 * 1000;
@@ -467,6 +551,68 @@ function startBackgroundRefresh() {
     leadershipService.getCombinedData().catch(console.error);
   }, LEADERSHIP_POLL_MS);
 
+  // Health & pandemic monitoring
+  setTimeout(() => {
+    console.log('[Worker] Starting initial health & pandemic fetch...');
+    healthService.getCombinedData().catch(console.error);
+  }, 82000);
+  const HEALTH_POLL_MS = 30 * 60 * 1000;
+  healthRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing health & pandemic data...');
+    healthService.getCombinedData().catch(console.error);
+  }, HEALTH_POLL_MS);
+
+  // Climate & environment monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial climate & environment fetch...');
+    climateService.getCombinedData().catch(console.error);
+  }, 85000);
+  const CLIMATE_POLL_MS = 30 * 60 * 1000;
+  climateRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing climate & environment data...');
+    climateService.getCombinedData().catch(console.error);
+  }, CLIMATE_POLL_MS);
+
+  // Nuclear threat monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial nuclear threat fetch...');
+    nuclearService.getCombinedData().catch(console.error);
+  }, 88000);
+  const NUCLEAR_POLL_MS = 30 * 60 * 1000;
+  nuclearRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing nuclear threat data...');
+    nuclearService.getCombinedData().catch(console.error);
+  }, NUCLEAR_POLL_MS);
+
+  // AI & technology monitoring — every 30 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial AI/tech fetch...');
+    aitechService.getCombinedData().catch(console.error);
+  }, 91000);
+  const AITECH_POLL_MS = 30 * 60 * 1000;
+  aitechRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing AI/tech data...');
+    aitechService.getCombinedData().catch(console.error);
+  }, AITECH_POLL_MS);
+
+  // Timeseries snapshots — piggyback on tension index refresh
+  const SNAPSHOT_POLL_MS = 15 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const tension = await tensionIndexService.getGlobalTension();
+      await timeseriesService.snapshot({
+        tensionIndex: tension?.index,
+        activeConflictCount: tension?.summary?.totalConflicts,
+        conflictIntensities: tension?.activeConflicts?.reduce((acc, c) => {
+          acc[c.id] = c.intensity;
+          return acc;
+        }, {}),
+      });
+    } catch (err) {
+      console.error('[Worker] Timeseries snapshot error:', err.message);
+    }
+  }, SNAPSHOT_POLL_MS);
+
   console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
   console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
   console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
@@ -496,8 +642,8 @@ async function start() {
   console.log('[Startup] Initializing WebSocket...');
   wsHandler.initialize(server);
 
-  // Start background content refresh
-  startBackgroundRefresh();
+  // Start background content refresh (checks network first)
+  startBackgroundRefreshWhenReady();
 
   // Start HTTP server
   server.listen(config.port, () => {
@@ -527,6 +673,7 @@ async function shutdown(signal) {
   if (economicRefreshInterval) clearInterval(economicRefreshInterval);
   if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
   if (electionRefreshInterval) clearInterval(electionRefreshInterval);
+  if (electionNewsRefreshInterval) clearInterval(electionNewsRefreshInterval);
   if (stabilityRefreshInterval) clearInterval(stabilityRefreshInterval);
   if (disasterRefreshInterval) clearInterval(disasterRefreshInterval);
   if (cyberRefreshInterval) clearInterval(cyberRefreshInterval);
@@ -546,6 +693,11 @@ async function shutdown(signal) {
   if (demographicRefreshInterval) clearInterval(demographicRefreshInterval);
   if (credibilityRefreshInterval) clearInterval(credibilityRefreshInterval);
   if (leadershipRefreshInterval) clearInterval(leadershipRefreshInterval);
+  if (healthRefreshInterval) clearInterval(healthRefreshInterval);
+  if (climateRefreshInterval) clearInterval(climateRefreshInterval);
+  if (nuclearRefreshInterval) clearInterval(nuclearRefreshInterval);
+  if (aitechRefreshInterval) clearInterval(aitechRefreshInterval);
+  if (_networkCheckInterval) clearInterval(_networkCheckInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 

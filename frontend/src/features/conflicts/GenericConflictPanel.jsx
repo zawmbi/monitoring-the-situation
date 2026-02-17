@@ -7,6 +7,7 @@ import { useState } from 'react';
 import InlineMarkets from '../../components/InlineMarkets';
 import useConflictNews from '../../hooks/useConflictNews';
 import { timeAgo } from '../../utils/time';
+import ConflictFlag from './ConflictFlag';
 import './conflicts.css';
 
 export default function GenericConflictPanel({ open, onClose, conflictData }) {
@@ -57,6 +58,12 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
     ? { require: ['ethiopia'], boost: ['tigray', 'amhara', 'abiy'] }
     : summary.id === 'drc'
     ? { require: ['congo', 'drc'], boost: ['m23', 'rwanda', 'goma'] }
+    : summary.id === 'iran-israel'
+    ? { require: ['iran', 'israel'], boost: ['nuclear', 'strikes', 'ceasefire', 'protests', 'IRGC'] }
+    : summary.id === 'india-pakistan'
+    ? { require: ['india', 'pakistan'], boost: ['kashmir', 'sindoor', 'nuclear', 'modi'] }
+    : summary.id === 'sahel'
+    ? { require: ['sahel'], boost: ['mali', 'burkina', 'niger', 'JNIM', 'terrorism', 'wagner'] }
     : { require: [summary.name.toLowerCase()], boost: ['conflict', 'war'] };
 
   return (
@@ -64,9 +71,9 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
       <div className="conflict-panel-header">
         <div className="conflict-panel-header-left">
           <div className="conflict-panel-flags">
-            <span className="conflict-panel-flag" title={summary.sideA.name}>{summary.sideA.flag}</span>
+            <span className="conflict-panel-flag" title={summary.sideA.name}><ConflictFlag flag={summary.sideA.flag} color={summary.sideA.color} size={22} /></span>
             <span className="conflict-panel-vs">vs</span>
-            <span className="conflict-panel-flag" title={summary.sideB.name}>{summary.sideB.flag}</span>
+            <span className="conflict-panel-flag" title={summary.sideB.name}><ConflictFlag flag={summary.sideB.flag} color={summary.sideB.color} size={22} /></span>
           </div>
           <div>
             <h3 className="conflict-panel-title">{summary.name}</h3>
@@ -156,14 +163,59 @@ function OverviewTab({ summary, casualties, territorial, sideAColor, sideBColor,
         </div>
       )}
 
-      <div className="conflict-sides-header">
-        <div className="conflict-side-label">
-          <span className="conflict-side-dot" style={{ background: sideAColor }} /> {summary.sideA.name}
+      {/* Side descriptions */}
+      <div className="conflict-sides-detail">
+        <div className="conflict-side-card" style={{ borderColor: sideAColor }}>
+          <div className="conflict-side-card-header">
+            <span className="conflict-side-dot" style={{ background: sideAColor }} />
+            <span className="conflict-side-card-name">{summary.sideA.name}</span>
+          </div>
+          {summary.sideA.leader && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Leader</span>
+              <span className="conflict-side-card-val">{summary.sideA.leader}</span>
+            </div>
+          )}
+          {summary.sideA.description && (
+            <div className="conflict-side-card-desc">{summary.sideA.description}</div>
+          )}
+          {summary.sideA.goals && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Goals</span>
+              <span className="conflict-side-card-val">{summary.sideA.goals}</span>
+            </div>
+          )}
         </div>
-        <div className="conflict-side-label">
-          <span className="conflict-side-dot" style={{ background: sideBColor }} /> {summary.sideB.name}
+        <div className="conflict-side-card" style={{ borderColor: sideBColor }}>
+          <div className="conflict-side-card-header">
+            <span className="conflict-side-dot" style={{ background: sideBColor }} />
+            <span className="conflict-side-card-name">{summary.sideB.name}</span>
+          </div>
+          {summary.sideB.leader && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Leader</span>
+              <span className="conflict-side-card-val">{summary.sideB.leader}</span>
+            </div>
+          )}
+          {summary.sideB.description && (
+            <div className="conflict-side-card-desc">{summary.sideB.description}</div>
+          )}
+          {summary.sideB.goals && (
+            <div className="conflict-side-card-row">
+              <span className="conflict-side-card-key">Goals</span>
+              <span className="conflict-side-card-val">{summary.sideB.goals}</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Background context */}
+      {summary.background && (
+        <div className="conflict-stat-group">
+          <div className="conflict-stat-group-title">Background</div>
+          <div className="conflict-section-note" style={{ lineHeight: 1.5 }}>{summary.background}</div>
+        </div>
+      )}
 
       {/* Casualties */}
       {casualties && (
@@ -369,7 +421,7 @@ function CommandTab({ command, summary }) {
 
       {/* Side A */}
       <div className="conflict-cmd-section">
-        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}>{summary.sideA.flag}</span>{command.sideA?.title}</div>
+        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}><ConflictFlag flag={summary.sideA.flag} color={summary.sideA.color} size={18} /></span>{command.sideA?.title}</div>
         {command.sideA?.totalPersonnel && <div className="conflict-cmd-personnel">Personnel: {command.sideA.totalPersonnel}</div>}
         <div className="conflict-cmd-list">
           {(command.sideA?.keyCommanders || []).map((cmd) => (
@@ -383,7 +435,7 @@ function CommandTab({ command, summary }) {
 
       {/* Side B */}
       <div className="conflict-cmd-section">
-        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}>{summary.sideB.flag}</span>{command.sideB?.title}</div>
+        <div className="conflict-cmd-header"><span style={{ marginRight: 6 }}><ConflictFlag flag={summary.sideB.flag} color={summary.sideB.color} size={18} /></span>{command.sideB?.title}</div>
         {command.sideB?.totalPersonnel && <div className="conflict-cmd-personnel">Personnel: {command.sideB.totalPersonnel}</div>}
         <div className="conflict-cmd-list">
           {(command.sideB?.keyCommanders || []).map((cmd) => (

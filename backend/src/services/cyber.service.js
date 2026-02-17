@@ -5,6 +5,7 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 import Parser from 'rss-parser';
 
 const parser = new Parser({ timeout: 10000 });
@@ -79,9 +80,8 @@ async function fetchGDELTCyber() {
   try {
     const query = encodeURIComponent('cyberattack OR "data breach" OR ransomware OR "critical infrastructure"');
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&maxrecords=30&format=json&timespan=7d`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) throw new Error(`GDELT ${res.status}`);
-    const data = await res.json();
+    const data = await fetchGDELTRaw(url, 'Cyber');
+    if (!data) return [];
     return (data.articles || []).map(a => ({
       id: `gdelt-cyber-${Buffer.from(a.url || '').toString('base64').slice(0, 20)}`,
       title: a.title,

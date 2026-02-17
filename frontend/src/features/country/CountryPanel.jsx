@@ -643,7 +643,7 @@ export function CountryPanel({ data, onClose, weather, weatherLoading, tempUnit 
   if (!data) return null;
 
   const localTime = getCurrentTimeForOffset(parseOffsetFromTimezone(data.timezone));
-  const isScope = data.scope === 'state' || data.scope === 'province';
+  const isScope = ['state', 'province', 'inState', 'ruOblast', 'ukNation'].includes(data.scope);
   const isEU = data.scope === 'eu';
   const bgImage = weather?.image?.url;
 

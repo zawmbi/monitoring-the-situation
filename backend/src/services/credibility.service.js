@@ -7,6 +7,7 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_TTL = 600; // 10 minutes
 const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
@@ -365,10 +366,8 @@ class CredibilityService {
         queries.map(async (query) => {
           const encoded = encodeURIComponent(query);
           const url = `${GDELT_BASE}?query=${encoded}&mode=artlist&maxrecords=50&format=json&timespan=3d&sort=datedesc`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-          if (!res.ok) throw new Error(`GDELT ${res.status}`);
-          const data = await res.json();
-          return data.articles || [];
+          const data = await fetchGDELTRaw(url, 'Credibility');
+          return data?.articles || [];
         })
       );
 
@@ -489,10 +488,8 @@ class CredibilityService {
       // Fetch a broad set of recent articles
       const query = encodeURIComponent('breaking OR crisis OR scandal OR threat OR war');
       const url = `${GDELT_BASE}?query=${query}&mode=artlist&maxrecords=100&format=json&timespan=2d&sort=datedesc`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-      if (!res.ok) throw new Error(`GDELT ${res.status}`);
-      const data = await res.json();
-      const articles = data.articles || [];
+      const data = await fetchGDELTRaw(url, 'Credibility');
+      const articles = data?.articles || [];
 
       // Group by approximate topic
       const topicGroups = new Map();
@@ -623,10 +620,8 @@ class CredibilityService {
       // Fetch a wide sample of recent articles
       const query = encodeURIComponent('*');
       const url = `${GDELT_BASE}?query=${query}&mode=artlist&maxrecords=100&format=json&timespan=1d&sort=datedesc`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-      if (!res.ok) throw new Error(`GDELT ${res.status}`);
-      const data = await res.json();
-      const articles = data.articles || [];
+      const data = await fetchGDELTRaw(url, 'Credibility');
+      const articles = data?.articles || [];
 
       // Count by tier
       const tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unknown: 0 };

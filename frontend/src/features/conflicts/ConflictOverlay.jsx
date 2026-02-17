@@ -607,13 +607,14 @@ export { INFRA_SVG, NAVAL_SVG, BattleIcon, NppIcon };
    Main overlay
    ─────────────────────────────────────────── */
 
-export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2 }) {
+export default function ConflictOverlay({ visible, onTroopClick, showTroops = true, zoom = 2, isMarkerVisible }) {
   const visibility = visible ? 'visible' : 'none';
   const [selectedBattle, setSelectedBattle] = useState(null);
   const [selectedTroop, setSelectedTroop] = useState(null);
 
   const showDetail = zoom >= ZOOM_SHOW_DETAIL;
   const showLabels = zoom >= ZOOM_SHOW_LABELS;
+  const mv = (lon, lat) => !isMarkerVisible || isMarkerVisible(lon, lat);
 
   const frontlineGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -705,7 +706,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       </Source>
 
       {/* ══════════ Sector labels (zoom-gated) ══════════ */}
-      {visible && showDetail && sectorLabels.map((s) => (
+      {visible && showDetail && sectorLabels.filter(s => mv(s.lon, s.lat)).map((s) => (
         <Marker key={`cfl-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="right">
           <div className="conflict-sector-label" style={{ marginRight: 18 }}>
             <span className="conflict-sector-name">{s.label}</span>
@@ -717,7 +718,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       ))}
 
       {/* ══════════ Battle sites (zoom-gated) ══════════ */}
-      {visible && showDetail && BATTLE_SITES.map((site) => (
+      {visible && showDetail && BATTLE_SITES.filter(s => mv(s.lon, s.lat)).map((site) => (
         <Marker key={site.id} longitude={site.lon} latitude={site.lat} anchor="center">
           <BattleSiteMarker site={site} onClick={setSelectedBattle} />
         </Marker>
@@ -731,42 +732,42 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       )}
 
       {/* ══════════ Nuclear power plants (zoom-gated) ══════════ */}
-      {visible && showDetail && NUCLEAR_PLANTS.map((plant) => (
+      {visible && showDetail && NUCLEAR_PLANTS.filter(p => mv(p.lon, p.lat)).map((plant) => (
         <Marker key={plant.id} longitude={plant.lon} latitude={plant.lat} anchor="center">
           <NppMarker plant={plant} />
         </Marker>
       ))}
 
       {/* ══════════ Capitals (always visible when conflict mode on) ══════════ */}
-      {visible && CAPITALS.map((c) => (
+      {visible && CAPITALS.filter(c => mv(c.lon, c.lat)).map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="center">
           <CapitalMarker city={c} />
         </Marker>
       ))}
 
       {/* ══════════ Major cities (zoom-gated, hide label if infra shares coords) ══════════ */}
-      {visible && showDetail && MAJOR_CITIES.map((c) => (
+      {visible && showDetail && MAJOR_CITIES.filter(c => mv(c.lon, c.lat)).map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="left">
           <CityMarker city={c} hideLabel={INFRA_CITY_IDS.has(c.id)} />
         </Marker>
       ))}
 
       {/* ══════════ Military infrastructure (zoom-gated) ══════════ */}
-      {visible && showDetail && MILITARY_INFRASTRUCTURE.map((item) => (
+      {visible && showDetail && MILITARY_INFRASTRUCTURE.filter(i => mv(i.lon, i.lat)).map((item) => (
         <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
           <InfraMarker item={item} showLabel={showLabels} />
         </Marker>
       ))}
 
       {/* ══════════ Black Sea naval (zoom-gated) ══════════ */}
-      {visible && showDetail && NAVAL_POSITIONS.map((pos) => (
+      {visible && showDetail && NAVAL_POSITIONS.filter(p => mv(p.lon, p.lat)).map((pos) => (
         <Marker key={pos.id} longitude={pos.lon} latitude={pos.lat} anchor="center">
           <NavalMarker pos={pos} />
         </Marker>
       ))}
 
       {/* ══════════ Coat of Arms (zoom-gated) ══════════ */}
-      {visible && showDetail && (
+      {visible && showDetail && mv(COAT_OF_ARMS.ukraine.lon, COAT_OF_ARMS.ukraine.lat) && (
         <>
           <Marker longitude={COAT_OF_ARMS.ukraine.lon} latitude={COAT_OF_ARMS.ukraine.lat} anchor="center">
             <CoatOfArms country="ukraine" />
@@ -779,7 +780,7 @@ export default function ConflictOverlay({ visible, onTroopClick, showTroops = tr
       )}
 
       {/* ══════════ NATO troop symbols (zoom-gated) ══════════ */}
-      {visible && showDetail && showTroops && TROOP_POSITIONS.map((unit) => (
+      {visible && showDetail && showTroops && TROOP_POSITIONS.filter(u => mv(u.lon, u.lat)).map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
           <NatoSymbol unit={unit} onClick={(u) => { setSelectedTroop(u); onTroopClick?.(u); }} />
         </Marker>

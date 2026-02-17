@@ -2029,3 +2029,60 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ─── Side Detail Cards ─── */
+.conflict-sides-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.conflict-side-card {
+  background: rgba(255,255,255,0.04);
+  border-left: 3px solid #888;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.conflict-side-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.conflict-side-card-name {
+  font-weight: 700;
+  font-size: 12px;
+  color: #eee;
+}
+
+.conflict-side-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.conflict-side-card-key {
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.conflict-side-card-val {
+  color: #ddd;
+  text-align: right;
+}
+
+.conflict-side-card-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.7);
+  margin: 4px 0;
+}

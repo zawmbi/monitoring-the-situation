@@ -117,119 +117,6 @@ function PrimaryView({ party, candidates }) {
   );
 }
 
-function PollTrendChart({ candidates }) {
-  if (!candidates || candidates.length < 2) return null;
-
-  const [hover, setHover] = useState(null); // { ci, i, v, x, y }
-
-  // Simulated trend data (recent months) based on current polling with minor variations
-  const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
-  const canvasWidth = 360;
-  const canvasHeight = 160;
-  const padL = 32;
-  const padR = 12;
-  const padT = 12;
-  const padB = 26;
-  const plotW = canvasWidth - padL - padR;
-  const plotH = canvasHeight - padT - padB;
-
-  // Generate trend lines from current polling
-  const trends = candidates.slice(0, 2).map((c) => {
-    const base = c.polling || 40;
-    return months.map((_, i) => {
-      const variance = (Math.sin(i * 1.3 + base) * 3) + (i * 0.3);
-      return Math.max(20, Math.min(65, base + variance - 2));
-    });
-  });
-
-  const allVals = trends.flat();
-  const minV = Math.floor(Math.min(...allVals) / 5) * 5;
-  const maxV = Math.ceil(Math.max(...allVals) / 5) * 5;
-  const range = maxV - minV || 10;
-
-  const toX = (i) => padL + (i / (months.length - 1)) * plotW;
-  const toY = (v) => padT + (1 - (v - minV) / range) * plotH;
-
-  // More grid lines for a polished look
-  const gridSteps = [];
-  for (let v = minV; v <= maxV; v += 5) gridSteps.push(v);
-
-  return (
-    <div className="el-trend-chart">
-      <div className="el-trend-title">Polling Trend</div>
-        <svg viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} className="el-trend-svg" onMouseLeave={() => setHover(null)}>
-          {/* Grid lines */}
-          {gridSteps.map((v, i) => (
-            <g key={i}>
-              <line
-                x1={padL} y1={toY(v)} x2={canvasWidth - padR} y2={toY(v)}
-                stroke="rgba(255,255,255,0.05)" strokeWidth="0.5"
-              />
-              <text x={padL - 6} y={toY(v) + 3} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="end" fontFamily="inherit">
-                {Math.round(v)}%
-              </text>
-            </g>
-          ))}
-          {/* Month labels */}
-          {months.map((m, i) => (
-            <text key={m} x={toX(i)} y={canvasHeight - 6} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" fontFamily="inherit">
-              {m}
-            </text>
-          ))}
-          {/* Area fills under trend lines */}
-          {trends.map((data, ci) => {
-            const color = PARTY_COLORS[candidates[ci]?.party] || '#888';
-            const areaD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(v)}`).join(' ')
-              + ` L${toX(data.length - 1)},${padT + plotH} L${toX(0)},${padT + plotH} Z`;
-            return <path key={ci} d={areaD} fill={color} opacity="0.06" />;
-          })}
-          {/* Trend lines */}
-          {trends.map((data, ci) => {
-            const color = PARTY_COLORS[candidates[ci]?.party] || '#888';
-            const pathD = data.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(v)}`).join(' ');
-            return (
-              <g key={ci}>
-                <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-                {data.map((v, i) => {
-                  const isHovered = hover && hover.ci === ci && hover.i === i;
-                  return (
-                    <circle
-                      key={i} cx={toX(i)} cy={toY(v)}
-                      r={isHovered ? 5 : 3} fill={isHovered ? '#fff' : color}
-                      stroke={isHovered ? color : 'none'} strokeWidth={isHovered ? 2 : 0}
-                      opacity="1" style={{ cursor: 'pointer', transition: 'r 0.15s, fill 0.15s' }}
-                      onMouseEnter={() => setHover({ ci, i, v, x: toX(i), y: toY(v) })}
-                    />
-                  );
-                })}
-              </g>
-            );
-          })}
-          {/* Tooltip */}
-          {hover && (() => {
-            const name = candidates[hover.ci]?.name?.split(' ').pop() || '';
-            const label = `${name}  ${hover.v.toFixed(1)}%`;
-            const tipW = label.length * 5.8 + 16;
-            const tipH = 22;
-            let tx = hover.x - tipW / 2;
-            let ty = hover.y - tipH - 8;
-            if (tx < padL) tx = padL;
-            if (tx + tipW > canvasWidth - padR) tx = canvasWidth - padR - tipW;
-            if (ty < 2) ty = hover.y + 12;
-            return (
-              <g className="el-trend-tooltip">
-                <rect x={tx} y={ty} width={tipW} height={tipH} rx="4" fill="rgba(20,20,28,0.92)" stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
-                <text x={tx + tipW / 2} y={ty + tipH / 2 + 3.5} fill="#fff" fontSize="9.5" fontWeight="600" textAnchor="middle" fontFamily="inherit">
-                  {label}
-                </text>
-              </g>
-            );
-          })()}
-        </svg>
-    </div>
-  );
-}
-
 function HouseMapMini({ house }) {
   if (!house) return null;
 
@@ -301,9 +188,25 @@ function HouseDistrictRace({ district, electionView }) {
       {race.note && <div className="el-note">{race.note}</div>}
       {electionView === 'general' && (
         <>
-          <div className="el-section-title">General Election Polling</div>
-          <PollBar candidates={race.candidates.general} partyColors={PARTY_COLORS} />
-          <PollTrendChart candidates={race.candidates.general} />
+          {race.dWinProb != null ? (
+            <>
+              {race.marketOutcomes && race.marketOutcomes.length > 0 && (
+                <MarketOutcomes
+                  outcomes={race.marketOutcomes}
+                  marketSource={race.marketSource}
+                  marketUrl={race.marketUrl}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <div className="el-section-title el-static-label">
+                General Election (Estimated)
+                <span className="el-static-badge">NO LIVE DATA</span>
+              </div>
+              <PollBar candidates={race.candidates.general} partyColors={PARTY_COLORS} />
+            </>
+          )}
         </>
       )}
       {electionView === 'primary' && race.candidates.primary && (
@@ -315,6 +218,7 @@ function HouseDistrictRace({ district, electionView }) {
                 <div className="el-section-title">
                   <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
                   {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party} Primary
+                  {!race.dWinProb && <span className="el-static-badge">EST</span>}
                 </div>
                 <PrimaryView party={party} candidates={cands} />
               </div>
@@ -397,13 +301,111 @@ function DateCountdown({ label, dateStr, type }) {
   );
 }
 
+function FECCandidateList({ candidates }) {
+  if (!candidates || candidates.length === 0) return null;
+
+  return (
+    <div className="el-fec-candidates">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        FEC Candidates &amp; Fundraising
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-fec-list">
+        {candidates.slice(0, 8).map((c, i) => {
+          const color = PARTY_COLORS[c.party] || '#888';
+          return (
+            <div key={i} className="el-fec-row">
+              <div className="el-fec-name-row">
+                <span className="el-fec-rank">{i + 1}</span>
+                <span className="el-party-tag" style={{ background: color }}>{c.party}</span>
+                <span className="el-fec-name">{c.name}</span>
+                {c.incumbentChallenge === 'I' && <span className="el-fec-incumbent">INC</span>}
+              </div>
+              <div className="el-fec-money-row">
+                {c.totalRaisedFormatted && (
+                  <span className="el-fec-money" title="Total raised">
+                    <span className="el-fec-money-label">Raised</span>
+                    {c.totalRaisedFormatted}
+                  </span>
+                )}
+                {c.cashOnHandFormatted && (
+                  <span className="el-fec-money" title="Cash on hand">
+                    <span className="el-fec-money-label">Cash</span>
+                    {c.cashOnHandFormatted}
+                  </span>
+                )}
+                {c.disbursementsFormatted && (
+                  <span className="el-fec-money" title="Total spent">
+                    <span className="el-fec-money-label">Spent</span>
+                    {c.disbursementsFormatted}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MarketOutcomes({ outcomes, marketSource, marketUrl }) {
+  if (!outcomes || outcomes.length === 0) return null;
+
+  // Only show if we have named outcomes (not just Yes/No)
+  const meaningful = outcomes.filter(o => o.name && o.name !== 'Yes' && o.name !== 'No' && o.price != null);
+  if (meaningful.length === 0) return null;
+
+  return (
+    <div className="el-market-outcomes">
+      <div className="el-section-title">
+        Market Odds by Candidate
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-market-outcomes-list">
+        {meaningful.slice(0, 6).map((o, i) => {
+          const pct = o.price != null ? Math.round(o.price) : 0;
+          // Try to infer party from name
+          const name = o.name || '';
+          const isD = /democrat|dem\b|blue|harris|fetterman|warnock|kelly|ossoff/i.test(name);
+          const isR = /republican|rep\b|gop|red|trump|paxton|cornyn|desantis/i.test(name);
+          const color = isD ? PARTY_COLORS.D : isR ? PARTY_COLORS.R : '#a67bc2';
+
+          return (
+            <div key={i} className="el-market-outcome-row">
+              <span className="el-market-outcome-name">{name}</span>
+              <div className="el-market-outcome-bar-track">
+                <div
+                  className="el-market-outcome-bar-fill"
+                  style={{ width: `${Math.max(pct, 3)}%`, background: color }}
+                />
+              </div>
+              <span className="el-market-outcome-pct" style={{ color }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {marketSource && (
+        <div className="el-market-outcomes-source">
+          via {marketSource === 'kalshi' ? 'Kalshi' : marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RaceDetails({ race }) {
   if (!race) return null;
+  const hasLiveFundraising = race.liveFundraising && Object.keys(race.liveFundraising).length > 0;
   const hasFundraising = race.fundraising && Object.keys(race.fundraising).length > 0;
   const hasEndorsements = race.endorsements && Object.values(race.endorsements).some(e => e.length > 0);
   const hasKeyIssues = race.keyIssues && race.keyIssues.length > 0;
 
-  if (!race.prevMargin && !hasFundraising && !hasEndorsements && !hasKeyIssues) return null;
+  if (!race.prevMargin && !hasFundraising && !hasLiveFundraising && !hasEndorsements && !hasKeyIssues) return null;
 
   return (
     <div className="el-race-details">
@@ -416,7 +418,23 @@ function RaceDetails({ race }) {
         </div>
       )}
 
-      {hasFundraising && (
+      {/* Show live FEC fundraising when available, else fall back to static estimates */}
+      {hasLiveFundraising ? (
+        <div className="el-detail-section">
+          <span className="el-detail-label">
+            Fundraising
+            <span className="el-live-micro">FEC LIVE</span>
+          </span>
+          <div className="el-fundraising-row">
+            {Object.entries(race.liveFundraising).map(([party, amount]) => (
+              <span key={party} className="el-fundraise-tag el-fundraise-live" style={{ borderColor: PARTY_COLORS[party] || '#888' }}>
+                <span className="el-fundraise-party" style={{ color: PARTY_COLORS[party] || '#888' }}>{party}</span>
+                {amount}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : hasFundraising ? (
         <div className="el-detail-section">
           <span className="el-detail-label">Fundraising (est.)</span>
           <div className="el-fundraising-row">
@@ -428,7 +446,7 @@ function RaceDetails({ race }) {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {hasEndorsements && (
         <div className="el-detail-section">
@@ -477,7 +495,7 @@ function MarketProbBar({ race }) {
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
           >
-            {race.marketSource === 'kalshi' ? 'Kalshi' : 'Polymarket'}
+            {race.marketSource === 'kalshi' ? 'Kalshi' : race.marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 3, opacity: 0.6 }}>
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
@@ -504,12 +522,13 @@ function MarketProbBar({ race }) {
   );
 }
 
-function LiveIndicator({ isLive }) {
+function LiveIndicator({ isLive, marketCount }) {
   if (!isLive) return null;
   return (
-    <span className="el-live-indicator" title="Live data from prediction markets — updates every 15min">
+    <span className="el-live-indicator" title={`Live data from ${marketCount || 0} prediction markets — updates every 5min`}>
       <span className="el-live-dot" />
       LIVE
+      {marketCount > 0 && <span className="el-live-count">{marketCount}</span>}
     </span>
   );
 }
@@ -786,6 +805,92 @@ function StateContextBar({ pvi }) {
   );
 }
 
+function LivePolls({ polls, maxPolls = 5 }) {
+  if (!polls || polls.length === 0) return null;
+
+  return (
+    <div className="el-live-polls">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+        Latest Polls
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      {polls.slice(0, maxPolls).map((poll, i) => {
+        const total = poll.candidates.reduce((s, c) => s + c.pct, 0);
+        return (
+          <div key={i} className="el-live-poll-entry">
+            <div className="el-live-poll-meta">
+              <span className="el-live-poll-pollster">{poll.pollster}</span>
+              {poll.date && <span className="el-live-poll-date">{poll.date}</span>}
+              {poll.sampleSize && <span className="el-live-poll-sample">n={poll.sampleSize}</span>}
+            </div>
+            <div className="el-poll-bar">
+              {poll.candidates.map((c, j) => {
+                const color = PARTY_COLORS[c.party] || '#888';
+                const w = total > 0 ? (c.pct / total) * 100 : 50;
+                return (
+                  <div
+                    key={j}
+                    className="el-poll-bar-segment"
+                    style={{ width: `${Math.max(w, 3)}%`, background: color }}
+                    title={`${c.name} (${c.party}): ${c.pct}%`}
+                  />
+                );
+              })}
+            </div>
+            <div className="el-poll-labels">
+              {poll.candidates.map((c, j) => {
+                const color = PARTY_COLORS[c.party] || '#888';
+                return (
+                  <div key={j} className="el-poll-label">
+                    <span className="el-poll-dot" style={{ background: color }} />
+                    <span className="el-poll-name">{c.name}</span>
+                    <span className="el-poll-pct" style={{ color }}>{c.pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <div className="el-live-polls-attr">via Wikipedia / public polls</div>
+    </div>
+  );
+}
+
+function GenericBallotBanner({ genericBallot }) {
+  if (!genericBallot?.average) return null;
+  const avg = genericBallot.average;
+  // VoteHub uses "Democrat"/"Republican" as choice names
+  const dPct = avg.Democrat ?? avg.D ?? avg.Dem ?? null;
+  const rPct = avg.Republican ?? avg.R ?? avg.Rep ?? null;
+  if (dPct == null && rPct == null) return null;
+
+  return (
+    <div className="el-generic-ballot">
+      <div className="el-gb-header">
+        <span className="el-gb-title">2026 Generic Ballot</span>
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-gb-bar">
+        {dPct != null && (
+          <div className="el-gb-seg" style={{ width: `${dPct}%`, background: PARTY_COLORS.D }} />
+        )}
+        {rPct != null && (
+          <div className="el-gb-seg" style={{ width: `${rPct}%`, background: PARTY_COLORS.R }} />
+        )}
+      </div>
+      <div className="el-gb-labels">
+        {dPct != null && <span style={{ color: PARTY_COLORS.D }}>D {dPct}%</span>}
+        {rPct != null && <span style={{ color: PARTY_COLORS.R }}>R {rPct}%</span>}
+      </div>
+      <div className="el-live-polls-attr">via VoteHub</div>
+    </div>
+  );
+}
+
 export function ElectionPanel({ stateName, position, onClose, onPositionChange, bounds }) {
   const panelRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -794,8 +899,10 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const [electionView, setElectionView] = useState('general'); // 'primary' | 'general'
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  const { getStateData, isLive, lastUpdated: liveUpdated } = useElectionLive(stateName);
+  const { getStateData, isLive, lastUpdated: liveUpdated, fetchStateNews } = useElectionLive(stateName);
   const data = getStateData(stateName);
+  const [stateNews, setStateNews] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(false);
 
   // Auto-select first available tab and reset district
   useEffect(() => {
@@ -803,7 +910,19 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
     else if (data.governor) setActiveTab('governor');
     else setActiveTab('house');
     setSelectedDistrict(null);
+    setStateNews(null);
   }, [stateName]);
+
+  // Fetch state news when news tab is activated
+  useEffect(() => {
+    if (activeTab === 'news' && !stateNews && !newsLoading && fetchStateNews) {
+      setNewsLoading(true);
+      fetchStateNews(stateName).then(news => {
+        setStateNews(news);
+        setNewsLoading(false);
+      });
+    }
+  }, [activeTab, stateName, stateNews, newsLoading, fetchStateNews]);
 
   const clampPos = (x, y) => {
     if (!bounds) return { x, y };
@@ -857,6 +976,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   if (senate) tabs.push({ id: 'senate', label: 'Senate' });
   if (governor) tabs.push({ id: 'governor', label: 'Governor' });
   tabs.push({ id: 'house', label: `House${houseDistricts.length > 0 ? ` (${houseDistricts.length})` : ''}` });
+  tabs.push({ id: 'news', label: 'News' });
   tabs.push({ id: 'info', label: 'Info' });
 
   const activeDistrict = selectedDistrict
@@ -883,7 +1003,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           </div>
           <div className="el-subtitle">2026 Midterm Elections</div>
         </div>
-        <LiveIndicator isLive={isLive} />
+        <LiveIndicator isLive={isLive} marketCount={data.live?.marketCount} />
       </div>
 
       {/* Race type tabs */}
@@ -970,34 +1090,73 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               <div className="el-note">{activeRace.note}</div>
             )}
 
-            {/* Polling display */}
+            {/* Polling / Market data display */}
             {electionView === 'general' && (
               <>
-                <div className="el-section-title">General Election Polling</div>
-                <PollBar candidates={activeRace.candidates.general} partyColors={PARTY_COLORS} />
-                <PollTrendChart candidates={activeRace.candidates.general} />
+                {/* Live Wikipedia polls — primary data source */}
+                {activeRace.liveGeneralPolls && activeRace.liveGeneralPolls.length > 0 && (
+                  <LivePolls polls={activeRace.liveGeneralPolls} maxPolls={5} />
+                )}
+
+                {/* Market probabilities */}
+                {activeRace.dWinProb != null && (
+                  <>
+                    {activeRace.marketOutcomes && activeRace.marketOutcomes.length > 0 && (
+                      <MarketOutcomes
+                        outcomes={activeRace.marketOutcomes}
+                        marketSource={activeRace.marketSource}
+                        marketUrl={activeRace.marketUrl}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Fallback: static estimates only when no live data at all */}
+                {!activeRace.liveGeneralPolls?.length && activeRace.dWinProb == null && (
+                  <>
+                    <div className="el-section-title el-static-label">
+                      General Election (Estimated)
+                      <span className="el-static-badge">NO LIVE DATA</span>
+                    </div>
+                    <PollBar candidates={activeRace.candidates.general} partyColors={PARTY_COLORS} />
+                  </>
+                )}
               </>
             )}
 
             {electionView === 'primary' && activeRace.candidates.primary && (
               <>
-                {Object.entries(activeRace.candidates.primary).map(([party, cands]) => {
-                  if (!cands || cands.length === 0) return null;
-                  return (
-                    <div key={party} className="el-primary-section">
-                      <div className="el-section-title">
-                        <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
-                        {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party === 'I' ? 'Independent' : party} Primary
+                {/* Live primary polls from Wikipedia */}
+                {activeRace.livePrimaryPolls && activeRace.livePrimaryPolls.length > 0 && (
+                  <LivePolls polls={activeRace.livePrimaryPolls} maxPolls={5} />
+                )}
+
+                {/* Static primary data as fallback */}
+                {(!activeRace.livePrimaryPolls || activeRace.livePrimaryPolls.length === 0) &&
+                  Object.entries(activeRace.candidates.primary).map(([party, cands]) => {
+                    if (!cands || cands.length === 0) return null;
+                    return (
+                      <div key={party} className="el-primary-section">
+                        <div className="el-section-title">
+                          <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
+                          {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party === 'I' ? 'Independent' : party} Primary
+                          <span className="el-static-badge">EST</span>
+                        </div>
+                        <PrimaryView party={party} candidates={cands} />
                       </div>
-                      <PrimaryView party={party} candidates={cands} />
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                }
               </>
             )}
 
             {/* Fundraising, endorsements, key issues */}
             <RaceDetails race={activeRace} />
+
+            {/* FEC registered candidates + real fundraising */}
+            {activeTab === 'senate' && data.fecCandidates && data.fecCandidates.length > 0 && (
+              <FECCandidateList candidates={data.fecCandidates} />
+            )}
 
             {/* Super PAC spending — Senate only */}
             {activeTab === 'senate' && independentExpenditures && (
@@ -1072,14 +1231,19 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   <span>D Need for Majority:</span>
                   <strong>Net +{NATIONAL_OVERVIEW.house.dNeedForMajority}</strong>
                 </div>
-                <div className="el-national-row">
-                  <span>Generic Ballot:</span>
-                  <strong>
-                    <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
-                    {' - '}
-                    <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
-                  </strong>
-                </div>
+                {data.genericBallot?.average ? (
+                  <GenericBallotBanner genericBallot={data.genericBallot} />
+                ) : (
+                  <div className="el-national-row">
+                    <span>Generic Ballot:</span>
+                    <strong>
+                      <span style={{ color: PARTY_COLORS.D }}>D {NATIONAL_OVERVIEW.house.genericBallot.D}%</span>
+                      {' - '}
+                      <span style={{ color: PARTY_COLORS.R }}>R {NATIONAL_OVERVIEW.house.genericBallot.R}%</span>
+                    </strong>
+                    <span className="el-static-badge" style={{ marginLeft: 6 }}>EST</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1105,8 +1269,16 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               </div>
               <div className="el-info-source-list">
                 <div className="el-info-source-row">
+                  <span className="el-info-source-name">Wikipedia Polls</span>
+                  <span className="el-info-source-desc">Senate race polling tables (live)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">VoteHub</span>
+                  <span className="el-info-source-desc">Generic ballot &amp; approval (live)</span>
+                </div>
+                <div className="el-info-source-row">
                   <span className="el-info-source-name">Prediction Markets</span>
-                  <span className="el-info-source-desc">Polymarket + Kalshi (live)</span>
+                  <span className="el-info-source-desc">Polymarket + Kalshi + PredictIt (live)</span>
                 </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">FEC OpenData</span>
@@ -1118,6 +1290,14 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                     <span className="el-info-source-desc">Elections, polling places, ballot info</span>
                   </div>
                 )}
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">GDELT Project</span>
+                  <span className="el-info-source-desc">Election news &amp; media tone (live)</span>
+                </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Congress.gov</span>
+                  <span className="el-info-source-desc">Bills, votes, legislative tracking</span>
+                </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">Cook/Sabato</span>
                   <span className="el-info-source-desc">Race ratings, PVI (static)</span>
@@ -1142,6 +1322,62 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 </span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* News Tab Content */}
+        {activeTab === 'news' && (
+          <div className="el-news-section">
+            <div className="el-section-title">
+              Election Coverage
+              <span className="el-news-live-tag">GDELT LIVE</span>
+            </div>
+            {newsLoading && (
+              <div className="el-news-loading">Loading election news...</div>
+            )}
+            {stateNews && stateNews.articles && stateNews.articles.length > 0 ? (
+              <>
+                {stateNews.tone && (
+                  <div className="el-news-tone-bar">
+                    <span className="el-news-tone-label">Media Tone</span>
+                    <span className={`el-news-tone-val ${stateNews.tone.avgTone > 0.5 ? 'positive' : stateNews.tone.avgTone < -0.5 ? 'negative' : 'neutral'}`}>
+                      {stateNews.tone.avgTone > 0 ? '+' : ''}{stateNews.tone.avgTone}
+                    </span>
+                    <span className="el-news-tone-trend">
+                      {stateNews.tone.trend === 'improving' ? '\u2191' : stateNews.tone.trend === 'declining' ? '\u2193' : '\u2192'} {stateNews.tone.trend}
+                    </span>
+                  </div>
+                )}
+                <div className="el-news-list">
+                  {stateNews.articles.map((article, i) => (
+                    <a
+                      key={i}
+                      className="el-news-article"
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <div className="el-news-article-title">{article.title}</div>
+                      <div className="el-news-article-meta">
+                        {article.source && <span className="el-news-article-source">{article.source}</span>}
+                        {article.date && <span className="el-news-article-date">{article.date}</span>}
+                        {article.sourceCountry && (
+                          <span className="el-news-article-date">{article.sourceCountry}</span>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                <div className="el-news-footer">
+                  {stateNews.articleCount} articles from GDELT (14-day window)
+                </div>
+              </>
+            ) : (!newsLoading && (
+              <div className="el-news-empty">
+                No recent election news found for {stateName}.
+                <br />Coverage increases as primaries approach.
+              </div>
+            ))}
           </div>
         )}
 
@@ -1208,7 +1444,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Markets + FEC + Static' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? 'Polymarket + Kalshi + PredictIt + FEC + GDELT' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>

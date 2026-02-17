@@ -40,6 +40,11 @@ import { infrastructureService } from '../services/infrastructure.service.js';
 import { demographicService } from '../services/demographic.service.js';
 import { credibilityService } from '../services/credibility.service.js';
 import { leadershipService } from '../services/leadership.service.js';
+import { healthService } from '../services/health.service.js';
+import { timeseriesService } from '../services/timeseries.service.js';
+import { climateService } from '../services/climate.service.js';
+import { nuclearService } from '../services/nuclear.service.js';
+import { aitechService } from '../services/aitech.service.js';
 
 const router = Router();
 
@@ -838,6 +843,96 @@ router.get('/fec/expenditures/:state', async (req, res) => {
 });
 
 // ===========================================
+// ELECTION NEWS (GDELT-powered)
+// ===========================================
+
+/**
+ * GET /api/elections/news
+ * Top election news articles from GDELT (free, no auth)
+ */
+router.get('/elections/news', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getTopElectionNews();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Election news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch election news' });
+  }
+});
+
+/**
+ * GET /api/elections/news/:state
+ * State-specific election news + tone analysis
+ */
+router.get('/elections/news/:state', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getStateElectionNews(req.params.state);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] State election news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch state election news' });
+  }
+});
+
+/**
+ * GET /api/elections/battleground
+ * Battleground state news coverage overview
+ */
+router.get('/elections/battleground', async (req, res) => {
+  try {
+    const { default: electionNewsService } = await import('../services/electionNews.service.js');
+    const data = await electionNewsService.getBattlegroundOverview();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Battleground overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch battleground data' });
+  }
+});
+
+// ===========================================
+// CONGRESS.GOV LEGISLATIVE DATA
+// ===========================================
+
+/**
+ * GET /api/congress/overview
+ * Recent bills and votes from 119th Congress
+ */
+router.get('/congress/overview', async (req, res) => {
+  try {
+    const { default: congressService } = await import('../services/congress.service.js');
+    if (!congressService.isConfigured) {
+      return res.json({ success: true, data: { configured: false }, timestamp: new Date().toISOString() });
+    }
+    const data = await congressService.getLegislativeOverview();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Congress overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch legislative data' });
+  }
+});
+
+/**
+ * GET /api/congress/votes
+ * Recent Senate/House roll-call votes
+ */
+router.get('/congress/votes', async (req, res) => {
+  try {
+    const { default: congressService } = await import('../services/congress.service.js');
+    if (!congressService.isConfigured) {
+      return res.json({ success: true, data: [], configured: false, timestamp: new Date().toISOString() });
+    }
+    const chamber = req.query.chamber || 'senate';
+    const data = await congressService.getRecentVotes(chamber);
+    res.json({ success: true, data, configured: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Congress votes error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch vote data' });
+  }
+});
+
+// ===========================================
 // STABILITY DATA (Protests, Military, Instability)
 // ===========================================
 
@@ -1274,6 +1369,90 @@ router.get('/leadership', async (req, res) => {
   } catch (error) {
     console.error('[API] Leadership error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch leadership data' });
+  }
+});
+
+/**
+ * GET /api/health-data
+ * Health & pandemic monitoring data (WHO outbreaks + health news)
+ */
+router.get('/health-data', async (req, res) => {
+  try {
+    const data = await healthService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Health error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch health data' });
+  }
+});
+
+/**
+ * GET /api/timeseries/:metric
+ * Historical time-series data for a metric
+ */
+router.get('/timeseries/:metric', async (req, res) => {
+  try {
+    const { metric } = req.params;
+    const { range = '30d' } = req.query;
+    const data = await timeseriesService.getHistory(metric, range);
+    res.json({ success: true, data, metric, range, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Timeseries error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch timeseries data' });
+  }
+});
+
+// ===========================================
+// CLIMATE & ENVIRONMENT
+// ===========================================
+
+/**
+ * GET /api/climate
+ * Climate & environment monitoring data (extreme weather + policy + emissions news)
+ */
+router.get('/climate', async (req, res) => {
+  try {
+    const data = await climateService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Climate error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch climate data' });
+  }
+});
+
+// ===========================================
+// NUCLEAR THREAT
+// ===========================================
+
+/**
+ * GET /api/nuclear
+ * Nuclear threat monitoring (risk score + nuclear states + news)
+ */
+router.get('/nuclear', async (req, res) => {
+  try {
+    const data = await nuclearService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Nuclear error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch nuclear data' });
+  }
+});
+
+// ===========================================
+// AI & TECHNOLOGY REGULATION
+// ===========================================
+
+/**
+ * GET /api/aitech
+ * AI & technology regulation monitoring (regulation + disinformation + crypto + breakthroughs)
+ */
+router.get('/aitech', async (req, res) => {
+  try {
+    const data = await aitechService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] AITech error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch AI/tech data' });
   }
 });
 

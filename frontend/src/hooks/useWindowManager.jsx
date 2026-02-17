@@ -1,4 +1,41 @@
-import { useState, useCallback, useRef, createContext, useContext } from 'react';
+import { useState, useCallback, useRef, useEffect, createContext, useContext } from 'react';
+
+const STORAGE_KEY = 'panel-layout';
+
+export const LAYOUT_PRESETS = {
+  economic: ['commodities', 'shipping', 'tariffs', 'countryRisk', 'sanctions'],
+  conflict: ['tension', 'stability', 'cyber', 'refugee', 'narrative'],
+  election: ['election', 'court', 'briefing', 'credibility', 'leadership'],
+};
+
+function saveLayout(windows) {
+  try {
+    const serializable = {};
+    for (const [id, win] of Object.entries(windows)) {
+      serializable[id] = {
+        id: win.id,
+        title: win.title,
+        mode: win.mode,
+        prevMode: win.prevMode,
+        position: win.position,
+        size: win.size,
+      };
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
+function loadLayout() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 const WindowManagerContext = createContext(null);
 
@@ -18,9 +55,32 @@ export function useWindowManager() {
 }
 
 function useWindowManagerInternal() {
-  const [windows, setWindows] = useState({});
-  const zCounter = useRef(1200);
+  const [windows, setWindows] = useState(() => {
+    const saved = loadLayout();
+    if (saved) {
+      // Restore zIndex counters from saved layout
+      let maxZ = 1200;
+      for (const win of Object.values(saved)) {
+        win.zIndex = maxZ++;
+      }
+      return saved;
+    }
+    return {};
+  });
+  const zCounter = useRef(1200 + Object.keys(windows).length);
   const closeCallbacks = useRef({});
+  const saveTimerRef = useRef(null);
+
+  // Debounced save on any window state change
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveLayout(windows);
+    }, 500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [windows]);
 
   const register = useCallback((id, opts = {}) => {
     setWindows(prev => {
@@ -136,5 +196,15 @@ function useWindowManagerInternal() {
     registerClose,
     closeWindow,
     minimizedWindows,
+    saveLayout: () => saveLayout(windows),
+    loadLayout: () => {
+      const saved = loadLayout();
+      if (saved) {
+        for (const win of Object.values(saved)) {
+          win.zIndex = zCounter.current++;
+        }
+        setWindows(saved);
+      }
+    },
   };
 }

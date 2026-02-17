@@ -42,6 +42,9 @@ import * as myanmarData from './features/conflicts/myanmarData';
 import * as yemenData from './features/conflicts/yemenData';
 import * as ethiopiaData from './features/conflicts/ethiopiaData';
 import * as drcData from './features/conflicts/drcData';
+import * as iranIsraelData from './features/conflicts/iranIsraelData';
+import * as indiaPakistanData from './features/conflicts/indiaPakistanData';
+import * as sahelData from './features/conflicts/sahelData';
 import { ElectionPanel } from './features/elections/ElectionPanel';
 import { getElectionColor, hasElectionRaces, RATING_COLORS } from './features/elections/electionData';
 import ProtestHeatmap from './features/stability/ProtestHeatmap';
@@ -57,6 +60,7 @@ import GlobalStatusBar from './components/GlobalStatusBar';
 import NewsTicker from './components/NewsTicker';
 import { useDisasters } from './hooks/useDisasters';
 import { useCyber } from './hooks/useCyber';
+import { useHealth } from './hooks/useHealth';
 import { useCommodities } from './hooks/useCommodities';
 import { useShipping } from './hooks/useShipping';
 import { useTension } from './hooks/useTension';
@@ -65,6 +69,7 @@ import { useCountryRisk } from './hooks/useCountryRisk';
 import { useRefugees } from './hooks/useRefugees';
 import DisasterOverlay from './features/disasters/DisasterOverlay';
 import { CyberPanel } from './features/cyber/CyberPanel';
+import { HealthPanel } from './features/health/HealthPanel';
 import { CommoditiesPanel } from './features/commodities/CommoditiesPanel';
 import { RefugeePanel } from './features/refugees/RefugeePanel';
 import { ShippingPanel } from './features/shipping/ShippingPanel';
@@ -96,8 +101,25 @@ import { LeadershipPanel } from './features/leadership/LeadershipPanel';
 import { TimelineNavigator } from './components/TimelineNavigator';
 import { useI18n } from './i18n/I18nContext';
 import IN_STATE_INFO from './indiaStateInfo';
+import RU_OBLAST_INFO from './ruOblastInfo';
+import UK_NATION_INFO from './ukNationInfo';
 import { useIndiaStates } from './hooks/useIndiaStates';
+import { useRussianOblasts } from './hooks/useRussianOblasts';
+import { useUKNations } from './hooks/useUKNations';
 import { useMultiPanel } from './hooks/useMultiPanel';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { OnboardingTour } from './components/OnboardingTour';
+import { FreshnessIndicator } from './components/FreshnessIndicator';
+import { CommandPalette, PANEL_INDEX, CONFLICT_INDEX, COUNTRY_INDEX } from './components/CommandPalette';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { ClimatePanel } from './features/climate/ClimatePanel';
+import { NuclearPanel } from './features/nuclear/NuclearPanel';
+import { AITechPanel } from './features/aitech/AITechPanel';
+import { useClimate } from './hooks/useClimate';
+import { useNuclear } from './hooks/useNuclear';
+import { useAiTech } from './hooks/useAiTech';
+import { useDeepLink } from './hooks/useDeepLink';
+import { useNotifications } from './hooks/useNotifications';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -789,6 +811,8 @@ function App() {
     openStatePanel,
     openProvincePanel,
     openIndiaStatePanel,
+    openRUOblastPanel,
+    openUKNationPanel,
     openEUPanel,
     closeCountryPanel,
   } = useCountryPanel();
@@ -831,6 +855,7 @@ function App() {
   const [activeConflicts, setActiveConflicts] = useState({});
   const [conflictPanels, setConflictPanels] = useState({});
   const [conflictTroops, setConflictTroops] = useState({});
+  const [conflictLegends, setConflictLegends] = useState({});
   const ADDITIONAL_CONFLICTS = [
     { id: 'israel-gaza', label: 'Israel\u2013Gaza War', data: israelGazaData },
     { id: 'sudan', label: 'Sudan Civil War', data: sudanData },
@@ -838,10 +863,15 @@ function App() {
     { id: 'yemen', label: 'Yemen / Houthi Crisis', data: yemenData },
     { id: 'ethiopia', label: 'Ethiopia Conflicts', data: ethiopiaData },
     { id: 'drc', label: 'Eastern Congo (M23)', data: drcData },
+    { id: 'iran-israel', label: 'Twelve Day War', data: iranIsraelData },
+    { id: 'india-pakistan', label: 'India\u2013Pakistan Crisis', data: indiaPakistanData },
+    { id: 'sahel', label: 'Sahel Insurgency', data: sahelData },
   ];
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
   const [showINStates, setShowINStates] = useState(false);
+  const [showRUOblasts, setShowRUOblasts] = useState(false);
+  const [showUKNations, setShowUKNations] = useState(false);
   const [showEUCountries, setShowEUCountries] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
@@ -890,6 +920,9 @@ function App() {
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
   const hoveredProvinceIdRef = useRef(null);
+  const hoveredINStateIdRef = useRef(null);
+  const hoveredRUOblastIdRef = useRef(null);
+  const hoveredUKNationIdRef = useRef(null);
   const hoveredEUIdRef = useRef(null);
 
   // News panel state
@@ -957,8 +990,13 @@ function App() {
 
   // Indian states GeoJSON (lazy-loaded)
   const { data: indiaStatesGeoJSON } = useIndiaStates(showINStates);
+  // Russian oblasts GeoJSON (lazy-loaded)
+  const { data: ruOblastsGeoJSON } = useRussianOblasts(showRUOblasts);
+  // UK nations GeoJSON (lazy-loaded)
+  const { data: ukNationsGeoJSON } = useUKNations(showUKNations);
 
   // ── New feature state ──
+  const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [showCyberPanel, setShowCyberPanel] = useState(false);
   const [showCommoditiesPanel, setShowCommoditiesPanel] = useState(false);
   const [showRefugeePanel, setShowRefugeePanel] = useState(false);
@@ -979,10 +1017,19 @@ function App() {
   const [showCredibilityPanel, setShowCredibilityPanel] = useState(false);
   const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showClimatePanel, setShowClimatePanel] = useState(false);
+  const [showNuclearPanel, setShowNuclearPanel] = useState(false);
+  const [showAiTechPanel, setShowAiTechPanel] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
+  const [sidebarSearchFocused, setSidebarSearchFocused] = useState(false);
+  const sidebarSearchRef = useRef(null);
 
   // ── New data hooks ──
-  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather);
-  const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel);
+  const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather || showTimeline);
+  const { data: cyberData, loading: cyberLoading, refresh: refreshCyber } = useCyber(showCyberPanel || showTimeline);
+  const { data: healthData, loading: healthLoading, refresh: refreshHealth } = useHealth(showHealthPanel);
   const { data: commoditiesData, loading: commoditiesLoading, refresh: refreshCommodities } = useCommodities(showCommoditiesPanel);
   const { data: shippingData, loading: shippingLoading, refresh: refreshShipping } = useShipping(showShippingMode);
   const { data: tensionData, loading: tensionLoading, refresh: refreshTension } = useTension(true);
@@ -996,10 +1043,59 @@ function App() {
   const { data: allianceData, loading: allianceLoading, refresh: refreshAlliance } = useAlliance(showAlliancePanel);
   const { data: infrastructureData, loading: infrastructureLoading, refresh: refreshInfrastructure } = useInfrastructure(showInfrastructurePanel);
   const { data: demographicData, loading: demographicLoading, refresh: refreshDemographic } = useDemographic(showDemographicPanel);
-  const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showCredibilityPanel);
-  const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel);
+  const { data: credibilityData, loading: credibilityLoading, refresh: refreshCredibility } = useCredibility(showTimeline);
+  const { data: leadershipData, loading: leadershipLoading, refresh: refreshLeadership } = useLeadership(showLeadershipPanel || showTimeline);
+  const { data: climateData, loading: climateLoading, refresh: refreshClimate } = useClimate(showClimatePanel);
+  const { data: nuclearData, loading: nuclearLoading, refresh: refreshNuclear } = useNuclear(showNuclearPanel);
+  const { data: aitechData, loading: aitechLoading, refresh: refreshAiTech } = useAiTech(showAiTechPanel);
+
+  // Notifications system
+  const notifications = useNotifications();
 
   const isLightTheme = theme === 'light-analytic';
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearch: () => setShowCommandPalette(true),
+    onEscape: () => {
+      if (showCommandPalette) { setShowCommandPalette(false); return; }
+      // Close the most recently opened panel
+      const panelSetters = [
+        [showShortcutsHelp, setShowShortcutsHelp],
+        [showAiTechPanel, setShowAiTechPanel],
+        [showNuclearPanel, setShowNuclearPanel],
+        [showClimatePanel, setShowClimatePanel],
+        [showLeadershipPanel, setShowLeadershipPanel],
+        [showCredibilityPanel, setShowCredibilityPanel],
+        [showDemographicPanel, setShowDemographicPanel],
+        [showInfrastructurePanel, setShowInfrastructurePanel],
+        [showAlliancePanel, setShowAlliancePanel],
+        [showRegimePanel, setShowRegimePanel],
+        [showNarrativePanel, setShowNarrativePanel],
+        [showWatchlistPanel, setShowWatchlistPanel],
+        [showCountryRiskPanel, setShowCountryRiskPanel],
+        [showSanctionsPanel, setShowSanctionsPanel],
+        [showCourtPanel, setShowCourtPanel],
+        [showBriefingPanel, setShowBriefingPanel],
+        [showTensionPanel, setShowTensionPanel],
+        [showShippingPanel, setShowShippingPanel],
+        [showRefugeePanel, setShowRefugeePanel],
+        [showCommoditiesPanel, setShowCommoditiesPanel],
+        [showCyberPanel, setShowCyberPanel],
+        [showHealthPanel, setShowHealthPanel],
+        [showStabilityPanel, setShowStabilityPanel],
+        [showTimeline, setShowTimeline],
+      ];
+      for (const [isOpen, setter] of panelSetters) {
+        if (isOpen) { setter(false); return; }
+      }
+      if (countryPanel.open) closeCountryPanel();
+    },
+    onHelp: () => setShowShortcutsHelp(prev => !prev),
+    onToggleRotate: () => setAutoRotate(prev => !prev),
+    onPrevTab: () => setSidebarTab(t => t === 'country' ? 'world' : t === 'timeline' ? 'country' : t === 'chat' ? 'timeline' : 'chat'),
+    onNextTab: () => setSidebarTab(t => t === 'world' ? 'country' : t === 'country' ? 'timeline' : t === 'timeline' ? 'chat' : 'world'),
+  });
 
   useEffect(() => {
     applyTheme(theme);
@@ -1007,12 +1103,16 @@ function App() {
   }, [theme, isLightTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '46px' : '64px');
   }, [navCollapsed]);
 
   useEffect(() => {
     window.localStorage.setItem('navCollapsed', String(navCollapsed));
   }, [navCollapsed]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('cp-panel-open', !!countryPanel.open);
+  }, [countryPanel.open]);
 
   useEffect(() => {
     window.localStorage.setItem('visualLayers', JSON.stringify(visualLayers));
@@ -1061,6 +1161,18 @@ function App() {
       if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
         map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
         hoveredProvinceIdRef.current = null;
+      }
+      if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+        map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
+        hoveredINStateIdRef.current = null;
+      }
+      if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+        map.setFeatureState({ source: 'ru-oblasts', id: hoveredRUOblastIdRef.current }, { hover: false });
+        hoveredRUOblastIdRef.current = null;
+      }
+      if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+        map.setFeatureState({ source: 'uk-nations', id: hoveredUKNationIdRef.current }, { hover: false });
+        hoveredUKNationIdRef.current = null;
       }
       if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1313,16 +1425,20 @@ function App() {
   const timelineEvents = useMemo(() => {
     const events = [];
     let id = 0;
-    // Tension conflicts
-    if (tensionData?.conflicts) {
-      for (const c of tensionData.conflicts) {
+    // Tension conflicts — use updatedAt (last refresh) as date, not c.since
+    // (c.since is the conflict start year, often years ago, outside timeline range)
+    if (tensionData?.activeConflicts) {
+      const conflictDate = tensionData.updatedAt || new Date().toISOString();
+      for (const c of tensionData.activeConflicts) {
         events.push({
           id: `conflict-${id++}`,
           title: c.name || c.label,
-          date: c.lastEvent || c.updatedAt || new Date().toISOString(),
+          date: conflictDate,
           category: 'conflict',
-          severity: c.nuclear ? 3 : c.intensity >= 7 ? 3 : c.intensity >= 4 ? 2 : 1,
-          country: c.region || c.countries?.[0],
+          severity: c.nuclearRisk === 'elevated' || c.nuclearRisk === 'high' ? 3 : c.intensity >= 70 ? 3 : c.intensity >= 40 ? 2 : 1,
+          country: c.region || c.parties?.[0],
+          lat: c.lat,
+          lon: c.lon,
         });
       }
     }
@@ -1332,25 +1448,31 @@ function App() {
         events.push({
           id: `flash-${id++}`,
           title: f.name || f.label,
-          date: f.updatedAt || new Date().toISOString(),
+          date: tensionData.updatedAt || new Date().toISOString(),
           category: 'conflict',
           severity: f.nuclear ? 3 : f.tension >= 70 ? 3 : f.tension >= 40 ? 2 : 1,
-          country: f.region,
+          country: f.category || f.parties?.[0],
+          lat: f.lat,
+          lon: f.lon,
         });
       }
     }
-    // Disaster events
-    if (disasterData?.events) {
-      for (const ev of disasterData.events) {
-        events.push({
-          id: `disaster-${id++}`,
-          title: ev.title || ev.name,
-          date: ev.date || ev.updatedAt || new Date().toISOString(),
-          category: 'disaster',
-          severity: ev.severity === 'critical' ? 3 : ev.severity === 'high' ? 2 : 1,
-          country: ev.country || ev.region,
-        });
-      }
+    // Disaster events (EONET active events + ReliefWeb recent disasters)
+    const allDisasters = [
+      ...(disasterData?.activeEvents || []),
+      ...(disasterData?.recentDisasters || []),
+    ];
+    for (const ev of allDisasters) {
+      events.push({
+        id: `disaster-${id++}`,
+        title: ev.title || ev.name,
+        date: ev.date || disasterData?.lastUpdated || new Date().toISOString(),
+        category: 'disaster',
+        severity: ev.severity === 'critical' ? 3 : ev.severity === 'high' ? 2 : 1,
+        country: ev.country || ev.region,
+        lat: ev.lat,
+        lon: ev.lon,
+      });
     }
     // Cyber incidents
     if (cyberData?.incidents) {
@@ -1490,6 +1612,27 @@ function App() {
     return ['==', ['get', 'originalId'], '__none__'];
   }, [selectedRegion]);
 
+  const selectedINStateFilter = useMemo(() => {
+    if (selectedRegion?.type === 'inState' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
+  const selectedRUOblastFilter = useMemo(() => {
+    if (selectedRegion?.type === 'ruOblast' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
+  const selectedUKNationFilter = useMemo(() => {
+    if (selectedRegion?.type === 'ukNation' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -1518,6 +1661,18 @@ function App() {
         if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
           map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
           hoveredProvinceIdRef.current = null;
+        }
+        if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+          map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
+          hoveredINStateIdRef.current = null;
+        }
+        if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+          map.setFeatureState({ source: 'ru-oblasts', id: hoveredRUOblastIdRef.current }, { hover: false });
+          hoveredRUOblastIdRef.current = null;
+        }
+        if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+          map.setFeatureState({ source: 'uk-nations', id: hoveredUKNationIdRef.current }, { hover: false });
+          hoveredUKNationIdRef.current = null;
         }
         if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
           for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1555,6 +1710,27 @@ function App() {
       );
       hoveredProvinceIdRef.current = null;
     }
+    if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+      map.setFeatureState(
+        { source: 'in-states', id: hoveredINStateIdRef.current },
+        { hover: false }
+      );
+      hoveredINStateIdRef.current = null;
+    }
+    if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+      map.setFeatureState(
+        { source: 'ru-oblasts', id: hoveredRUOblastIdRef.current },
+        { hover: false }
+      );
+      hoveredRUOblastIdRef.current = null;
+    }
+    if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+      map.setFeatureState(
+        { source: 'uk-nations', id: hoveredUKNationIdRef.current },
+        { hover: false }
+      );
+      hoveredUKNationIdRef.current = null;
+    }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
         map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
@@ -1584,6 +1760,24 @@ function App() {
           { hover: true }
         );
         hoveredProvinceIdRef.current = feat.id;
+      } else if (sourceId === 'in-states' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'in-states', id: feat.id },
+          { hover: true }
+        );
+        hoveredINStateIdRef.current = feat.id;
+      } else if (sourceId === 'ru-oblasts' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'ru-oblasts', id: feat.id },
+          { hover: true }
+        );
+        hoveredRUOblastIdRef.current = feat.id;
+      } else if (sourceId === 'uk-nations' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'uk-nations', id: feat.id },
+          { hover: true }
+        );
+        hoveredUKNationIdRef.current = feat.id;
       } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
         // Highlight ALL EU country features for unified entity hover
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1639,6 +1833,27 @@ function App() {
         { hover: false }
       );
       hoveredProvinceIdRef.current = null;
+    }
+    if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+      map.setFeatureState(
+        { source: 'in-states', id: hoveredINStateIdRef.current },
+        { hover: false }
+      );
+      hoveredINStateIdRef.current = null;
+    }
+    if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+      map.setFeatureState(
+        { source: 'ru-oblasts', id: hoveredRUOblastIdRef.current },
+        { hover: false }
+      );
+      hoveredRUOblastIdRef.current = null;
+    }
+    if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+      map.setFeatureState(
+        { source: 'uk-nations', id: hoveredUKNationIdRef.current },
+        { hover: false }
+      );
+      hoveredUKNationIdRef.current = null;
     }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1781,6 +1996,30 @@ function App() {
           }
           openIndiaStatePanel(name);
         }
+      } else if (sourceId === 'ru-oblasts') {
+        const oblastInfo = RU_OBLAST_INFO[name];
+        if (oblastInfo) {
+          setSelectedRegion({ type: 'ruOblast', id: originalId || name, name });
+          setViewMode('region');
+          if (oblastInfo.capitalCoords) {
+            setSelectedCapital({ name: oblastInfo.capital, lat: oblastInfo.capitalCoords[0], lon: oblastInfo.capitalCoords[1] });
+          } else {
+            setSelectedCapital(null);
+          }
+          openRUOblastPanel(name);
+        }
+      } else if (sourceId === 'uk-nations') {
+        const nationInfo = UK_NATION_INFO[name];
+        if (nationInfo) {
+          setSelectedRegion({ type: 'ukNation', id: originalId || name, name });
+          setViewMode('region');
+          if (nationInfo.capitalCoords) {
+            setSelectedCapital({ name: nationInfo.capital, lat: nationInfo.capitalCoords[0], lon: nationInfo.capitalCoords[1] });
+          } else {
+            setSelectedCapital(null);
+          }
+          openUKNationPanel(name);
+        }
       } else if (sourceId === 'eu-countries') {
         setSelectedRegion({ type: 'eu', id: 'EU', name: 'European Union' });
         setViewMode('region');
@@ -1788,7 +2027,7 @@ function App() {
         openEUPanel();
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, openEUPanel, showTariffHeatmap, electionMode]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, openRUOblastPanel, openUKNationPanel, openEUPanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -1997,10 +2236,19 @@ function App() {
 
   // Track map center for globe hemisphere visibility check
   const lastZoomRef = useRef(2);
+  const [mapCenter, setMapCenter] = useState({ lng: 0, lat: 20 });
+  const mapCenterThrottleRef = useRef(null);
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
     if (c) {
       mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      // Throttled mapCenter state update (~200ms) for components that need reactive hemisphere filtering
+      if (!mapCenterThrottleRef.current) {
+        mapCenterThrottleRef.current = setTimeout(() => {
+          mapCenterThrottleRef.current = null;
+          setMapCenter({ lng: mapCenterRef.current.lng, lat: mapCenterRef.current.lat });
+        }, 200);
+      }
       // Only update zoom state when it changes meaningfully (avoids re-render every frame).
       // Round to nearest 0.5 — overlay components use integer thresholds (2, 3, etc.)
       // so finer resolution just causes unnecessary re-renders during smooth zoom.
@@ -2027,7 +2275,7 @@ function App() {
     const lat2 = lat * toRad;
     const dLng = (lng - c.lng) * toRad;
     const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
-    return cosAngle > -0.05; // slight margin so edge markers don't flicker
+    return cosAngle > 0.1; // tighter margin — cull before visual edge of globe
   }, [transparentGlobe, useGlobe]);
 
   const handleRecenter = useCallback(() => {
@@ -2110,7 +2358,7 @@ function App() {
   return (
     <WindowManagerProvider>
     <>
-    <div className="app">
+    <div className={`app ${sidebarExpanded ? '' : 'sidebar-is-collapsed'}`}>
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
         title="Monitoring The Situation"
@@ -2149,6 +2397,87 @@ function App() {
                     {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
                   </span>
                 ))}
+              </div>
+            )}
+            {sidebarExpanded && (
+              <div className="sidebar-search-wrapper">
+                <div className="sidebar-search-container">
+                  <svg className="sidebar-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    ref={sidebarSearchRef}
+                    type="text"
+                    className="sidebar-search-input"
+                    placeholder="Search panels, conflicts..."
+                    value={sidebarSearchQuery}
+                    onChange={(e) => setSidebarSearchQuery(e.target.value)}
+                    onFocus={() => setSidebarSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSidebarSearchFocused(false), 200)}
+                  />
+                  {sidebarSearchQuery && (
+                    <button className="sidebar-search-clear" onClick={() => { setSidebarSearchQuery(''); sidebarSearchRef.current?.focus(); }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {sidebarSearchFocused && sidebarSearchQuery.trim() && (() => {
+                  const q = sidebarSearchQuery.toLowerCase();
+                  const all = [
+                    ...PANEL_INDEX.map(p => ({ ...p, category: 'Panel' })),
+                    ...CONFLICT_INDEX.map(c => ({ ...c, category: 'Conflict' })),
+                    ...COUNTRY_INDEX,
+                  ];
+                  const filtered = all.filter(item => `${item.label} ${item.keywords}`.toLowerCase().includes(q)).slice(0, 8);
+                  if (!filtered.length) return (
+                    <div className="sidebar-search-results">
+                      <div className="sidebar-search-empty">No results</div>
+                    </div>
+                  );
+                  return (
+                    <div className="sidebar-search-results">
+                      {filtered.map((item, i) => (
+                        <button
+                          key={`${item.category}-${item.id}-${i}`}
+                          className="sidebar-search-result"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSidebarSearchQuery('');
+                            setSidebarSearchFocused(false);
+                            if (item.category === 'Panel') {
+                              const panelMap = {
+                                health: setShowHealthPanel, cyber: setShowCyberPanel,
+                                commodities: setShowCommoditiesPanel, refugees: setShowRefugeePanel,
+                                shipping: () => { setShowShippingMode(true); setShowShippingPanel(true); },
+                                sanctions: setShowSanctionsPanel, court: setShowCourtPanel,
+                                stability: setShowStabilityPanel, tension: setShowTensionPanel,
+                                briefing: setShowBriefingPanel, elections: () => setElectionMode(true),
+                                climate: setShowClimatePanel, nuclear: setShowNuclearPanel, aitech: setShowAiTechPanel,
+                              };
+                              const setter = panelMap[item.id];
+                              if (typeof setter === 'function') setter(true);
+                            } else if (item.category === 'Conflict') {
+                              if (item.id === 'ukraine-russia') {
+                                setActiveConflicts(prev => ({ ...prev, 'ukraine-russia': true }));
+                              } else {
+                                setActiveConflicts(prev => ({ ...prev, [item.id]: true }));
+                                setConflictPanels(prev => ({ ...prev, [item.id]: true }));
+                              }
+                            }
+                          }}
+                        >
+                          <span className={`sidebar-search-badge sidebar-search-badge--${item.category.toLowerCase()}`}>
+                            {item.category}
+                          </span>
+                          <span className="sidebar-search-label">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {sidebarExpanded && (
@@ -2297,6 +2626,11 @@ function App() {
                         <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
                           <span className="switch-label">Military Indicators</span>
                           <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
+                          <span className="slider" />
+                        </label>
+                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
+                          <span className="switch-label">Refugee Flows</span>
+                          <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
                           <span className="slider" />
                         </label>
                       </div>
@@ -2529,11 +2863,7 @@ function App() {
                       <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
                       <span className="slider" />
                     </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Source Credibility</span>
-                      <input type="checkbox" checked={showCredibilityPanel} onChange={() => setShowCredibilityPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
+                    {/* Source Credibility toggle removed — lean indicators shown inline on news articles */}
                   </div>
 
                   {showTensionPanel && tensionData && (
@@ -2547,6 +2877,11 @@ function App() {
                 <div className="source-group">
                   <div className="source-group-title">Disasters & Security</div>
                   <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Health & Pandemics</span>
+                      <input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
                     <label className="switch switch-neutral">
                       <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
                       <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
@@ -2567,8 +2902,29 @@ function App() {
                       <input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} />
                       <span className="slider" />
                     </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Nuclear Threats</span>
+                      <input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
                   </div>
 
+                </div>
+
+                <div className="source-group">
+                  <div className="source-group-title">Environment & Technology</div>
+                  <div className="source-group-items">
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">Climate & Environment</span>
+                      <input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                    <label className="switch switch-neutral">
+                      <span className="switch-label">AI & Technology</span>
+                      <input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="source-group">
@@ -2600,11 +2956,6 @@ function App() {
                 <div className="source-group">
                   <div className="source-group-title">Migration & Humanitarian</div>
                   <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Refugee Flows</span>
-                      <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
                     <label className="switch switch-neutral">
                       <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
                       <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
@@ -2811,6 +3162,24 @@ function App() {
                       type="checkbox"
                       checked={showINStates}
                       onChange={() => setShowINStates(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">RU Oblast Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showRUOblasts}
+                      onChange={() => setShowRUOblasts(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">UK Nation Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showUKNations}
+                      onChange={() => setShowUKNations(prev => !prev)}
                     />
                     <span className="slider" />
                   </label>
@@ -3092,6 +3461,82 @@ function App() {
           </PanelWindow>
         )}
 
+
+        {/* ══════════ Health & Pandemic Panel ══════════ */}
+        {showHealthPanel && (
+          <PanelWindow
+            id="health"
+            title="Health & Pandemic Monitor"
+            onClose={() => setShowHealthPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+          >
+            <HealthPanel
+              data={healthData}
+              loading={healthLoading}
+              onRefresh={refreshHealth}
+            />
+          </PanelWindow>
+        )}
+
+
+        {/* ══════════ Climate Panel ══════════ */}
+        {showClimatePanel && (
+          <PanelWindow
+            id="climate"
+            title="Climate & Environment"
+            onClose={() => setShowClimatePanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 160, y: 100 }}
+          >
+            <ClimatePanel
+              data={climateData}
+              loading={climateLoading}
+              onRefresh={refreshClimate}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ Nuclear Panel ══════════ */}
+        {showNuclearPanel && (
+          <PanelWindow
+            id="nuclear"
+            title="Nuclear Threat Monitor"
+            onClose={() => setShowNuclearPanel(false)}
+            defaultWidth={420}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 180, y: 80 }}
+          >
+            <NuclearPanel
+              data={nuclearData}
+              loading={nuclearLoading}
+              onRefresh={refreshNuclear}
+            />
+          </PanelWindow>
+        )}
+
+        {/* ══════════ AI & Tech Panel ══════════ */}
+        {showAiTechPanel && (
+          <PanelWindow
+            id="aitech"
+            title="AI & Technology Monitor"
+            onClose={() => setShowAiTechPanel(false)}
+            defaultWidth={440}
+            defaultHeight={560}
+            defaultMode="floating"
+            defaultPosition={{ x: 200, y: 100 }}
+          >
+            <AITechPanel
+              data={aitechData}
+              loading={aitechLoading}
+              onRefresh={refreshAiTech}
+            />
+          </PanelWindow>
+        )}
 
         {/* ══════════ Cyber Panel ══════════ */}
         {showCyberPanel && (
@@ -3423,24 +3868,7 @@ function App() {
           </PanelWindow>
         )}
 
-        {/* ══════════ Source Credibility Panel ══════════ */}
-        {showCredibilityPanel && (
-          <PanelWindow
-            id="credibility"
-            title="Source Credibility Engine"
-            onClose={() => setShowCredibilityPanel(false)}
-            defaultWidth={440}
-            defaultHeight={600}
-            defaultMode="floating"
-            defaultPosition={{ x: 100, y: 65 }}
-          >
-            <CredibilityPanel
-              data={credibilityData}
-              loading={credibilityLoading}
-              onRefresh={refreshCredibility}
-            />
-          </PanelWindow>
-        )}
+        {/* Source Credibility Panel removed — lean indicators shown inline on news articles */}
 
         {/* ══════════ Leadership Intelligence Panel ══════════ */}
         {showLeadershipPanel && (
@@ -3471,12 +3899,11 @@ function App() {
           <TimelineNavigator
             events={timelineEvents}
             onTimeSelect={(date) => {
-              console.log('[Timeline] Selected:', date);
+              // Timeline scrub — no-op for now, events handle navigation
             }}
             onEventClick={(event) => {
-              if (event.country && mapRef.current) {
-                // Try to fly to the event's country/region
-                console.log('[Timeline] Event clicked:', event.title);
+              if (mapRef.current && event.lat && event.lon) {
+                mapRef.current.flyTo({ center: [event.lon, event.lat], zoom: 5, duration: 1400, essential: true });
               }
             }}
           />
@@ -3578,6 +4005,8 @@ function App() {
             ...(showUSStates ? ['us-states-fill'] : []),
             ...(showCAProvinces ? ['ca-provinces-fill'] : []),
             ...(showINStates && indiaStatesGeoJSON ? ['in-states-fill'] : []),
+            ...(showRUOblasts && ruOblastsGeoJSON ? ['ru-oblasts-fill'] : []),
+            ...(showUKNations && ukNationsGeoJSON ? ['uk-nations-fill'] : []),
             ...(showEUCountries ? ['eu-countries-fill'] : []),
           ]}
           onMove={handleMapMove}
@@ -3940,20 +4369,170 @@ function App() {
             </Source>
           )}
 
-          {/* Indian States — boundaries shown when toggled on */}
+          {/* Indian States — boundaries with hover & selection highlighting */}
           {showINStates && indiaStatesGeoJSON && (
             <Source id="in-states" type="geojson" data={indiaStatesGeoJSON}>
               <Layer
                 id="in-states-fill"
                 type="fill"
-                paint={{ 'fill-color': 'rgba(255, 153, 51, 0.1)', 'fill-opacity': 1 }}
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(255, 140, 20, 0.18)' : 'rgba(255, 153, 51, 0.2)',
+                    'rgba(255, 153, 51, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
               />
               <Layer
                 id="in-states-line"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(255, 120, 20, 0.5)' : 'rgba(255, 153, 51, 0.6)',
-                  'line-width': 0.8,
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(255, 120, 20, 0.8)' : 'rgba(255, 180, 60, 0.8)',
+                    isLightTheme ? 'rgba(255, 120, 20, 0.5)' : 'rgba(255, 153, 51, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              {/* Selected state highlight — fill + border */}
+              <Layer
+                id="in-states-selected-fill"
+                type="fill"
+                filter={selectedINStateFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(255, 140, 20, 0.25)'
+                    : 'rgba(255, 153, 51, 0.3)',
+                }}
+              />
+              <Layer
+                id="in-states-selected-line"
+                type="line"
+                filter={selectedINStateFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#e07020' : '#ff9933',
+                  'line-width': 2.5,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Russian Oblasts — boundaries with hover & selection highlighting */}
+          {showRUOblasts && ruOblastsGeoJSON && (
+            <Source id="ru-oblasts" type="geojson" data={ruOblastsGeoJSON}>
+              <Layer
+                id="ru-oblasts-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(220, 50, 50, 0.18)' : 'rgba(230, 70, 70, 0.2)',
+                    'rgba(200, 60, 60, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+              <Layer
+                id="ru-oblasts-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(200, 50, 50, 0.8)' : 'rgba(230, 100, 80, 0.8)',
+                    isLightTheme ? 'rgba(200, 50, 50, 0.5)' : 'rgba(200, 80, 60, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              <Layer
+                id="ru-oblasts-selected-fill"
+                type="fill"
+                filter={selectedRUOblastFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(220, 50, 50, 0.25)'
+                    : 'rgba(230, 70, 70, 0.3)',
+                }}
+              />
+              <Layer
+                id="ru-oblasts-selected-line"
+                type="line"
+                filter={selectedRUOblastFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#c03030' : '#e06040',
+                  'line-width': 2.5,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* UK Nations — boundaries with hover & selection highlighting */}
+          {showUKNations && ukNationsGeoJSON && (
+            <Source id="uk-nations" type="geojson" data={ukNationsGeoJSON}>
+              <Layer
+                id="uk-nations-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 120, 180, 0.18)' : 'rgba(50, 160, 220, 0.2)',
+                    'rgba(40, 140, 200, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+              <Layer
+                id="uk-nations-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 100, 160, 0.8)' : 'rgba(60, 180, 230, 0.8)',
+                    isLightTheme ? 'rgba(30, 100, 160, 0.5)' : 'rgba(50, 160, 220, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              <Layer
+                id="uk-nations-selected-fill"
+                type="fill"
+                filter={selectedUKNationFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(30, 120, 180, 0.25)'
+                    : 'rgba(50, 160, 220, 0.3)',
+                }}
+              />
+              <Layer
+                id="uk-nations-selected-line"
+                type="line"
+                filter={selectedUKNationFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#1e6ea0' : '#30a0e0',
+                  'line-width': 2.5,
                 }}
               />
             </Source>
@@ -4020,6 +4599,7 @@ function App() {
             visible={conflictMode}
             showTroops={conflictShowTroops}
             zoom={mapZoom}
+            isMarkerVisible={isMarkerVisible}
             onTroopClick={(unit) => {
               if (!conflictPanelOpen) {
                 setConflictPanelOpen(true);
@@ -4035,6 +4615,9 @@ function App() {
               conflictData={conflict.data}
               showTroops={conflictTroops[conflict.id] !== false}
               zoom={mapZoom}
+              isMarkerVisible={isMarkerVisible}
+              showLegend={!!conflictLegends[conflict.id]}
+              onLegendToggle={() => setConflictLegends(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
               onTroopClick={() => {
                 if (!conflictPanels[conflict.id]) {
                   setConflictPanels(prev => ({ ...prev, [conflict.id]: true }));
@@ -4049,6 +4632,9 @@ function App() {
             protests={stabilityData?.protests || []}
             zoom={mapZoom}
             isMarkerVisible={isMarkerVisible}
+            mapCenter={mapCenter}
+            useGlobe={useGlobe}
+            transparentGlobe={transparentGlobe}
           />
 
           {/* ══════════ Military Movement Indicators ══════════ */}
@@ -4078,6 +4664,7 @@ function App() {
           {showShippingMode && shippingData?.chokepoints && (
             <ShippingOverlay
               chokepoints={shippingData.chokepoints}
+              isMarkerVisible={isMarkerVisible}
               onChokepointClick={(cp) => {
                 if (cp.lat && cp.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [cp.lon, cp.lat], zoom: 5, duration: 1400, essential: true });
@@ -4090,6 +4677,7 @@ function App() {
           {showRefugeePanel && refugeeData?.situations && (
             <RefugeeOverlay
               situations={refugeeData.situations}
+              isMarkerVisible={isMarkerVisible}
               onSituationClick={(s) => {
                 if (s.lat && s.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [s.lon, s.lat], zoom: 4, duration: 1400, essential: true });
@@ -4102,6 +4690,7 @@ function App() {
           {showCountryRiskMode && countryRiskData?.scores && (
             <RiskOverlay
               scores={countryRiskData.scores}
+              isMarkerVisible={isMarkerVisible}
               onCountryClick={(c) => {
                 if (c.lat && c.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [c.lon, c.lat], zoom: 5, duration: 1400, essential: true });
@@ -4195,6 +4784,7 @@ function App() {
           {/* Infrastructure vulnerability markers */}
           {showInfrastructurePanel && infrastructureData?.infrastructure?.map((infra) => {
             if (!infra.location?.lat || !infra.location?.lon) return null;
+            if (!isMarkerVisible(infra.location.lon, infra.location.lat)) return null;
             const catColors = { energy: '#f59e0b', digital: '#3b82f6', transport: '#06b6d4', financial: '#22c55e', food_water: '#8b5cf6' };
             const color = catColors[infra.category] || '#888';
             const vulnColor = infra.vulnerabilityScore >= 75 ? '#ef4444' : infra.vulnerabilityScore >= 50 ? '#f97316' : color;
@@ -4425,6 +5015,100 @@ function App() {
     <PagePanel pageId={activePage} onClose={() => setActivePage(null)} />
     {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
     <MinimizedTray />
+    {showShortcutsHelp && (
+      <div
+        onClick={() => setShowShortcutsHelp(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99998,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: 'linear-gradient(135deg, rgba(20,25,35,0.98), rgba(30,40,55,0.98))',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '28px 32px',
+            minWidth: '320px',
+            color: '#fff',
+          }}
+        >
+          <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 600 }}>Keyboard Shortcuts</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+            {[
+              ['Ctrl+K', 'Global search'],
+              ['Esc', 'Close latest panel'],
+              ['Space', 'Toggle auto-rotate'],
+              ['[ / ]', 'Cycle sidebar tabs'],
+              ['?', 'Show/hide this help'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+                <kbd style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  minWidth: '48px',
+                  textAlign: 'center',
+                }}>{key}</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.6)' }}>{desc}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              onClick={() => setShowShortcutsHelp(false)}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                color: 'rgba(255,255,255,0.5)',
+                padding: '6px 20px',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >Close</button>
+          </div>
+        </div>
+      </div>
+    )}
+    <CommandPalette
+      open={showCommandPalette}
+      onClose={() => setShowCommandPalette(false)}
+      onSelect={(item) => {
+        // Handle navigation based on selected item
+        if (item.category === 'Panel') {
+          const panelMap = {
+            health: setShowHealthPanel,
+            cyber: setShowCyberPanel,
+            commodities: setShowCommoditiesPanel,
+            refugees: setShowRefugeePanel,
+            shipping: () => { setShowShippingMode(true); setShowShippingPanel(true); },
+            sanctions: setShowSanctionsPanel,
+            court: setShowCourtPanel,
+            stability: setShowStabilityPanel,
+            tension: setShowTensionPanel,
+            briefing: setShowBriefingPanel,
+            climate: setShowClimatePanel,
+            nuclear: setShowNuclearPanel,
+            aitech: setShowAiTechPanel,
+          };
+          const setter = panelMap[item.id];
+          if (typeof setter === 'function') setter(true);
+        }
+      }}
+    />
+    <OfflineIndicator />
+    <OnboardingTour />
     </>
     </WindowManagerProvider>
   );

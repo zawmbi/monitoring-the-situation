@@ -5,12 +5,12 @@
  */
 
 import { cacheService } from './cache.service.js';
+import { fetchGDELT as gdeltFetch } from './gdelt.client.js';
 import Parser from 'rss-parser';
 
 const parser = new Parser({ timeout: 10000, maxRedirects: 3 });
 
 const CACHE_TTL = 600; // 10 minutes
-const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 
 // ─── Country → lat/lon centroid lookup (ISO alpha-2) ───
 const COUNTRY_COORDS = {
@@ -66,26 +66,9 @@ async function fetchGoogleNewsRSS(query, maxItems = 30) {
   }
 }
 
-// ─── GDELT Doc API fetch ───
+// ─── GDELT Doc API fetch (via shared rate-limited client) ───
 async function fetchGDELT(query, maxRecords = 75, timespan = '7d') {
-  try {
-    const url = `${GDELT_BASE}?query=${encodeURIComponent(query)}&mode=ArtList&maxrecords=${maxRecords}&timespan=${timespan}&format=json`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!resp.ok) throw new Error(`GDELT HTTP ${resp.status}`);
-    const data = await resp.json();
-    return (data.articles || []).map((a) => ({
-      title: a.title || '',
-      url: a.url || '',
-      source: a.domain || '',
-      date: a.seendate || '',
-      sourcecountry: a.sourcecountry || '',
-      language: a.language || '',
-      image: a.socialimage || '',
-    }));
-  } catch (err) {
-    console.warn(`[Stability] GDELT fetch failed for "${query}":`, err.message);
-    return [];
-  }
+  return gdeltFetch(query, { maxRecords, timespan, caller: 'Stability' });
 }
 
 // ─── Resolve country code from GDELT sourcecountry field ───
@@ -146,7 +129,8 @@ async function fetchProtestData() {
       countryCode: code,
       lat,
       lon,
-      intensity: Math.min(10, Math.max(1, Math.round(data.count / 3))),
+      // Logarithmic scaling: 1 article→1, 3→3, 10→5, 30→7, 80+→10
+      intensity: Math.min(10, Math.max(1, Math.round(2.0 * Math.log2(data.count + 1)))),
       count: data.count,
       articles: data.articles,
     };

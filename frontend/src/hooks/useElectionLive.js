@@ -80,6 +80,10 @@ export function useElectionLive(stateName) {
     const marketRatings = liveData.marketRatings || {};
     const fecData = liveData.fecData || {};
 
+    // Merge polling data from Wikipedia
+    const pollingData = liveData.pollingData || {};
+    const statePolls = pollingData.byState?.[state] || null;
+
     // Merge Senate data
     let senate = staticData.senate;
     const senateKey = `${state}:senate`;
@@ -94,6 +98,14 @@ export function useElectionLive(stateName) {
         marketSource: senateLive.marketSource,
         marketVolume: senateLive.marketVolume,
         marketOutcomes: senateLive.outcomes,
+      };
+    }
+    // Attach live polls to senate race
+    if (senate && statePolls) {
+      senate = {
+        ...senate,
+        liveGeneralPolls: statePolls.generalPolls || [],
+        livePrimaryPolls: statePolls.primaryPolls || [],
       };
     }
 
@@ -134,7 +146,7 @@ export function useElectionLive(stateName) {
       });
     }
 
-    // Merge independent expenditure data for this state
+    // State code lookup for FEC/IE data
     const stateCodeMap = {
       'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
       'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
@@ -153,13 +165,49 @@ export function useElectionLive(stateName) {
     const sc = stateCodeMap[state] || '';
     const ieData = (liveData.independentExpenditures || {})[sc] || null;
 
+    // Merge FEC candidate data into race fundraising
+    const fecCandidates = (liveData.fecCandidates || {})[sc] || [];
+    const fecSummary = fecData[sc] || null;
+
+    // Build live fundraising from FEC candidates
+    if (fecCandidates.length > 0) {
+      const liveFundraising = {};
+      for (const c of fecCandidates) {
+        const p = c.party;
+        if (!p) continue;
+        if (!liveFundraising[p]) liveFundraising[p] = 0;
+        liveFundraising[p] += c.totalRaised || 0;
+      }
+      const formatMoney = (num) => {
+        if (!num || num === 0) return null;
+        if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+        if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+        return `$${num.toFixed(0)}`;
+      };
+      const liveFundraisingFormatted = {};
+      for (const [p, total] of Object.entries(liveFundraising)) {
+        const formatted = formatMoney(total);
+        if (formatted) liveFundraisingFormatted[p] = formatted;
+      }
+
+      if (Object.keys(liveFundraisingFormatted).length > 0) {
+        if (senate) {
+          senate = { ...senate, liveFundraising: liveFundraisingFormatted, fecCandidates };
+        }
+      }
+    }
+
     return {
       ...staticData,
       senate,
       governor,
       houseDistricts,
       independentExpenditures: ieData,
+      fecCandidates,
+      fecSummary,
       upcomingElections: liveData.upcomingElections || [],
+      genericBallot: pollingData.genericBallot || null,
+      approval: pollingData.approval || null,
       live: {
         timestamp: liveData.timestamp,
         fecConfigured: liveData.fecConfigured,
@@ -169,6 +217,58 @@ export function useElectionLive(stateName) {
     };
   }, [liveData]);
 
+  // Also fetch election news from GDELT
+  const [newsData, setNewsData] = useState(null);
+  const newsCache = useRef(null);
+
+  const fetchElectionNews = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+      const response = await fetch('/api/elections/news', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) return;
+      const result = await response.json();
+      if (!isMounted.current) return;
+      if (result.success && result.data) {
+        newsCache.current = result.data;
+        setNewsData(result.data);
+      }
+    } catch (err) {
+      // Keep stale news on error
+    }
+  }, []);
+
+  // Fetch state-specific election news
+  const fetchStateNews = useCallback(async (state) => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+      const response = await fetch(`/api/elections/news/${encodeURIComponent(state)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  // Fetch news on mount
+  useEffect(() => {
+    if (!newsCache.current) fetchElectionNews();
+    const newsInterval = setInterval(fetchElectionNews, 10 * 60 * 1000);
+    return () => clearInterval(newsInterval);
+  }, [fetchElectionNews]);
+
   return {
     liveData,
     loading,
@@ -176,6 +276,8 @@ export function useElectionLive(stateName) {
     refresh: fetchLiveData,
     getStateData,
     isLive: !!liveData && Object.keys(liveData.marketRatings || {}).length > 0,
+    newsData,
+    fetchStateNews,
   };
 }
 

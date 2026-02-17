@@ -12,6 +12,7 @@
 import { cacheService } from './cache.service.js';
 import { ucdpService } from './ucdp.service.js';
 import { stabilityService } from './stability.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_KEY = 'tension:index';
 const CACHE_TTL = 900; // 15 minutes
@@ -177,6 +178,40 @@ const CONFLICT_METADATA = [
     lon: 48.52,
   },
   {
+    id: 'iran-israel',
+    name: 'Iran-Israel War',
+    type: 'interstate',
+    region: 'Middle East',
+    parties: ['Israel', 'Iran', 'United States'],
+    escalationRisk: 'critical',
+    nuclearRisk: 'elevated',
+    since: '2025-06-13',
+    ucdpKeywords: ['Iran', 'Israel'],
+    ucdpCountries: ['Iran (Persia)', 'Israel'],
+    gdeltQuery: 'Iran Israel war OR Iran Israel strike OR Iran nuclear attack OR Iran protests uprising',
+    stabilityCountries: ['IR', 'IL'],
+    baseIntensity: 55,
+    lat: 32.43,
+    lon: 53.69,
+  },
+  {
+    id: 'india-pakistan',
+    name: 'India-Pakistan Crisis',
+    type: 'interstate',
+    region: 'South Asia',
+    parties: ['India', 'Pakistan'],
+    escalationRisk: 'high',
+    nuclearRisk: 'elevated',
+    since: '2025-05-07',
+    ucdpKeywords: ['India', 'Pakistan', 'Kashmir'],
+    ucdpCountries: ['India', 'Pakistan'],
+    gdeltQuery: 'India Pakistan military OR India Pakistan strike OR Kashmir conflict OR Operation Sindoor',
+    stabilityCountries: ['IN', 'PK'],
+    baseIntensity: 45,
+    lat: 34.08,
+    lon: 74.79,
+  },
+  {
     id: 'haiti-gangs',
     name: 'Haiti Gang Violence',
     type: 'civil',
@@ -236,19 +271,6 @@ const FLASHPOINT_METADATA = [
     lon: 127.0,
   },
   {
-    id: 'iran-israel',
-    name: 'Iran-Israel Shadow War',
-    category: 'great-power',
-    parties: ['Iran', 'Israel'],
-    escalationRisk: 'high',
-    nuclear: true,
-    gdeltQuery: 'Iran Israel attack OR Iran Israel proxy OR Iran nuclear program threat',
-    stabilityCountries: ['IR', 'IL'],
-    baseTension: 40,
-    lat: 32.0,
-    lon: 45.0,
-  },
-  {
     id: 'nato-russia',
     name: 'NATO-Russia Frontier',
     category: 'great-power',
@@ -275,28 +297,15 @@ const FLASHPOINT_METADATA = [
     lon: 78.0,
   },
   {
-    id: 'india-pakistan',
-    name: 'India-Pakistan',
-    category: 'territorial',
-    parties: ['India', 'Pakistan'],
-    escalationRisk: 'moderate',
-    nuclear: true,
-    gdeltQuery: 'India Pakistan tension OR Kashmir conflict OR India Pakistan border',
-    stabilityCountries: ['IN', 'PK'],
-    baseTension: 25,
-    lat: 34.0,
-    lon: 74.0,
-  },
-  {
     id: 'arctic',
-    name: 'Arctic Competition',
-    category: 'resource',
-    parties: ['Russia', 'NATO', 'China'],
-    escalationRisk: 'low',
+    name: 'Arctic Sovereignty Dispute',
+    category: 'great-power',
+    parties: ['Russia', 'NATO', 'China', 'USA'],
+    escalationRisk: 'elevated',
     nuclear: false,
-    gdeltQuery: 'Arctic military OR Arctic competition OR Arctic Russia NATO',
-    stabilityCountries: ['RU', 'NO', 'CA'],
-    baseTension: 15,
+    gdeltQuery: 'Arctic military OR Greenland sovereignty OR Arctic Russia NATO OR Northern Sea Route',
+    stabilityCountries: ['RU', 'NO', 'CA', 'GL', 'DK'],
+    baseTension: 30,
     lat: 75.0,
     lon: 40.0,
   },
@@ -312,12 +321,9 @@ async function fetchGdeltArticleCount(query, timespan = '14d') {
       `${GDELT_DOC_URL}?query=${encodeURIComponent(query)}` +
       `&mode=ArtList&maxrecords=250&timespan=${timespan}&format=json`;
 
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) return 0;
-
-    const data = await resp.json();
-    const articles = data.articles || [];
-    return articles.length;
+    const data = await fetchGDELTRaw(url, 'TensionIndex');
+    if (!data) return 0;
+    return (data.articles || []).length;
   } catch {
     return 0;
   }

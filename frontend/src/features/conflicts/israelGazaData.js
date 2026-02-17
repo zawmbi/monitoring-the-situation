@@ -24,8 +24,19 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'War ended / Final ceasefire in effect / Post-war reconstruction',
-  sideA: { name: 'Israel', shortName: 'IL', color: IL_BLUE, flag: '\u{1F1EE}\u{1F1F1}' },
-  sideB: { name: 'Hamas / PIJ', shortName: 'Hamas', color: PS_GREEN, flag: '\u{1F1F5}\u{1F1F8}' },
+  sideA: {
+    name: 'Israel', shortName: 'IL', color: IL_BLUE, flag: '\u{1F1EE}\u{1F1F1}',
+    leader: 'PM Benjamin Netanyahu',
+    description: 'State of Israel, represented by the IDF. Launched Operation Swords of Iron after the Oct 7 Hamas attack. US-backed with advanced military including Iron Dome, Merkava tanks, and F-35s.',
+    goals: 'Eliminate Hamas military capability, recover hostages, prevent future attacks from Gaza',
+  },
+  sideB: {
+    name: 'Hamas / PIJ', shortName: 'Hamas', color: PS_GREEN, flag: '\u{1F1F5}\u{1F1F8}',
+    leader: 'Yahya Sinwar (killed Oct 2024) / Mohammed Deif (killed Jul 2024)',
+    description: 'Hamas (Islamic Resistance Movement) and Palestinian Islamic Jihad. Designated terrorist organizations by US, EU, and others. Governed Gaza since 2007. PIJ is Iran-backed militant faction.',
+    goals: 'Palestinian statehood, end of Israeli occupation, prisoner releases',
+  },
+  background: 'Triggered by the Hamas-led Oct 7, 2023 attack on southern Israel that killed ~1,200 and took ~250 hostages. Israel launched a massive air and ground campaign in Gaza. The war caused catastrophic civilian casualties and a humanitarian crisis. A ceasefire was reached in phases through 2025.',
   internationalSupport: {
     sideA: 'United States, EU (partial), UK',
     sideB: 'Iran (military aid), Hezbollah (pre-ceasefire), Houthis',

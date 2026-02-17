@@ -22,8 +22,19 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'M23/RDF captured Goma & Bukavu / Regional crisis / US-brokered Washington Accords / Angola ceasefire talks',
-  sideA: { name: 'DRC Armed Forces (FARDC)', shortName: 'FARDC', color: FARDC_GREEN, flag: '\u{1F1E8}\u{1F1E9}' },
-  sideB: { name: 'M23 / Rwanda-backed forces', shortName: 'M23', color: M23_RED, flag: '\u{1F1F7}\u{1F1FC}' },
+  sideA: {
+    name: 'DRC Armed Forces (FARDC)', shortName: 'FARDC', color: FARDC_GREEN, flag: '\u{1F1E8}\u{1F1E9}',
+    leader: 'Pres. Félix Tshisekedi',
+    description: 'Armed Forces of the DRC (FARDC), supported by MONUSCO UN peacekeepers (drawdown paused), SADC mission forces, and Burundian troops. Received support from Wazalendo local militia coalitions.',
+    goals: 'Restore territorial integrity, expel M23/Rwandan forces from eastern DRC, protect civilian populations and mineral resources',
+  },
+  sideB: {
+    name: 'M23 / Rwanda-backed forces', shortName: 'M23', color: M23_RED, flag: '\u{1F1F7}\u{1F1FC}',
+    leader: 'Bertrand Bisimwa (political) / Sultani Makenga (military)',
+    description: 'March 23 Movement (M23), a Congolese Tutsi rebel group with documented backing from Rwanda\'s military (RDF). Rwanda embeds troops and provides weapons, intelligence, and command support. Controls mineral-rich eastern territories.',
+    goals: 'Protect Congolese Tutsi community, control eastern DRC territory and mineral resources, political power in Kinshasa',
+  },
+  background: 'Eastern Congo has suffered decades of conflict linked to the 1994 Rwandan genocide\'s aftermath. M23 resurged in late 2021 with Rwandan military backing, capturing Goma and Bukavu by early 2025. The conflict is fueled by competition over coltan, cobalt, and gold. Despite US-brokered Washington Accords and Angola-mediated talks, fighting continues with catastrophic humanitarian impact.',
   internationalSupport: {
     sideA: 'MONUSCO (drawdown paused), Burundi, SADC Mission (SAMIDRC — withdrawing since Mar 2025), Angola/US mediation',
     sideB: 'Rwanda (RDF troops embedded; UN documented), Uganda (alleged limited)',

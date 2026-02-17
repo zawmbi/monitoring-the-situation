@@ -7,6 +7,7 @@ import config from '../config/index.js';
 import { cacheService } from './cache.service.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const CACHE_KEYS = {
   tweets: 'social:tweets',
@@ -201,7 +202,8 @@ class SocialService {
     if (!customPath) return [];
 
     try {
-      const resolved = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', customPath);
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const resolved = path.resolve(__dirname, '..', customPath);
       const file = await fs.readFile(resolved, 'utf-8');
       const data = JSON.parse(file);
       if (!Array.isArray(data)) return [];

@@ -17,6 +17,7 @@
 import { cacheService } from './cache.service.js';
 import { stabilityService } from './stability.service.js';
 import { worldBankService } from './worldbank.service.js';
+import { fetchGDELT as gdeltFetchArticles, fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_TTL = 1800; // 30 minutes
 const CACHE_KEY_COMBINED = 'regime:combined';
@@ -621,39 +622,15 @@ const REGIME_DATA = {
   },
 };
 
-// ─── GDELT fetch helper ───
+// ─── GDELT fetch helper (via shared rate-limited client) ───
 async function fetchGDELT(query, maxRecords = 50, timespan = '7d') {
-  try {
-    const url = `${GDELT_BASE}?query=${encodeURIComponent(query)}&mode=ArtList&maxrecords=${maxRecords}&timespan=${timespan}&format=json`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!resp.ok) throw new Error(`GDELT HTTP ${resp.status}`);
-    const data = await resp.json();
-    return (data.articles || []).map((a) => ({
-      title: a.title || '',
-      url: a.url || '',
-      source: a.domain || '',
-      date: a.seendate || '',
-      sourcecountry: a.sourcecountry || '',
-      language: a.language || '',
-    }));
-  } catch (err) {
-    console.warn(`[RegimeService] GDELT fetch failed for "${query}":`, err.message);
-    return [];
-  }
+  return gdeltFetchArticles(query, { maxRecords, timespan, caller: 'Regime' });
 }
 
-// ─── GDELT article count helper (lightweight tone query) ───
+// ─── GDELT article count helper ───
 async function fetchGDELTArticleCount(query, timespan = '7d') {
-  try {
-    const url = `${GDELT_BASE}?query=${encodeURIComponent(query)}&mode=ArtList&maxrecords=250&timespan=${timespan}&format=json`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!resp.ok) throw new Error(`GDELT HTTP ${resp.status}`);
-    const data = await resp.json();
-    return (data.articles || []).length;
-  } catch (err) {
-    console.warn(`[RegimeService] GDELT count failed for "${query}":`, err.message);
-    return 0;
-  }
+  const articles = await gdeltFetchArticles(query, { maxRecords: 250, timespan, caller: 'Regime' });
+  return articles.length;
 }
 
 // ─── Main service class ───
@@ -917,7 +894,7 @@ class RegimeService {
     // ── Factor 7: Economic stress (World Bank) ──
     let economicFactor = 0;
     try {
-      const econ = await worldBankService.getCountryIndicators(countryCode);
+      const econ = await worldBankService.getEconomicData(countryCode);
       if (econ) {
         // High inflation stress
         const inflation = econ.inflation?.value;

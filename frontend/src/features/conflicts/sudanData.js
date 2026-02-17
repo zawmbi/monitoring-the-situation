@@ -22,8 +22,19 @@ export const CONFLICT_SUMMARY = {
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   },
   phase: 'Full-scale civil war / SAF recaptured Khartoum & Wad Medani / El Fasher fell to RSF (Oct 2025) / Darfur genocide',
-  sideA: { name: 'Sudanese Armed Forces (SAF)', shortName: 'SAF', color: SAF_GREEN, flag: '\u{1F1F8}\u{1F1E9}' },
-  sideB: { name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: '\u2694\uFE0F' },
+  sideA: {
+    name: 'Sudanese Armed Forces (SAF)', shortName: 'SAF', color: SAF_GREEN, flag: '\u{1F1F8}\u{1F1E9}',
+    leader: 'Gen. Abdel Fattah al-Burhan',
+    description: 'Sudanese Armed Forces, the official military of Sudan. Formerly allied with RSF in the 2019 coup, split over integration timeline. Backed by Egypt, Iran, and Turkey.',
+    goals: 'Maintain state control, defeat RSF, preserve SAF dominance over security sector',
+  },
+  sideB: {
+    name: 'Rapid Support Forces (RSF)', shortName: 'RSF', color: RSF_GOLD, flag: 'svg:paramilitary',
+    leader: 'Gen. Mohamed Hamdan Dagalo "Hemedti"',
+    description: 'Rapid Support Forces, evolved from the Janjaweed militia responsible for Darfur atrocities. Paramilitary force with ~100,000 fighters. Backed by UAE arms transfers and Russia/Africa Corps mercenaries.',
+    goals: 'Political power-sharing, resist absorption into SAF, control gold mining and trade routes',
+  },
+  background: 'The war erupted April 2023 from a power struggle between Sudan\'s two top generals who had jointly overthrown the civilian government in 2021. What began as urban fighting in Khartoum escalated into a nationwide conflict with ethnic cleansing in Darfur. Over 12 million displaced, making it the world\'s largest displacement crisis.',
   internationalSupport: {
     sideA: 'Egypt (military aid), Iran (drones — Mohajer-6, documented), Turkey (TB2 drones), Eritrea (alleged)',
     sideB: 'UAE (documented arms transfers via Chad/Libya), Russia/Africa Corps (Wagner successor), Chad (transit route for weapons)',

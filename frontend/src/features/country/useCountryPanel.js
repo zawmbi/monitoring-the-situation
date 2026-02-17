@@ -14,6 +14,8 @@ import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
 import IN_STATE_INFO from '../../indiaStateInfo';
+import RU_OBLAST_INFO from '../../ruOblastInfo';
+import UK_NATION_INFO from '../../ukNationInfo';
 
 // Helper to compute Wikimedia flag image URL from state/province name
 function getFlagUrl(name) {
@@ -415,6 +417,93 @@ export function useCountryPanel() {
         loading: false,
       },
     });
+
+    // Fetch leader photo asynchronously from Wikipedia
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== stateName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
+  };
+
+  const openRUOblastPanel = (oblastName) => {
+    const info = RU_OBLAST_INFO[oblastName];
+    const pop = info?.population;
+    setCountryPanel({
+      open: true,
+      data: {
+        name: oblastName,
+        capital: info?.capital || 'Unknown',
+        region: 'Russia',
+        subregion: info?.abbr || '',
+        timezone: info?.timezone || 'UTC+3',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.governor || '',
+        leaderTitle: 'Governor',
+        leaderParty: info?.party || null,
+        leaderPhoto: null,
+        largestCity: info?.largestCity || null,
+        regionType: info?.type || 'Oblast',
+        scope: 'ruOblast',
+        loading: false,
+      },
+    });
+
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== oblastName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
+  };
+
+  const openUKNationPanel = (nationName) => {
+    const info = UK_NATION_INFO[nationName];
+    const pop = info?.population;
+    setCountryPanel({
+      open: true,
+      data: {
+        name: nationName,
+        capital: info?.capital || 'Unknown',
+        region: 'United Kingdom',
+        subregion: info?.abbr || '',
+        timezone: info?.timezone || 'UTC+0',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.leader || '',
+        leaderTitle: info?.leaderTitle || 'First Minister',
+        leaderParty: info?.party || null,
+        leaderPhoto: null,
+        largestCity: info?.largestCity || null,
+        formed: info?.formed || null,
+        regionType: info?.type || 'Country',
+        scope: 'ukNation',
+        loading: false,
+      },
+    });
+
+    if (info?.wiki) {
+      fetchLeaderPhoto(info.wiki).then(photoUrl => {
+        if (photoUrl) {
+          setCountryPanel(prev => {
+            if (!prev.data || prev.data.name !== nationName) return prev;
+            return { ...prev, data: { ...prev.data, leaderPhoto: photoUrl } };
+          });
+        }
+      });
+    }
   };
 
   const closeCountryPanel = () => {
@@ -439,6 +528,8 @@ export function useCountryPanel() {
     openStatePanel,
     openProvincePanel,
     openIndiaStatePanel,
+    openRUOblastPanel,
+    openUKNationPanel,
     openEUPanel,
     closeCountryPanel,
   };

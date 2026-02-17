@@ -39,7 +39,12 @@ class FECService {
   }
 
   get isConfigured() {
-    return !!process.env.FEC_API_KEY;
+    // Only consider configured with a real key, not DEMO_KEY
+    return !!process.env.FEC_API_KEY && process.env.FEC_API_KEY !== 'DEMO_KEY';
+  }
+
+  get hasDemoKey() {
+    return !process.env.FEC_API_KEY || process.env.FEC_API_KEY === 'DEMO_KEY';
   }
 
   async _fetch(endpoint, params = {}) {
@@ -58,7 +63,10 @@ class FECService {
       clearTimeout(timeout);
 
       if (response.status === 429) {
-        console.warn('[FEC] Rate limited — try setting FEC_API_KEY env');
+        if (!this._rateLimitWarned) {
+          console.warn('[FEC] Rate limited — set FEC_API_KEY env for full access (free at api.data.gov/signup)');
+          this._rateLimitWarned = true;
+        }
         return null;
       }
       if (!response.ok) {
@@ -126,7 +134,8 @@ class FECService {
   }
 
   /**
-   * Get all 2026 Senate candidates across all states
+   * Get all 2026 Senate candidates across all states with financial totals.
+   * Uses /candidates/totals/ which includes fundraising data.
    */
   async getAllSenateCandidates() {
     const cacheKey = `${CACHE_KEY_PREFIX}:senate:all`;
@@ -141,41 +150,46 @@ class FECService {
     let page = 1;
     let hasMore = true;
 
-    while (hasMore && page <= 5) {
-      const data = await this._fetch('/candidates/search/', {
-        office: 'S',
-        election_year: '2026',
-        sort: 'name',
-        per_page: '100',
-        page: String(page),
-        is_active_candidate: 'true',
-      });
-
-      if (!data || !Array.isArray(data.results) || data.results.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      for (const c of data.results) {
-        const stateCode = c.state;
-        if (!stateCode) continue;
-        if (!allCandidates[stateCode]) allCandidates[stateCode] = [];
-
-        allCandidates[stateCode].push({
-          name: c.name ? this._formatName(c.name) : 'Unknown',
-          party: this._normalizeParty(c.party),
-          incumbentChallenge: c.incumbent_challenge || 'unknown',
-          totalReceipts: c.total_receipts || 0,
-          totalDisbursements: c.total_disbursements || 0,
-          cashOnHand: c.cash_on_hand_end_period || 0,
-          candidateId: c.candidate_id,
-          state: stateCode,
-          office: 'senate',
+    try {
+      while (hasMore && page <= 5) {
+        const data = await this._fetch('/candidates/totals/', {
+          office: 'S',
+          election_year: '2026',
+          sort: '-receipts',
+          sort_null_only: 'false',
+          per_page: '100',
+          page: String(page),
+          is_active_candidate: 'true',
         });
-      }
 
-      hasMore = data.pagination && page < data.pagination.pages;
-      page++;
+        if (!data || !Array.isArray(data.results) || data.results.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const c of data.results) {
+          const stateCode = c.state;
+          if (!stateCode) continue;
+          if (!allCandidates[stateCode]) allCandidates[stateCode] = [];
+
+          allCandidates[stateCode].push({
+            name: c.name ? this._formatName(c.name) : 'Unknown',
+            party: this._normalizeParty(c.party),
+            incumbentChallenge: c.incumbent_challenge || c.incumbent_challenge_full || 'unknown',
+            totalReceipts: c.receipts || c.total_receipts || 0,
+            totalDisbursements: c.disbursements || c.total_disbursements || 0,
+            cashOnHand: c.cash_on_hand_end_period || c.last_cash_on_hand_end_period || 0,
+            candidateId: c.candidate_id,
+            state: stateCode,
+            office: 'senate',
+          });
+        }
+
+        hasMore = data.pagination && page < data.pagination.pages;
+        page++;
+      }
+    } catch (err) {
+      console.warn('[FEC] getAllSenateCandidates error:', err.message);
     }
 
     if (Object.keys(allCandidates).length > 0) {

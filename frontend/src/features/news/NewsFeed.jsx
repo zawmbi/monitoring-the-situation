@@ -1,4 +1,27 @@
 import { timeAgo } from '../../utils/time';
+import { getSourceBias } from '../../utils/sourceBias';
+
+function LeanBadge({ url, sourceName }) {
+  const info = getSourceBias(url, sourceName);
+  if (!info) return null;
+
+  const style = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '3px',
+    padding: '1px 5px',
+    borderRadius: '3px',
+    fontSize: '0.6rem',
+    fontWeight: 600,
+    letterSpacing: '0.3px',
+    background: `${info.color}20`,
+    color: info.color,
+    border: `1px solid ${info.color}40`,
+    whiteSpace: 'nowrap',
+  };
+
+  return <span style={style} title={`Source leans: ${info.label}`}>{info.label}</span>;
+}
 
 export function NewsItem({ item }) {
   return (
@@ -19,6 +42,7 @@ export function NewsItem({ item }) {
       )}
       <div className="news-item-footer">
         <span>{item.sourceName || item.source}</span>
+        {item.contentType === 'article' && <LeanBadge url={item.url} sourceName={item.sourceName || item.source} />}
       </div>
     </a>
   );
