@@ -173,6 +173,62 @@ let demographicRefreshInterval = null;
 let credibilityRefreshInterval = null;
 let leadershipRefreshInterval = null;
 
+// Network connectivity state
+let _networkOnline = false;
+let _networkCheckInterval = null;
+
+/**
+ * Quick DNS probe to test if we have internet access.
+ * Tries to resolve a reliable hostname — if it fails, we're offline.
+ */
+async function checkNetworkConnectivity() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    // Use a small, fast endpoint for the probe
+    const resp = await fetch('https://dns.google/resolve?name=example.com&type=A', {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    clearTimeout(timeout);
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run background refresh only when network is available.
+ * If offline at startup, start a probe interval and defer all fetches.
+ */
+async function startBackgroundRefreshWhenReady() {
+  _networkOnline = await checkNetworkConnectivity();
+
+  if (!_networkOnline) {
+    console.warn('===========================================');
+    console.warn('  [Network] No internet access detected');
+    console.warn('  All external API calls will be skipped');
+    console.warn('  Retrying connectivity every 60s...');
+    console.warn('  Server is still running with cached/mock data');
+    console.warn('===========================================');
+
+    _networkCheckInterval = setInterval(async () => {
+      const online = await checkNetworkConnectivity();
+      if (online && !_networkOnline) {
+        _networkOnline = true;
+        console.log('[Network] Internet access restored — starting data fetches');
+        clearInterval(_networkCheckInterval);
+        _networkCheckInterval = null;
+        startBackgroundRefresh();
+      }
+    }, 60000);
+    return;
+  }
+
+  console.log('[Network] Internet access confirmed');
+  startBackgroundRefresh();
+}
+
 function startBackgroundRefresh() {
   // Initial fetch
   console.log('[Worker] Starting initial content fetch...');
@@ -515,8 +571,8 @@ async function start() {
   console.log('[Startup] Initializing WebSocket...');
   wsHandler.initialize(server);
 
-  // Start background content refresh
-  startBackgroundRefresh();
+  // Start background content refresh (checks network first)
+  startBackgroundRefreshWhenReady();
 
   // Start HTTP server
   server.listen(config.port, () => {
@@ -566,6 +622,7 @@ async function shutdown(signal) {
   if (demographicRefreshInterval) clearInterval(demographicRefreshInterval);
   if (credibilityRefreshInterval) clearInterval(credibilityRefreshInterval);
   if (leadershipRefreshInterval) clearInterval(leadershipRefreshInterval);
+  if (_networkCheckInterval) clearInterval(_networkCheckInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
 
