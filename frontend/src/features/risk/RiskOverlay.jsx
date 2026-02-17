@@ -22,11 +22,12 @@ function markerSize(score) {
 }
 
 /* ── RiskOverlay ── */
-export function RiskOverlay({ scores, onCountryClick }) {
+export function RiskOverlay({ scores, onCountryClick, isMarkerVisible }) {
   if (!scores || scores.length === 0) return null;
 
   const visible = scores.filter(
-    (c) => c.lat != null && c.lon != null && (c.score ?? 0) >= SCORE_THRESHOLD,
+    (c) => c.lat != null && c.lon != null && (c.score ?? 0) >= SCORE_THRESHOLD
+      && (!isMarkerVisible || isMarkerVisible(c.lon, c.lat)),
   );
 
   if (visible.length === 0) return null;

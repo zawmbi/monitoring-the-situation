@@ -8,12 +8,12 @@ const RISK_COLORS = {
   low: '#4a9eff',
 };
 
-export default function ShippingOverlay({ chokepoints, onChokepointClick }) {
+export default function ShippingOverlay({ chokepoints, onChokepointClick, isMarkerVisible }) {
   if (!chokepoints || chokepoints.length === 0) return null;
 
   return (
     <>
-      {chokepoints.map(cp => (
+      {chokepoints.filter(cp => !isMarkerVisible || isMarkerVisible(cp.lon, cp.lat)).map(cp => (
         <Marker key={cp.id} longitude={cp.lon} latitude={cp.lat} anchor="center">
           <div
             className="shipping-marker"

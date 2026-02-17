@@ -21,13 +21,14 @@ function markerSize(total) {
 }
 
 /* ── RefugeeOverlay ── */
-export function RefugeeOverlay({ situations, onSituationClick }) {
+export function RefugeeOverlay({ situations, onSituationClick, isMarkerVisible }) {
   if (!situations || situations.length === 0) return null;
 
   return (
     <>
       {situations.map((s) => {
         if (s.lat == null || s.lon == null) return null;
+        if (isMarkerVisible && !isMarkerVisible(s.lon, s.lat)) return null;
 
         const total = totalDisplaced(s);
         const size  = markerSize(total);

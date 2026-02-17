@@ -4082,6 +4082,7 @@ function App() {
             visible={conflictMode}
             showTroops={conflictShowTroops}
             zoom={mapZoom}
+            isMarkerVisible={isMarkerVisible}
             onTroopClick={(unit) => {
               if (!conflictPanelOpen) {
                 setConflictPanelOpen(true);
@@ -4097,6 +4098,7 @@ function App() {
               conflictData={conflict.data}
               showTroops={conflictTroops[conflict.id] !== false}
               zoom={mapZoom}
+              isMarkerVisible={isMarkerVisible}
               onTroopClick={() => {
                 if (!conflictPanels[conflict.id]) {
                   setConflictPanels(prev => ({ ...prev, [conflict.id]: true }));
@@ -4140,6 +4142,7 @@ function App() {
           {showShippingMode && shippingData?.chokepoints && (
             <ShippingOverlay
               chokepoints={shippingData.chokepoints}
+              isMarkerVisible={isMarkerVisible}
               onChokepointClick={(cp) => {
                 if (cp.lat && cp.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [cp.lon, cp.lat], zoom: 5, duration: 1400, essential: true });
@@ -4152,6 +4155,7 @@ function App() {
           {showRefugeePanel && refugeeData?.situations && (
             <RefugeeOverlay
               situations={refugeeData.situations}
+              isMarkerVisible={isMarkerVisible}
               onSituationClick={(s) => {
                 if (s.lat && s.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [s.lon, s.lat], zoom: 4, duration: 1400, essential: true });
@@ -4164,6 +4168,7 @@ function App() {
           {showCountryRiskMode && countryRiskData?.scores && (
             <RiskOverlay
               scores={countryRiskData.scores}
+              isMarkerVisible={isMarkerVisible}
               onCountryClick={(c) => {
                 if (c.lat && c.lon && mapRef.current) {
                   mapRef.current.flyTo({ center: [c.lon, c.lat], zoom: 5, duration: 1400, essential: true });
@@ -4257,6 +4262,7 @@ function App() {
           {/* Infrastructure vulnerability markers */}
           {showInfrastructurePanel && infrastructureData?.infrastructure?.map((infra) => {
             if (!infra.location?.lat || !infra.location?.lon) return null;
+            if (!isMarkerVisible(infra.location.lon, infra.location.lat)) return null;
             const catColors = { energy: '#f59e0b', digital: '#3b82f6', transport: '#06b6d4', financial: '#22c55e', food_water: '#8b5cf6' };
             const color = catColors[infra.category] || '#888';
             const vulnColor = infra.vulnerabilityScore >= 75 ? '#ef4444' : infra.vulnerabilityScore >= 50 ? '#f97316' : color;

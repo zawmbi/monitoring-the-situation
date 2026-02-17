@@ -210,7 +210,7 @@ function BattlePopup({ site, onClose, sideAColor, sideBColor, sideAName, sideBNa
 
 /* ─── Main overlay ─── */
 
-export default function GenericConflictOverlay({ visible, conflictData, showTroops = true, zoom = 2, onTroopClick }) {
+export default function GenericConflictOverlay({ visible, conflictData, showTroops = true, zoom = 2, onTroopClick, isMarkerVisible }) {
   const [selectedBattle, setSelectedBattle] = useState(null);
   const [selectedTroop, setSelectedTroop] = useState(null);
 
@@ -267,6 +267,7 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
     }), [frontlines]);
 
   const visibility = visible ? 'visible' : 'none';
+  const mv = (lon, lat) => !isMarkerVisible || isMarkerVisible(lon, lat);
 
   return (
     <>
@@ -330,7 +331,7 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
       </Source>
 
       {/* Sector labels */}
-      {visible && showDetail && sectorLabels.map((s) => (
+      {visible && showDetail && sectorLabels.filter(s => mv(s.lon, s.lat)).map((s) => (
         <Marker key={`${conflictId}-sec-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="right">
           <div className="conflict-sector-label" style={{ marginRight: 18 }}>
             <span className="conflict-sector-name">{s.label}</span>
@@ -342,7 +343,7 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
       ))}
 
       {/* Battle sites */}
-      {visible && showDetail && battles.map((site) => (
+      {visible && showDetail && battles.filter(s => mv(s.lon, s.lat)).map((site) => (
         <Marker key={site.id} longitude={site.lon} latitude={site.lat} anchor="center">
           <BattleSiteMarker site={site} onClick={setSelectedBattle} sideAName={summary.sideA.shortName} sideBName={summary.sideB.shortName} />
         </Marker>
@@ -363,28 +364,28 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
       )}
 
       {/* Capitals */}
-      {visible && capitals.map((c) => (
+      {visible && capitals.filter(c => mv(c.lon, c.lat)).map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="center">
           <CapitalMarker city={c} color={c.country === 'sideA' ? sideAColor : sideBColor} />
         </Marker>
       ))}
 
       {/* Major cities */}
-      {visible && showDetail && cities.map((c) => (
+      {visible && showDetail && cities.filter(c => mv(c.lon, c.lat)).map((c) => (
         <Marker key={c.id} longitude={c.lon} latitude={c.lat} anchor="left">
           <CityMarker city={c} sideAColor={sideAColor} sideBColor={sideBColor} />
         </Marker>
       ))}
 
       {/* Military infrastructure */}
-      {visible && showDetail && infra.map((item) => (
+      {visible && showDetail && infra.filter(i => mv(i.lon, i.lat)).map((item) => (
         <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
           <InfraMarker item={item} sideAColor={sideAColor} sideBColor={sideBColor} showLabel={showLabels} />
         </Marker>
       ))}
 
       {/* NATO troop symbols */}
-      {visible && showDetail && showTroops && troops.map((unit) => (
+      {visible && showDetail && showTroops && troops.filter(u => mv(u.lon, u.lat)).map((unit) => (
         <Marker key={unit.id} longitude={unit.lon} latitude={unit.lat} anchor="center">
           <NatoSymbol unit={unit} sideAColor={sideAColor} sideBColor={sideBColor} onClick={(u) => { setSelectedTroop(u); onTroopClick?.(u); }} />
         </Marker>
