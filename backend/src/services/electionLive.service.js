@@ -288,9 +288,19 @@ class ElectionLiveService {
 
     try {
       // Fetch market data, FEC data, and Google Civic elections in parallel
+      // FEC works with DEMO_KEY but may get rate-limited quickly; still try it
       const [allMarkets, fecData, civicElections] = await Promise.allSettled([
         this._fetchAllElectionMarkets(),
-        fecService.isConfigured ? fecService.getAllSenateCandidates() : Promise.resolve({}),
+        fecService.getAllSenateCandidates().catch(err => {
+          if (!fecService.isConfigured) {
+            // Only log once for DEMO_KEY
+            if (!this._fecDemoWarned) {
+              console.log('[ElectionLive] FEC using DEMO_KEY — set FEC_API_KEY for reliable data');
+              this._fecDemoWarned = true;
+            }
+          }
+          return {};
+        }),
         googleCivicService.isConfigured ? googleCivicService.getUpcomingElections() : Promise.resolve([]),
       ]);
 

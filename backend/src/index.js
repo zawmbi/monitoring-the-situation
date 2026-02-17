@@ -244,8 +244,10 @@ function startBackgroundRefresh() {
   // Initial election live data fetch (delayed to let market services warm up)
   setTimeout(() => {
     console.log('[Worker] Starting initial election live data fetch...');
-    electionLiveService.getLiveData().catch(console.error);
-  }, 15000);
+    electionLiveService.getLiveData().catch(err => {
+      console.warn('[Worker] Election live data initial fetch incomplete:', err.message);
+    });
+  }, 30000);
 
   // Periodic refresh — election live data (every 15 min)
   const ELECTION_POLL_MS = 15 * 60 * 1000;

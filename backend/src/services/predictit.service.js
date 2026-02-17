@@ -50,7 +50,9 @@ class PredictItService {
       return data.markets || [];
     } catch (error) {
       clearTimeout(timeout);
-      console.error('[PredictIt] Fetch failed:', error.message);
+      if (error.name !== 'AbortError') {
+        console.warn('[PredictIt] Fetch failed:', error.message);
+      }
       throw error;
     }
   }
