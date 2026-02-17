@@ -24,7 +24,7 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'Multi-front resistance war / junta losing territory',
   sideA: { name: 'Military Junta (SAC/Tatmadaw)', shortName: 'Junta', color: JUNTA_RED, flag: '\u{1F1F2}\u{1F1F2}' },
-  sideB: { name: 'NUG / PDF / Ethnic Armed Orgs', shortName: 'Resistance', color: NUG_BLUE, flag: '\u{1F1F2}\u{1F1F2}' },
+  sideB: { name: 'NUG / PDF / Ethnic Armed Orgs', shortName: 'Resistance', color: NUG_BLUE, flag: '\u270A' },
   internationalSupport: {
     sideA: 'Russia (arms — Su-30, Yak-130), China (economic/political, brokered Shan ceasefire), India (limited engagement)',
     sideB: 'Limited; diaspora funding, cross-border support from Thailand/India border areas; China leverages ethnic armed orgs as proxies',

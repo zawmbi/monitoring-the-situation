@@ -43,6 +43,7 @@ function ProtestPopup({ protest, onClose }) {
   const intensity = protest.intensity || protest.count || 3;
   const color = intensityColor(intensity);
   const articles = protest.articles || [];
+  const searchQuery = `${protest.country || protest.code} protest unrest ${new Date().getFullYear()}`;
 
   return (
     <div className="protest-popup" onClick={(e) => e.stopPropagation()}>
@@ -50,6 +51,9 @@ function ProtestPopup({ protest, onClose }) {
         <div className="protest-popup-title-row">
           <span className="protest-popup-flag">{flag}</span>
           <span className="protest-popup-title">{protest.country || protest.code}</span>
+          {protest.live && (
+            <span className="protest-popup-live-badge">LIVE</span>
+          )}
         </div>
         <button className="protest-popup-close" onClick={onClose}>✕</button>
       </div>
@@ -82,7 +86,7 @@ function ProtestPopup({ protest, onClose }) {
         {protest.live && protest.count && (
           <div className="protest-popup-stat">
             <span className="protest-popup-stat-key">GDELT Articles (14d)</span>
-            <span className="protest-popup-stat-val">{protest.count}</span>
+            <span className="protest-popup-stat-val" style={{ color: '#5baaff' }}>{protest.count}</span>
           </div>
         )}
 
@@ -105,8 +109,18 @@ function ProtestPopup({ protest, onClose }) {
         </div>
       )}
 
-      <div className="protest-popup-source">
-        {protest.live ? 'Source: GDELT Project (live)' : 'Source: Baseline OSINT'}
+      <div className="protest-popup-footer">
+        <a
+          className="protest-popup-news-link"
+          href={`https://news.google.com/search?q=${encodeURIComponent(searchQuery)}&hl=en`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Search latest news
+        </a>
+        <span className="protest-popup-source">
+          {protest.live ? 'GDELT Project (live)' : 'Baseline OSINT'}
+        </span>
       </div>
     </div>
   );
