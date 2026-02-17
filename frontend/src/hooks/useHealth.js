@@ -8,7 +8,7 @@ export function useHealth(enabled = false) {
     if (!enabled) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/health');
+      const res = await fetch('/api/health-data');
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {

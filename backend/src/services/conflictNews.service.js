@@ -63,7 +63,7 @@ const CONFLICT_FEEDS = {
     ],
   },
   'iran-israel': {
-    label: 'Iran–Israel War',
+    label: 'Twelve Day War',
     queries: [
       'Iran Israel war nuclear strikes aftermath',
       'Iran protests uprising regime crisis 2026',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 
-const PANEL_INDEX = [
+export const PANEL_INDEX = [
   { id: 'health', label: 'Health & Pandemics', keywords: 'health pandemic WHO bird flu H5N1 disease outbreak', category: 'Panel' },
   { id: 'cyber', label: 'Cyber Threats', keywords: 'cyber hack breach vulnerability CISA', category: 'Panel' },
   { id: 'commodities', label: 'Commodities', keywords: 'oil gold silver gas wheat commodity price', category: 'Panel' },
@@ -16,10 +16,10 @@ const PANEL_INDEX = [
   { id: 'nuclear', label: 'Nuclear Threats', keywords: 'nuclear weapon ICBM warhead proliferation', category: 'Panel' },
 ];
 
-const CONFLICT_INDEX = [
+export const CONFLICT_INDEX = [
   { id: 'ukraine-russia', label: 'Russia-Ukraine War', keywords: 'Ukraine Russia Putin Zelensky Donbas Crimea' },
   { id: 'israel-gaza', label: 'Israel-Gaza War', keywords: 'Israel Gaza Hamas Palestine ceasefire' },
-  { id: 'iran-israel', label: 'Iran-Israel War', keywords: 'Iran Israel nuclear strikes IRGC protests' },
+  { id: 'iran-israel', label: 'Twelve Day War', keywords: 'Iran Israel nuclear strikes IRGC protests twelve day war' },
   { id: 'india-pakistan', label: 'India-Pakistan Crisis', keywords: 'India Pakistan Kashmir Sindoor nuclear' },
   { id: 'sahel', label: 'Sahel Insurgency', keywords: 'Sahel Mali Burkina Faso Niger JNIM terrorism' },
   { id: 'sudan', label: 'Sudan Civil War', keywords: 'Sudan SAF RSF Darfur Khartoum' },
@@ -29,7 +29,7 @@ const CONFLICT_INDEX = [
   { id: 'drc', label: 'Eastern Congo (M23)', keywords: 'DRC Congo M23 Rwanda Goma' },
 ];
 
-const COUNTRY_INDEX = [
+export const COUNTRY_INDEX = [
   'United States', 'China', 'Russia', 'India', 'Brazil', 'United Kingdom',
   'France', 'Germany', 'Japan', 'South Korea', 'Iran', 'Israel', 'Turkey',
   'Saudi Arabia', 'Pakistan', 'Ukraine', 'Taiwan', 'North Korea', 'Mexico',

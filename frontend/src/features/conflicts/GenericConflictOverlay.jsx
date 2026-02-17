@@ -604,19 +604,6 @@ export default function GenericConflictOverlay({ visible, conflictData, showTroo
         </Marker>
       )}
 
-      {/* Map Legend */}
-      {visible && (
-        <GenericMapLegend
-          open={showLegend}
-          onToggle={() => onLegendToggle?.()}
-          summary={summary}
-          hasFrontlines={frontlines.length > 0}
-          hasBattles={battles.length > 0}
-          hasInfra={infra.length > 0}
-          hasTroops={troops.length > 0}
-          hasForts={fortLines.length > 0}
-        />
-      )}
     </>
   );
 }

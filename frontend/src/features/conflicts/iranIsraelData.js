@@ -13,7 +13,7 @@ export const IL_WHITE = '#ffffff';
 // ─── Conflict summary ───
 export const CONFLICT_SUMMARY = {
   id: 'iran-israel',
-  name: 'Iran–Israel War',
+  name: 'Twelve Day War',
   started: '13 June 2025',
   startDate: new Date(2025, 5, 13),
   daysSince: () => {
@@ -141,72 +141,207 @@ export const TROOP_DEPLOYMENTS = [
 // ─── Casualties ───
 export const CASUALTIES = {
   sideA: {
-    killed: { total: 28, label: 'Israeli casualties', source: 'IDF/media' },
-    wounded: { total: 185, label: 'Israeli wounded', source: 'IDF/media' },
-    civilianDeaths: { total: 12, label: 'Civilian deaths in Israel', source: 'Media reports' },
+    killed: { low: 25, high: 30, label: '~28 Israeli casualties' },
+    wounded: { low: 150, high: 200, label: '~185 Israeli wounded' },
+    civilian: { killed: 12, label: '~12 civilian deaths' },
+    source: 'IDF/media',
   },
   sideB: {
-    killed: { total: 1100, label: 'Iranian casualties', source: 'OSINT/media estimates' },
-    wounded: { total: 3500, label: 'Iranian wounded', source: 'OSINT estimates' },
-    civilianDeaths: { total: 340, label: 'Iranian civilian deaths', source: 'Media estimates' },
-    protestDeaths: { total: 30000, label: 'Protest crackdown deaths (est.)', source: 'Internal estimates / opposition' },
+    killed: { low: 1000, high: 1200, label: '~1,100 Iranian casualties' },
+    wounded: { low: 3000, high: 4000, label: '~3,500 Iranian wounded' },
+    source: 'OSINT/media',
+  },
+  civilian: {
+    killed: { low: 300, high: 400, label: '~340 Iranian civilian deaths' },
+    protestDeaths: { low: 25000, high: 35000, label: '~30,000+ killed in protest crackdowns (opposition est.)' },
+    note: 'Protest death toll from Dec 28, 2025 uprising crackdown. Iranian government disputes figures.',
+    source: 'OSINT / opposition estimates / media',
   },
   infrastructure: {
     nuclearFacilities: { destroyed: 3, damaged: 5, label: 'Nuclear facilities hit' },
     missileBases: { destroyed: 12, label: 'IRGC missile sites destroyed' },
     airDefense: { destroyed: 18, label: 'Air defense systems neutralized' },
   },
+  asOf: 'February 2026',
 };
 
 // ─── Equipment ───
 export const EQUIPMENT = {
-  sideA: [
-    { name: 'F-35I Adir', type: 'aircraft', count: '~50', note: 'Stealth strike aircraft' },
-    { name: 'F-15I Ra\'am', type: 'aircraft', count: '~60', note: 'Long-range strike' },
-    { name: 'B-2 Spirit', type: 'aircraft', count: 6, note: 'US bunker-buster delivery' },
-    { name: 'Iron Dome', type: 'air-defense', count: 10, note: 'Short-range interceptor' },
-    { name: 'Arrow-3', type: 'air-defense', count: 2, note: 'Exo-atmospheric interceptor' },
-    { name: 'David\'s Sling', type: 'air-defense', count: 4, note: 'Medium-range interceptor' },
-  ],
-  sideB: [
-    { name: 'Emad MRBM', type: 'missile', count: '~200', note: 'Medium-range ballistic' },
-    { name: 'Kheibar Shekan', type: 'missile', count: '~150', note: 'Solid-fuel MRBM' },
-    { name: 'Fattah-2 HGV', type: 'missile', count: '~30', note: 'Hypersonic glide vehicle' },
-    { name: 'Shahed-136', type: 'drone', count: '1000+', note: 'One-way attack drone' },
-    { name: 'S-300PMU2', type: 'air-defense', count: 4, note: 'Russian-supplied (most destroyed)' },
-    { name: 'Bavar-373', type: 'air-defense', count: 3, note: 'Indigenous long-range SAM' },
-  ],
+  sideA: {
+    deployed: [
+      { type: 'F-35I Adir', count: '~50', note: 'Stealth strike aircraft' },
+      { type: 'F-15I Ra\'am', count: '~60', note: 'Long-range strike' },
+      { type: 'B-2 Spirit', count: 6, note: 'US bunker-buster delivery' },
+      { type: 'Iron Dome', count: 10, note: 'Short-range interceptor' },
+      { type: 'Arrow-3', count: 2, note: 'Exo-atmospheric interceptor' },
+      { type: 'David\'s Sling', count: 4, note: 'Medium-range interceptor' },
+    ],
+    source: 'IDF / OSINT',
+  },
+  sideB: {
+    preWar: [
+      { type: 'Emad MRBM', count: '~200', note: 'Medium-range ballistic' },
+      { type: 'Kheibar Shekan', count: '~150', note: 'Solid-fuel MRBM' },
+      { type: 'Fattah-2 HGV', count: '~30', note: 'Hypersonic glide vehicle' },
+      { type: 'Shahed-136', count: '1000+', note: 'One-way attack drone' },
+      { type: 'S-300PMU2', count: 4, note: 'Russian-supplied (most destroyed)' },
+      { type: 'Bavar-373', count: 3, note: 'Indigenous long-range SAM' },
+    ],
+    destroyed: [
+      { type: 'Nuclear enrichment facilities', count: 3 },
+      { type: 'IRGC missile sites', count: 12 },
+      { type: 'Air defense systems', count: 18 },
+    ],
+    source: 'OSINT / media',
+  },
+  asOf: 'February 2026',
 };
 
-// ─── Command structure ───
-export const COMMAND_STRUCTURE = {
-  sideA: [
-    { role: 'Supreme Commander', name: 'PM Benjamin Netanyahu', since: '2022' },
-    { role: 'Defense Minister', name: 'Yoav Gallant', since: '2023' },
-    { role: 'IDF Chief of Staff', name: 'Lt. Gen. Herzi Halevi', since: '2023' },
-    { role: 'IAF Commander', name: 'Maj. Gen. Tomer Bar', since: '2022' },
-    { role: 'US CENTCOM', name: 'Gen. Michael Kurilla', since: '2022' },
-  ],
-  sideB: [
-    { role: 'Supreme Leader', name: 'Ayatollah Ali Khamenei (86)', since: '1989' },
-    { role: 'President', name: 'Masoud Pezeshkian', since: '2024' },
-    { role: 'IRGC Commander', name: 'Maj. Gen. Hossein Salami', since: '2019' },
-    { role: 'IRGC Aerospace', name: 'Brig. Gen. Amir Ali Hajizadeh', since: '2009' },
-    { role: 'Quds Force', name: 'Brig. Gen. Esmail Qaani', since: '2020' },
-  ],
+// ─── Command ───
+export const COMMAND = {
+  sideA: {
+    title: 'Israel Defense Forces / US CENTCOM',
+    keyCommanders: [
+      { name: 'Benjamin Netanyahu', role: 'Prime Minister' },
+      { name: 'Yoav Gallant', role: 'Defense Minister' },
+      { name: 'Lt. Gen. Herzi Halevi', role: 'IDF Chief of Staff' },
+      { name: 'Maj. Gen. Tomer Bar', role: 'IAF Commander' },
+      { name: 'Gen. Michael Kurilla', role: 'US CENTCOM Commander' },
+    ],
+    totalPersonnel: '200+ aircraft + 6 B-2 bombers + naval/air support',
+  },
+  sideB: {
+    title: 'Islamic Republic of Iran / IRGC',
+    keyCommanders: [
+      { name: 'Ayatollah Ali Khamenei', role: 'Supreme Leader' },
+      { name: 'Masoud Pezeshkian', role: 'President' },
+      { name: 'Maj. Gen. Hossein Salami', role: 'IRGC Commander' },
+      { name: 'Brig. Gen. Amir Ali Hajizadeh', role: 'IRGC Aerospace Forces' },
+      { name: 'Brig. Gen. Esmail Qaani', role: 'Quds Force Commander' },
+    ],
+    totalPersonnel: '~580,000 IRGC + 350,000 regular military',
+  },
 };
 
-// ─── Key events timeline ───
-export const KEY_EVENTS = [
-  { date: '2025-06-13', event: 'Israel launches Operation Dawn Strike — 200+ aircraft hit ~100 targets across Iran', severity: 5 },
-  { date: '2025-06-13', event: 'Iran retaliates with 550+ ballistic missiles and 1,000+ drones', severity: 5 },
-  { date: '2025-06-14', event: 'Iron Dome and Arrow-3 intercept majority of incoming missiles; some impacts in Tel Aviv area', severity: 4 },
-  { date: '2025-06-22', event: 'US B-2 bombers strike Natanz, Fordow, and Isfahan nuclear facilities', severity: 5 },
-  { date: '2025-06-23', event: 'Iran fires missiles at US base in Qatar — minor damage', severity: 4 },
-  { date: '2025-06-24', event: 'Ceasefire reached under US diplomatic pressure', severity: 3 },
-  { date: '2025-10-15', event: 'IAEA confirms Iran\'s nuclear enrichment capability destroyed', severity: 3 },
-  { date: '2025-12-28', event: 'Massive anti-regime protests erupt across Iran', severity: 4 },
-  { date: '2026-01-15', event: 'Israeli Security Cabinet authorizes additional strikes if needed', severity: 4 },
-  { date: '2026-01-29', event: 'EU designates IRGC as terrorist organization', severity: 3 },
-  { date: '2026-02-14', event: '250,000+ protest in Munich — Global Day of Action for Iran', severity: 3 },
+// ─── War timeline ───
+export const WAR_TIMELINE = [
+  { date: '2025-06-13', event: 'Israel launches Operation Dawn Strike — 200+ aircraft hit ~100 targets across Iran', severity: 5, phase: 'war' },
+  { date: '2025-06-13', event: 'Iran retaliates with 550+ ballistic missiles and 1,000+ drones', severity: 5, phase: 'war' },
+  { date: '2025-06-14', event: 'Iron Dome and Arrow-3 intercept majority of incoming missiles; some impacts in Tel Aviv area', severity: 4, phase: 'escalation' },
+  { date: '2025-06-22', event: 'US B-2 bombers strike Natanz, Fordow, and Isfahan nuclear facilities', severity: 5, phase: 'war' },
+  { date: '2025-06-23', event: 'Iran fires missiles at US base in Qatar — minor damage', severity: 4, phase: 'escalation' },
+  { date: '2025-06-24', event: 'Ceasefire reached under US diplomatic pressure', severity: 3, phase: 'ceasefire' },
+  { date: '2025-10-15', event: 'IAEA confirms Iran\'s nuclear enrichment capability destroyed', severity: 3, phase: 'diplomatic' },
+  { date: '2025-12-28', event: 'Massive anti-regime protests erupt across Iran', severity: 4, phase: 'crackdown' },
+  { date: '2026-01-15', event: 'Israeli Security Cabinet authorizes additional strikes if needed', severity: 4, phase: 'escalation' },
+  { date: '2026-01-29', event: 'EU designates IRGC as terrorist organization', severity: 3, phase: 'diplomatic' },
+  { date: '2026-02-14', event: '250,000+ protest in Munich — Global Day of Action for Iran', severity: 3, phase: 'diplomatic' },
 ];
+
+// ─── Humanitarian ───
+export const HUMANITARIAN = {
+  internallyDisplaced: { total: 500000, label: '~500,000 displaced within Iran from strikes', source: 'OCHA estimates' },
+  refugees: { total: 0, label: 'No significant external refugee flow from this conflict', source: 'UNHCR' },
+  infrastructureDamage: {
+    nuclearFacilities: '3 destroyed, 5 damaged',
+    missileBases: '12 IRGC missile sites destroyed',
+    airDefense: '18 air defense systems neutralized',
+    economicDamage: 'Estimated $50B+ in military/nuclear infrastructure losses',
+    source: 'IAEA / OSINT / media estimates',
+  },
+  hunger: { label: 'Economic sanctions + infrastructure damage causing supply chain disruptions', source: 'WFP' },
+  asOf: 'February 2026',
+};
+
+// ─── Territorial control ───
+export const TERRITORIAL_CONTROL = {
+  nuclearProgram: 'Iran\'s enrichment capability destroyed (IAEA confirmed Oct 2025)',
+  militaryAssets: '~60% of IRGC missile arsenal destroyed or degraded',
+  airDefense: 'Iranian air defense network effectively neutralized',
+  regimeControl: 'Central government authority challenged by nationwide protests since Dec 2025',
+  asOf: 'February 2026',
+  source: 'IAEA / IISS / OSINT',
+};
+
+// ─── Battle sites ───
+export const BATTLE_SITES = [
+  {
+    id: 'dawn-strike',
+    name: 'Operation Dawn Strike',
+    lat: 32.65, lon: 51.67,
+    date: '13 Jun 2025',
+    result: 'Israeli victory',
+    note: '200+ IAF jets struck ~100 targets across Iran in surprise attack',
+    sideACommander: 'IAF Command',
+    sideBCommander: 'IRGC Air Defense',
+    sideATroops: '200+ aircraft',
+    sideBTroops: 'Air defense units',
+    sideAEquipment: 'F-35I, F-15I',
+    sideBEquipment: 'S-300, Bavar-373',
+    sideACasualties: 'None reported',
+    sideBCasualties: '~600 killed',
+    significance: 'Largest Israeli air operation in history; devastated Iranian military infrastructure',
+  },
+  {
+    id: 'iran-retaliation',
+    name: 'Iranian Missile/Drone Retaliation',
+    lat: 32.08, lon: 34.78,
+    date: '13 Jun 2025',
+    result: 'Partially intercepted',
+    note: 'Iran launched 550+ ballistic missiles and 1,000+ drones at Israel',
+    sideACommander: 'IDF Air Defense',
+    sideBCommander: 'IRGC Missile Forces',
+    sideATroops: 'Iron Dome, Arrow-3, David\'s Sling batteries',
+    sideBTroops: 'IRGC Aerospace',
+    sideAEquipment: 'Iron Dome, Arrow-3',
+    sideBEquipment: 'Emad, Kheibar Shekan, Shahed-136',
+    sideACasualties: '28 killed, 185 wounded',
+    sideBCasualties: 'N/A',
+    significance: 'Largest ballistic missile attack in history; most intercepted but some impacts in Tel Aviv area',
+  },
+  {
+    id: 'us-nuclear-strikes',
+    name: 'US Nuclear Site Strikes',
+    lat: 33.72, lon: 51.65,
+    date: '22 Jun 2025',
+    result: 'Decisive coalition victory',
+    note: 'US B-2 bombers struck Natanz, Fordow, and Isfahan nuclear facilities',
+    sideACommander: 'US CENTCOM',
+    sideBCommander: 'IRGC defense forces',
+    sideATroops: '6 B-2 Spirit bombers',
+    sideBTroops: 'Facility defense units',
+    sideAEquipment: 'B-2 Spirit, GBU-57 bunker busters',
+    sideBEquipment: 'Underground fortifications',
+    sideACasualties: 'None',
+    sideBCasualties: '~200 killed at facilities',
+    significance: 'Destroyed Iran\'s nuclear enrichment capability; first US combat use of GBU-57',
+  },
+  {
+    id: 'protests-dec25',
+    name: 'Iranian Uprising (Dec 2025)',
+    lat: 35.69, lon: 51.39,
+    date: '28 Dec 2025',
+    result: 'Ongoing',
+    note: 'Largest protests since 1979 revolution erupted across Iran',
+    sideACommander: 'Popular movement (decentralized)',
+    sideBCommander: 'IRGC / Basij',
+    sideATroops: 'Millions of civilians',
+    sideBTroops: 'Security forces',
+    sideAEquipment: 'N/A',
+    sideBEquipment: 'Riot control, firearms',
+    sideACasualties: '~30,000 killed (opposition est.)',
+    sideBCasualties: 'Unknown',
+    significance: 'Threatens regime survival; largest challenge to Islamic Republic since its founding',
+  },
+];
+
+// ─── International response ───
+export const INTERNATIONAL_RESPONSE = {
+  euIrgcDesignation: 'EU designated IRGC as terrorist organization (Jan 29, 2026)',
+  iaeaFindings: 'IAEA confirmed Iran\'s nuclear enrichment capability destroyed (Oct 2025)',
+  usStance: 'Trump administration backed Israel; B-2 bombers struck nuclear sites June 22',
+  israelCabinet: 'Israeli Security Cabinet authorized additional strikes if needed (Jan 2026)',
+  russiaPosition: 'Russia condemned strikes but did not intervene militarily',
+  globalProtests: '250,000+ protested in Munich during Global Day of Action (Feb 14, 2026)',
+  asOf: 'February 2026',
+};

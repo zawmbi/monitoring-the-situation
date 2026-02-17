@@ -1373,10 +1373,10 @@ router.get('/leadership', async (req, res) => {
 });
 
 /**
- * GET /api/health
+ * GET /api/health-data
  * Health & pandemic monitoring data (WHO outbreaks + health news)
  */
-router.get('/health', async (req, res) => {
+router.get('/health-data', async (req, res) => {
   try {
     const data = await healthService.getCombinedData();
     res.json({ success: true, data, timestamp: new Date().toISOString() });

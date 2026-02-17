@@ -58,6 +58,12 @@ export default function GenericConflictPanel({ open, onClose, conflictData }) {
     ? { require: ['ethiopia'], boost: ['tigray', 'amhara', 'abiy'] }
     : summary.id === 'drc'
     ? { require: ['congo', 'drc'], boost: ['m23', 'rwanda', 'goma'] }
+    : summary.id === 'iran-israel'
+    ? { require: ['iran', 'israel'], boost: ['nuclear', 'strikes', 'ceasefire', 'protests', 'IRGC'] }
+    : summary.id === 'india-pakistan'
+    ? { require: ['india', 'pakistan'], boost: ['kashmir', 'sindoor', 'nuclear', 'modi'] }
+    : summary.id === 'sahel'
+    ? { require: ['sahel'], boost: ['mali', 'burkina', 'niger', 'JNIM', 'terrorism', 'wagner'] }
     : { require: [summary.name.toLowerCase()], boost: ['conflict', 'war'] };
 
   return (

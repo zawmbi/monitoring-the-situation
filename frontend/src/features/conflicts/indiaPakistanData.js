@@ -2,6 +2,8 @@
  * India-Pakistan Conflict Data (Operation Sindoor & Kashmir Crisis)
  * Based on publicly available OSINT and media sources.
  * Positions approximate as of early 2026.
+ *
+ * Data shape matches GenericConflictPanel expectations.
  */
 
 // Colors
@@ -12,7 +14,7 @@ export const PK_WHITE = '#ffffff';
 
 export const CONFLICT_SUMMARY = {
   id: 'india-pakistan',
-  name: 'India–Pakistan Crisis',
+  name: 'India\u2013Pakistan Crisis',
   started: '7 May 2025',
   startDate: new Date(2025, 4, 7),
   daysSince: () => {
@@ -22,18 +24,18 @@ export const CONFLICT_SUMMARY = {
   },
   phase: 'Post-strike tensions / Cautious diplomacy / Drone incursion incidents',
   sideA: {
-    name: 'India', shortName: 'IN', color: IN_ORANGE, flag: '🇮🇳',
+    name: 'India', shortName: 'IN', color: IN_ORANGE, flag: '\uD83C\uDDEE\uD83C\uDDF3',
     leader: 'PM Narendra Modi',
-    description: 'Republic of India launched Operation Sindoor in response to the April 22 Pahalgam attack that killed 26 people. Strikes hit 9 targets in Pakistan-administered Kashmir and Pakistan proper — the most extensive Indian military action against Pakistan since 1971.',
+    description: 'Republic of India launched Operation Sindoor in response to the April 22 Pahalgam attack that killed 26 people. Strikes hit 9 targets in Pakistan-administered Kashmir and Pakistan proper \u2014 the most extensive Indian military action against Pakistan since 1971.',
     goals: 'Eliminate terrorist infrastructure, deter cross-border attacks, demonstrate resolve',
   },
   sideB: {
-    name: 'Pakistan', shortName: 'PK', color: PK_GREEN, flag: '🇵🇰',
+    name: 'Pakistan', shortName: 'PK', color: PK_GREEN, flag: '\uD83C\uDDF5\uD83C\uDDF0',
     leader: 'PM Shehbaz Sharif',
     description: 'Islamic Republic of Pakistan. Condemned strikes as violation of sovereignty. Raised alert level across military. Both countries possess nuclear weapons, making this the world\'s most dangerous active flashpoint between nuclear powers.',
     goals: 'Sovereignty defense, Kashmir self-determination support, nuclear deterrent credibility',
   },
-  background: 'On April 22, 2025, militants killed 26 people including tourists in Pahalgam, Kashmir. India attributed the attack to Pakistan-based groups and launched Operation Sindoor on May 7 — drone and missile strikes on 9 targets. A December 2025 diplomatic handshake in Dhaka raised hopes, but India\'s army chief warned Pakistan over drone incursions in January 2026. CFR rates another confrontation as a Tier II risk for 2026.',
+  background: 'On April 22, 2025, militants killed 26 people including tourists in Pahalgam, Kashmir. India attributed the attack to Pakistan-based groups and launched Operation Sindoor on May 7 \u2014 drone and missile strikes on 9 targets. A December 2025 diplomatic handshake in Dhaka raised hopes, but India\'s army chief warned Pakistan over drone incursions in January 2026. CFR rates another confrontation as a Tier II risk for 2026.',
   internationalSupport: {
     sideA: 'United States (diplomatic support), France, Israel',
     sideB: 'China (diplomatic support), Turkey, OIC',
@@ -118,57 +120,151 @@ export const TROOP_DEPLOYMENTS = [
 
 export const CASUALTIES = {
   sideA: {
-    killed: { total: 26, label: 'Pahalgam attack victims', source: 'Indian government' },
-    wounded: { total: 0, label: 'No Indian military casualties reported from strikes', source: 'Indian MOD' },
+    killed: { low: 0, high: 0, label: 'No Indian military casualties reported from strikes' },
+    civilian: { killed: 26, label: '26 killed in Pahalgam terrorist attack (Apr 22)' },
+    source: 'Indian MOD / media',
   },
   sideB: {
-    killed: { total: 31, label: 'Pakistani casualties from strikes', source: 'Pakistan military / media' },
-    wounded: { total: 45, label: 'Pakistani wounded', source: 'Media estimates' },
-    infrastructure: { destroyed: 9, label: 'Targets struck by Operation Sindoor' },
+    killed: { low: 25, high: 40, label: '~31 Pakistani casualties from strikes' },
+    wounded: { low: 35, high: 55, label: '~45 Pakistani wounded' },
+    source: 'Pakistan military / media estimates',
   },
+  civilian: {
+    killed: { low: 26, high: 26, label: '26 killed in Pahalgam attack (trigger event)' },
+    note: 'Indian strikes targeted militant infrastructure; Pakistan claims some civilian casualties.',
+    source: 'Indian/Pakistani government statements / media',
+  },
+  asOf: 'February 2026',
 };
 
 export const EQUIPMENT = {
-  sideA: [
-    { name: 'Rafale', type: 'aircraft', count: 36, note: 'French multirole fighter' },
-    { name: 'Su-30MKI', type: 'aircraft', count: 272, note: 'Air superiority fighter' },
-    { name: 'MQ-9B SeaGuardian', type: 'drone', count: 31, note: 'Armed reconnaissance drone' },
-    { name: 'BrahMos', type: 'missile', count: '200+', note: 'Supersonic cruise missile' },
-    { name: 'S-400', type: 'air-defense', count: 5, note: 'Russian-supplied long-range SAM' },
-  ],
-  sideB: [
-    { name: 'JF-17 Thunder', type: 'aircraft', count: 150, note: 'Sino-Pakistani multirole' },
-    { name: 'F-16 Block 52+', type: 'aircraft', count: 76, note: 'US-supplied (pre-sanctions)' },
-    { name: 'Shaheen-III', type: 'missile', count: 'Unknown', note: 'Nuclear-capable MRBM (2,750km)' },
-    { name: 'Babur-3', type: 'missile', count: 'Unknown', note: 'Submarine-launched cruise missile' },
-    { name: 'HQ-9/P', type: 'air-defense', count: 6, note: 'Chinese-supplied long-range SAM' },
-  ],
+  sideA: {
+    deployed: [
+      { type: 'Rafale', count: 36, note: 'French multirole fighter' },
+      { type: 'Su-30MKI', count: 272, note: 'Air superiority fighter' },
+      { type: 'MQ-9B SeaGuardian', count: 31, note: 'Armed reconnaissance drone' },
+      { type: 'BrahMos', count: '200+', note: 'Supersonic cruise missile' },
+      { type: 'S-400', count: 5, note: 'Russian-supplied long-range SAM' },
+    ],
+    source: 'Indian MOD / IISS / OSINT',
+  },
+  sideB: {
+    deployed: [
+      { type: 'JF-17 Thunder', count: 150, note: 'Sino-Pakistani multirole' },
+      { type: 'F-16 Block 52+', count: 76, note: 'US-supplied (pre-sanctions)' },
+      { type: 'Shaheen-III MRBM', count: 'Unknown', note: 'Nuclear-capable (2,750km range)' },
+      { type: 'Babur-3 SLCM', count: 'Unknown', note: 'Submarine-launched cruise missile' },
+      { type: 'HQ-9/P SAM', count: 6, note: 'Chinese-supplied long-range SAM' },
+    ],
+    source: 'Pakistan military / IISS / OSINT',
+  },
+  asOf: 'February 2026',
 };
 
-export const COMMAND_STRUCTURE = {
-  sideA: [
-    { role: 'Supreme Commander', name: 'PM Narendra Modi', since: '2014' },
-    { role: 'Defense Minister', name: 'Rajnath Singh', since: '2019' },
-    { role: 'Chief of Defence Staff', name: 'Gen. Anil Chauhan', since: '2022' },
-    { role: 'Army Chief', name: 'Gen. Upendra Dwivedi', since: '2024' },
-    { role: 'Northern Command', name: 'Lt. Gen. M.V. Suchindra Kumar', since: '2024' },
-  ],
-  sideB: [
-    { role: 'President', name: 'Asif Ali Zardari', since: '2024' },
-    { role: 'Prime Minister', name: 'Shehbaz Sharif', since: '2024' },
-    { role: 'Army Chief', name: 'Gen. Asim Munir', since: '2022' },
-    { role: 'Air Chief', name: 'ACM Zaheer Ahmad Babar', since: '2024' },
-    { role: 'Strategic Plans Div.', name: 'Lt. Gen. (classified)', since: 'N/A' },
-  ],
+export const COMMAND = {
+  sideA: {
+    title: 'Indian Armed Forces',
+    keyCommanders: [
+      { name: 'Narendra Modi', role: 'Prime Minister / Supreme Commander' },
+      { name: 'Rajnath Singh', role: 'Defense Minister' },
+      { name: 'Gen. Anil Chauhan', role: 'Chief of Defence Staff' },
+      { name: 'Gen. Upendra Dwivedi', role: 'Army Chief' },
+      { name: 'Lt. Gen. M.V. Suchindra Kumar', role: 'Northern Command' },
+    ],
+    totalPersonnel: '~1.45 million active + 1.16 million reserve',
+  },
+  sideB: {
+    title: 'Pakistan Armed Forces',
+    keyCommanders: [
+      { name: 'Asif Ali Zardari', role: 'President' },
+      { name: 'Shehbaz Sharif', role: 'Prime Minister' },
+      { name: 'Gen. Asim Munir', role: 'Army Chief (COAS)' },
+      { name: 'ACM Zaheer Ahmad Babar', role: 'Air Chief Marshal' },
+      { name: 'Lt. Gen. (classified)', role: 'Strategic Plans Division' },
+    ],
+    totalPersonnel: '~654,000 active + 550,000 reserve',
+  },
 };
 
-export const KEY_EVENTS = [
-  { date: '2025-04-22', event: 'Pahalgam attack kills 26 including tourists in Kashmir', severity: 5 },
-  { date: '2025-05-07', event: 'India launches Operation Sindoor — strikes 9 targets in Pakistan/AJK', severity: 5 },
-  { date: '2025-05-08', event: 'Pakistan condemns strikes as act of war; raises nuclear alert level', severity: 5 },
-  { date: '2025-05-09', event: 'International diplomatic intervention prevents further escalation', severity: 4 },
-  { date: '2025-05-15', event: 'India presents evidence to UN linking attack to Pakistan-based groups', severity: 3 },
-  { date: '2025-12-15', event: 'India-Pakistan handshake at Dhaka conference raises diplomatic hopes', severity: 2 },
-  { date: '2026-01-10', event: 'Indian Army chief warns Pakistan over drone incursions along LoC', severity: 3 },
-  { date: '2026-02-01', event: 'CFR rates India-Pakistan confrontation as Tier II risk for 2026', severity: 3 },
+export const WAR_TIMELINE = [
+  { date: '2025-04-22', event: 'Pahalgam attack kills 26 including tourists in Kashmir', severity: 5, phase: 'war' },
+  { date: '2025-05-07', event: 'India launches Operation Sindoor \u2014 strikes 9 targets in Pakistan/AJK', severity: 5, phase: 'escalation' },
+  { date: '2025-05-08', event: 'Pakistan condemns strikes as act of war; raises nuclear alert level', severity: 5, phase: 'escalation' },
+  { date: '2025-05-09', event: 'International diplomatic intervention prevents further escalation', severity: 4, phase: 'diplomatic' },
+  { date: '2025-05-15', event: 'India presents evidence to UN linking attack to Pakistan-based groups', severity: 3, phase: 'diplomatic' },
+  { date: '2025-12-15', event: 'India-Pakistan handshake at Dhaka conference raises diplomatic hopes', severity: 2, phase: 'diplomatic' },
+  { date: '2026-01-10', event: 'Indian Army chief warns Pakistan over drone incursions along LoC', severity: 3, phase: 'escalation' },
+  { date: '2026-02-01', event: 'CFR rates India-Pakistan confrontation as Tier II risk for 2026', severity: 3, phase: 'diplomatic' },
 ];
+
+export const HUMANITARIAN = {
+  internallyDisplaced: {
+    total: 50000,
+    label: '~50,000 displaced along LoC following strikes',
+    note: 'Both sides evacuated border villages; most returned within weeks',
+    source: 'OCHA / Indian/Pakistani media',
+  },
+  infrastructureDamage: {
+    targetsStruck: '9 militant infrastructure targets in Pakistan/AJK',
+    civilianDamage: 'Pakistan claims collateral damage to civilian areas near strike sites',
+    source: 'Indian MOD / Pakistan government statements',
+  },
+  asOf: 'February 2026',
+};
+
+export const TERRITORIAL_CONTROL = {
+  lineOfControl: '740km fortified ceasefire line dividing Kashmir; unchanged since 2003',
+  indianKashmir: 'India controls Jammu & Kashmir (UT status since 2019)',
+  pakistanKashmir: 'Pakistan controls Azad Kashmir and Gilgit-Baltistan',
+  strikeImpact: 'Indian strikes hit targets in AJK and KPK but no territorial change',
+  nuclearDimension: 'Both states possess 150-170 nuclear warheads each; LoC is world\'s most militarized nuclear border',
+  asOf: 'February 2026',
+  source: 'IISS / FAS / CFR',
+};
+
+export const BATTLE_SITES = [
+  {
+    id: 'pahalgam-attack',
+    name: 'Pahalgam Terrorist Attack',
+    lat: 34.01, lon: 75.32,
+    date: '22 Apr 2025',
+    result: 'Terrorist attack on civilians',
+    note: 'Militants killed 26 people including tourists in Pahalgam, Kashmir \u2014 trigger event for Operation Sindoor',
+    sideACommander: 'N/A (civilian target)',
+    sideBCommander: 'Pakistan-based militant group',
+    sideATroops: 'Civilians',
+    sideBTroops: 'Unknown number of militants',
+    sideAEquipment: 'N/A',
+    sideBEquipment: 'Small arms',
+    sideACasualties: '26 killed',
+    sideBCasualties: 'Militants killed in subsequent encounter',
+    significance: 'Deadliest attack on tourists in Kashmir; directly triggered Indian military response',
+  },
+  {
+    id: 'op-sindoor',
+    name: 'Operation Sindoor',
+    lat: 34.35, lon: 73.45,
+    date: '7 May 2025',
+    result: 'Indian tactical success',
+    note: 'India struck 9 targets in Pakistan-administered Kashmir and Pakistan proper using drones and missiles',
+    sideACommander: 'IAF / Northern Command',
+    sideBCommander: 'Pakistan Air Force / SSG',
+    sideATroops: 'Rafale, Su-30MKI, MQ-9B armed drones',
+    sideBTroops: 'JF-17, F-16 interceptors scrambled',
+    sideAEquipment: 'Precision-guided munitions, armed drones',
+    sideBEquipment: 'Air defense systems',
+    sideACasualties: 'No Indian military casualties reported',
+    sideBCasualties: '~31 killed, 45 wounded',
+    significance: 'Most extensive Indian military action against Pakistan since 1971; crossed sovereignty red line',
+  },
+];
+
+export const INTERNATIONAL_RESPONSE = {
+  usPosition: 'US offered diplomatic support to India; urged restraint from both sides',
+  chinaPosition: 'China called for dialogue; provided diplomatic backing to Pakistan',
+  unResponse: 'India presented evidence to UN linking Pahalgam attack to Pakistan-based groups',
+  cfrAssessment: 'CFR rates India-Pakistan confrontation as Tier II risk for 2026',
+  diplomaticProgress: 'India-Pakistan handshake at Dhaka conference (Dec 2025) raised cautious hopes',
+  trumpTariffs: 'US imposed 50% tariffs on India (later reduced to 18%), adding economic friction',
+  asOf: 'February 2026',
+};

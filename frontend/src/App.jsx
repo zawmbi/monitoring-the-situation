@@ -110,7 +110,7 @@ import { useMultiPanel } from './hooks/useMultiPanel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { OnboardingTour } from './components/OnboardingTour';
 import { FreshnessIndicator } from './components/FreshnessIndicator';
-import { CommandPalette } from './components/CommandPalette';
+import { CommandPalette, PANEL_INDEX, CONFLICT_INDEX, COUNTRY_INDEX } from './components/CommandPalette';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ClimatePanel } from './features/climate/ClimatePanel';
 import { NuclearPanel } from './features/nuclear/NuclearPanel';
@@ -863,7 +863,7 @@ function App() {
     { id: 'yemen', label: 'Yemen / Houthi Crisis', data: yemenData },
     { id: 'ethiopia', label: 'Ethiopia Conflicts', data: ethiopiaData },
     { id: 'drc', label: 'Eastern Congo (M23)', data: drcData },
-    { id: 'iran-israel', label: 'Iran\u2013Israel War', data: iranIsraelData },
+    { id: 'iran-israel', label: 'Twelve Day War', data: iranIsraelData },
     { id: 'india-pakistan', label: 'India\u2013Pakistan Crisis', data: indiaPakistanData },
     { id: 'sahel', label: 'Sahel Insurgency', data: sahelData },
   ];
@@ -1022,6 +1022,9 @@ function App() {
   const [showNuclearPanel, setShowNuclearPanel] = useState(false);
   const [showAiTechPanel, setShowAiTechPanel] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
+  const [sidebarSearchFocused, setSidebarSearchFocused] = useState(false);
+  const sidebarSearchRef = useRef(null);
 
   // ── New data hooks ──
   const { data: disasterData, loading: disasterLoading, refresh: refreshDisasters } = useDisasters(enabledLayers.severeWeather || showTimeline);
@@ -2394,6 +2397,87 @@ function App() {
                     {idx < breadcrumb.length - 1 && <span className="breadcrumb-separator"> / </span>}
                   </span>
                 ))}
+              </div>
+            )}
+            {sidebarExpanded && (
+              <div className="sidebar-search-wrapper">
+                <div className="sidebar-search-container">
+                  <svg className="sidebar-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    ref={sidebarSearchRef}
+                    type="text"
+                    className="sidebar-search-input"
+                    placeholder="Search panels, conflicts..."
+                    value={sidebarSearchQuery}
+                    onChange={(e) => setSidebarSearchQuery(e.target.value)}
+                    onFocus={() => setSidebarSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSidebarSearchFocused(false), 200)}
+                  />
+                  {sidebarSearchQuery && (
+                    <button className="sidebar-search-clear" onClick={() => { setSidebarSearchQuery(''); sidebarSearchRef.current?.focus(); }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {sidebarSearchFocused && sidebarSearchQuery.trim() && (() => {
+                  const q = sidebarSearchQuery.toLowerCase();
+                  const all = [
+                    ...PANEL_INDEX.map(p => ({ ...p, category: 'Panel' })),
+                    ...CONFLICT_INDEX.map(c => ({ ...c, category: 'Conflict' })),
+                    ...COUNTRY_INDEX,
+                  ];
+                  const filtered = all.filter(item => `${item.label} ${item.keywords}`.toLowerCase().includes(q)).slice(0, 8);
+                  if (!filtered.length) return (
+                    <div className="sidebar-search-results">
+                      <div className="sidebar-search-empty">No results</div>
+                    </div>
+                  );
+                  return (
+                    <div className="sidebar-search-results">
+                      {filtered.map((item, i) => (
+                        <button
+                          key={`${item.category}-${item.id}-${i}`}
+                          className="sidebar-search-result"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSidebarSearchQuery('');
+                            setSidebarSearchFocused(false);
+                            if (item.category === 'Panel') {
+                              const panelMap = {
+                                health: setShowHealthPanel, cyber: setShowCyberPanel,
+                                commodities: setShowCommoditiesPanel, refugees: setShowRefugeePanel,
+                                shipping: () => { setShowShippingMode(true); setShowShippingPanel(true); },
+                                sanctions: setShowSanctionsPanel, court: setShowCourtPanel,
+                                stability: setShowStabilityPanel, tension: setShowTensionPanel,
+                                briefing: setShowBriefingPanel, elections: () => setElectionMode(true),
+                                climate: setShowClimatePanel, nuclear: setShowNuclearPanel, aitech: setShowAiTechPanel,
+                              };
+                              const setter = panelMap[item.id];
+                              if (typeof setter === 'function') setter(true);
+                            } else if (item.category === 'Conflict') {
+                              if (item.id === 'ukraine-russia') {
+                                setActiveConflicts(prev => ({ ...prev, 'ukraine-russia': true }));
+                              } else {
+                                setActiveConflicts(prev => ({ ...prev, [item.id]: true }));
+                                setConflictPanels(prev => ({ ...prev, [item.id]: true }));
+                              }
+                            }
+                          }}
+                        >
+                          <span className={`sidebar-search-badge sidebar-search-badge--${item.category.toLowerCase()}`}>
+                            {item.category}
+                          </span>
+                          <span className="sidebar-search-label">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {sidebarExpanded && (
