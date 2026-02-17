@@ -1,63 +1,108 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { timeAgoShort } from '../utils/time';
 
 /**
- * NewsTicker — scrolling news bar similar to TV news tickers.
- * Uses the existing feed data (passed as prop) to display real headlines.
+ * NewsTicker — continuously scrolling news bar.
+ * Uses JS-driven requestAnimationFrame for smooth, seamless looping.
+ * Deduplicates stories by title and prioritises high-tier sources.
  */
-export default function NewsTicker({ items = [], visible = true }) {
-  const [offset, setOffset] = useState(0);
 
-  // Cycle through items: pick the 30 most recent
+const TIER1_DOMAINS = new Set([
+  'reuters.com', 'apnews.com', 'afp.com', 'bbc.com', 'bbc.co.uk',
+  'npr.org', 'pbs.org', 'economist.com', 'c-span.org', 'dw.com',
+]);
+
+function extractDomain(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+export default function NewsTicker({ items = [], visible = true }) {
+  const trackRef = useRef(null);
+  const contentRef = useRef(null);
+  const offsetRef = useRef(0);
+  const rafRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+
+  // Deduplicate by title (normalized), sort by date, prioritise major sources
   const headlines = useMemo(() => {
     if (!items || items.length === 0) return [];
-    const sorted = [...items]
-      .filter(i => i.title)
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .slice(0, 30);
-    // Duplicate for seamless loop
-    return [...sorted, ...sorted];
+    const seen = new Set();
+    const deduped = [];
+    for (const item of items) {
+      if (!item.title) continue;
+      const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(item);
+    }
+    // Sort: tier-1 sources first, then by date
+    deduped.sort((a, b) => {
+      const aT1 = TIER1_DOMAINS.has(extractDomain(a.url || '')) ? 1 : 0;
+      const bT1 = TIER1_DOMAINS.has(extractDomain(b.url || '')) ? 1 : 0;
+      if (bT1 !== aT1) return bT1 - aT1;
+      return new Date(b.publishedAt) - new Date(a.publishedAt);
+    });
+    return deduped.slice(0, 25);
   }, [items]);
+
+  // Animate with rAF for continuous smooth scrolling
+  const animate = useCallback(() => {
+    if (!contentRef.current) return;
+    const halfWidth = contentRef.current.scrollWidth / 2;
+    if (halfWidth <= 0) { rafRef.current = requestAnimationFrame(animate); return; }
+
+    offsetRef.current -= 0.6; // px per frame (~36px/s at 60fps)
+    if (offsetRef.current <= -halfWidth) offsetRef.current += halfWidth;
+    contentRef.current.style.transform = `translateX(${offsetRef.current}px)`;
+    rafRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  useEffect(() => {
+    if (!visible || headlines.length === 0 || paused) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [visible, headlines.length, paused, animate]);
 
   if (!visible || headlines.length === 0) return null;
 
-  return (
-    <div className="news-ticker-bar">
-      <div className="news-ticker-label">
-        <span style={{
-          display: 'inline-block',
-          width: 6, height: 6, borderRadius: '50%',
-          background: '#ff4444', marginRight: 6,
-          boxShadow: '0 0 6px #ff4444',
-          animation: 'pulse-live 2s ease-in-out infinite',
-        }} />
-        BREAKING
-      </div>
-      <div className="news-ticker-track">
-        <div className="news-ticker-content">
-          {headlines.map((item, idx) => (
-            <span key={`${item.id || idx}-${idx}`} className="news-ticker-item">
-              <span className="news-ticker-dot" />
-              <a
-                href={item.url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={item.title}
-              >
-                {item.sourceName && (
-                  <span style={{ color: 'var(--color-accent)', fontWeight: 600, marginRight: 4 }}>
-                    {item.sourceName}:
-                  </span>
-                )}
-                {item.title}
-                {item.publishedAt && (
-                  <span style={{ color: 'var(--color-text-muted)', marginLeft: 6, fontSize: '10px' }}>
-                    {timeAgoShort(item.publishedAt)}
-                  </span>
-                )}
-              </a>
+  // Render two copies for seamless looping
+  const renderItems = (suffix) =>
+    headlines.map((item, idx) => (
+      <span key={`${item.id || idx}-${suffix}-${idx}`} className="news-ticker-item">
+        <span className="news-ticker-dot" />
+        <a href={item.url || '#'} target="_blank" rel="noopener noreferrer" title={item.title}>
+          {item.sourceName && (
+            <span style={{ color: 'var(--color-accent)', fontWeight: 600, marginRight: 4 }}>
+              {item.sourceName}:
             </span>
-          ))}
+          )}
+          {item.title}
+          {item.publishedAt && (
+            <span style={{ color: 'var(--color-text-muted)', marginLeft: 6, fontSize: '10px' }}>
+              {timeAgoShort(item.publishedAt)}
+            </span>
+          )}
+        </a>
+      </span>
+    ));
+
+  return (
+    <div
+      className="news-ticker-bar"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="news-ticker-label">
+        <span className="news-ticker-live-dot" />
+        LIVE
+      </div>
+      <div ref={trackRef} className="news-ticker-track">
+        <div ref={contentRef} className="news-ticker-content">
+          {renderItems('a')}
+          {renderItems('b')}
         </div>
       </div>
     </div>

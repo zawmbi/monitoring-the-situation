@@ -2729,16 +2729,17 @@ body {
 }
 
 /* ===========================================
-   NEWS TICKER
+   NEWS TICKER — positioned below navbar, only spans map area
+   Scrolling driven by JS rAF (not CSS animation) for seamless loop
    =========================================== */
 .news-ticker-bar {
   position: fixed;
   top: var(--nav-height);
-  left: 0;
+  left: var(--sidebar-width, 400px);
   right: 0;
-  height: 28px;
-  background: linear-gradient(90deg, rgba(12,12,24,0.97) 0%, rgba(18,18,34,0.97) 100%);
-  border-bottom: 1px solid rgba(var(--accent-rgb), 0.15);
+  height: 26px;
+  background: linear-gradient(90deg, rgba(10,10,22,0.95) 0%, rgba(14,14,28,0.95) 100%);
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
   display: flex;
   align-items: center;
   z-index: 1100;
@@ -2746,6 +2747,13 @@ body {
   font-family: var(--font-mono);
   font-size: 11px;
   user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: left 0.25s ease;
+}
+/* When sidebar is collapsed, extend ticker to match */
+.sidebar-is-collapsed .news-ticker-bar {
+  left: 64px;
 }
 .news-ticker-label {
   flex-shrink: 0;
@@ -2756,6 +2764,22 @@ body {
   font-size: 9px;
   letter-spacing: 1px;
   border-right: 1px solid rgba(var(--accent-rgb), 0.2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.news-ticker-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4444;
+  box-shadow: 0 0 6px #ff4444;
+  animation: pulse-live 2s ease-in-out infinite;
+}
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 .news-ticker-track {
   flex: 1;
@@ -2766,14 +2790,10 @@ body {
 .news-ticker-content {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 36px;
   white-space: nowrap;
-  animation: ticker-scroll 60s linear infinite;
   height: 100%;
-  padding-left: 100%;
-}
-.news-ticker-content:hover {
-  animation-play-state: paused;
+  will-change: transform;
 }
 .news-ticker-item {
   flex-shrink: 0;
@@ -2795,12 +2815,8 @@ body {
   height: 4px;
   border-radius: 50%;
   background: var(--color-accent);
-  opacity: 0.5;
+  opacity: 0.4;
   flex-shrink: 0;
-}
-@keyframes ticker-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
 }
 
 /* ===========================================
@@ -2820,5 +2836,5 @@ body {
   .earth-scan-line { animation: none; display: none; }
   .breathe circle { animation: none; }
   .hotspot-marker { transition: none; }
-  .news-ticker-content { animation: none; }
+  .news-ticker-content { transform: none !important; }
 }

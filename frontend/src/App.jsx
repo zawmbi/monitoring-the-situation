@@ -890,6 +890,7 @@ function App() {
   const hoveredCountryIdRef = useRef(null);
   const hoveredStateIdRef = useRef(null);
   const hoveredProvinceIdRef = useRef(null);
+  const hoveredINStateIdRef = useRef(null);
   const hoveredEUIdRef = useRef(null);
 
   // News panel state
@@ -1061,6 +1062,10 @@ function App() {
       if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
         map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
         hoveredProvinceIdRef.current = null;
+      }
+      if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+        map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
+        hoveredINStateIdRef.current = null;
       }
       if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1498,6 +1503,13 @@ function App() {
     return ['==', ['get', 'originalId'], '__none__'];
   }, [selectedRegion]);
 
+  const selectedINStateFilter = useMemo(() => {
+    if (selectedRegion?.type === 'inState' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -1526,6 +1538,10 @@ function App() {
         if (hoveredProvinceIdRef.current !== null && map.getSource('ca-provinces')) {
           map.setFeatureState({ source: 'ca-provinces', id: hoveredProvinceIdRef.current }, { hover: false });
           hoveredProvinceIdRef.current = null;
+        }
+        if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+          map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
+          hoveredINStateIdRef.current = null;
         }
         if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
           for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1563,6 +1579,13 @@ function App() {
       );
       hoveredProvinceIdRef.current = null;
     }
+    if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+      map.setFeatureState(
+        { source: 'in-states', id: hoveredINStateIdRef.current },
+        { hover: false }
+      );
+      hoveredINStateIdRef.current = null;
+    }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
         map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
@@ -1592,6 +1615,12 @@ function App() {
           { hover: true }
         );
         hoveredProvinceIdRef.current = feat.id;
+      } else if (sourceId === 'in-states' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'in-states', id: feat.id },
+          { hover: true }
+        );
+        hoveredINStateIdRef.current = feat.id;
       } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
         // Highlight ALL EU country features for unified entity hover
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1647,6 +1676,13 @@ function App() {
         { hover: false }
       );
       hoveredProvinceIdRef.current = null;
+    }
+    if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
+      map.setFeatureState(
+        { source: 'in-states', id: hoveredINStateIdRef.current },
+        { hover: false }
+      );
+      hoveredINStateIdRef.current = null;
     }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -2118,7 +2154,7 @@ function App() {
   return (
     <WindowManagerProvider>
     <>
-    <div className="app">
+    <div className={`app ${sidebarExpanded ? '' : 'sidebar-is-collapsed'}`}>
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
         title="Monitoring The Situation"
@@ -3926,20 +3962,58 @@ function App() {
             </Source>
           )}
 
-          {/* Indian States — boundaries shown when toggled on */}
+          {/* Indian States — boundaries with hover & selection highlighting */}
           {showINStates && indiaStatesGeoJSON && (
             <Source id="in-states" type="geojson" data={indiaStatesGeoJSON}>
               <Layer
                 id="in-states-fill"
                 type="fill"
-                paint={{ 'fill-color': 'rgba(255, 153, 51, 0.1)', 'fill-opacity': 1 }}
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(255, 140, 20, 0.18)' : 'rgba(255, 153, 51, 0.2)',
+                    'rgba(255, 153, 51, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
               />
               <Layer
                 id="in-states-line"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? 'rgba(255, 120, 20, 0.5)' : 'rgba(255, 153, 51, 0.6)',
-                  'line-width': 0.8,
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(255, 120, 20, 0.8)' : 'rgba(255, 180, 60, 0.8)',
+                    isLightTheme ? 'rgba(255, 120, 20, 0.5)' : 'rgba(255, 153, 51, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              {/* Selected state highlight — fill + border */}
+              <Layer
+                id="in-states-selected-fill"
+                type="fill"
+                filter={selectedINStateFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(255, 140, 20, 0.25)'
+                    : 'rgba(255, 153, 51, 0.3)',
+                }}
+              />
+              <Layer
+                id="in-states-selected-line"
+                type="line"
+                filter={selectedINStateFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#e07020' : '#ff9933',
+                  'line-width': 2.5,
                 }}
               />
             </Source>
