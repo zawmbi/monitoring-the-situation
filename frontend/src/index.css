@@ -2846,3 +2846,10 @@ body {
   .hotspot-marker { transition: none; }
   .news-ticker-content { transform: none !important; }
 }
+
+/* ─── Refugee marker pulse animation ─── */
+@keyframes refugee-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}

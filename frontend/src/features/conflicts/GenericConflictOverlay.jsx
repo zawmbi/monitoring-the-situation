@@ -5,7 +5,7 @@
  *
  * Expects a `conflictData` prop with a standardized shape.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 import { getFrontlineColor as defaultGetColor } from './utils';
 import ConflictFlag from './ConflictFlag';
@@ -210,7 +210,7 @@ function BattlePopup({ site, onClose, sideAColor, sideBColor, sideAName, sideBNa
 
 /* ─── Map Legend (generic) ─── */
 
-export function GenericMapLegend({ open, onToggle, summary, hasFrontlines, hasBattles, hasInfra, hasTroops, hasForts }) {
+export const GenericMapLegend = memo(function GenericMapLegend({ open, onToggle, summary, hasFrontlines, hasBattles, hasInfra, hasTroops, hasForts }) {
   const sideAColor = summary.sideA.color;
   const sideBColor = summary.sideB.color;
   return (
@@ -403,7 +403,7 @@ export function GenericMapLegend({ open, onToggle, summary, hasFrontlines, hasBa
       )}
     </div>
   );
-}
+});
 
 /* ─── Main overlay ─── */
 

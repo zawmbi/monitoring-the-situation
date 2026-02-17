@@ -133,14 +133,6 @@ export function RefugeeOverlay({ situations, onSituationClick, isMarkerVisible }
         );
       })}
 
-      {/* Pulse animation style */}
-      <style>{`
-        @keyframes refugee-pulse {
-          0% { transform: scale(1); opacity: 0.6; }
-          70% { transform: scale(1.5); opacity: 0; }
-          100% { transform: scale(1.5); opacity: 0; }
-        }
-      `}</style>
     </>
   );
 }
