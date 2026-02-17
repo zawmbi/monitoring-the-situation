@@ -57,12 +57,6 @@ function NarrativeSkeleton() {
 
   return (
     <div style={{ opacity: 0.6 }}>
-      <style>{`
-        @keyframes narrativeShimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
       {/* Header skeleton */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ width: 220, height: 14, borderRadius: 4, ...shimmer }} />
@@ -202,9 +196,9 @@ function NarrativeCard({ narrative }) {
         </span>
         <span style={{
           fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-          color: '#8899aa',
+          color: n.articleCount > 0 ? '#8899aa' : '#556677',
         }}>
-          {n.articleCount || 0} articles
+          {n.articleCount > 0 ? `${n.articleCount} articles` : 'Awaiting data'}
         </span>
       </div>
 
@@ -509,20 +503,26 @@ export function NarrativePanel({ data, loading, onRefresh }) {
           }}>
             Narrative &amp; Sentiment Tracking
           </span>
-          <span style={{
-            fontSize: 8, padding: '2px 6px', borderRadius: 8, fontWeight: 700,
-            background: 'rgba(239,68,68,0.15)', color: '#ef4444',
-            border: '1px solid rgba(239,68,68,0.3)', textTransform: 'uppercase',
-            letterSpacing: 0.5, animation: 'narrativePulse 2s ease-in-out infinite',
-          }}>
-            LIVE
-          </span>
-          <style>{`
-            @keyframes narrativePulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
-            }
-          `}</style>
+          {summary.totalArticles > 0 && (
+            <span style={{
+              fontSize: 8, padding: '2px 6px', borderRadius: 8, fontWeight: 700,
+              background: 'rgba(34,197,94,0.15)', color: '#22c55e',
+              border: '1px solid rgba(34,197,94,0.3)', textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}>
+              LIVE
+            </span>
+          )}
+          {loading && (
+            <span style={{
+              fontSize: 8, padding: '2px 6px', borderRadius: 8, fontWeight: 700,
+              background: 'rgba(74,158,255,0.15)', color: '#4a9eff',
+              border: '1px solid rgba(74,158,255,0.3)', textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}>
+              UPDATING
+            </span>
+          )}
         </div>
         <button
           onClick={onRefresh}
@@ -537,6 +537,21 @@ export function NarrativePanel({ data, loading, onRefresh }) {
         </button>
       </div>
 
+      {/* ── How it works ── */}
+      <div style={{
+        padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        fontSize: 10, lineHeight: 1.5, color: '#667788',
+        background: 'rgba(74,158,255,0.03)',
+      }}>
+        Tracks how 10 major geopolitical topics are covered across global media using the{' '}
+        <strong style={{ color: '#8899aa' }}>GDELT Project</strong> (free, open data).{' '}
+        <strong style={{ color: '#8899aa' }}>Tone</strong> measures article sentiment on a{' '}
+        <span style={{ color: '#ef4444' }}>-10</span> (very negative) to{' '}
+        <span style={{ color: '#22c55e' }}>+10</span> (very positive) scale.{' '}
+        <strong style={{ color: '#8899aa' }}>Divergence</strong> flags when US, UK, Russia, China & India media
+        report on the same topic with significantly different tones ({'>'}3 pts apart).
+      </div>
+
       {/* ── Summary stats row ── */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
@@ -545,14 +560,14 @@ export function NarrativePanel({ data, loading, onRefresh }) {
         {[
           {
             value: summary.totalNarratives || 0,
-            label: 'Narratives',
+            label: 'Topics Tracked',
             color: '#4a9eff',
           },
           {
             value: summary.avgGlobalTone != null
               ? `${summary.avgGlobalTone > 0 ? '+' : ''}${summary.avgGlobalTone.toFixed(1)}`
               : '--',
-            label: 'Avg Global Tone',
+            label: 'Global Tone',
             color: toneColor(summary.avgGlobalTone || 0),
           },
           {
@@ -562,8 +577,8 @@ export function NarrativePanel({ data, loading, onRefresh }) {
           },
           {
             value: summary.totalArticles || 0,
-            label: 'Articles',
-            color: '#8899aa',
+            label: 'GDELT Articles',
+            color: summary.totalArticles > 0 ? '#8899aa' : '#556677',
           },
         ].map((stat, idx) => (
           <div key={idx} style={{
@@ -619,12 +634,23 @@ export function NarrativePanel({ data, loading, onRefresh }) {
         <div>
           {sortedNarratives.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: '#667788', fontSize: 12 }}>
-              No narrative data available yet.
+              No narrative data available yet. Data loads from GDELT on first open.
             </div>
           ) : (
-            sortedNarratives.map((n) => (
-              <NarrativeCard key={n.id || n.topic} narrative={n} />
-            ))
+            <>
+              {/* Key explaining badges */}
+              <div style={{
+                padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center',
+                fontSize: 9, color: '#556677',
+              }}>
+                <span><span style={{ color: '#22c55e' }}>Positive</span> / <span style={{ color: '#ef4444' }}>Negative</span> / <span style={{ color: '#8899aa' }}>Neutral</span> = media tone</span>
+                <span>{'\u2191'} Increasing {'\u2193'} Decreasing {'\u2194'} Stable = coverage momentum</span>
+              </div>
+              {sortedNarratives.map((n) => (
+                <NarrativeCard key={n.id || n.topic} narrative={n} />
+              ))}
+            </>
           )}
         </div>
       )}
@@ -632,10 +658,18 @@ export function NarrativePanel({ data, loading, onRefresh }) {
       {/* ── Divergence tab ── */}
       {activeTab === 'Divergence' && (
         <div>
+          <div style={{
+            padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+            fontSize: 10, color: '#667788', lineHeight: 1.4,
+          }}>
+            Compares how the <strong style={{ color: '#8899aa' }}>same topic</strong> is reported
+            by media from 5 major powers (US, UK, Russia, China, India). A{' '}
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>DIVERGING</span> flag means tone
+            differs by {'>'} 3 points — suggesting information warfare or fundamentally different framing.
+          </div>
           {divergences.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: '#667788', fontSize: 12 }}>
-              No divergence data available. Divergence analysis compares how the same story
-              is covered across US, UK, Russia, China, and India sources.
+              No divergence data available yet. Data loads from GDELT on first open.
             </div>
           ) : (
             divergences.map((d) => (
@@ -647,7 +681,17 @@ export function NarrativePanel({ data, loading, onRefresh }) {
 
       {/* ── Sentiment Map tab ── */}
       {activeTab === 'Sentiment Map' && (
-        <SentimentHeatmap sentimentMap={sentimentMap} />
+        <div>
+          <div style={{
+            padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+            fontSize: 10, color: '#667788', lineHeight: 1.4,
+          }}>
+            Average tone of news <strong style={{ color: '#8899aa' }}>originating from</strong> each
+            country over the last 14 days. Negative tone doesn't mean bad news about the country —
+            it reflects the overall sentiment of that country's media output.
+          </div>
+          <SentimentHeatmap sentimentMap={sentimentMap} />
+        </div>
       )}
 
       {/* ── Footer ── */}
@@ -656,7 +700,7 @@ export function NarrativePanel({ data, loading, onRefresh }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         fontSize: 9, color: '#556677', letterSpacing: 0.3,
       }}>
-        <span>Sources: GDELT Project</span>
+        <span>Data: GDELT Project (14-day window) — refreshes every 10 min</span>
         {data.updatedAt && <span>Updated {timeAgo(data.updatedAt)}</span>}
       </div>
     </div>

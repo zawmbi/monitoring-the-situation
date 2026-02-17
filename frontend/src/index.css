@@ -2853,3 +2853,9 @@ body {
   70% { transform: scale(1.5); opacity: 0; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+
+/* ─── Narrative panel shimmer animation ─── */
+@keyframes narrativeShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

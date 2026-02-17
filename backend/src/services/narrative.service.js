@@ -128,7 +128,7 @@ function buildGdeltUrl(params) {
 async function safeFetchJson(url, label = 'GDELT') {
   try {
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(8000),
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Monitored/1.0 (narrative-tracker)',
@@ -389,35 +389,24 @@ class NarrativeService {
 
       const batchPromises = batch.map(async (country) => {
         try {
+          // Single ToneChart request per country (no ArtList needed for sentiment map)
           const url = buildGdeltUrl({
             query: `sourcecountry:${country.code}`,
             mode: 'ToneChart',
-            timespan: '7d',
+            timespan: '14d',
             format: 'json',
           });
 
           const data = await safeFetchJson(url, `CountryTone(${country.code})`);
           const { avgTone, toneHistory } = extractAvgToneFromChart(data);
 
-          // Also fetch a small article sample for context
-          const artUrl = buildGdeltUrl({
-            query: `sourcecountry:${country.code}`,
-            mode: 'ArtList',
-            maxrecords: '10',
-            timespan: '7d',
-            format: 'json',
-            sort: 'ToneDesc',
-          });
-          const artData = await safeFetchJson(artUrl, `CountryArt(${country.code})`);
-          const articles = extractArticles(artData);
-
           return {
             code: country.code,
             name: country.name,
             avgTone: avgTone,
             sentiment: classifySentiment(avgTone),
-            articleCount: articles.length || toneHistory.length || 0,
-            toneHistory: toneHistory.slice(-7), // last 7 data points
+            articleCount: toneHistory.length || 0,
+            toneHistory: toneHistory.slice(-7),
           };
         } catch (err) {
           console.warn(`[Narrative] Error fetching sentiment for ${country.code}:`, err.message);
@@ -442,7 +431,7 @@ class NarrativeService {
 
       // Small delay between batches to respect rate limits
       if (i + batchSize < SENTIMENT_COUNTRIES.length) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
@@ -476,43 +465,26 @@ class NarrativeService {
 
       const sourcePromises = DIVERGENCE_SOURCES.map(async (countryCode) => {
         try {
+          // Single ToneChart request per topic×country (no ArtList needed for divergence)
           const url = buildGdeltUrl({
             query: `${topicDef.query} sourcecountry:${countryCode}`,
             mode: 'ToneChart',
-            timespan: '7d',
+            timespan: '14d',
             format: 'json',
           });
 
           const data = await safeFetchJson(url, `Divergence(${topicDef.query}/${countryCode})`);
           const { avgTone, toneHistory } = extractAvgToneFromChart(data);
 
-          // Fetch a few articles for context
-          const artUrl = buildGdeltUrl({
-            query: `${topicDef.query} sourcecountry:${countryCode}`,
-            mode: 'ArtList',
-            maxrecords: '5',
-            timespan: '7d',
-            format: 'json',
-            sort: 'DateDesc',
-          });
-          const artData = await safeFetchJson(artUrl, `DivArt(${topicDef.query}/${countryCode})`);
-          const articles = extractArticles(artData);
-
           return {
             countryCode,
             avgTone,
-            articleCount: articles.length,
+            articleCount: toneHistory.length || 0,
             toneHistory: toneHistory.slice(-7),
-            sampleArticles: articles.slice(0, 2).map((a) => ({
-              title: a.title,
-              url: a.url,
-              source: a.source,
-              tone: Math.round(a.tone * 100) / 100,
-            })),
           };
         } catch (err) {
           console.warn(`[Narrative] Divergence error for ${topicDef.query}/${countryCode}:`, err.message);
-          return { countryCode, avgTone: 0, articleCount: 0, toneHistory: [], sampleArticles: [] };
+          return { countryCode, avgTone: 0, articleCount: 0, toneHistory: [] };
         }
       });
 
@@ -591,9 +563,8 @@ class NarrativeService {
     this.lastFetchTime = Date.now();
 
     try {
-      // Run narratives and divergence in parallel, then sentiment map
-      // (sentiment map does many requests, so we run it after to reduce burst)
-      const [narratives, divergences] = await Promise.all([
+      // Run all three methods in parallel for faster loading
+      const [narratives, divergences, sentimentMap] = await Promise.all([
         this.fetchTopNarratives().catch((err) => {
           console.error('[Narrative] fetchTopNarratives failed:', err.message);
           return [];
@@ -602,12 +573,11 @@ class NarrativeService {
           console.error('[Narrative] detectNarrativeDivergence failed:', err.message);
           return [];
         }),
+        this.fetchSentimentByCountry().catch((err) => {
+          console.error('[Narrative] fetchSentimentByCountry failed:', err.message);
+          return {};
+        }),
       ]);
-
-      const sentimentMap = await this.fetchSentimentByCountry().catch((err) => {
-        console.error('[Narrative] fetchSentimentByCountry failed:', err.message);
-        return {};
-      });
 
       // Compute global summary statistics
       const totalArticles = narratives.reduce((sum, n) => sum + n.articleCount, 0);
