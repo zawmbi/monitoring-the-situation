@@ -774,6 +774,7 @@ function App() {
   const [showTimezones, setShowTimezones] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(true);
+  const [projectionTransition, setProjectionTransition] = useState(null); // null | 'to-2d' | 'to-3d'
   const [autoRotate, setAutoRotate] = useState(true);
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
@@ -954,6 +955,17 @@ function App() {
   const toggleVisualLayer = useCallback((key) => {
     setVisualLayers(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
+
+  // Animated projection toggle — flash overlay, switch midway, then fade out
+  const handleToggleGlobe = useCallback(() => {
+    if (projectionTransition) return; // prevent double-click during animation
+    const goingTo3D = !useGlobe;
+    setProjectionTransition(goingTo3D ? 'to-3d' : 'to-2d');
+    // Switch projection midway through the animation
+    setTimeout(() => setUseGlobe(prev => !prev), 250);
+    // Clear transition state after animation completes
+    setTimeout(() => setProjectionTransition(null), 700);
+  }, [useGlobe, projectionTransition]);
 
   // Sync hillshade visibility to native style layer when toggle changes
   useEffect(() => {
@@ -2022,7 +2034,7 @@ function App() {
         onToggleTheme={handleToggleTheme}
         onSetTheme={setTheme}
         useGlobe={useGlobe}
-        onToggleGlobe={() => setUseGlobe(prev => !prev)}
+        onToggleGlobe={handleToggleGlobe}
         musicPlaying={musicPlaying}
         onToggleMusic={handleToggleMusic}
         musicVolume={musicVolume}
@@ -2743,6 +2755,10 @@ function App() {
 
         {/* Map */}
         <div className={`map-container${useGlobe ? ' globe-mode' : ''}${mapControlsCollapsed ? ' map-controls-hidden' : ''}`} ref={mapContainerRef}>
+        {/* Projection transition overlay */}
+        {projectionTransition && (
+          <div className={`projection-transition projection-transition--${projectionTransition}`} />
+        )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
         {/* Timezone Labels Top */}
