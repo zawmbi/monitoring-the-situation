@@ -74,14 +74,10 @@ import { TensionPanel } from './features/tension/TensionPanel';
 import { BriefingPanel } from './features/briefing/BriefingPanel';
 import { CourtPanel } from './features/court/CourtPanel';
 import { SanctionsPanel } from './features/sanctions/SanctionsPanel';
-import { MetaculusPanel } from './features/metaculus/MetaculusPanel';
-import { ArbitragePanel } from './features/arbitrage/ArbitragePanel';
 import { CountryRiskPanel } from './features/risk/CountryRiskPanel';
 import { WatchlistPanel } from './features/watchlist/WatchlistPanel';
 import { useCourt } from './hooks/useCourt';
 import { useSanctions } from './hooks/useSanctions';
-import { useMetaculus } from './hooks/useMetaculus';
-import { useArbitrage } from './hooks/useArbitrage';
 import { useNarrative } from './hooks/useNarrative';
 import { useRegime } from './hooks/useRegime';
 import { useAlliance } from './hooks/useAlliance';
@@ -908,8 +904,6 @@ function App() {
   const [showBriefingPanel, setShowBriefingPanel] = useState(false);
   const [showCourtPanel, setShowCourtPanel] = useState(false);
   const [showSanctionsPanel, setShowSanctionsPanel] = useState(false);
-  const [showMetaculusPanel, setShowMetaculusPanel] = useState(false);
-  const [showArbitragePanel, setShowArbitragePanel] = useState(false);
   const [showCountryRiskPanel, setShowCountryRiskPanel] = useState(false);
   const [showCountryRiskMode, setShowCountryRiskMode] = useState(false);
   const [showWatchlistPanel, setShowWatchlistPanel] = useState(false);
@@ -933,8 +927,6 @@ function App() {
   const { data: refugeeData, loading: refugeeLoading, refresh: refreshRefugees } = useRefugees(showRefugeePanel);
   const { data: courtData, loading: courtLoading, refresh: refreshCourt } = useCourt(showCourtPanel);
   const { data: sanctionsData, loading: sanctionsLoading, refresh: refreshSanctions } = useSanctions(showSanctionsPanel);
-  const { data: metaculusData, loading: metaculusLoading, refresh: refreshMetaculus } = useMetaculus(showMetaculusPanel);
-  const { data: arbitrageData, loading: arbitrageLoading, refresh: refreshArbitrage } = useArbitrage(showArbitragePanel);
   const { data: narrativeData, loading: narrativeLoading, refresh: refreshNarrative } = useNarrative(showNarrativePanel);
   const { data: regimeData, loading: regimeLoading, refresh: refreshRegime } = useRegime(showRegimePanel);
   const { data: allianceData, loading: allianceLoading, refresh: refreshAlliance } = useAlliance(showAlliancePanel);
@@ -1036,8 +1028,6 @@ function App() {
         case '5': setShowDisasters(p => { if (!p) setShowDisasterPanel(true); return !p; }); break;
         case '6': setShowCyberPanel(p => !p); break;
         case '7': setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); break;
-        case '8': setShowMetaculusPanel(p => !p); break;
-        case '9': setShowArbitragePanel(p => !p); break;
         case '0': setShowWatchlistPanel(p => !p); break;
         case 'Escape':
           setPopoverHotspot(null);
@@ -2433,16 +2423,6 @@ function App() {
                       <span className="slider" />
                     </label>
                     <label className="switch switch-neutral">
-                      <span className="switch-label">Metaculus Forecasts <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>8</kbd></span>
-                      <input type="checkbox" checked={showMetaculusPanel} onChange={() => setShowMetaculusPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Market Arbitrage <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>9</kbd></span>
-                      <input type="checkbox" checked={showArbitragePanel} onChange={() => setShowArbitragePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
                       <span className="switch-label">Narrative Tracking</span>
                       <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
                       <span className="slider" />
@@ -3178,43 +3158,6 @@ function App() {
           </PanelWindow>
         )}
 
-        {/* ══════════ Metaculus Panel ══════════ */}
-        {showMetaculusPanel && (
-          <PanelWindow
-            id="metaculus"
-            title="Metaculus Forecasts"
-            onClose={() => setShowMetaculusPanel(false)}
-            defaultWidth={420}
-            defaultHeight={580}
-            defaultMode="floating"
-            defaultPosition={{ x: 120, y: 75 }}
-          >
-            <MetaculusPanel
-              data={metaculusData}
-              loading={metaculusLoading}
-              onRefresh={refreshMetaculus}
-            />
-          </PanelWindow>
-        )}
-
-        {/* ══════════ Arbitrage Panel ══════════ */}
-        {showArbitragePanel && (
-          <PanelWindow
-            id="arbitrage"
-            title="Market Arbitrage Scanner"
-            onClose={() => setShowArbitragePanel(false)}
-            defaultWidth={440}
-            defaultHeight={560}
-            defaultMode="floating"
-            defaultPosition={{ x: 140, y: 85 }}
-          >
-            <ArbitragePanel
-              data={arbitrageData}
-              loading={arbitrageLoading}
-              onRefresh={refreshArbitrage}
-            />
-          </PanelWindow>
-        )}
 
         {/* ══════════ Country Risk Panel ══════════ */}
         {showCountryRiskMode && showCountryRiskPanel && (
