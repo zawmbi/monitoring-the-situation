@@ -13,6 +13,7 @@ import { getLeader, getLeaderLive, fetchLeaderPhoto } from './worldLeaders';
 import { resolveCountryName } from './countryAliases';
 import US_STATE_INFO from '../../usStateInfo';
 import CA_PROVINCE_INFO from '../../caProvinceInfo';
+import IN_STATE_INFO from '../../indiaStateInfo';
 
 // Helper to compute Wikimedia flag image URL from state/province name
 function getFlagUrl(name) {
@@ -389,6 +390,33 @@ export function useCountryPanel() {
     });
   };
 
+  const openIndiaStatePanel = (stateName) => {
+    const info = IN_STATE_INFO[stateName];
+    const pop = info?.population;
+    setCountryPanel({
+      open: true,
+      data: {
+        name: stateName,
+        capital: info?.capital || 'Unknown',
+        region: 'India',
+        subregion: info?.abbr || '',
+        timezone: info?.timezone || 'UTC+5:30',
+        population: pop ? pop.toLocaleString() : '',
+        populationRaw: pop || null,
+        area: info?.area || null,
+        leader: info?.chiefMinister || info?.administrator || '',
+        leaderTitle: info?.chiefMinister ? 'Chief Minister' : 'Administrator',
+        leaderParty: info?.party || null,
+        leaderPhoto: null,
+        largestCity: info?.largestCity || null,
+        formed: info?.formed || null,
+        regionType: info?.type || 'State',
+        scope: 'inState',
+        loading: false,
+      },
+    });
+  };
+
   const closeCountryPanel = () => {
     setCountryPanel({ open: false, data: null });
     setCurrencyData(null);
@@ -410,6 +438,7 @@ export function useCountryPanel() {
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openIndiaStatePanel,
     openEUPanel,
     closeCountryPanel,
   };

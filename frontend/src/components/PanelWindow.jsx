@@ -5,17 +5,7 @@ import './panelWindow.css';
 
 /**
  * PanelWindow — universal wrapper that gives any panel drag / minimize /
- * maximize / undock / dock controls.
- *
- * Props:
- *   id           – unique window key (e.g. "country", "stocks")
- *   title        – display name for the title bar
- *   onClose      – called when user clicks ✕
- *   defaultWidth – CSS width when floating (default 400)
- *   defaultHeight– CSS height when floating (default 500)
- *   defaultMode  – initial mode: 'docked' | 'floating' (default 'docked')
- *   defaultPosition – { x, y } for initial floating position
- *   children     – the panel content
+ * maximize / undock / dock / resize controls.
  */
 export default function PanelWindow({
   id,
@@ -30,6 +20,7 @@ export default function PanelWindow({
   const wm = useWindowManager();
   const win = wm.windows[id];
   const dragState = useRef(null);
+  const resizeState = useRef(null);
   const containerRef = useRef(null);
 
   // Register on mount
@@ -103,6 +94,49 @@ export default function PanelWindow({
     const { handleMove, handleUp } = handlersRef.current;
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
+  };
+
+  // ── Resize handling ──
+  const resizeHandlersRef = useRef(null);
+  if (!resizeHandlersRef.current) {
+    const handleResizeMove = (e) => {
+      const rs = resizeState.current;
+      if (!rs) return;
+      const dx = e.clientX - rs.startX;
+      const dy = e.clientY - rs.startY;
+      const newW = Math.max(250, rs.origW + dx);
+      const newH = Math.max(200, rs.origH + dy);
+      wmRef.current.updateSize(idRef.current, { width: newW, height: newH });
+    };
+    const handleResizeUp = () => {
+      resizeState.current = null;
+      document.removeEventListener('pointermove', handleResizeMove);
+      document.removeEventListener('pointerup', handleResizeUp);
+    };
+    resizeHandlersRef.current = { handleResizeMove, handleResizeUp };
+  }
+
+  useEffect(() => {
+    const { handleResizeMove, handleResizeUp } = resizeHandlersRef.current;
+    return () => {
+      document.removeEventListener('pointermove', handleResizeMove);
+      document.removeEventListener('pointerup', handleResizeUp);
+    };
+  }, []);
+
+  const onResizePointerDown = (e) => {
+    if (!win || win.mode !== 'floating') return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizeState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origW: win.size?.width || defaultWidth,
+      origH: win.size?.height || defaultHeight,
+    };
+    const { handleResizeMove, handleResizeUp } = resizeHandlersRef.current;
+    document.addEventListener('pointermove', handleResizeMove);
+    document.addEventListener('pointerup', handleResizeUp);
   };
 
   if (!win) return null;
@@ -232,6 +266,18 @@ export default function PanelWindow({
       <div className="pw-content">
         {children}
       </div>
+
+      {/* Resize handle (floating mode only) */}
+      {mode === 'floating' && (
+        <div
+          className="pw-resize-handle"
+          onPointerDown={onResizePointerDown}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.4">
+            <line x1="9" y1="1" x2="1" y2="9" /><line x1="9" y1="4" x2="4" y2="9" /><line x1="9" y1="7" x2="7" y2="9" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 

@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 
+function getLocalTzAbbr() {
+  try {
+    const parts = Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(new Date());
+    const tz = parts.find(p => p.type === 'timeZoneName');
+    return tz ? tz.value : 'LOCAL';
+  } catch { return 'LOCAL'; }
+}
+
 export default function GlobalStatusBar({ tensionData, disasterData, cyberData, commoditiesData }) {
   const [utcTime, setUtcTime] = useState(new Date().toISOString().slice(11, 19));
+  const [localTime, setLocalTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+  const [tzAbbr] = useState(getLocalTzAbbr);
 
   useEffect(() => {
-    const id = setInterval(() => setUtcTime(new Date().toISOString().slice(11, 19)), 1000);
+    const id = setInterval(() => {
+      setUtcTime(new Date().toISOString().slice(11, 19));
+      setLocalTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -68,6 +81,10 @@ export default function GlobalStatusBar({ tensionData, disasterData, cyberData, 
         <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 2px' }}>/</span>
         <span style={{ ...val, color: '#ef5350' }}>{losers}</span>
       </span>
+
+      <div style={sep} />
+
+      <span><span style={label}>{tzAbbr}</span><span style={val}>{localTime}</span></span>
 
       <div style={sep} />
 

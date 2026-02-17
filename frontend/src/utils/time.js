@@ -31,3 +31,35 @@ export function formatRange(start, end, timezone) {
   const tz = timezone ? ` (${timezone})` : '';
   return `${start || '?'} - ${end || '?'}${tz}`;
 }
+
+/**
+ * Detect the user's IANA timezone from the browser (e.g. "America/New_York").
+ * Falls back to UTC offset string.
+ */
+export function getUserTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/**
+ * Get the short timezone abbreviation (e.g. "EST", "PST").
+ */
+export function getUserTimezoneAbbr() {
+  try {
+    const parts = Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(new Date());
+    const tz = parts.find(p => p.type === 'timeZoneName');
+    return tz ? tz.value : 'LOCAL';
+  } catch {
+    return 'LOCAL';
+  }
+}
+
+/**
+ * Get the user's UTC offset in hours (e.g. -5 for EST).
+ */
+export function getUserUtcOffset() {
+  return -(new Date().getTimezoneOffset() / 60);
+}

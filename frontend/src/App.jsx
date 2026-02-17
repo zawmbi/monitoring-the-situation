@@ -53,6 +53,7 @@ import PanelWindow from './components/PanelWindow';
 import MinimizedTray from './components/MinimizedTray';
 import AccountPanel from './components/AccountPanel';
 import GlobalStatusBar from './components/GlobalStatusBar';
+import NewsTicker from './components/NewsTicker';
 import { useDisasters } from './hooks/useDisasters';
 import { useCyber } from './hooks/useCyber';
 import { useCommodities } from './hooks/useCommodities';
@@ -92,6 +93,10 @@ import { DemographicPanel } from './features/demographic/DemographicPanel';
 import { CredibilityPanel } from './features/credibility/CredibilityPanel';
 import { LeadershipPanel } from './features/leadership/LeadershipPanel';
 import { TimelineNavigator } from './components/TimelineNavigator';
+import { useI18n } from './i18n/I18nContext';
+import IN_STATE_INFO from './indiaStateInfo';
+import { useIndiaStates } from './hooks/useIndiaStates';
+import { useMultiPanel } from './hooks/useMultiPanel';
 
 // Fix polygons for MapLibre rendering:
 // 1. Clamp latitudes to ±85 (Mercator can't handle ±90)
@@ -309,11 +314,30 @@ const AMBIGUOUS_NAMES = new Set([
   'peru', 'fiji', 'laos', 'iran', 'iraq', 'israel', 'congo',
 ]);
 
-// Build a word-boundary regex for a name; for ambiguous names also check
-// that the surrounding context looks geographic/political.
+// Words that commonly cause false-positive matches for country names.
+// Maps country name (lowercase) → regex that EXCLUDES the match.
+// If the exclusion regex matches the text, skip the country match.
+const FALSE_POSITIVE_EXCLUSIONS = {
+  'oman': /\b(woman|women|roman|ottoman|yeoman|omani(?:a)?s?\b(?!.*\b(?:muscat|sultan)))/i,
+  'turkey': /\b(turkey(?:\s+(?:breast|leg|dinner|sandwich|recipe|thanksgiving|stuffing|cranberry|giblet|roast|carve)))/i,
+  'iran': /\b(iran(?:ting|dom|ge|ium)|(?:(?:out)?ran|veteran|durango?))\b/i,
+  'niger': /\b(nigeria)/i,
+  'guinea': /\b(guinea\s+pig)/i,
+  'chad': /\b(chad(?:\s+(?:smith|johnson|michael|ochocinco|kroeger)))/i,
+  'jordan': /\b(michael\s+jordan|jordan(?:\s+(?:peele|peterson|spieth|brand|sneaker|shoe)))/i,
+  'georgia': /\b(georgia(?:\s+(?:peach|bulldog|tech|o'keeffe)))/i,
+  'mali': /\b(somali|animal|normal|anomal)/i,
+  'cuba': /\b(cuba(?:\s+(?:gooding|libre)))/i,
+  'panama': /\b(panama(?:\s+(?:hat|jack)))/i,
+  'malta': /\b(malta(?:se))/i,
+  'togo': /\b(togos|together)/i,
+};
+
+// Build a word-boundary regex for a name; uses \b for strict whole-word matching
 function buildMatchRegex(name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?:^|[\\s,.()"'])${escaped}(?=[\\s,.()"']|$)`, 'i');
+  // Use strict word boundaries (\b) to prevent substring matches like Woman→Oman
+  return new RegExp(`\\b${escaped}\\b`, 'i');
 }
 
 function deriveHotspots(items) {
@@ -328,12 +352,17 @@ function deriveHotspots(items) {
     const textLower = text.toLowerCase();
     buckets.forEach(bucket => {
       if (!bucket.regex) return;
-      // Word-boundary match to avoid substring false positives
+      // Strict word-boundary match to avoid substring false positives
       if (!bucket.regex.test(text)) return;
+
+      // Check for known false-positive patterns (turkey recipes, Woman, etc.)
+      const exclusion = FALSE_POSITIVE_EXCLUSIONS[bucket.match];
+      if (exclusion && exclusion.test(text)) return;
+
       // For ambiguous names, require at least one geographic context word nearby
       if (AMBIGUOUS_NAMES.has(bucket.match)) {
         const ctx = textLower;
-        const hasContext = /\b(government|president|minister|military|troops|war|conflict|crisis|protest|election|capital|border|region|province|state of|country|nation|attack|bomb|strike|sanction|embassy|diplomat|foreign|amid|unrest)\b/.test(ctx);
+        const hasContext = /\b(government|president|prime\s+minister|minister|military|troops|war|conflict|crisis|protest|election|capital|border|region|province|state of|country|nation|attack|bomb|strike|sanction|embassy|diplomat|foreign|amid|unrest|ceasefire|treaty|nuclear|regime|coup|dictator|parliament|congress|senate|geopolitical|defense|army|navy|airforce|missile|terrorism|insurgent)\b/.test(ctx);
         if (!hasContext) return;
       }
       bucket.items.push(item);
@@ -727,6 +756,7 @@ const getInitialVisualLayers = () => {
 
 function App() {
   const { user, profile, loading: authLoading } = useAuth();
+  const { t, lang, setLang, languages: supportedLanguages } = useI18n();
 
   // View state machine: 'world' | 'region' | 'hotspot'
   const [viewMode, setViewMode] = useState('world');
@@ -757,6 +787,7 @@ function App() {
     openCountryPanel,
     openStatePanel,
     openProvincePanel,
+    openIndiaStatePanel,
     openEUPanel,
     closeCountryPanel,
   } = useCountryPanel();
@@ -771,6 +802,13 @@ function App() {
   // Sidebar state
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('world');
+  const [sidebarTabOrder, setSidebarTabOrder] = useState([
+    { id: 'world', label: 'World' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'themes', label: 'Themes' },
+    { id: 'settings', label: 'Settings' },
+  ]);
+  const dragTabRef = useRef(null);
   const [showTimezones, setShowTimezones] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(true);
@@ -802,6 +840,7 @@ function App() {
   ];
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
+  const [showINStates, setShowINStates] = useState(false);
   const [showEUCountries, setShowEUCountries] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
@@ -860,6 +899,14 @@ function App() {
   // Tooltip state
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
 
+  // Multi-instance panel support (allows opening multiple country panels, etc.)
+  const {
+    panels: extraPanels,
+    openPanel: openExtraPanel,
+    closePanel: closeExtraPanel,
+    bringToFront: bringExtraPanelToFront,
+  } = useMultiPanel();
+
   // Layer toggles (flights disabled by default)
   const [enabledLayers, setEnabledLayers] = useState({
     news: true,
@@ -891,6 +938,9 @@ function App() {
     loading: stabilityLoading,
     refresh: refreshStability,
   } = useStability(stabilityMode);
+
+  // Indian states GeoJSON (lazy-loaded)
+  const { data: indiaStatesGeoJSON } = useIndiaStates(showINStates);
 
   // ── New feature state ──
   const [showCyberPanel, setShowCyberPanel] = useState(false);
@@ -1643,7 +1693,14 @@ function App() {
             setTariffPanel({ open: true, country: name, pos: { x, y } });
           }
 
-          openCountryPanel(name);
+          // If a country panel is already open, open this as an extra panel
+          if (countryPanel.open && countryPanel.data?.name !== name) {
+            openExtraPanel('country', { name, loading: true }, { position: { x, y } });
+            // Also fetch full data for the extra panel
+            openCountryPanel(name);
+          } else {
+            openCountryPanel(name);
+          }
         }
       } else if (sourceId === 'us-states') {
         setSelectedRegion({ type: 'state', id: originalId, name });
@@ -1695,6 +1752,18 @@ function App() {
           x = Math.max(padding, Math.min(x, mapRect.width - panelWidth - padding));
           y = Math.max(padding, Math.min(y, mapRect.height - panelHeight - padding));
           openProvincePanel(name);
+        }
+      } else if (sourceId === 'in-states') {
+        const stateInfo = IN_STATE_INFO[name];
+        if (stateInfo) {
+          setSelectedRegion({ type: 'inState', id: originalId || name, name });
+          setViewMode('region');
+          if (stateInfo.capitalCoords) {
+            setSelectedCapital({ name: stateInfo.capital, lat: stateInfo.capitalCoords[0], lon: stateInfo.capitalCoords[1] });
+          } else {
+            setSelectedCapital(null);
+          }
+          openIndiaStatePanel(name);
         }
       } else if (sourceId === 'eu-countries') {
         setSelectedRegion({ type: 'eu', id: 'EU', name: 'European Union' });
@@ -2066,42 +2135,60 @@ function App() {
             {sidebarExpanded && (
               <div className="sidebar-tabs-row">
                 <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
-                  <button
-                    type="button"
-                    className={`sidebar-tab ${sidebarTab === 'world' ? 'active' : ''}`}
-                    onClick={() => setSidebarTab('world')}
-                    role="tab"
-                    aria-selected={sidebarTab === 'world'}
-                  >
-                    World
-                  </button>
-                  <button
-                    type="button"
-                    className={`sidebar-tab ${sidebarTab === 'chat' ? 'active' : ''}`}
-                    onClick={() => setSidebarTab('chat')}
-                    role="tab"
-                    aria-selected={sidebarTab === 'chat'}
-                  >
-                    Chat
-                  </button>
-                  <button
-                    type="button"
-                    className={`sidebar-tab ${sidebarTab === 'themes' ? 'active' : ''}`}
-                    onClick={() => setSidebarTab('themes')}
-                    role="tab"
-                    aria-selected={sidebarTab === 'themes'}
-                  >
-                    Themes
-                  </button>
-                  <button
-                    type="button"
-                    className={`sidebar-tab ${sidebarTab === 'settings' ? 'active' : ''}`}
-                    onClick={() => setSidebarTab('settings')}
-                    role="tab"
-                    aria-selected={sidebarTab === 'settings'}
-                  >
-                    Settings
-                  </button>
+                  {sidebarTabOrder.map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`sidebar-tab ${sidebarTab === tab.id ? 'active' : ''}`}
+                      draggable
+                      onDragStart={(e) => {
+                        dragTabRef.current = tab.id;
+                        e.currentTarget.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('drag-over');
+                      }}
+                      onDragLeave={(e) => {
+                        e.currentTarget.classList.remove('drag-over');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('drag-over');
+                        const from = dragTabRef.current;
+                        const to = tab.id;
+                        if (from && from !== to) {
+                          setSidebarTabOrder(prev => {
+                            const arr = [...prev];
+                            const fromIdx = arr.findIndex(t => t.id === from);
+                            const toIdx = arr.findIndex(t => t.id === to);
+                            if (fromIdx === -1 || toIdx === -1) return prev;
+                            const [moved] = arr.splice(fromIdx, 1);
+                            arr.splice(toIdx, 0, moved);
+                            return arr;
+                          });
+                        }
+                        dragTabRef.current = null;
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.classList.remove('dragging');
+                        dragTabRef.current = null;
+                      }}
+                      onClick={() => {
+                        if (sidebarTab === tab.id) {
+                          setSidebarExpanded(false);
+                        } else {
+                          setSidebarTab(tab.id);
+                          setSidebarExpanded(true);
+                        }
+                      }}
+                      role="tab"
+                      aria-selected={sidebarTab === tab.id}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
                 <button
                   className="sidebar-toggle"
@@ -2713,6 +2800,15 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className="switch switch-neutral">
+                    <span className="switch-label">IN State Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showINStates}
+                      onChange={() => setShowINStates(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
                     <span className="switch-label">EU Country Borders</span>
                     <input
                       type="checkbox"
@@ -2737,6 +2833,22 @@ function App() {
                         onClick={() => setTempUnit('C')}
                       >°C</button>
                     </div>
+                  </div>
+                </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>{t('settings.language')}</div>
+                <div className="settings-group">
+                  <div className="lang-selector">
+                    {supportedLanguages.map(l => (
+                      <button
+                        key={l.code}
+                        className={`lang-btn${lang === l.code ? ' active' : ''}`}
+                        onClick={() => setLang(l.code)}
+                        title={l.label}
+                      >
+                        {l.nativeLabel}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -3364,6 +3476,9 @@ function App() {
           />
         )}
 
+        {/* News Ticker */}
+        <NewsTicker items={feed} visible={true} />
+
         {/* Global Status Bar */}
         <GlobalStatusBar tensionData={tensionData} disasterData={disasterData} cyberData={cyberData} commoditiesData={commoditiesData} />
 
@@ -3421,6 +3536,26 @@ function App() {
           </PanelWindow>
         )}
 
+        {/* Extra panels (multi-instance — opened when clicking countries while a panel is already open) */}
+        {extraPanels.filter(p => p.type === 'country' && !p.minimized).map(panel => (
+          <PanelWindow
+            key={panel.id}
+            id={panel.id}
+            title={panel.data?.name || 'Country'}
+            onClose={() => closeExtraPanel(panel.id)}
+            defaultWidth={360}
+            defaultHeight={600}
+            defaultMode="floating"
+            defaultPosition={panel.position}
+          >
+            <CountryPanel
+              data={panel.data}
+              onClose={() => closeExtraPanel(panel.id)}
+              tempUnit={tempUnit}
+            />
+          </PanelWindow>
+        ))}
+
         <MapGL
           mapLib={maplibregl}
           mapStyle={mapStyle}
@@ -3436,6 +3571,7 @@ function App() {
             'countries-fill',
             ...(showUSStates ? ['us-states-fill'] : []),
             ...(showCAProvinces ? ['ca-provinces-fill'] : []),
+            ...(showINStates && indiaStatesGeoJSON ? ['in-states-fill'] : []),
             ...(showEUCountries ? ['eu-countries-fill'] : []),
           ]}
           onMove={handleMapMove}
@@ -3757,6 +3893,25 @@ function App() {
                 paint={{
                   'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
                   'line-width': 2,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Indian States — boundaries shown when toggled on */}
+          {showINStates && indiaStatesGeoJSON && (
+            <Source id="in-states" type="geojson" data={indiaStatesGeoJSON}>
+              <Layer
+                id="in-states-fill"
+                type="fill"
+                paint={{ 'fill-color': 'rgba(255, 153, 51, 0.1)', 'fill-opacity': 1 }}
+              />
+              <Layer
+                id="in-states-line"
+                type="line"
+                paint={{
+                  'line-color': isLightTheme ? 'rgba(255, 120, 20, 0.5)' : 'rgba(255, 153, 51, 0.6)',
+                  'line-width': 0.8,
                 }}
               />
             </Source>
