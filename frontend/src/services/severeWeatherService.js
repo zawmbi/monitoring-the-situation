@@ -8,9 +8,12 @@
  * No API keys required — both are open government APIs.
  */
 
-// "significant" feed is USGS-curated: only noteworthy quakes (typically M6+, felt reports, damage, etc.)
+// M4.5+ global earthquake feed — covers all continents, updated every few minutes
+const USGS_GLOBAL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson';
+// "significant" feed as fallback — USGS-curated noteworthy quakes (M6+, damage, felt reports)
 const USGS_SIGNIFICANT = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson';
-const EONET_EVENTS = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50';
+// EONET v3 — open global natural events (storms, volcanoes, wildfires, floods, etc.)
+const EONET_EVENTS = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100';
 
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -38,15 +41,20 @@ function eonetCategory(cat) {
 }
 
 /**
- * Fetch significant earthquakes from the past 30 days (USGS-curated).
- * Only includes major events — typically M6+, damaging, or widely felt.
+ * Fetch global M4.5+ earthquakes from the past 30 days.
+ * Falls back to the significant-only feed if the larger feed fails.
  */
 export async function fetchEarthquakes() {
   if (isCacheValid('quakes')) return cache.get('quakes').data;
 
   try {
-    const res = await fetch(USGS_SIGNIFICANT);
-    if (!res.ok) return [];
+    // Try the broader M4.5+ global feed first
+    let res = await fetch(USGS_GLOBAL);
+    if (!res.ok) {
+      // Fallback to significant-only feed
+      res = await fetch(USGS_SIGNIFICANT);
+      if (!res.ok) return [];
+    }
     const geo = await res.json();
 
     const events = (geo.features || [])
@@ -66,7 +74,7 @@ export async function fetchEarthquakes() {
           depth,
           url: p.url || '',
           tsunami: p.tsunami === 1,
-          severity: p.mag >= 8 ? 'extreme' : p.mag >= 7 ? 'severe' : 'major',
+          severity: p.mag >= 7 ? 'extreme' : p.mag >= 6 ? 'severe' : p.mag >= 5 ? 'major' : 'moderate',
         };
       });
 
@@ -93,19 +101,16 @@ export async function fetchEONETEvents() {
     // EONET tracks notable events globally. We classify severity based on type:
     // Named storms/cyclones and volcanoes are always significant; wildfires vary.
     function eonetSeverity(type) {
-      if (type === 'storm' || type === 'volcano') return 'severe';
+      if (type === 'volcano') return 'severe';
+      if (type === 'storm') return 'severe';
       if (type === 'flood' || type === 'landslide') return 'major';
-      return 'major'; // wildfires, ice, dust, etc.
+      if (type === 'wildfire') return 'major';
+      if (type === 'drought') return 'major';
+      return 'moderate';
     }
 
     const events = (data.events || [])
       .filter((e) => e.geometry?.length > 0)
-      .filter((e) => {
-        // Exclude wildfires — most are routine; only catastrophic ones matter
-        // and those are rare enough to not be in the EONET feed reliably
-        const cat = (e.categories?.[0]?.title || '').toLowerCase();
-        return !cat.includes('wildfire') && !cat.includes('fire');
-      })
       .map((e) => {
         const geo = e.geometry[e.geometry.length - 1]; // most recent position
         const coords = geo.coordinates || [];

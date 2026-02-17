@@ -58,86 +58,11 @@ const CATEGORY_META = {
   other: { icon: '⚠️', label: 'Other' },
 };
 
-/* ─── Disaster sub-components ─── */
-
-function DisasterSummaryBar({ summary }) {
-  const total = summary?.totalActive || 0;
-  const bySev = summary?.bySeverity || {};
-  const affected = summary?.totalAffected || 0;
-  return (
-    <div className="dp-summary-bar">
-      <div className="dp-stat">
-        <span className="dp-stat-value">{total}</span>
-        <span className="dp-stat-label">Active</span>
-      </div>
-      {['critical', 'high', 'moderate', 'low'].map((sev) => (
-        <div key={sev} className="dp-stat">
-          <span className="dp-stat-value" style={{ color: DISASTER_SEV_COLORS[sev] }}>
-            {bySev[sev] || 0}
-          </span>
-          <span className="dp-stat-label">{sev}</span>
-        </div>
-      ))}
-      {affected > 0 && (
-        <div className="dp-stat">
-          <span className="dp-stat-value">{affected.toLocaleString()}</span>
-          <span className="dp-stat-label">Affected</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EventCard({ event, onClick }) {
-  const cat = CATEGORY_META[event.category] || CATEGORY_META.other;
-  return (
-    <button
-      className="dp-event-card"
-      type="button"
-      onClick={() => onClick?.(event)}
-      style={{ borderLeft: `3px solid ${DISASTER_SEV_COLORS[event.severity] || '#666'}` }}
-    >
-      <div className="dp-event-card-left">
-        <span className="dp-event-icon">{event.icon || cat.icon}</span>
-      </div>
-      <div className="dp-event-card-body">
-        <div className="dp-event-card-header">
-          <span className="dp-event-category-chip">{event.categoryLabel || cat.label}</span>
-          {event.location && <span className="dp-event-location">📍 {event.location}</span>}
-        </div>
-        <div className="dp-event-title">{event.title}</div>
-        <div className="dp-event-meta">
-          {event.date && <span className="dp-event-time">{timeAgo(event.date)}</span>}
-          <span className="dp-event-source">{event.source}</span>
-        </div>
-      </div>
-      <span
-        className="dp-severity-badge"
-        style={{ background: DISASTER_SEV_COLORS[event.severity] || '#666' }}
-      >
-        {event.severity}
-      </span>
-    </button>
-  );
-}
-
-function ReliefWebItem({ item }) {
-  return (
-    <a
-      className="dp-relief-item"
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <div className="dp-relief-title">{item.title}</div>
-      <div className="dp-relief-meta">
-        <span>{item.countries?.join(', ')}</span>
-        <span className="dp-relief-type">{item.type?.join(', ')}</span>
-        {item.date && <span className="dp-relief-date">{timeAgo(item.date)}</span>}
-      </div>
-    </a>
-  );
-}
+const DISASTER_TABS = [
+  { id: 'events', label: 'Active Events' },
+  { id: 'reliefweb', label: 'ReliefWeb' },
+  { id: 'summary', label: 'Summary' },
+];
 
 /* ─── Disaster Tab Content ─── */
 
@@ -179,12 +104,6 @@ function DisasterContent({ disasterData, disasterLoading, onRefreshDisasters, on
 
   const maxCatCount = Math.max(1, ...categoryBreakdown.map((c) => c.count));
 
-  const DISASTER_TABS = [
-    { id: 'events', label: 'Active Events', count: events.length },
-    { id: 'reliefweb', label: 'ReliefWeb', count: reliefItems.length },
-    { id: 'summary', label: 'Summary', count: null },
-  ];
-
   if (disasterLoading && !disasterData) {
     return (
       <div className="severe-loading">
@@ -199,136 +118,177 @@ function DisasterContent({ disasterData, disasterLoading, onRefreshDisasters, on
   }
 
   return (
-    <div className="dp-panel">
-      <div className="dp-panel-header">
-        <div className="dp-panel-title-row">
-          <span className="dp-panel-title">Natural Disaster Monitor</span>
-          <span className="dp-live-badge">LIVE</span>
+    <>
+      {/* Summary stats bar */}
+      <div className="disaster-stats">
+        <div className="disaster-stat">
+          <span className="disaster-stat-val">{events.length}</span>
+          <span className="disaster-stat-lbl">Active</span>
         </div>
-        <button className="dp-btn-refresh" onClick={onRefreshDisasters} disabled={disasterLoading}>
+        {['critical', 'high', 'moderate', 'low'].map((sev) => (
+          <div key={sev} className="disaster-stat">
+            <span className="disaster-stat-val" style={{ color: DISASTER_SEV_COLORS[sev] }}>
+              {disasterData.summary?.bySeverity?.[sev] || 0}
+            </span>
+            <span className="disaster-stat-lbl">{sev}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="severe-tabs">
+        {DISASTER_TABS.map((tab) => {
+          const count = tab.id === 'events' ? events.length : tab.id === 'reliefweb' ? reliefItems.length : null;
+          return (
+            <button
+              key={tab.id}
+              className={`severe-tab${disasterTab === tab.id ? ' severe-tab--active' : ''}${count === 0 ? ' severe-tab--empty' : ''}`}
+              onClick={() => setDisasterTab(tab.id)}
+            >
+              {tab.label}
+              {count != null && count > 0 && <span className="severe-tab-count">{count}</span>}
+            </button>
+          );
+        })}
+        <button className="disaster-refresh-btn" onClick={onRefreshDisasters} disabled={disasterLoading}>
           {disasterLoading ? '...' : '↻'}
         </button>
       </div>
 
-      <DisasterSummaryBar summary={disasterData.summary} />
-
-      <div className="dp-tabs">
-        {DISASTER_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            className={`dp-tab${disasterTab === tab.id ? ' dp-tab--active' : ''}`}
-            onClick={() => setDisasterTab(tab.id)}
-          >
-            {tab.label}
-            {tab.count != null && tab.count > 0 && (
-              <span className="dp-tab-count">{tab.count}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="dp-panel-content">
-        {disasterTab === 'events' && (
-          <div className="dp-tab-body">
-            <div className="dp-section-note">
-              Active natural disaster events aggregated from NASA EONET and humanitarian sources. Sorted by severity then recency.
+      {/* Active Events tab */}
+      {disasterTab === 'events' && (
+        <div className="severe-event-list">
+          {/* Severity + Category filters */}
+          <div className="disaster-filters">
+            <div className="disaster-filter-row">
+              <span className="disaster-filter-lbl">Severity</span>
+              {['all', 'critical', 'high', 'moderate', 'low'].map((f) => (
+                <button
+                  key={f}
+                  className={`disaster-filter-chip${sevFilter === f ? ' disaster-filter-chip--active' : ''}`}
+                  style={sevFilter === f && f !== 'all' ? { borderColor: DISASTER_SEV_COLORS[f], color: DISASTER_SEV_COLORS[f] } : {}}
+                  onClick={() => setSevFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
-            <div className="dp-filters">
-              <div className="dp-filter-group">
-                <span className="dp-filter-label">Severity:</span>
-                {['all', 'critical', 'high', 'moderate', 'low'].map((f) => (
-                  <button
-                    key={f}
-                    className={`dp-filter-btn${sevFilter === f ? ' active' : ''}`}
-                    style={sevFilter === f && f !== 'all' ? { borderColor: DISASTER_SEV_COLORS[f], color: DISASTER_SEV_COLORS[f] } : {}}
-                    onClick={() => setSevFilter(f)}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              <div className="dp-filter-group">
-                <span className="dp-filter-label">Category:</span>
+            {categories.length > 2 && (
+              <div className="disaster-filter-row">
+                <span className="disaster-filter-lbl">Type</span>
                 {categories.map((c) => (
                   <button
                     key={c}
-                    className={`dp-filter-btn${catFilter === c ? ' active' : ''}`}
+                    className={`disaster-filter-chip${catFilter === c ? ' disaster-filter-chip--active' : ''}`}
                     onClick={() => setCatFilter(c)}
                   >
                     {c === 'all' ? 'all' : (CATEGORY_META[c]?.icon || '') + ' ' + (CATEGORY_META[c]?.label || c)}
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="dp-card-list">
-              {sortedFiltered.map((event) => (
-                <EventCard key={event.id} event={event} onClick={onEventClick} />
-              ))}
-            </div>
-            {sortedFiltered.length === 0 && !disasterLoading && (
-              <div className="dp-empty">No events matching current filters</div>
             )}
           </div>
-        )}
 
-        {disasterTab === 'reliefweb' && (
-          <div className="dp-tab-body">
-            <div className="dp-section-note">
-              Recent disaster and humanitarian reports from ReliefWeb (OCHA). Click any report to read the full update.
-            </div>
-            {reliefItems.length === 0 && !disasterLoading && (
-              <div className="dp-empty">No ReliefWeb reports available</div>
-            )}
-            <div className="dp-relief-list">
-              {reliefItems.slice(0, 12).map((item) => (
-                <ReliefWebItem key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {disasterTab === 'summary' && (
-          <div className="dp-tab-body">
-            <div className="dp-section-note">
-              Breakdown of active events by category and overall disaster trend analysis.
-            </div>
-            <div className="dp-summary-section">
-              <div className="dp-summary-section-title">Events by Category</div>
-              {categoryBreakdown.map(({ cat, count, meta }) => (
-                <div key={cat} className="dp-cat-bar-row">
-                  <span className="dp-cat-bar-label">{meta.icon} {meta.label}</span>
-                  <div className="dp-cat-bar-track">
-                    <div
-                      className="dp-cat-bar-fill"
-                      style={{ width: `${(count / maxCatCount) * 100}%` }}
-                    />
+          {sortedFiltered.map((event) => {
+            const cat = CATEGORY_META[event.category] || CATEGORY_META.other;
+            return (
+              <button
+                key={event.id}
+                className="severe-event-item"
+                type="button"
+                onClick={() => onEventClick?.(event)}
+              >
+                <span className="severe-event-icon">{event.icon || cat.icon}</span>
+                <div className="severe-event-info">
+                  <div className="severe-event-title">{event.title}</div>
+                  <div className="severe-event-meta">
+                    {event.location && <span>{event.location}</span>}
+                    {event.categoryLabel || cat.label ? <span>{event.categoryLabel || cat.label}</span> : null}
+                    {event.date && <span>{timeAgo(event.date)}</span>}
+                    {event.source && <span>{event.source}</span>}
                   </div>
-                  <span className="dp-cat-bar-count">{count}</span>
                 </div>
-              ))}
-              {categoryBreakdown.length === 0 && (
-                <div className="dp-empty">No category data available</div>
-              )}
-            </div>
-            <div className="dp-summary-section">
-              <div className="dp-summary-section-title">Recent Trend</div>
-              <div className="dp-trend-text">
-                {events.length > 0
-                  ? `Currently tracking ${events.length} active event${events.length !== 1 ? 's' : ''} across ${categoryBreakdown.length} categor${categoryBreakdown.length !== 1 ? 'ies' : 'y'}. ${(disasterData.summary?.bySeverity?.critical || 0) > 0 ? `${disasterData.summary.bySeverity.critical} critical event${disasterData.summary.bySeverity.critical !== 1 ? 's' : ''} require${disasterData.summary.bySeverity.critical === 1 ? 's' : ''} immediate attention.` : 'No critical-level events at this time.'}`
-                  : 'No active events detected. Monitoring continues.'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                <span
+                  className="severe-event-severity"
+                  style={{ background: DISASTER_SEV_COLORS[event.severity] || '#666' }}
+                >
+                  {event.severity}
+                </span>
+              </button>
+            );
+          })}
+          {sortedFiltered.length === 0 && !disasterLoading && (
+            <div className="severe-empty">No events matching filters</div>
+          )}
+        </div>
+      )}
 
-      <div className="dp-panel-footer">
-        <span className="dp-panel-sources">NASA EONET + ReliefWeb</span>
+      {/* ReliefWeb tab */}
+      {disasterTab === 'reliefweb' && (
+        <div className="severe-event-list">
+          <div className="disaster-section-note">
+            Recent humanitarian reports from ReliefWeb (OCHA)
+          </div>
+          {reliefItems.length === 0 && !disasterLoading && (
+            <div className="severe-empty">No ReliefWeb reports available</div>
+          )}
+          {reliefItems.slice(0, 12).map((item) => (
+            <a
+              key={item.id}
+              className="disaster-relief-item"
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <div className="disaster-relief-title">{item.title}</div>
+              <div className="disaster-relief-meta">
+                {item.countries?.length > 0 && <span>{item.countries.join(', ')}</span>}
+                {item.type?.length > 0 && <span>{item.type.join(', ')}</span>}
+                {item.date && <span>{timeAgo(item.date)}</span>}
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Summary tab */}
+      {disasterTab === 'summary' && (
+        <div className="severe-event-list">
+          <div className="disaster-section-note">
+            Breakdown of active events by category
+          </div>
+          <div className="disaster-breakdown">
+            {categoryBreakdown.map(({ cat, count, meta }) => (
+              <div key={cat} className="disaster-bar-row">
+                <span className="disaster-bar-label">{meta.icon} {meta.label}</span>
+                <div className="disaster-bar-track">
+                  <div
+                    className="disaster-bar-fill"
+                    style={{ width: `${(count / maxCatCount) * 100}%` }}
+                  />
+                </div>
+                <span className="disaster-bar-count">{count}</span>
+              </div>
+            ))}
+            {categoryBreakdown.length === 0 && (
+              <div className="severe-empty">No category data</div>
+            )}
+          </div>
+          <div className="disaster-trend">
+            {events.length > 0
+              ? `Tracking ${events.length} active event${events.length !== 1 ? 's' : ''} across ${categoryBreakdown.length} categor${categoryBreakdown.length !== 1 ? 'ies' : 'y'}. ${(disasterData.summary?.bySeverity?.critical || 0) > 0 ? `${disasterData.summary.bySeverity.critical} critical event${disasterData.summary.bySeverity.critical !== 1 ? 's' : ''} require immediate attention.` : 'No critical-level events at this time.'}`
+              : 'No active events detected. Monitoring continues.'}
+          </div>
+        </div>
+      )}
+
+      <div className="severe-panel-footer">
+        <span className="severe-panel-sources">NASA EONET + ReliefWeb</span>
         {disasterData?.lastUpdated && (
-          <span className="dp-panel-updated">Updated {timeAgo(disasterData.lastUpdated)}</span>
+          <span className="severe-panel-sources">Updated {timeAgo(disasterData.lastUpdated)}</span>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -406,7 +366,7 @@ export function SevereWeatherPanel({
           className={`severe-mode-btn${mode === 'disasters' ? ' severe-mode-btn--active' : ''}`}
           onClick={() => setMode('disasters')}
         >
-          Disasters
+          Natural Disasters
           {disasterCount > 0 && <span className="severe-mode-count">{disasterCount}</span>}
         </button>
       </div>
@@ -416,7 +376,7 @@ export function SevereWeatherPanel({
         <>
           <div className="severe-panel-header">
             <div className="severe-panel-title-row">
-              <span className="severe-panel-title">Severe Events</span>
+              <span className="severe-panel-title">Global Severe Events</span>
               <span className="severe-panel-count">{events.length} active</span>
             </div>
             <div className="severe-panel-actions">
