@@ -17,7 +17,7 @@ import { googleCivicService } from './googleCivic.service.js';
 import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
 
-const CACHE_KEY = 'elections:live';
+const CACHE_KEY = 'elections:live:v2'; // v2: includes pollingData from Wikipedia + VoteHub
 const CACHE_TTL = 900; // 15 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)

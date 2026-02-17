@@ -37,11 +37,28 @@ function getAttr(tag, attr) {
 // ── Table extraction ──────────────────────────────────────────────────────
 
 function extractWikitables(html) {
-  // Match wikitable class tables
+  // Match tables with wikitable class — handle nested tables by counting depth
   const tables = [];
-  const re = /<table[^>]*class="[^"]*wikitable[^"]*"[^>]*>([\s\S]*?)<\/table>/gi;
-  let m;
-  while ((m = re.exec(html)) !== null) tables.push(m[0]);
+  const openRe = /<table[^>]*class="[^"]*wikitable[^"]*"[^>]*>/gi;
+  let openMatch;
+  while ((openMatch = openRe.exec(html)) !== null) {
+    let depth = 1;
+    let pos = openMatch.index + openMatch[0].length;
+    const tagRe = /<\/?table[^>]*>/gi;
+    tagRe.lastIndex = pos;
+    let tagMatch;
+    while (depth > 0 && (tagMatch = tagRe.exec(html)) !== null) {
+      if (tagMatch[0].startsWith('</')) {
+        depth--;
+      } else {
+        depth++;
+      }
+    }
+    if (depth === 0 && tagMatch) {
+      const end = tagMatch.index + tagMatch[0].length;
+      tables.push(html.substring(openMatch.index, end));
+    }
+  }
   return tables;
 }
 
@@ -121,24 +138,45 @@ function parsePollingTable(tableHtml) {
   const rows = extractRows(tableHtml);
   if (rows.length < 2) return [];
 
-  // Find header row (first row with mostly <th> cells)
+  // Find the best header row: prefer the row that has candidate columns with party indicators.
+  // Wikipedia tables often have a merged title row above the actual column headers.
   let headerIdx = -1;
   let headerCells = [];
-  for (let i = 0; i < Math.min(rows.length, 4); i++) {
+  let candidateCols = [];
+
+  // First pass: look for a row with party indicators like "(D)", "(R)"
+  for (let i = 0; i < Math.min(rows.length, 6); i++) {
     const cells = extractCells(rows[i]);
     const thCount = cells.filter(c => c.type === 'th').length;
-    if (thCount >= 3) {
+    if (thCount < 2) continue;
+
+    const cols = identifyCandidateColumns(cells);
+    if (cols.length >= 2 || (cols.length >= 1 && isPollingHeader(cells))) {
       headerIdx = i;
       headerCells = cells;
+      candidateCols = cols;
       break;
     }
   }
-  if (headerIdx < 0) return [];
 
-  if (!isPollingHeader(headerCells)) return [];
+  // Fallback: first row with enough th cells and a polling header
+  if (headerIdx < 0) {
+    for (let i = 0; i < Math.min(rows.length, 6); i++) {
+      const cells = extractCells(rows[i]);
+      const thCount = cells.filter(c => c.type === 'th').length;
+      if (thCount >= 3 && isPollingHeader(cells)) {
+        const cols = identifyCandidateColumns(cells);
+        if (cols.length > 0) {
+          headerIdx = i;
+          headerCells = cells;
+          candidateCols = cols;
+          break;
+        }
+      }
+    }
+  }
 
-  const candidateCols = identifyCandidateColumns(headerCells);
-  if (candidateCols.length === 0) return [];
+  if (headerIdx < 0 || candidateCols.length === 0) return [];
 
   // Locate key columns
   const sourceIdx = headerCells.findIndex(c => /^(poll|pollster|source)/i.test(c.text.trim()));
@@ -253,6 +291,11 @@ class WikipediaPollsService {
       const article = prefix + stateName.replace(/ /g, '_');
 
       const html = await this._fetchHtml(article);
+      if (!html || html.length < 100) {
+        console.warn(`[WikiPolls] ${stateName}: empty or very short HTML (${html?.length || 0} chars)`);
+        return { state: stateName, polls: [], generalPolls: [], primaryPolls: [], fetchedAt: new Date().toISOString() };
+      }
+
       const tables = extractWikitables(html);
 
       let allPolls = [];
@@ -270,6 +313,12 @@ class WikipediaPollsService {
         return true;
       });
 
+      if (allPolls.length > 0) {
+        const gen = allPolls.filter(p => p.type === 'general').length;
+        const pri = allPolls.filter(p => p.type === 'primary').length;
+        console.log(`[WikiPolls] ${stateName}: ${tables.length} tables → ${allPolls.length} polls (${gen} general, ${pri} primary)`);
+      }
+
       const result = {
         state: stateName,
         polls: allPolls,
@@ -283,7 +332,7 @@ class WikipediaPollsService {
       return result;
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.warn(`[WikiPolls] ${stateName}: ${err.message}`);
+        console.warn(`[WikiPolls] ${stateName}: fetch failed — ${err.message}`);
       }
       return { state: stateName, polls: [], generalPolls: [], primaryPolls: [], fetchedAt: new Date().toISOString() };
     }
