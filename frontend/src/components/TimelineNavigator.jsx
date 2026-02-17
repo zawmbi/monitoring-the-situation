@@ -8,6 +8,14 @@ const CATEGORY_COLORS = {
   cyber: '#06b6d4',
 };
 
+const CATEGORY_LABELS = {
+  conflict: 'Conflict',
+  politics: 'Politics',
+  economy: 'Economy',
+  disaster: 'Disaster',
+  cyber: 'Cyber',
+};
+
 const ZOOM_LEVELS = [
   { label: '7d', days: 7 },
   { label: '30d', days: 30 },
@@ -42,7 +50,8 @@ function EventDot({ event, x, onEventClick, containerHeight }) {
   const [hovered, setHovered] = useState(false);
   const color = CATEGORY_COLORS[event.category] || '#888';
   const sev = event.severity || 1;
-  const size = sev >= 3 ? 10 : sev >= 2 ? 7 : 5;
+  const size = sev >= 3 ? 14 : sev >= 2 ? 10 : 7;
+  const hasGlow = sev >= 3;
 
   const dotStyle = {
     position: 'absolute',
@@ -52,30 +61,36 @@ function EventDot({ event, x, onEventClick, containerHeight }) {
     height: size,
     borderRadius: '50%',
     background: color,
-    boxShadow: hovered ? `0 0 8px ${color}, 0 0 16px ${color}` : `0 0 4px ${color}80`,
+    boxShadow: hovered
+      ? `0 0 10px ${color}, 0 0 20px ${color}`
+      : hasGlow
+        ? `0 0 8px ${color}aa, 0 0 16px ${color}44`
+        : `0 0 4px ${color}80`,
     cursor: 'pointer',
     transition: 'box-shadow 0.15s, transform 0.15s',
-    transform: hovered ? 'scale(1.6)' : 'scale(1)',
+    transform: hovered ? 'scale(1.5)' : 'scale(1)',
     zIndex: hovered ? 20 : sev + 1,
+    border: hasGlow ? `1.5px solid ${color}cc` : 'none',
   };
 
   const tooltipStyle = {
     position: 'absolute',
-    bottom: containerHeight / 2 + size / 2 + 8,
+    bottom: containerHeight / 2 + size / 2 + 10,
     left: '50%',
     transform: 'translateX(-50%)',
-    background: 'rgba(10,12,18,0.96)',
+    background: 'rgba(8,10,16,0.97)',
     border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '4px',
-    padding: '5px 8px',
+    borderRadius: '6px',
+    padding: '7px 10px',
     whiteSpace: 'nowrap',
     fontSize: '10px',
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.9)',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     pointerEvents: 'none',
     zIndex: 100,
-    boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
     letterSpacing: '0.2px',
+    maxWidth: '260px',
   };
 
   return (
@@ -87,13 +102,158 @@ function EventDot({ event, x, onEventClick, containerHeight }) {
     >
       {hovered && (
         <div style={tooltipStyle}>
-          <div style={{ color, fontWeight: 600, marginBottom: '2px' }}>{event.title}</div>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px' }}>
-            {formatDateTime(event.date)}
-            {event.country ? ` \u2022 ${event.country}` : ''}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+            <span style={{
+              display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%',
+              background: color, flexShrink: 0,
+            }} />
+            <span style={{ color, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {event.title}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '9px' }}>
+            <span style={{
+              background: `${color}22`, color, border: `1px solid ${color}44`,
+              borderRadius: '3px', padding: '1px 5px', fontSize: '8px', textTransform: 'uppercase',
+              letterSpacing: '0.5px', fontWeight: 600,
+            }}>
+              {CATEGORY_LABELS[event.category] || event.category}
+            </span>
+            {sev >= 2 && (
+              <span style={{ color: sev >= 3 ? '#ef4444' : '#f59e0b', fontSize: '8px', fontWeight: 700 }}>
+                SEV {sev}
+              </span>
+            )}
+            <span style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {formatDateTime(event.date)}
+            </span>
+            {event.country && (
+              <span style={{ color: 'rgba(255,255,255,0.55)' }}>{event.country}</span>
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Category Filter Pills ────────────────────────────────────────────────────
+function CategoryFilters({ activeCategories, onToggle, eventCounts }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '5px',
+      padding: '4px 12px', flexShrink: 0,
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+    }}>
+      {Object.entries(CATEGORY_COLORS).map(([cat, color]) => {
+        const active = activeCategories.has(cat);
+        const count = eventCounts[cat] || 0;
+        return (
+          <button
+            key={cat}
+            onClick={() => onToggle(cat)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              background: active ? `${color}20` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${active ? `${color}55` : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '10px',
+              padding: '2px 8px 2px 6px',
+              fontSize: '9px',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              color: active ? color : 'rgba(255,255,255,0.35)',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              letterSpacing: '0.3px',
+              opacity: active ? 1 : 0.7,
+            }}
+          >
+            <span style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              background: active ? color : 'rgba(255,255,255,0.2)',
+              transition: 'background 0.15s',
+            }} />
+            {CATEGORY_LABELS[cat]}
+            {count > 0 && (
+              <span style={{
+                background: active ? `${color}30` : 'rgba(255,255,255,0.06)',
+                borderRadius: '3px', padding: '0 3px',
+                fontSize: '8px', fontWeight: 600,
+                marginLeft: '1px',
+              }}>
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Recent Events List (expanded view) ───────────────────────────────────────
+function RecentEventsList({ events, onEventClick }) {
+  if (!events || events.length === 0) {
+    return (
+      <div style={{
+        padding: '12px', textAlign: 'center',
+        color: 'rgba(255,255,255,0.3)', fontSize: '10px',
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      }}>
+        No events in this time range
+      </div>
+    );
+  }
+
+  const sorted = [...events].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const display = sorted.slice(0, 15);
+
+  return (
+    <div style={{
+      overflowY: 'auto', flex: 1, padding: '2px 0',
+      scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent',
+    }}>
+      {display.map((ev) => {
+        const color = CATEGORY_COLORS[ev.category] || '#888';
+        const sev = ev.severity || 1;
+        return (
+          <div
+            key={ev.id}
+            onClick={() => onEventClick(ev)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '4px 12px', cursor: 'pointer',
+              transition: 'background 0.1s',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+              background: color, boxShadow: sev >= 3 ? `0 0 6px ${color}88` : 'none',
+            }} />
+            <span style={{
+              color: 'rgba(255,255,255,0.85)', fontSize: '10px',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+            }}>
+              {ev.title}
+            </span>
+            {ev.country && (
+              <span style={{
+                color: 'rgba(255,255,255,0.4)', fontSize: '9px', flexShrink: 0,
+              }}>
+                {ev.country}
+              </span>
+            )}
+            <span style={{
+              color: 'rgba(255,255,255,0.3)', fontSize: '9px', flexShrink: 0,
+              minWidth: '48px', textAlign: 'right',
+            }}>
+              {formatShortDate(ev.date)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -110,26 +270,17 @@ function MiniEventList({ events, visible, onEventClick, positionX }) {
     bottom: '100%',
     left: Math.max(10, Math.min(positionX - 120, window.innerWidth - 260)),
     marginBottom: '6px',
-    width: '240px',
-    background: 'rgba(10,12,18,0.96)',
+    width: '260px',
+    background: 'rgba(8,10,16,0.97)',
     border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '6px',
+    borderRadius: '8px',
     padding: '6px 0',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: '10px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+    boxShadow: '0 6px 30px rgba(0,0,0,0.6)',
     zIndex: 200,
-    backdropFilter: 'blur(12px)',
+    backdropFilter: 'blur(16px)',
     animation: 'timeline-popup-in 0.15s ease-out',
-  };
-
-  const itemStyle = {
-    padding: '4px 10px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    transition: 'background 0.1s',
   };
 
   return (
@@ -141,26 +292,33 @@ function MiniEventList({ events, visible, onEventClick, positionX }) {
       }}>
         Events ({events.length})
       </div>
-      {displayEvents.map((ev) => (
-        <div
-          key={ev.id}
-          style={itemStyle}
-          onClick={() => onEventClick(ev)}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          <span style={{
-            width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-            background: CATEGORY_COLORS[ev.category] || '#888',
-          }} />
-          <span style={{ color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-            {ev.title}
-          </span>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', flexShrink: 0 }}>
-            {formatShortDate(ev.date)}
-          </span>
-        </div>
-      ))}
+      {displayEvents.map((ev) => {
+        const color = CATEGORY_COLORS[ev.category] || '#888';
+        return (
+          <div
+            key={ev.id}
+            style={{
+              padding: '4px 10px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              transition: 'background 0.1s',
+            }}
+            onClick={() => onEventClick(ev)}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span style={{
+              width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+              background: color,
+            }} />
+            <span style={{ color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {ev.title}
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', flexShrink: 0 }}>
+              {formatShortDate(ev.date)}
+            </span>
+          </div>
+        );
+      })}
       {overflow > 0 && (
         <div style={{ padding: '3px 10px', color: 'rgba(255,255,255,0.35)', fontSize: '9px', textAlign: 'center' }}>
           +{overflow} more
@@ -172,26 +330,14 @@ function MiniEventList({ events, visible, onEventClick, positionX }) {
 
 // ── TimelineControls ─────────────────────────────────────────────────────────
 function TimelineControls({ zoomLevel, onZoomChange, isPlaying, onPlayToggle, isLive, onLiveToggle, selectedDate }) {
-  const controlsStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '0 12px',
-    height: '24px',
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSize: '10px',
-    color: 'rgba(255,255,255,0.6)',
-    flexShrink: 0,
-  };
-
   const btnBase = {
-    background: 'none',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '3px',
-    color: 'rgba(255,255,255,0.6)',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '4px',
+    color: 'rgba(255,255,255,0.55)',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: '9px',
-    padding: '2px 6px',
+    padding: '2px 7px',
     cursor: 'pointer',
     letterSpacing: '0.5px',
     transition: 'all 0.15s',
@@ -199,21 +345,21 @@ function TimelineControls({ zoomLevel, onZoomChange, isPlaying, onPlayToggle, is
 
   const activeBtnStyle = {
     ...btnBase,
-    background: 'rgba(59,130,246,0.25)',
-    borderColor: 'rgba(59,130,246,0.5)',
+    background: 'rgba(59,130,246,0.2)',
+    borderColor: 'rgba(59,130,246,0.45)',
     color: '#93bbfc',
   };
 
   const playBtnStyle = {
     ...btnBase,
-    width: '22px',
-    height: '20px',
+    width: '24px',
+    height: '22px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
     fontSize: '11px',
-    ...(isPlaying ? { background: 'rgba(239,68,68,0.2)', borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' } : {}),
+    ...(isPlaying ? { background: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.35)', color: '#fca5a5' } : {}),
   };
 
   const liveBtnStyle = {
@@ -221,20 +367,23 @@ function TimelineControls({ zoomLevel, onZoomChange, isPlaying, onPlayToggle, is
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    ...(isLive ? { background: 'rgba(34,197,94,0.2)', borderColor: 'rgba(34,197,94,0.4)', color: '#86efac' } : {}),
+    ...(isLive ? { background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.35)', color: '#86efac' } : {}),
   };
 
-  const sep = { width: '1px', height: '14px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 };
+  const sep = { width: '1px', height: '14px', background: 'rgba(255,255,255,0.08)', flexShrink: 0 };
 
   return (
-    <div style={controlsStyle}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '6px',
+      padding: '0 12px', height: '28px',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      fontSize: '10px', color: 'rgba(255,255,255,0.6)', flexShrink: 0,
+    }}>
       {ZOOM_LEVELS.map((z) => (
         <button
           key={z.label}
           style={zoomLevel === z.days ? activeBtnStyle : btnBase}
           onClick={() => onZoomChange(z.days)}
-          onMouseEnter={(e) => { if (zoomLevel !== z.days) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
-          onMouseLeave={(e) => { if (zoomLevel !== z.days) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
         >
           {z.label}
         </button>
@@ -259,7 +408,7 @@ function TimelineControls({ zoomLevel, onZoomChange, isPlaying, onPlayToggle, is
 
       <div style={sep} />
 
-      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '10px', letterSpacing: '0.3px' }}>
+      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', letterSpacing: '0.3px' }}>
         {selectedDate ? formatFullDate(selectedDate) : formatFullDate(new Date())}
       </span>
     </div>
@@ -269,11 +418,11 @@ function TimelineControls({ zoomLevel, onZoomChange, isPlaying, onPlayToggle, is
 // ── TimelineBar ──────────────────────────────────────────────────────────────
 function TimelineBar({
   events, rangeStart, rangeEnd, onTimeSelect, onEventClick,
-  eventsByDay, expanded, onToggleExpand, onDayHover, hoveredDay,
+  eventsByDay, onDayHover, hoveredDay, activeCategories,
 }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
-  const barHeight = expanded ? 120 : 56;
+  const barHeight = 68;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -318,29 +467,40 @@ function TimelineBar({
     return markers;
   }, [rangeStart, rangeEnd, dateToX]);
 
-  // Density bars (event count per day)
-  const densityBars = useMemo(() => {
+  // Stacked category bars per day
+  const categoryBars = useMemo(() => {
+    const allCats = Object.keys(CATEGORY_COLORS);
+    const maxCount = Math.max(1, ...Object.values(eventsByDay).map((arr) =>
+      arr.filter(e => activeCategories.has(e.category)).length
+    ));
     const bars = [];
-    const maxCount = Math.max(1, ...Object.values(eventsByDay).map((arr) => arr.length));
     for (const [dayKey, dayEvents] of Object.entries(eventsByDay)) {
       const dayDate = new Date(dayKey);
       const x = dateToX(dayDate);
-      const heightPct = dayEvents.length / maxCount;
-      bars.push({ x, height: heightPct, count: dayEvents.length, dayKey });
+      const catCounts = {};
+      for (const ev of dayEvents) {
+        if (activeCategories.has(ev.category)) {
+          catCounts[ev.category] = (catCounts[ev.category] || 0) + 1;
+        }
+      }
+      const total = Object.values(catCounts).reduce((a, b) => a + b, 0);
+      if (total === 0) continue;
+      const heightPct = total / maxCount;
+      const segments = [];
+      let offset = 0;
+      for (const cat of allCats) {
+        if (catCounts[cat]) {
+          segments.push({ category: cat, count: catCounts[cat], offset, fraction: catCounts[cat] / total });
+          offset += catCounts[cat] / total;
+        }
+      }
+      bars.push({ x, heightPct, segments, dayKey, total });
     }
     return bars;
-  }, [eventsByDay, dateToX]);
+  }, [eventsByDay, dateToX, activeCategories]);
 
   // Current time position
   const nowX = dateToX(new Date());
-
-  const containerStyle = {
-    position: 'relative',
-    width: '100%',
-    height: barHeight,
-    overflow: 'hidden',
-    cursor: 'crosshair',
-  };
 
   const handleBarClick = (e) => {
     const rect = containerRef.current.getBoundingClientRect();
@@ -366,51 +526,67 @@ function TimelineBar({
   return (
     <div
       ref={containerRef}
-      style={containerStyle}
+      style={{
+        position: 'relative', width: '100%', height: barHeight,
+        overflow: 'hidden', cursor: 'crosshair',
+      }}
       onClick={handleBarClick}
       onMouseMove={handleBarMouseMove}
       onMouseLeave={() => onDayHover(null, 0)}
     >
-      {/* Background grid lines */}
-      {timeMarkers.map((m, i) => (
-        <div key={i} style={{
-          position: 'absolute', left: m.x, top: 0, width: '1px', height: '100%',
-          background: 'rgba(255,255,255,0.06)',
+      {/* Subtle horizontal grid lines */}
+      {[0.25, 0.5, 0.75].map((pct) => (
+        <div key={pct} style={{
+          position: 'absolute', left: 0, right: 0,
+          top: `${(1 - pct) * 100}%`, height: '1px',
+          background: 'rgba(255,255,255,0.03)', pointerEvents: 'none',
         }} />
       ))}
 
-      {/* Time labels */}
+      {/* Vertical grid lines + time labels */}
       {timeMarkers.map((m, i) => (
-        <div key={`label-${i}`} style={{
-          position: 'absolute', left: m.x + 3, bottom: 2,
-          fontSize: '8px', color: 'rgba(255,255,255,0.3)',
-          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-          whiteSpace: 'nowrap', letterSpacing: '0.3px',
-          pointerEvents: 'none', userSelect: 'none',
-        }}>
-          {formatShortDate(m.date)}
+        <div key={i}>
+          <div style={{
+            position: 'absolute', left: m.x, top: 0, width: '1px', height: '100%',
+            background: 'rgba(255,255,255,0.05)', pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', left: m.x + 3, bottom: 2,
+            fontSize: '8px', color: 'rgba(255,255,255,0.25)',
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            whiteSpace: 'nowrap', letterSpacing: '0.3px',
+            pointerEvents: 'none', userSelect: 'none',
+          }}>
+            {formatShortDate(m.date)}
+          </div>
         </div>
       ))}
 
-      {/* Density bars */}
-      {densityBars.map((bar, i) => {
-        const maxBarH = barHeight * 0.6;
-        const h = Math.max(2, bar.height * maxBarH);
+      {/* Stacked category density bars */}
+      {categoryBars.map((bar, i) => {
+        const maxBarH = barHeight * 0.65;
+        const totalH = Math.max(3, bar.heightPct * maxBarH);
         const isHovered = bar.dayKey === hoveredDay;
         return (
-          <div key={`density-${i}`} style={{
-            position: 'absolute',
-            left: bar.x - 2,
-            bottom: 14,
-            width: 4,
-            height: h,
-            background: isHovered
-              ? 'rgba(59,130,246,0.6)'
-              : 'rgba(59,130,246,0.25)',
-            borderRadius: '1px 1px 0 0',
-            transition: 'background 0.1s, height 0.2s',
-            pointerEvents: 'none',
-          }} />
+          <div key={`bar-${i}`} style={{
+            position: 'absolute', left: bar.x - 2.5, bottom: 14,
+            width: 5, height: totalH, pointerEvents: 'none',
+            borderRadius: '1.5px 1.5px 0 0', overflow: 'hidden',
+            opacity: isHovered ? 1 : 0.85,
+            transition: 'opacity 0.1s',
+          }}>
+            {bar.segments.map((seg, j) => (
+              <div key={j} style={{
+                position: 'absolute',
+                bottom: `${seg.offset * 100}%`,
+                left: 0, right: 0,
+                height: `${seg.fraction * 100}%`,
+                background: CATEGORY_COLORS[seg.category],
+                opacity: isHovered ? 0.8 : 0.5,
+                transition: 'opacity 0.1s',
+              }} />
+            ))}
+          </div>
         );
       })}
 
@@ -429,53 +605,26 @@ function TimelineBar({
         );
       })}
 
-      {/* Current time indicator (pulsing dot) */}
+      {/* Current time indicator */}
       {nowX >= 0 && nowX <= containerWidth && (
-        <div style={{
-          position: 'absolute',
-          left: nowX - 5,
-          top: barHeight / 2 - 5,
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          background: '#3b82f6',
-          boxShadow: '0 0 8px #3b82f6, 0 0 16px rgba(59,130,246,0.4)',
-          animation: 'timeline-pulse 2s ease-in-out infinite',
-          zIndex: 15,
-          pointerEvents: 'none',
-        }} />
+        <>
+          <div style={{
+            position: 'absolute', left: nowX, top: 0,
+            width: '1px', height: '100%',
+            background: 'rgba(59,130,246,0.4)',
+            pointerEvents: 'none', zIndex: 14,
+          }} />
+          <div style={{
+            position: 'absolute',
+            left: nowX - 5, top: barHeight / 2 - 5,
+            width: 10, height: 10,
+            borderRadius: '50%', background: '#3b82f6',
+            boxShadow: '0 0 8px #3b82f6, 0 0 16px rgba(59,130,246,0.4)',
+            animation: 'timeline-pulse 2s ease-in-out infinite',
+            zIndex: 15, pointerEvents: 'none',
+          }} />
+        </>
       )}
-
-      {/* Current time vertical line */}
-      {nowX >= 0 && nowX <= containerWidth && (
-        <div style={{
-          position: 'absolute',
-          left: nowX,
-          top: 0,
-          width: '1px',
-          height: '100%',
-          background: 'rgba(59,130,246,0.5)',
-          pointerEvents: 'none',
-          zIndex: 14,
-        }} />
-      )}
-
-      {/* Expand/collapse toggle */}
-      <div
-        style={{
-          position: 'absolute', right: 6, top: 4,
-          cursor: 'pointer', fontSize: '9px',
-          color: 'rgba(255,255,255,0.3)',
-          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-          userSelect: 'none', zIndex: 30,
-          transition: 'color 0.15s',
-        }}
-        onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
-      >
-        {expanded ? '\u25BC collapse' : '\u25B2 expand'}
-      </div>
     </div>
   );
 }
@@ -489,7 +638,23 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
   const [expanded, setExpanded] = useState(false);
   const [hoveredDay, setHoveredDay] = useState(null);
   const [hoveredDayX, setHoveredDayX] = useState(0);
+  const [activeCategories, setActiveCategories] = useState(
+    () => new Set(Object.keys(CATEGORY_COLORS))
+  );
   const playIntervalRef = useRef(null);
+
+  // Toggle a category filter
+  const handleCategoryToggle = useCallback((cat) => {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        if (next.size > 1) next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  }, []);
 
   // Compute time range based on zoom level
   const { rangeStart, rangeEnd } = useMemo(() => {
@@ -500,8 +665,19 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
     return { rangeStart: start, rangeEnd: end };
   }, [zoomLevel]);
 
-  // Filter events to those within the visible range
+  // Filter events to those within the visible range AND active categories
   const filteredEvents = useMemo(() => {
+    if (!events || events.length === 0) return [];
+    const start = rangeStart.getTime();
+    const end = rangeEnd.getTime();
+    return events.filter((ev) => {
+      const t = new Date(ev.date).getTime();
+      return t >= start && t <= end && activeCategories.has(ev.category);
+    });
+  }, [events, rangeStart, rangeEnd, activeCategories]);
+
+  // All events in range (before category filter) for counts
+  const allEventsInRange = useMemo(() => {
     if (!events || events.length === 0) return [];
     const start = rangeStart.getTime();
     const end = rangeEnd.getTime();
@@ -511,47 +687,52 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
     });
   }, [events, rangeStart, rangeEnd]);
 
-  // Group events by day
+  // Category event counts
+  const eventCounts = useMemo(() => {
+    const counts = {};
+    for (const ev of allEventsInRange) {
+      counts[ev.category] = (counts[ev.category] || 0) + 1;
+    }
+    return counts;
+  }, [allEventsInRange]);
+
+  // Group events by day (all in range for stacked bars)
   const eventsByDay = useMemo(() => {
     const groups = {};
-    for (const ev of filteredEvents) {
+    for (const ev of allEventsInRange) {
       const dayKey = new Date(ev.date).toISOString().slice(0, 10);
       if (!groups[dayKey]) groups[dayKey] = [];
       groups[dayKey].push(ev);
     }
     return groups;
-  }, [filteredEvents]);
+  }, [allEventsInRange]);
 
-  // Events for the hovered day (for MiniEventList)
+  // Events for the hovered day
   const hoveredDayEvents = useMemo(() => {
     if (!hoveredDay || !eventsByDay[hoveredDay]) return [];
-    return eventsByDay[hoveredDay];
-  }, [hoveredDay, eventsByDay]);
+    return eventsByDay[hoveredDay].filter(e => activeCategories.has(e.category));
+  }, [hoveredDay, eventsByDay, activeCategories]);
 
-  // Handle time selection
+  // Handlers
   const handleTimeSelect = useCallback((date) => {
     setSelectedDate(date);
     setIsLive(false);
     if (onTimeSelect) onTimeSelect(date);
   }, [onTimeSelect]);
 
-  // Handle event click
   const handleEventClick = useCallback((event) => {
     if (onEventClick) onEventClick(event);
   }, [onEventClick]);
 
-  // Handle zoom change
   const handleZoomChange = useCallback((days) => {
     setZoomLevel(days);
   }, []);
 
-  // Handle play/pause
   const handlePlayToggle = useCallback(() => {
     setIsPlaying((prev) => !prev);
     setIsLive(false);
   }, []);
 
-  // Handle live toggle
   const handleLiveToggle = useCallback(() => {
     setIsLive((prev) => {
       if (!prev) {
@@ -562,13 +743,12 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
     });
   }, []);
 
-  // Handle day hover
   const handleDayHover = useCallback((dayKey, clientX) => {
     setHoveredDay(dayKey);
     setHoveredDayX(clientX);
   }, []);
 
-  // Auto-play: scroll through time by advancing selectedDate
+  // Auto-play
   useEffect(() => {
     if (isPlaying) {
       const startDate = selectedDate ? new Date(selectedDate) : new Date(rangeStart);
@@ -598,7 +778,7 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
     };
   }, [isPlaying, rangeStart, rangeEnd, selectedDate, onTimeSelect]);
 
-  // Live mode: snap to current time every 30s
+  // Live mode
   useEffect(() => {
     if (!isLive) return;
     setSelectedDate(null);
@@ -608,72 +788,52 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
     return () => clearInterval(id);
   }, [isLive]);
 
-  // ── Styles ──
-  const wrapperStyle = {
-    position: 'fixed',
-    bottom: '28px', // above GlobalStatusBar
-    left: 'var(--sidebar-width, 400px)',
-    right: 0,
-    zIndex: 9998,
-    height: expanded ? '160px' : '90px',
-    background: 'rgba(10,12,18,0.97)',
-    borderTop: '1px solid rgba(59,130,246,0.25)',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    backdropFilter: 'blur(16px)',
-    transition: 'height 0.25s ease, left 0.3s ease',
-    userSelect: 'none',
-    boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
-  };
-
-  const topRowStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    height: '28px',
-    flexShrink: 0,
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-  };
-
-  const titleStyle = {
-    padding: '0 12px',
-    fontSize: '10px',
-    letterSpacing: '1.2px',
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.5)',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontWeight: 600,
-  };
-
-  const countBadgeStyle = {
-    background: 'rgba(59,130,246,0.2)',
-    color: '#93bbfc',
-    borderRadius: '3px',
-    padding: '0 4px',
-    fontSize: '9px',
-    fontWeight: 600,
-  };
-
-  const barContainerStyle = {
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
-  };
+  const collapsedH = 100;
+  const expandedH = 220;
 
   return (
-    <div style={wrapperStyle} className="timeline-navigator">
-      {/* Top row: label + controls */}
-      <div style={topRowStyle}>
-        <div style={titleStyle}>
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '28px',
+        left: 'var(--sidebar-width, 400px)',
+        right: 0,
+        zIndex: 9998,
+        height: expanded ? `${expandedH}px` : `${collapsedH}px`,
+        background: 'linear-gradient(180deg, rgba(12,14,22,0.98) 0%, rgba(8,10,16,0.99) 100%)',
+        borderTop: '1px solid rgba(59,130,246,0.3)',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        backdropFilter: 'blur(20px)',
+        transition: 'height 0.25s ease, left 0.3s ease',
+        userSelect: 'none',
+        boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+      }}
+      className="timeline-navigator"
+    >
+      {/* Top row: label + controls + expand toggle */}
+      <div style={{
+        display: 'flex', alignItems: 'center', height: '28px',
+        flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <div style={{
+          padding: '0 12px', fontSize: '10px', letterSpacing: '1.2px',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)',
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600,
+        }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
           TIMELINE
-          <span style={countBadgeStyle}>{filteredEvents.length}</span>
+          <span style={{
+            background: 'rgba(59,130,246,0.15)', color: '#93bbfc',
+            borderRadius: '4px', padding: '0 5px', fontSize: '9px', fontWeight: 600,
+            border: '1px solid rgba(59,130,246,0.2)',
+          }}>
+            {filteredEvents.length}
+          </span>
         </div>
 
         <TimelineControls
@@ -685,10 +845,36 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
           onLiveToggle={handleLiveToggle}
           selectedDate={selectedDate}
         />
+
+        <div style={{ flex: 1 }} />
+
+        {/* Expand/collapse toggle */}
+        <div
+          style={{
+            padding: '0 12px', cursor: 'pointer', fontSize: '9px',
+            color: 'rgba(255,255,255,0.35)',
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            userSelect: 'none', transition: 'color 0.15s',
+            display: 'flex', alignItems: 'center', gap: '4px',
+          }}
+          onClick={() => setExpanded((prev) => !prev)}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+        >
+          {expanded ? '\u25BC' : '\u25B2'}
+          {expanded ? 'collapse' : 'expand'}
+        </div>
       </div>
 
-      {/* Timeline bar area */}
-      <div style={barContainerStyle}>
+      {/* Category filter pills */}
+      <CategoryFilters
+        activeCategories={activeCategories}
+        onToggle={handleCategoryToggle}
+        eventCounts={eventCounts}
+      />
+
+      {/* Timeline bar area (always visible) */}
+      <div style={{ flex: expanded ? 'none' : 1, position: 'relative', overflow: 'hidden', minHeight: expanded ? '68px' : undefined }}>
         <TimelineBar
           events={filteredEvents}
           rangeStart={rangeStart}
@@ -696,10 +882,9 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
           onTimeSelect={handleTimeSelect}
           onEventClick={handleEventClick}
           eventsByDay={eventsByDay}
-          expanded={expanded}
-          onToggleExpand={() => setExpanded((prev) => !prev)}
           onDayHover={handleDayHover}
           hoveredDay={hoveredDay}
+          activeCategories={activeCategories}
         />
 
         {/* Mini event list popup on hover */}
@@ -711,17 +896,29 @@ export function TimelineNavigator({ events, onTimeSelect, onEventClick }) {
         />
       </div>
 
+      {/* Expanded view: recent events list */}
+      {expanded && (
+        <div style={{
+          flex: 1, borderTop: '1px solid rgba(255,255,255,0.06)',
+          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{
+            padding: '4px 12px', fontSize: '9px', letterSpacing: '0.8px',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.04)',
+          }}>
+            Recent Events
+          </div>
+          <RecentEventsList events={filteredEvents} onEventClick={handleEventClick} />
+        </div>
+      )}
+
       {/* Selected date indicator line */}
       {selectedDate && (
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '2px',
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px',
           background: 'linear-gradient(90deg, transparent 0%, #3b82f6 50%, transparent 100%)',
-          opacity: 0.6,
-          pointerEvents: 'none',
+          opacity: 0.5, pointerEvents: 'none',
         }} />
       )}
 

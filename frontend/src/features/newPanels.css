@@ -2303,6 +2303,11 @@
   bottom: 44px;
 }
 
+/* Hide keyboard hint when country panel is open */
+.cp-panel-open .keyboard-hint {
+  display: none;
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    19. LIGHT THEME OVERRIDES — [data-theme="light"]

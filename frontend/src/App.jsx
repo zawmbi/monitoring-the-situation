@@ -96,7 +96,11 @@ import { LeadershipPanel } from './features/leadership/LeadershipPanel';
 import { TimelineNavigator } from './components/TimelineNavigator';
 import { useI18n } from './i18n/I18nContext';
 import IN_STATE_INFO from './indiaStateInfo';
+import RU_OBLAST_INFO from './ruOblastInfo';
+import UK_NATION_INFO from './ukNationInfo';
 import { useIndiaStates } from './hooks/useIndiaStates';
+import { useRussianOblasts } from './hooks/useRussianOblasts';
+import { useUKNations } from './hooks/useUKNations';
 import { useMultiPanel } from './hooks/useMultiPanel';
 
 // Fix polygons for MapLibre rendering:
@@ -789,6 +793,8 @@ function App() {
     openStatePanel,
     openProvincePanel,
     openIndiaStatePanel,
+    openRUOblastPanel,
+    openUKNationPanel,
     openEUPanel,
     closeCountryPanel,
   } = useCountryPanel();
@@ -842,6 +848,8 @@ function App() {
   const [showUSStates, setShowUSStates] = useState(false);
   const [showCAProvinces, setShowCAProvinces] = useState(false);
   const [showINStates, setShowINStates] = useState(false);
+  const [showRUOblasts, setShowRUOblasts] = useState(false);
+  const [showUKNations, setShowUKNations] = useState(false);
   const [showEUCountries, setShowEUCountries] = useState(false);
   const [mapZoom, setMapZoom] = useState(2);
   const [showTariffHeatmap, setShowTariffHeatmap] = useState(false);
@@ -891,6 +899,8 @@ function App() {
   const hoveredStateIdRef = useRef(null);
   const hoveredProvinceIdRef = useRef(null);
   const hoveredINStateIdRef = useRef(null);
+  const hoveredRUOblastIdRef = useRef(null);
+  const hoveredUKNationIdRef = useRef(null);
   const hoveredEUIdRef = useRef(null);
 
   // News panel state
@@ -958,6 +968,10 @@ function App() {
 
   // Indian states GeoJSON (lazy-loaded)
   const { data: indiaStatesGeoJSON } = useIndiaStates(showINStates);
+  // Russian oblasts GeoJSON (lazy-loaded)
+  const { data: ruOblastsGeoJSON } = useRussianOblasts(showRUOblasts);
+  // UK nations GeoJSON (lazy-loaded)
+  const { data: ukNationsGeoJSON } = useUKNations(showUKNations);
 
   // ── New feature state ──
   const [showCyberPanel, setShowCyberPanel] = useState(false);
@@ -1008,12 +1022,16 @@ function App() {
   }, [theme, isLightTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '28px' : '64px');
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '46px' : '64px');
   }, [navCollapsed]);
 
   useEffect(() => {
     window.localStorage.setItem('navCollapsed', String(navCollapsed));
   }, [navCollapsed]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('cp-panel-open', !!countryPanel.open);
+  }, [countryPanel.open]);
 
   useEffect(() => {
     window.localStorage.setItem('visualLayers', JSON.stringify(visualLayers));
@@ -1066,6 +1084,14 @@ function App() {
       if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
         map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
         hoveredINStateIdRef.current = null;
+      }
+      if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+        map.setFeatureState({ source: 'ru-oblasts', id: hoveredRUOblastIdRef.current }, { hover: false });
+        hoveredRUOblastIdRef.current = null;
+      }
+      if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+        map.setFeatureState({ source: 'uk-nations', id: hoveredUKNationIdRef.current }, { hover: false });
+        hoveredUKNationIdRef.current = null;
       }
       if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1512,6 +1538,20 @@ function App() {
     return ['==', ['get', 'name'], '__none__'];
   }, [selectedRegion]);
 
+  const selectedRUOblastFilter = useMemo(() => {
+    if (selectedRegion?.type === 'ruOblast' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
+  const selectedUKNationFilter = useMemo(() => {
+    if (selectedRegion?.type === 'ukNation' && selectedRegion.name) {
+      return ['==', ['get', 'name'], selectedRegion.name];
+    }
+    return ['==', ['get', 'name'], '__none__'];
+  }, [selectedRegion]);
+
   // ---- Map interaction handlers ----
 
   const handleMapMouseMove = useCallback((event) => {
@@ -1544,6 +1584,14 @@ function App() {
         if (hoveredINStateIdRef.current !== null && map.getSource('in-states')) {
           map.setFeatureState({ source: 'in-states', id: hoveredINStateIdRef.current }, { hover: false });
           hoveredINStateIdRef.current = null;
+        }
+        if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+          map.setFeatureState({ source: 'ru-oblasts', id: hoveredRUOblastIdRef.current }, { hover: false });
+          hoveredRUOblastIdRef.current = null;
+        }
+        if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+          map.setFeatureState({ source: 'uk-nations', id: hoveredUKNationIdRef.current }, { hover: false });
+          hoveredUKNationIdRef.current = null;
         }
         if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
           for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1588,6 +1636,20 @@ function App() {
       );
       hoveredINStateIdRef.current = null;
     }
+    if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+      map.setFeatureState(
+        { source: 'ru-oblasts', id: hoveredRUOblastIdRef.current },
+        { hover: false }
+      );
+      hoveredRUOblastIdRef.current = null;
+    }
+    if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+      map.setFeatureState(
+        { source: 'uk-nations', id: hoveredUKNationIdRef.current },
+        { hover: false }
+      );
+      hoveredUKNationIdRef.current = null;
+    }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
         map.setFeatureState({ source: 'eu-countries', id: i }, { hover: false });
@@ -1623,6 +1685,18 @@ function App() {
           { hover: true }
         );
         hoveredINStateIdRef.current = feat.id;
+      } else if (sourceId === 'ru-oblasts' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'ru-oblasts', id: feat.id },
+          { hover: true }
+        );
+        hoveredRUOblastIdRef.current = feat.id;
+      } else if (sourceId === 'uk-nations' && feat.id !== undefined) {
+        map.setFeatureState(
+          { source: 'uk-nations', id: feat.id },
+          { hover: true }
+        );
+        hoveredUKNationIdRef.current = feat.id;
       } else if (sourceId === 'eu-countries' && feat.id !== undefined) {
         // Highlight ALL EU country features for unified entity hover
         for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1685,6 +1759,20 @@ function App() {
         { hover: false }
       );
       hoveredINStateIdRef.current = null;
+    }
+    if (hoveredRUOblastIdRef.current !== null && map.getSource('ru-oblasts')) {
+      map.setFeatureState(
+        { source: 'ru-oblasts', id: hoveredRUOblastIdRef.current },
+        { hover: false }
+      );
+      hoveredRUOblastIdRef.current = null;
+    }
+    if (hoveredUKNationIdRef.current !== null && map.getSource('uk-nations')) {
+      map.setFeatureState(
+        { source: 'uk-nations', id: hoveredUKNationIdRef.current },
+        { hover: false }
+      );
+      hoveredUKNationIdRef.current = null;
     }
     if (hoveredEUIdRef.current !== null && map.getSource('eu-countries')) {
       for (let i = 0; i < EU_FEATURE_COUNT; i++) {
@@ -1827,6 +1915,30 @@ function App() {
           }
           openIndiaStatePanel(name);
         }
+      } else if (sourceId === 'ru-oblasts') {
+        const oblastInfo = RU_OBLAST_INFO[name];
+        if (oblastInfo) {
+          setSelectedRegion({ type: 'ruOblast', id: originalId || name, name });
+          setViewMode('region');
+          if (oblastInfo.capitalCoords) {
+            setSelectedCapital({ name: oblastInfo.capital, lat: oblastInfo.capitalCoords[0], lon: oblastInfo.capitalCoords[1] });
+          } else {
+            setSelectedCapital(null);
+          }
+          openRUOblastPanel(name);
+        }
+      } else if (sourceId === 'uk-nations') {
+        const nationInfo = UK_NATION_INFO[name];
+        if (nationInfo) {
+          setSelectedRegion({ type: 'ukNation', id: originalId || name, name });
+          setViewMode('region');
+          if (nationInfo.capitalCoords) {
+            setSelectedCapital({ name: nationInfo.capital, lat: nationInfo.capitalCoords[0], lon: nationInfo.capitalCoords[1] });
+          } else {
+            setSelectedCapital(null);
+          }
+          openUKNationPanel(name);
+        }
       } else if (sourceId === 'eu-countries') {
         setSelectedRegion({ type: 'eu', id: 'EU', name: 'European Union' });
         setViewMode('region');
@@ -1834,7 +1946,7 @@ function App() {
         openEUPanel();
       }
     }, 250);
-  }, [openCountryPanel, openStatePanel, openProvincePanel, openEUPanel, showTariffHeatmap, electionMode]);
+  }, [openCountryPanel, openStatePanel, openProvincePanel, openRUOblastPanel, openUKNationPanel, openEUPanel, showTariffHeatmap, electionMode]);
 
   // Hotspot interaction handlers (DOM-based markers)
   const handleHotspotClick = (hotspot, event) => {
@@ -2043,10 +2155,19 @@ function App() {
 
   // Track map center for globe hemisphere visibility check
   const lastZoomRef = useRef(2);
+  const [mapCenter, setMapCenter] = useState({ lng: 0, lat: 20 });
+  const mapCenterThrottleRef = useRef(null);
   const handleMapMove = useCallback((evt) => {
     const c = evt.viewState;
     if (c) {
       mapCenterRef.current = { lng: c.longitude, lat: c.latitude };
+      // Throttled mapCenter state update (~200ms) for components that need reactive hemisphere filtering
+      if (!mapCenterThrottleRef.current) {
+        mapCenterThrottleRef.current = setTimeout(() => {
+          mapCenterThrottleRef.current = null;
+          setMapCenter({ lng: mapCenterRef.current.lng, lat: mapCenterRef.current.lat });
+        }, 200);
+      }
       // Only update zoom state when it changes meaningfully (avoids re-render every frame).
       // Round to nearest 0.5 — overlay components use integer thresholds (2, 3, etc.)
       // so finer resolution just causes unnecessary re-renders during smooth zoom.
@@ -2073,7 +2194,7 @@ function App() {
     const lat2 = lat * toRad;
     const dLng = (lng - c.lng) * toRad;
     const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
-    return cosAngle > -0.05; // slight margin so edge markers don't flicker
+    return cosAngle > 0.1; // tighter margin — cull before visual edge of globe
   }, [transparentGlobe, useGlobe]);
 
   const handleRecenter = useCallback(() => {
@@ -2857,6 +2978,24 @@ function App() {
                     <span className="slider" />
                   </label>
                   <label className="switch switch-neutral">
+                    <span className="switch-label">RU Oblast Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showRUOblasts}
+                      onChange={() => setShowRUOblasts(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">UK Nation Borders</span>
+                    <input
+                      type="checkbox"
+                      checked={showUKNations}
+                      onChange={() => setShowUKNations(prev => !prev)}
+                    />
+                    <span className="slider" />
+                  </label>
+                  <label className="switch switch-neutral">
                     <span className="switch-label">EU Country Borders</span>
                     <input
                       type="checkbox"
@@ -3602,6 +3741,8 @@ function App() {
             ...(showUSStates ? ['us-states-fill'] : []),
             ...(showCAProvinces ? ['ca-provinces-fill'] : []),
             ...(showINStates && indiaStatesGeoJSON ? ['in-states-fill'] : []),
+            ...(showRUOblasts && ruOblastsGeoJSON ? ['ru-oblasts-fill'] : []),
+            ...(showUKNations && ukNationsGeoJSON ? ['uk-nations-fill'] : []),
             ...(showEUCountries ? ['eu-countries-fill'] : []),
           ]}
           onMove={handleMapMove}
@@ -4021,6 +4162,118 @@ function App() {
             </Source>
           )}
 
+          {/* Russian Oblasts — boundaries with hover & selection highlighting */}
+          {showRUOblasts && ruOblastsGeoJSON && (
+            <Source id="ru-oblasts" type="geojson" data={ruOblastsGeoJSON}>
+              <Layer
+                id="ru-oblasts-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(220, 50, 50, 0.18)' : 'rgba(230, 70, 70, 0.2)',
+                    'rgba(200, 60, 60, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+              <Layer
+                id="ru-oblasts-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(200, 50, 50, 0.8)' : 'rgba(230, 100, 80, 0.8)',
+                    isLightTheme ? 'rgba(200, 50, 50, 0.5)' : 'rgba(200, 80, 60, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              <Layer
+                id="ru-oblasts-selected-fill"
+                type="fill"
+                filter={selectedRUOblastFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(220, 50, 50, 0.25)'
+                    : 'rgba(230, 70, 70, 0.3)',
+                }}
+              />
+              <Layer
+                id="ru-oblasts-selected-line"
+                type="line"
+                filter={selectedRUOblastFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#c03030' : '#e06040',
+                  'line-width': 2.5,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* UK Nations — boundaries with hover & selection highlighting */}
+          {showUKNations && ukNationsGeoJSON && (
+            <Source id="uk-nations" type="geojson" data={ukNationsGeoJSON}>
+              <Layer
+                id="uk-nations-fill"
+                type="fill"
+                paint={{
+                  'fill-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 120, 180, 0.18)' : 'rgba(50, 160, 220, 0.2)',
+                    'rgba(40, 140, 200, 0.05)',
+                  ],
+                  'fill-opacity': 1,
+                }}
+              />
+              <Layer
+                id="uk-nations-line"
+                type="line"
+                paint={{
+                  'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    isLightTheme ? 'rgba(30, 100, 160, 0.8)' : 'rgba(60, 180, 230, 0.8)',
+                    isLightTheme ? 'rgba(30, 100, 160, 0.5)' : 'rgba(50, 160, 220, 0.6)',
+                  ],
+                  'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.5,
+                    0.8,
+                  ],
+                }}
+              />
+              <Layer
+                id="uk-nations-selected-fill"
+                type="fill"
+                filter={selectedUKNationFilter}
+                paint={{
+                  'fill-color': isLightTheme
+                    ? 'rgba(30, 120, 180, 0.25)'
+                    : 'rgba(50, 160, 220, 0.3)',
+                }}
+              />
+              <Layer
+                id="uk-nations-selected-line"
+                type="line"
+                filter={selectedUKNationFilter}
+                paint={{
+                  'line-color': isLightTheme ? '#1e6ea0' : '#30a0e0',
+                  'line-width': 2.5,
+                }}
+              />
+            </Source>
+          )}
+
           {/* EU unified entity — holographic gold glow when toggled on */}
           {showEUCountries && (
             <Source id="eu-countries" type="geojson" data={euCountriesGeoJSON}>
@@ -4113,6 +4366,9 @@ function App() {
             protests={stabilityData?.protests || []}
             zoom={mapZoom}
             isMarkerVisible={isMarkerVisible}
+            mapCenter={mapCenter}
+            useGlobe={useGlobe}
+            transparentGlobe={transparentGlobe}
           />
 
           {/* ══════════ Military Movement Indicators ══════════ */}

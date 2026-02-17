@@ -149,26 +149,38 @@ function ProtestMarker({ protest, showLabel, isSelected, onClick }) {
   );
 }
 
-export default function ProtestHeatmap({ visible, protests = [], zoom = 2, isMarkerVisible }) {
+export default function ProtestHeatmap({ visible, protests = [], zoom = 2, isMarkerVisible, mapCenter, useGlobe, transparentGlobe }) {
   const [selectedProtest, setSelectedProtest] = useState(null);
 
-  const geoJSON = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: protests
-      .filter((p) => p.lat && p.lon)
-      .map((p) => ({
-        type: 'Feature',
-        properties: {
-          intensity: p.intensity || p.count || 3,
-          id: p.id,
-          label: p.label || p.country,
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [p.lon, p.lat],
-        },
-      })),
-  }), [protests]);
+  const geoJSON = useMemo(() => {
+    const toRad = Math.PI / 180;
+    const shouldFilter = useGlobe && !transparentGlobe && mapCenter;
+    return {
+      type: 'FeatureCollection',
+      features: protests
+        .filter((p) => {
+          if (!p.lat || !p.lon) return false;
+          if (!shouldFilter) return true;
+          const lat1 = mapCenter.lat * toRad;
+          const lat2 = p.lat * toRad;
+          const dLng = (p.lon - mapCenter.lng) * toRad;
+          const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
+          return cosAngle > 0.1;
+        })
+        .map((p) => ({
+          type: 'Feature',
+          properties: {
+            intensity: p.intensity || p.count || 3,
+            id: p.id,
+            label: p.label || p.country,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [p.lon, p.lat],
+          },
+        })),
+    };
+  }, [protests, mapCenter, useGlobe, transparentGlobe]);
 
   const showLabels = zoom >= 3;
   const showMarkers = zoom >= 2;
