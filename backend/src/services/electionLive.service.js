@@ -11,6 +11,7 @@
 import { cacheService } from './cache.service.js';
 import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
+import { predictitService } from './predictit.service.js';
 import { fecService } from './fec.service.js';
 import { googleCivicService } from './googleCivic.service.js';
 
@@ -115,15 +116,17 @@ class ElectionLiveService {
     const required = ['2026'];
     const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican'];
 
-    const [polyResults, kalshiResults] = await Promise.allSettled([
+    const [polyResults, kalshiResults, predictitResults] = await Promise.allSettled([
       polymarketService.getMarketsByTopic(required, boost, false),
       kalshiService.getMarketsByTopic(required, boost, false),
+      predictitService.getMarketsByTopic(required, boost, false),
     ]);
 
     const polyMarkets = polyResults.status === 'fulfilled' ? polyResults.value : [];
     const kalshiMarkets = kalshiResults.status === 'fulfilled' ? kalshiResults.value : [];
+    const predictitMarkets = predictitResults.status === 'fulfilled' ? predictitResults.value : [];
 
-    return [...polyMarkets, ...kalshiMarkets];
+    return [...polyMarkets, ...kalshiMarkets, ...predictitMarkets];
   }
 
   /**
@@ -338,9 +341,30 @@ class ElectionLiveService {
         await Promise.allSettled(iePromises);
       }
 
+      // Build per-state FEC candidate lists for live candidate data
+      const fecCandidatesByState = {};
+      for (const [stateCode, candidates] of Object.entries(fecCandidates)) {
+        fecCandidatesByState[stateCode] = candidates
+          .sort((a, b) => b.totalReceipts - a.totalReceipts)
+          .slice(0, 12)
+          .map(c => ({
+            name: c.name,
+            party: c.party,
+            totalRaised: c.totalReceipts,
+            totalRaisedFormatted: this._formatMoney(c.totalReceipts),
+            cashOnHand: c.cashOnHand,
+            cashOnHandFormatted: this._formatMoney(c.cashOnHand),
+            disbursements: c.totalDisbursements,
+            disbursementsFormatted: this._formatMoney(c.totalDisbursements),
+            incumbentChallenge: c.incumbentChallenge,
+            candidateId: c.candidateId,
+          }));
+      }
+
       const result = {
         marketRatings,
         fecData: fecSummaries,
+        fecCandidates: fecCandidatesByState,
         independentExpenditures: ieResults,
         upcomingElections,
         marketCount: markets.length,

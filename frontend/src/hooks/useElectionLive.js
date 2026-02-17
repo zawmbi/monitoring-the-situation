@@ -134,7 +134,7 @@ export function useElectionLive(stateName) {
       });
     }
 
-    // Merge independent expenditure data for this state
+    // State code lookup for FEC/IE data
     const stateCodeMap = {
       'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
       'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
@@ -153,12 +153,46 @@ export function useElectionLive(stateName) {
     const sc = stateCodeMap[state] || '';
     const ieData = (liveData.independentExpenditures || {})[sc] || null;
 
+    // Merge FEC candidate data into race fundraising
+    const fecCandidates = (liveData.fecCandidates || {})[sc] || [];
+    const fecSummary = fecData[sc] || null;
+
+    // Build live fundraising from FEC candidates
+    if (fecCandidates.length > 0) {
+      const liveFundraising = {};
+      for (const c of fecCandidates) {
+        const p = c.party;
+        if (!p) continue;
+        if (!liveFundraising[p]) liveFundraising[p] = 0;
+        liveFundraising[p] += c.totalRaised || 0;
+      }
+      const formatMoney = (num) => {
+        if (!num || num === 0) return null;
+        if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+        if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+        return `$${num.toFixed(0)}`;
+      };
+      const liveFundraisingFormatted = {};
+      for (const [p, total] of Object.entries(liveFundraising)) {
+        const formatted = formatMoney(total);
+        if (formatted) liveFundraisingFormatted[p] = formatted;
+      }
+
+      if (Object.keys(liveFundraisingFormatted).length > 0) {
+        if (senate) {
+          senate = { ...senate, liveFundraising: liveFundraisingFormatted, fecCandidates };
+        }
+      }
+    }
+
     return {
       ...staticData,
       senate,
       governor,
       houseDistricts,
       independentExpenditures: ieData,
+      fecCandidates,
+      fecSummary,
       upcomingElections: liveData.upcomingElections || [],
       live: {
         timestamp: liveData.timestamp,

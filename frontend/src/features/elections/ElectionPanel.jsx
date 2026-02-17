@@ -397,13 +397,111 @@ function DateCountdown({ label, dateStr, type }) {
   );
 }
 
+function FECCandidateList({ candidates }) {
+  if (!candidates || candidates.length === 0) return null;
+
+  return (
+    <div className="el-fec-candidates">
+      <div className="el-section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        FEC Candidates &amp; Fundraising
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-fec-list">
+        {candidates.slice(0, 8).map((c, i) => {
+          const color = PARTY_COLORS[c.party] || '#888';
+          return (
+            <div key={i} className="el-fec-row">
+              <div className="el-fec-name-row">
+                <span className="el-fec-rank">{i + 1}</span>
+                <span className="el-party-tag" style={{ background: color }}>{c.party}</span>
+                <span className="el-fec-name">{c.name}</span>
+                {c.incumbentChallenge === 'I' && <span className="el-fec-incumbent">INC</span>}
+              </div>
+              <div className="el-fec-money-row">
+                {c.totalRaisedFormatted && (
+                  <span className="el-fec-money" title="Total raised">
+                    <span className="el-fec-money-label">Raised</span>
+                    {c.totalRaisedFormatted}
+                  </span>
+                )}
+                {c.cashOnHandFormatted && (
+                  <span className="el-fec-money" title="Cash on hand">
+                    <span className="el-fec-money-label">Cash</span>
+                    {c.cashOnHandFormatted}
+                  </span>
+                )}
+                {c.disbursementsFormatted && (
+                  <span className="el-fec-money" title="Total spent">
+                    <span className="el-fec-money-label">Spent</span>
+                    {c.disbursementsFormatted}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MarketOutcomes({ outcomes, marketSource, marketUrl }) {
+  if (!outcomes || outcomes.length === 0) return null;
+
+  // Only show if we have named outcomes (not just Yes/No)
+  const meaningful = outcomes.filter(o => o.name && o.name !== 'Yes' && o.name !== 'No' && o.price != null);
+  if (meaningful.length === 0) return null;
+
+  return (
+    <div className="el-market-outcomes">
+      <div className="el-section-title">
+        Market Odds by Candidate
+        <span className="el-live-micro">LIVE</span>
+      </div>
+      <div className="el-market-outcomes-list">
+        {meaningful.slice(0, 6).map((o, i) => {
+          const pct = o.price != null ? Math.round(o.price * 100) : 0;
+          // Try to infer party from name
+          const name = o.name || '';
+          const isD = /democrat|dem\b|blue|harris|fetterman|warnock|kelly|ossoff/i.test(name);
+          const isR = /republican|rep\b|gop|red|trump|paxton|cornyn|desantis/i.test(name);
+          const color = isD ? PARTY_COLORS.D : isR ? PARTY_COLORS.R : '#a67bc2';
+
+          return (
+            <div key={i} className="el-market-outcome-row">
+              <span className="el-market-outcome-name">{name}</span>
+              <div className="el-market-outcome-bar-track">
+                <div
+                  className="el-market-outcome-bar-fill"
+                  style={{ width: `${Math.max(pct, 3)}%`, background: color }}
+                />
+              </div>
+              <span className="el-market-outcome-pct" style={{ color }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {marketSource && (
+        <div className="el-market-outcomes-source">
+          via {marketSource === 'kalshi' ? 'Kalshi' : marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RaceDetails({ race }) {
   if (!race) return null;
+  const hasLiveFundraising = race.liveFundraising && Object.keys(race.liveFundraising).length > 0;
   const hasFundraising = race.fundraising && Object.keys(race.fundraising).length > 0;
   const hasEndorsements = race.endorsements && Object.values(race.endorsements).some(e => e.length > 0);
   const hasKeyIssues = race.keyIssues && race.keyIssues.length > 0;
 
-  if (!race.prevMargin && !hasFundraising && !hasEndorsements && !hasKeyIssues) return null;
+  if (!race.prevMargin && !hasFundraising && !hasLiveFundraising && !hasEndorsements && !hasKeyIssues) return null;
 
   return (
     <div className="el-race-details">
@@ -416,7 +514,23 @@ function RaceDetails({ race }) {
         </div>
       )}
 
-      {hasFundraising && (
+      {/* Show live FEC fundraising when available, else fall back to static estimates */}
+      {hasLiveFundraising ? (
+        <div className="el-detail-section">
+          <span className="el-detail-label">
+            Fundraising
+            <span className="el-live-micro">FEC LIVE</span>
+          </span>
+          <div className="el-fundraising-row">
+            {Object.entries(race.liveFundraising).map(([party, amount]) => (
+              <span key={party} className="el-fundraise-tag el-fundraise-live" style={{ borderColor: PARTY_COLORS[party] || '#888' }}>
+                <span className="el-fundraise-party" style={{ color: PARTY_COLORS[party] || '#888' }}>{party}</span>
+                {amount}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : hasFundraising ? (
         <div className="el-detail-section">
           <span className="el-detail-label">Fundraising (est.)</span>
           <div className="el-fundraising-row">
@@ -428,7 +542,7 @@ function RaceDetails({ race }) {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {hasEndorsements && (
         <div className="el-detail-section">
@@ -477,7 +591,7 @@ function MarketProbBar({ race }) {
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
           >
-            {race.marketSource === 'kalshi' ? 'Kalshi' : 'Polymarket'}
+            {race.marketSource === 'kalshi' ? 'Kalshi' : race.marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 3, opacity: 0.6 }}>
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
@@ -504,12 +618,13 @@ function MarketProbBar({ race }) {
   );
 }
 
-function LiveIndicator({ isLive }) {
+function LiveIndicator({ isLive, marketCount }) {
   if (!isLive) return null;
   return (
-    <span className="el-live-indicator" title="Live data from prediction markets — updates every 15min">
+    <span className="el-live-indicator" title={`Live data from ${marketCount || 0} prediction markets — updates every 5min`}>
       <span className="el-live-dot" />
       LIVE
+      {marketCount > 0 && <span className="el-live-count">{marketCount}</span>}
     </span>
   );
 }
@@ -898,7 +1013,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           </div>
           <div className="el-subtitle">2026 Midterm Elections</div>
         </div>
-        <LiveIndicator isLive={isLive} />
+        <LiveIndicator isLive={isLive} marketCount={data.live?.marketCount} />
       </div>
 
       {/* Race type tabs */}
@@ -1011,8 +1126,22 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               </>
             )}
 
+            {/* Market-derived candidate odds (live) */}
+            {activeRace.marketOutcomes && (
+              <MarketOutcomes
+                outcomes={activeRace.marketOutcomes}
+                marketSource={activeRace.marketSource}
+                marketUrl={activeRace.marketUrl}
+              />
+            )}
+
             {/* Fundraising, endorsements, key issues */}
             <RaceDetails race={activeRace} />
+
+            {/* FEC registered candidates + real fundraising */}
+            {activeTab === 'senate' && data.fecCandidates && data.fecCandidates.length > 0 && (
+              <FECCandidateList candidates={data.fecCandidates} />
+            )}
 
             {/* Super PAC spending — Senate only */}
             {activeTab === 'senate' && independentExpenditures && (
@@ -1121,7 +1250,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               <div className="el-info-source-list">
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">Prediction Markets</span>
-                  <span className="el-info-source-desc">Polymarket + Kalshi (live)</span>
+                  <span className="el-info-source-desc">Polymarket + Kalshi + PredictIt (live)</span>
                 </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">FEC OpenData</span>
@@ -1287,7 +1416,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Markets + FEC + GDELT + Static' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? 'Polymarket + Kalshi + PredictIt + FEC + GDELT' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>

@@ -830,6 +830,14 @@
   border-radius: 4px;
 }
 
+.el-live-count {
+  font-size: 8px;
+  background: rgba(74, 222, 128, 0.15);
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 2px;
+}
+
 .el-live-dot {
   width: 5px;
   height: 5px;
@@ -1796,4 +1804,178 @@
 [data-theme="light"] .el-news-tone-bar {
   background: rgba(0, 0, 0, 0.02);
   border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Live Micro Badge ── */
+.el-live-micro {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  animation: el-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes el-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.el-fundraise-live {
+  background: rgba(74, 222, 128, 0.05) !important;
+}
+
+/* ── FEC Candidate List ── */
+.el-fec-candidates {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.el-fec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.el-fec-row {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.el-fec-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.el-fec-rank {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  min-width: 12px;
+  text-align: center;
+}
+
+.el-fec-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-fec-incumbent {
+  font-size: 8px;
+  font-weight: 700;
+  color: #a67bc2;
+  background: rgba(166, 123, 194, 0.12);
+  border-radius: 3px;
+  padding: 1px 4px;
+  letter-spacing: 0.04em;
+}
+
+.el-fec-money-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  padding-left: 18px;
+}
+
+.el-fec-money {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  display: flex;
+  gap: 3px;
+}
+
+.el-fec-money-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+/* ── Market Outcomes (Candidate Odds) ── */
+.el-market-outcomes {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.el-market-outcomes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.el-market-outcome-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.el-market-outcome-name {
+  min-width: 90px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.el-market-outcome-bar-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.el-market-outcome-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  opacity: 0.8;
+  transition: width 0.5s ease;
+}
+
+.el-market-outcome-pct {
+  min-width: 32px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.el-market-outcomes-source {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* Light theme overrides */
+[data-theme="light"] .el-fec-row {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .el-market-outcome-bar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .el-live-micro {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.15);
 }
