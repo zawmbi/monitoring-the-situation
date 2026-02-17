@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { Marker } from '@vis.gl/react-maplibre';
-import { SEVERITY_COLORS, SEVERITY_LABELS, US_INSTALLATIONS } from './stabilityData';
+import { SEVERITY_COLORS, SEVERITY_LABELS, US_INSTALLATIONS, US_FLEET_ASSETS } from './stabilityData';
 
 // ── Convert ISO alpha-2 → flag emoji ──
 function countryFlag(code) {
@@ -39,6 +39,11 @@ const NATO_SYMBOLS = {
   intel:       '◉',
   logistics:   '▣',
   csl:         '◇',
+  // Fleet asset types
+  csg:         '⬡',  // Carrier Strike Group
+  arg:         '⬢',  // Amphibious Ready Group
+  ssgn:        '◈',  // Guided-missile submarine
+  btf:         '✦',  // Bomber Task Force
 };
 
 // ── Movement type descriptions ──
@@ -134,6 +139,13 @@ function MilPopup({ item, isBase, onClose }) {
           </div>
         )}
 
+        {isBase && item.hull && (
+          <div className="mil-popup-row">
+            <span className="mil-popup-key">Hull</span>
+            <span className="mil-popup-val">{item.hull}</span>
+          </div>
+        )}
+
         {isBase && item.cocom && (
           <div className="mil-popup-row">
             <span className="mil-popup-key">COCOM</span>
@@ -145,6 +157,15 @@ function MilPopup({ item, isBase, onClose }) {
           <div className="mil-popup-row">
             <span className="mil-popup-key">Personnel</span>
             <span className="mil-popup-val">~{item.personnel.toLocaleString()}</span>
+          </div>
+        )}
+
+        {isBase && item.fleetAsset && item.positionSource && (
+          <div className="mil-popup-row">
+            <span className="mil-popup-key">Position</span>
+            <span className="mil-popup-val" style={{ color: item.positionSource === 'GDELT' ? '#5baaff' : '#999' }}>
+              {item.positionSource === 'GDELT' ? 'Updated from news reports' : 'Baseline estimate'}
+            </span>
           </div>
         )}
 
@@ -169,7 +190,9 @@ function MilPopup({ item, isBase, onClose }) {
       )}
 
       <div className="mil-popup-source">
-        {isBase ? 'Source: Public OSINT / DOD' : 'Source: GDELT + Baseline OSINT'}
+        {isBase
+          ? (item.fleetAsset ? 'Source: OSINT / GDELT Fleet Tracking' : 'Source: Public OSINT / DOD')
+          : 'Source: GDELT + Baseline OSINT'}
       </div>
     </div>
   );
@@ -196,8 +219,11 @@ function NatoMilSymbol({ item, showLabel, onClick, isBase }) {
           {SEVERITY_LABELS[item.severity]?.[0] || ''}
         </div>
       )}
-      {isBase && (
+      {isBase && !item.fleetAsset && (
         <div className="mil-nato-pip mil-nato-pip--base">★</div>
+      )}
+      {isBase && item.fleetAsset && (
+        <div className="mil-nato-pip mil-nato-pip--base" style={{ color: '#5baaff' }}>⬟</div>
       )}
 
       {/* The NATO rectangle */}
@@ -225,7 +251,7 @@ function NatoMilSymbol({ item, showLabel, onClick, isBase }) {
   );
 }
 
-export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, showBases = true }) {
+export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, showBases = true, isMarkerVisible, fleetPositions }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIsBase, setSelectedIsBase] = useState(false);
 
@@ -245,11 +271,28 @@ export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, sh
 
   const bases = showBases ? US_INSTALLATIONS : [];
 
+  // Merge baseline fleet assets with live GDELT position overrides
+  const fleetMap = fleetPositions || {};
+  const fleet = showBases
+    ? US_FLEET_ASSETS.map((asset) => {
+        const live = fleetMap[asset.id];
+        if (!live) return { ...asset, positionSource: 'Baseline' };
+        return {
+          ...asset,
+          lat: live.lat,
+          lon: live.lon,
+          positionSource: 'GDELT',
+          articles: live.articles || asset.articles,
+          label: live.region ? `${asset.label} (Reported: ${live.region})` : asset.label,
+        };
+      })
+    : [];
+
   return (
     <>
       {/* Military movement indicators */}
       {indicators
-        .filter((m) => m.lat && m.lon)
+        .filter((m) => m.lat && m.lon && (!isMarkerVisible || isMarkerVisible(m.lon, m.lat)))
         .map((item) => (
           <Marker key={item.id} longitude={item.lon} latitude={item.lat} anchor="center">
             <NatoMilSymbol
@@ -268,7 +311,7 @@ export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, sh
 
       {/* US military installations */}
       {bases
-        .filter((b) => b.lat && b.lon)
+        .filter((b) => b.lat && b.lon && (!isMarkerVisible || isMarkerVisible(b.lon, b.lat)))
         .map((base) => (
           <Marker key={base.id} longitude={base.lon} latitude={base.lat} anchor="center">
             <NatoMilSymbol
@@ -281,6 +324,26 @@ export default function MilitaryOverlay({ visible, indicators = [], zoom = 2, sh
             {selectedItem?.id === base.id && selectedIsBase && (
               <div className="mil-popup-anchor">
                 <MilPopup item={base} isBase={true} onClose={() => setSelectedItem(null)} />
+              </div>
+            )}
+          </Marker>
+        ))}
+
+      {/* US Fleet Assets (CSGs, ARGs, SSGNs, BTFs) */}
+      {fleet
+        .filter((f) => f.lat && f.lon && (!isMarkerVisible || isMarkerVisible(f.lon, f.lat)))
+        .map((asset) => (
+          <Marker key={asset.id} longitude={asset.lon} latitude={asset.lat} anchor="center">
+            <NatoMilSymbol
+              item={asset}
+              isBase={true}
+              showLabel={showLabels}
+              onClick={(it) => handleClick(it, true)}
+            />
+            {/* Popup */}
+            {selectedItem?.id === asset.id && selectedIsBase && (
+              <div className="mil-popup-anchor">
+                <MilPopup item={asset} isBase={true} onClose={() => setSelectedItem(null)} />
               </div>
             )}
           </Marker>

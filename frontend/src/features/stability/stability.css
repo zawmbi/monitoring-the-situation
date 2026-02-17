@@ -468,32 +468,236 @@
    Map Markers — Protest Labels
    ═══════════════════════════════════════════ */
 
-.protest-label {
+/* ── Clickable protest marker ── */
+.protest-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.protest-marker:hover {
+  transform: scale(1.15);
+}
+.protest-marker--high .protest-marker-dot {
+  animation: protest-pulse 2s ease-in-out infinite;
+}
+@keyframes protest-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+}
+.protest-marker-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 5px;
-  pointer-events: none;
-  padding-top: 4px;
+  justify-content: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
 }
-
-.protest-label-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff6600;
-  box-shadow: 0 0 6px rgba(255, 102, 0, 0.6);
-  flex-shrink: 0;
+.protest-marker-icon {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  line-height: 1;
 }
-
-.protest-label-text {
+.protest-marker-label {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 200, 150, 0.85);
+  margin-top: 2px;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.7);
   white-space: nowrap;
-  max-width: 120px;
+  max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Protest popup ── */
+.protest-popup-anchor {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+}
+.protest-popup {
+  background: rgba(15, 12, 8, 0.95);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 260px;
+  max-width: 320px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 100, 0, 0.1);
+  font-family: inherit;
+  color: #e8e0d8;
+}
+.protest-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.protest-popup-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.protest-popup-flag {
+  font-size: 20px;
+}
+.protest-popup-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.protest-popup-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.protest-popup-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.protest-popup-badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.protest-popup-severity {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.protest-popup-type {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 220, 180, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.protest-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.protest-popup-desc {
+  font-size: 12px;
+  color: rgba(255, 220, 180, 0.9);
+  line-height: 1.4;
+  font-weight: 500;
+}
+/* Intensity meter */
+.protest-popup-meter {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.protest-popup-meter-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.protest-popup-meter-track {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.protest-popup-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.protest-popup-meter-val {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 30px;
+  text-align: right;
+}
+/* Stat rows */
+.protest-popup-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.protest-popup-stat-key {
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.protest-popup-stat-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ccc;
+}
+/* Articles */
+.protest-popup-articles {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 140, 0, 0.15);
+}
+.protest-popup-articles-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 180, 100, 0.7);
+  margin-bottom: 6px;
+}
+.protest-popup-article {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 6px;
+  margin-bottom: 3px;
+  border-radius: 4px;
+  background: rgba(255, 140, 0, 0.06);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.protest-popup-article:hover {
+  background: rgba(255, 140, 0, 0.14);
+}
+.protest-popup-article-text {
+  font-size: 11px;
+  color: rgba(255, 200, 150, 0.9);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.protest-popup-article-source {
+  font-size: 9px;
+  color: #777;
+}
+/* Source footer */
+.protest-popup-source {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 9px;
+  color: #666;
+  text-align: right;
 }
 
 /* ═══════════════════════════════════════════

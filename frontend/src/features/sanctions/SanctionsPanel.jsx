@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { timeAgo } from '../../utils/time';
+import { timeAgo, timeAgoShort } from '../../utils/time';
 
 /* ── Constants ── */
 
@@ -39,19 +39,6 @@ const TABS = [
   { id: 'news',     label: 'Sanctions News' },
   { id: 'programs', label: 'Programs' },
 ];
-
-/* ── Utility ── */
-
-function timeAgoShort(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 /* ── Sub-components ── */
 

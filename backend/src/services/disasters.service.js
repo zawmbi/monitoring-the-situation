@@ -102,6 +102,7 @@ export const disastersService = {
     const result = {
       activeEvents: eonetEvents.status === 'fulfilled' ? eonetEvents.value : [],
       recentDisasters: reliefWebEvents.status === 'fulfilled' ? reliefWebEvents.value : [],
+      lastUpdated: new Date().toISOString(),
       summary: {
         totalActive: eonetEvents.status === 'fulfilled' ? eonetEvents.value.length : 0,
         bySeverity: {},

@@ -34,6 +34,65 @@
   cursor: grabbing;
 }
 
+/* Mode toggle — Weather vs Disasters */
+
+.severe-weather-integrated {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.severe-mode-toggle {
+  display: flex;
+  padding: 8px 12px 0;
+  gap: 4px;
+}
+
+.severe-mode-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px 6px 0 0;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.severe-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.severe-mode-btn--active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-bottom-color: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid transparent;
+}
+
+.severe-mode-count {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.severe-mode-btn--active .severe-mode-count {
+  background: rgba(255, 140, 0, 0.25);
+  color: #ffaa44;
+}
+
 /* Header */
 
 .severe-panel-header {
@@ -307,4 +366,225 @@
 @keyframes severe-marker-ring {
   0% { width: 12px; height: 12px; opacity: 0.6; }
   100% { width: 36px; height: 36px; opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════
+   Disaster mode — integrated styles
+   ═══════════════════════════════════════════ */
+
+/* Summary stats row */
+.disaster-stats {
+  display: flex;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.06));
+  flex-shrink: 0;
+}
+
+.disaster-stat {
+  flex: 1;
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.disaster-stat:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.disaster-stat-val {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.disaster-stat-lbl {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted, #8899aa);
+  margin-top: 2px;
+}
+
+/* Refresh button inline with tabs */
+.disaster-refresh-btn {
+  margin-left: auto;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--color-text-secondary, #8899aa);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.disaster-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary, #e0e8f0);
+}
+
+.disaster-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Filters */
+.disaster-filters {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.06));
+  flex-shrink: 0;
+}
+
+.disaster-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.disaster-filter-row + .disaster-filter-row {
+  margin-top: 6px;
+}
+
+.disaster-filter-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted, #8899aa);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.disaster-filter-chip {
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--color-text-secondary, #8899aa);
+  border-radius: 10px;
+  font-size: 10px;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.disaster-filter-chip:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-primary, #e0e8f0);
+}
+
+.disaster-filter-chip--active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary, #e0e8f0);
+}
+
+/* Section notes */
+.disaster-section-note {
+  padding: 8px 14px;
+  font-size: 11px;
+  color: var(--color-text-muted, #8899aa);
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.06));
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* ReliefWeb items */
+.disaster-relief-item {
+  display: block;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.06));
+  transition: background 0.15s;
+}
+
+.disaster-relief-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.disaster-relief-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #e0e8f0);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.disaster-relief-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted, #8899aa);
+}
+
+.disaster-relief-meta span:not(:last-child)::after {
+  content: '·';
+  margin-left: 6px;
+  opacity: 0.4;
+}
+
+/* Summary breakdown */
+.disaster-breakdown {
+  padding: 10px 14px;
+}
+
+.disaster-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.disaster-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #bbccdd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.disaster-bar-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.disaster-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff8c00, #ff4444);
+  transition: width 0.4s ease;
+}
+
+.disaster-bar-count {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary, #e0e8f0);
+  text-align: right;
+}
+
+/* Trend text */
+.disaster-trend {
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #aabbcc);
+  border-top: 1px solid var(--color-border, rgba(255,255,255,0.06));
 }

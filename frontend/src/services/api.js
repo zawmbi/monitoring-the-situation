@@ -27,6 +27,10 @@ export const api = {
   getConflictLossesHistory: (days = 30) => api.fetch(`/conflict/losses/history?days=${days}`),
   getConflictNews: (limit = 30) => api.fetch(`/conflict/news?limit=${limit}`),
 
+  // Per-conflict news (all tracked conflicts)
+  getConflictNewsByType: (conflictId, limit = 20) => api.fetch(`/conflict-news/${conflictId}?limit=${limit}`),
+  getAllConflictNews: (limit = 10) => api.fetch(`/conflict-news?limit=${limit}`),
+
   // Tariffs (US trade policy live data)
   getTariffLive: () => api.fetch('/tariffs'),
   getTariffNews: (limit = 30) => api.fetch(`/tariffs/news?limit=${limit}`),
@@ -53,6 +57,7 @@ export const api = {
   getProtestData: () => api.fetch('/stability/protests'),
   getMilitaryData: () => api.fetch('/stability/military'),
   getInstabilityData: () => api.fetch('/stability/instability'),
+  getFleetPositions: () => api.fetch('/stability/fleet'),
 
 };
 

@@ -1,12 +1,143 @@
 /**
  * ProtestHeatmap — MapLibre heatmap layer showing protest / unrest intensity
- * Renders as a glowing heat overlay on the globe.
+ * Renders as a glowing heat overlay on the globe with clickable markers
+ * that show country details, intensity, and live GDELT news articles.
  */
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Source, Layer, Marker } from '@vis.gl/react-maplibre';
 
-export default function ProtestHeatmap({ visible, protests = [], zoom = 2 }) {
+// Convert ISO alpha-2 → flag emoji
+function countryFlag(code) {
+  if (!code || code.length !== 2) return '';
+  return String.fromCodePoint(
+    ...code.toUpperCase().split('').map((c) => 0x1F1E6 + c.charCodeAt(0) - 65)
+  );
+}
+
+// Protest type labels
+const TYPE_LABELS = {
+  protest: 'Protest',
+  resistance: 'Resistance',
+  unrest: 'Civil Unrest',
+};
+
+// Intensity color scale
+function intensityColor(val) {
+  if (val >= 8) return '#ff2222';
+  if (val >= 6) return '#ff6600';
+  if (val >= 4) return '#ffaa00';
+  return '#ffd700';
+}
+
+function intensityLabel(val) {
+  if (val >= 8) return 'CRITICAL';
+  if (val >= 6) return 'HIGH';
+  if (val >= 4) return 'ELEVATED';
+  return 'LOW';
+}
+
+/* ─── Protest Popup ─── */
+function ProtestPopup({ protest, onClose }) {
+  const flag = countryFlag(protest.code);
+  const intensity = protest.intensity || protest.count || 3;
+  const color = intensityColor(intensity);
+  const articles = protest.articles || [];
+
+  return (
+    <div className="protest-popup" onClick={(e) => e.stopPropagation()}>
+      <div className="protest-popup-header">
+        <div className="protest-popup-title-row">
+          <span className="protest-popup-flag">{flag}</span>
+          <span className="protest-popup-title">{protest.country || protest.code}</span>
+        </div>
+        <button className="protest-popup-close" onClick={onClose}>✕</button>
+      </div>
+
+      <div className="protest-popup-badges">
+        <span className="protest-popup-severity" style={{ background: color }}>
+          {intensityLabel(intensity)}
+        </span>
+        <span className="protest-popup-type">
+          {TYPE_LABELS[protest.type] || protest.type || 'Unrest'}
+        </span>
+      </div>
+
+      <div className="protest-popup-body">
+        <div className="protest-popup-desc">{protest.label}</div>
+
+        {/* Intensity bar */}
+        <div className="protest-popup-meter">
+          <div className="protest-popup-meter-label">Intensity</div>
+          <div className="protest-popup-meter-track">
+            <div
+              className="protest-popup-meter-fill"
+              style={{ width: `${Math.min(100, (intensity / 10) * 100)}%`, background: color }}
+            />
+          </div>
+          <div className="protest-popup-meter-val" style={{ color }}>{intensity}/10</div>
+        </div>
+
+        {/* GDELT article count if live */}
+        {protest.live && protest.count && (
+          <div className="protest-popup-stat">
+            <span className="protest-popup-stat-key">GDELT Articles (14d)</span>
+            <span className="protest-popup-stat-val">{protest.count}</span>
+          </div>
+        )}
+
+        <div className="protest-popup-stat">
+          <span className="protest-popup-stat-key">Coordinates</span>
+          <span className="protest-popup-stat-val">{protest.lat?.toFixed(2)}°N, {protest.lon?.toFixed(2)}°E</span>
+        </div>
+      </div>
+
+      {/* News articles from GDELT */}
+      {articles.length > 0 && (
+        <div className="protest-popup-articles">
+          <div className="protest-popup-articles-title">Recent News</div>
+          {articles.slice(0, 4).map((a, i) => (
+            <a key={i} className="protest-popup-article" href={a.url} target="_blank" rel="noopener noreferrer">
+              <span className="protest-popup-article-text">{a.title}</span>
+              {a.source && <span className="protest-popup-article-source">{a.source}</span>}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className="protest-popup-source">
+        {protest.live ? 'Source: GDELT Project (live)' : 'Source: Baseline OSINT'}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Clickable Protest Marker ─── */
+function ProtestMarker({ protest, showLabel, isSelected, onClick }) {
+  const intensity = protest.intensity || protest.count || 3;
+  const color = intensityColor(intensity);
+  const isHigh = intensity >= 6;
+
+  return (
+    <div
+      className={`protest-marker ${isHigh ? 'protest-marker--high' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onClick(protest); }}
+    >
+      <div className="protest-marker-dot" style={{ background: color, boxShadow: `0 0 8px ${color}88` }}>
+        <span className="protest-marker-icon">{intensity >= 8 ? '!' : '•'}</span>
+      </div>
+      {showLabel && (
+        <span className="protest-marker-label" style={{ color }}>
+          {protest.label || protest.country}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function ProtestHeatmap({ visible, protests = [], zoom = 2, isMarkerVisible }) {
+  const [selectedProtest, setSelectedProtest] = useState(null);
+
   const geoJSON = useMemo(() => ({
     type: 'FeatureCollection',
     features: protests
@@ -26,8 +157,17 @@ export default function ProtestHeatmap({ visible, protests = [], zoom = 2 }) {
   }), [protests]);
 
   const showLabels = zoom >= 3;
+  const showMarkers = zoom >= 2;
 
   if (!visible) return null;
+
+  const handleClick = (protest) => {
+    if (selectedProtest?.id === protest.id) {
+      setSelectedProtest(null);
+    } else {
+      setSelectedProtest(protest);
+    }
+  };
 
   return (
     <>
@@ -55,15 +195,24 @@ export default function ProtestHeatmap({ visible, protests = [], zoom = 2 }) {
         />
       </Source>
 
-      {/* Labels for high-intensity protest zones */}
-      {showLabels && protests.filter((p) => (p.intensity || p.count || 0) >= 4).map((p) => (
-        <Marker key={`plbl-${p.id}`} longitude={p.lon} latitude={p.lat} anchor="top">
-          <div className="protest-label" title={`${p.country}: ${p.label}`}>
-            <span className="protest-label-dot" />
-            <span className="protest-label-text">{p.label || p.country}</span>
-          </div>
-        </Marker>
-      ))}
+      {/* Clickable protest markers */}
+      {showMarkers && protests
+        .filter((p) => p.lat && p.lon && (!isMarkerVisible || isMarkerVisible(p.lon, p.lat)))
+        .map((p) => (
+          <Marker key={`pm-${p.id}`} longitude={p.lon} latitude={p.lat} anchor="center">
+            <ProtestMarker
+              protest={p}
+              showLabel={showLabels}
+              isSelected={selectedProtest?.id === p.id}
+              onClick={handleClick}
+            />
+            {selectedProtest?.id === p.id && (
+              <div className="protest-popup-anchor">
+                <ProtestPopup protest={p} onClose={() => setSelectedProtest(null)} />
+              </div>
+            )}
+          </Marker>
+        ))}
     </>
   );
 }

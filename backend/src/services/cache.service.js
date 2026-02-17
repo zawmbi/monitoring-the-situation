@@ -78,17 +78,6 @@ class CacheService {
     }
   }
 
-  async delete(key) {
-    if (!this.isConnected) return false;
-    try {
-      await this.client.del(key);
-      return true;
-    } catch (error) {
-      console.error('[Cache] Delete error:', error.message);
-      return false;
-    }
-  }
-
   async publish(channel, message) {
     if (!this.isConnected) return false;
     try {
