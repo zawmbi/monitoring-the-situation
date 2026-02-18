@@ -59,6 +59,12 @@ export const api = {
   getInstabilityData: () => api.fetch('/stability/instability'),
   getFleetPositions: () => api.fetch('/stability/fleet'),
 
+  // Emerging news (cross-cutting development capture)
+  getEmergingNews: () => api.fetch('/emerging'),
+  getEmergingWatches: () => api.fetch('/emerging/watches'),
+  getEmergingByConflict: (conflictId) => api.fetch(`/emerging/conflict/${conflictId}`),
+  getEmergingByCategory: (category) => api.fetch(`/emerging/category/${category}`),
+
 };
 
 export default api;

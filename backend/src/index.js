@@ -44,6 +44,7 @@ import { timeseriesService } from './services/timeseries.service.js';
 import { climateService } from './services/climate.service.js';
 import { nuclearService } from './services/nuclear.service.js';
 import { aitechService } from './services/aitech.service.js';
+import { emergingNewsService } from './services/emergingNews.service.js';
 import apiRoutes from './api/routes.js';
 
 const app = express();
@@ -106,6 +107,7 @@ app.get('/', (req, res) => {
       tension: '/api/tension',
       arbitrage: '/api/arbitrage',
       briefing: '/api/briefing',
+      emerging: '/api/emerging',
       narrative: '/api/narrative',
       regime: '/api/regime',
       alliance: '/api/alliance',
@@ -181,6 +183,7 @@ let healthRefreshInterval = null;
 let climateRefreshInterval = null;
 let nuclearRefreshInterval = null;
 let aitechRefreshInterval = null;
+let emergingRefreshInterval = null;
 
 // Network connectivity state
 let _networkOnline = false;
@@ -595,6 +598,17 @@ function startBackgroundRefresh() {
     aitechService.getCombinedData().catch(console.error);
   }, AITECH_POLL_MS);
 
+  // Emerging news capture — every 10 minutes
+  setTimeout(() => {
+    console.log('[Worker] Starting initial emerging news scan...');
+    emergingNewsService.getCombinedData().catch(console.error);
+  }, 94000);
+  const EMERGING_POLL_MS = 10 * 60 * 1000;
+  emergingRefreshInterval = setInterval(() => {
+    console.log('[Worker] Refreshing emerging news...');
+    emergingNewsService.getCombinedData().catch(console.error);
+  }, EMERGING_POLL_MS);
+
   // Timeseries snapshots — piggyback on tension index refresh
   const SNAPSHOT_POLL_MS = 15 * 60 * 1000;
   setInterval(async () => {
@@ -697,6 +711,7 @@ async function shutdown(signal) {
   if (climateRefreshInterval) clearInterval(climateRefreshInterval);
   if (nuclearRefreshInterval) clearInterval(nuclearRefreshInterval);
   if (aitechRefreshInterval) clearInterval(aitechRefreshInterval);
+  if (emergingRefreshInterval) clearInterval(emergingRefreshInterval);
   if (_networkCheckInterval) clearInterval(_networkCheckInterval);
   wsHandler.shutdown();
   await cacheService.disconnect();
