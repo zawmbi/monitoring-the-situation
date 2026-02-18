@@ -32,6 +32,21 @@ const RSS_FEEDS = [
     url: 'https://news.google.com/rss/search?q=ukraine+war+when:7d&hl=en-US&gl=US&ceid=US:en',
     icon: 'google',
   },
+  {
+    name: 'Google News (Ukraine Offensive)',
+    url: 'https://news.google.com/rss/search?q=Ukraine+counteroffensive+advance+frontline+when:7d&hl=en-US&gl=US&ceid=US:en',
+    icon: 'google',
+  },
+  {
+    name: 'Google News (Ukraine Starlink Telegram)',
+    url: 'https://news.google.com/rss/search?q=Ukraine+Starlink+OR+Telegram+electronic+warfare+when:7d&hl=en-US&gl=US&ceid=US:en',
+    icon: 'google',
+  },
+  {
+    name: 'Google News (Ukraine Communications)',
+    url: 'https://news.google.com/rss/search?q=Ukraine+Russia+communications+disruption+satellite+when:7d&hl=en-US&gl=US&ceid=US:en',
+    icon: 'google',
+  },
 ];
 
 class ConflictService {
