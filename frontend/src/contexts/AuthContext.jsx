@@ -14,7 +14,8 @@
 
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, initError } from '../firebase/config.js';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions, initError } from '../firebase/config.js';
 import {
   signInWithGoogle,
   signInAsGuest,
@@ -39,9 +40,18 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+
+      // Ensure Firestore profile exists for this user
+      if (firebaseUser && functions) {
+        try {
+          await httpsCallable(functions, 'ensureProfile')();
+        } catch (err) {
+          console.warn('[Auth] ensureProfile failed:', err.message);
+        }
+      }
     });
 
     return () => unsubAuth();

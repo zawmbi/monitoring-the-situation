@@ -14,53 +14,49 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 const db = getFirestore();
 
 /**
- * Handle new user creation.
+ * Ensure a Firestore user profile exists for the authenticated user.
+ * Called from the frontend after sign-in. Skips if the doc already exists
+ * so it's safe to call on every auth state change.
  *
- * @param {import('firebase-functions/v2/identity').AuthBlockingEvent} user
+ * @param {import('firebase-functions/v2/https').CallableRequest} request
  */
-export async function handleUserCreate(user) {
-  const { uid, displayName, email, providerData } = user;
+export async function handleEnsureProfile(request) {
+  const { uid, token } = request.auth || {};
+  if (!uid) {
+    throw new Error('Not authenticated');
+  }
 
-  // Determine the auth provider for the display name fallback
-  const isAnonymous = !providerData || providerData.length === 0;
+  const docRef = db.collection('users').doc(uid);
+  const existing = await docRef.get();
+
+  if (existing.exists) {
+    // Update last_login and return — doc already created
+    await docRef.update({ last_login: FieldValue.serverTimestamp() });
+    return { created: false };
+  }
+
+  const displayName = token?.name || null;
+  const email = token?.email || null;
+  const isAnonymous = token?.firebase?.sign_in_provider === 'anonymous';
   const safeName = displayName || (isAnonymous ? `Guest_${uid.slice(0, 6)}` : 'User');
 
   const userDoc = {
-    // SECURITY: Only store the Firebase UID as the doc ID.
-    // Never persist raw OAuth access/refresh tokens.
     display_name: safeName,
     display_name_lower: safeName.toLowerCase(),
     email: email || null,
     created_at: FieldValue.serverTimestamp(),
     last_login: FieldValue.serverTimestamp(),
-
-    // SECURITY: Default to 'free' tier — Stripe webhook is the only
-    // path to 'pro'. Frontend cannot set this.
     subscription_status: 'free',
-
-    // SECURITY: Default role is 'user'. Only admin Cloud Functions
-    // can promote to 'mod' or 'admin', preventing privilege escalation.
     role: 'user',
-
-    // SECURITY: Not banned by default. Only admin functions set this.
     banned_flag: false,
-
-    // Track auth provider type for account upgrade flow
     is_anonymous: isAnonymous,
-
-    // SECURITY: display_name_set is false until the user explicitly
-    // picks a username via the userSetUsername callable function.
-    // The frontend gates chat access on this flag.
     display_name_set: false,
-
-    // User preferences — persisted across sessions.
-    // Updated via the settingsSave Cloud Function only.
     theme_preference: 'dark',
     dashboard_layout_settings: {},
     desktop_preferences: {},
   };
 
-  await db.collection('users').doc(uid).set(userDoc);
-
+  await docRef.set(userDoc);
   console.log(`[Auth] Created user document for ${uid} (anonymous: ${isAnonymous})`);
+  return { created: true };
 }
