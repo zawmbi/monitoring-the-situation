@@ -18,23 +18,24 @@
 import './init.js';
 
 import { onCall, onRequest } from 'firebase-functions/v2/https';
-import { beforeUserCreated } from 'firebase-functions/v2/identity';
 
 // ===========================================
-// AUTH TRIGGERS
+// AUTH FUNCTIONS
 // ===========================================
 
-import { handleUserCreate } from './auth/onCreate.js';
+import { handleEnsureProfile } from './auth/onCreate.js';
 import { handleSetUsername } from './auth/setUsername.js';
 import { deleteAccount as handleDeleteAccount } from './auth/onDelete.js';
 
 /**
- * SECURITY: Fires before a new user is created in Firebase Auth.
- * Creates the corresponding Firestore user document with safe defaults.
+ * Callable: Ensure a Firestore user profile exists after sign-in.
+ * SECURITY: Creates profile with safe defaults. Idempotent — safe to
+ * call on every auth state change. Only authenticated users can call.
  */
-export const authOnCreate = beforeUserCreated((event) => {
-  return handleUserCreate(event.data);
-});
+export const ensureProfile = onCall(
+  { enforceAppCheck: false },
+  handleEnsureProfile,
+);
 
 /**
  * Callable: Set a display name after first sign-in.
