@@ -51,13 +51,102 @@ const app = express();
 const server = createServer(app);
 
 // ===========================================
+// CONSTANTS
+// ===========================================
+
+const SHUTDOWN_TIMEOUT_MS = 15_000;
+const NETWORK_PROBE_INTERVAL_MS = 60_000;
+const NETWORK_PROBE_TIMEOUT_MS = 5_000;
+const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_JSON_BODY = '1mb';
+
+// ===========================================
+// WORKER REGISTRY
+// ===========================================
+
+/**
+ * Data-driven worker definitions. Each entry describes a background task:
+ *   name       – human-readable label for logs
+ *   fn         – async function to call
+ *   intervalMs – refresh interval in milliseconds
+ *   delayMs    – staggered startup delay (0 = immediate)
+ *
+ * The registry replaces 30+ individual interval variables and makes
+ * shutdown, health reporting, and future changes trivial.
+ */
+const WORKERS = [
+  // ── Tier 0: Core content (immediate startup) ──
+  { name: 'content',          fn: () => aggregationService.getCombinedFeed({ refresh: true }), intervalMs: config.polling.news,    delayMs: 0 },
+  { name: 'conflict',         fn: () => conflictService.getLiveData(),                         intervalMs: 30 * 60_000,            delayMs: 0 },
+  { name: 'tariff',           fn: () => tariffService.getLiveData(),                           intervalMs: 15 * 60_000,            delayMs: 0 },
+  { name: 'world-leaders',    fn: () => wikidataService.getWorldLeaders(),                     intervalMs: 24 * 60 * 60_000,       delayMs: 0 },
+  { name: 'ucdp',             fn: () => ucdpService.getActiveConflicts(),                      intervalMs: 24 * 60 * 60_000,       delayMs: 0 },
+
+  // ── Tier 1: Delayed startup (avoid contention) ──
+  { name: 'worldbank',        fn: () => worldBankService.preloadCountries(PRELOAD_COUNTRIES),  intervalMs: 24 * 60 * 60_000,       delayMs: 10_000 },
+  { name: 'election-news',    fn: async () => { await electionNewsService.getTopElectionNews(); await electionNewsService.getBattlegroundOverview(); }, intervalMs: 10 * 60_000, delayMs: 20_000 },
+  { name: 'disasters',        fn: () => disastersService.getCombinedData(),                    intervalMs: 10 * 60_000,            delayMs: 25_000 },
+  { name: 'cyber',            fn: () => cyberService.getCombinedData(),                        intervalMs: 10 * 60_000,            delayMs: 28_000 },
+  { name: 'election-live',    fn: () => electionLiveService.getLiveData(),                     intervalMs: 15 * 60_000,            delayMs: 30_000 },
+  { name: 'refugees',         fn: () => refugeeService.getCombinedData(),                      intervalMs: 60 * 60_000,            delayMs: 30_000 },
+  { name: 'court',            fn: () => courtService.getCombinedData(),                        intervalMs: 15 * 60_000,            delayMs: 32_000 },
+  { name: 'commodities',      fn: () => commoditiesService.getCombinedData(),                  intervalMs: 5 * 60_000,             delayMs: 34_000 },
+  { name: 'stability',        fn: () => stabilityService.getCombinedData(),                    intervalMs: 15 * 60_000,            delayMs: 35_000 },
+  { name: 'metaculus',        fn: () => metaculusService.getCombinedData(),                    intervalMs: 15 * 60_000,            delayMs: 36_000 },
+  { name: 'sanctions',        fn: () => sanctionsService.getCombinedData(),                    intervalMs: 15 * 60_000,            delayMs: 38_000 },
+  { name: 'shipping',         fn: () => shippingService.getCombinedData(),                     intervalMs: 15 * 60_000,            delayMs: 40_000 },
+  { name: 'risk-scores',      fn: () => countryRiskService.getCountryRiskScores(),             intervalMs: 30 * 60_000,            delayMs: 45_000 },
+  { name: 'tension-index',    fn: () => tensionIndexService.getGlobalTension(),                intervalMs: 15 * 60_000,            delayMs: 48_000 },
+  { name: 'briefing',         fn: () => briefingService.getGlobalBriefing(),                   intervalMs: 10 * 60_000,            delayMs: 55_000 },
+
+  // ── Tier 2: Phase 2 services ──
+  { name: 'narrative',        fn: () => narrativeService.getCombinedData(),                    intervalMs: 10 * 60_000,            delayMs: 58_000 },
+  { name: 'regime',           fn: () => regimeService.getCombinedData(),                       intervalMs: 30 * 60_000,            delayMs: 62_000 },
+  { name: 'alliance',         fn: () => allianceService.getCombinedData(),                     intervalMs: 60 * 60_000,            delayMs: 65_000 },
+  { name: 'infrastructure',   fn: () => infrastructureService.getCombinedData(),               intervalMs: 15 * 60_000,            delayMs: 68_000 },
+  { name: 'demographic',      fn: () => demographicService.getCombinedData(),                  intervalMs: 24 * 60 * 60_000,       delayMs: 72_000 },
+  { name: 'credibility',      fn: () => credibilityService.getCombinedData(),                  intervalMs: 10 * 60_000,            delayMs: 75_000 },
+  { name: 'leadership',       fn: () => leadershipService.getCombinedData(),                   intervalMs: 60 * 60_000,            delayMs: 78_000 },
+  { name: 'health',           fn: () => healthService.getCombinedData(),                       intervalMs: 30 * 60_000,            delayMs: 82_000 },
+  { name: 'climate',          fn: () => climateService.getCombinedData(),                      intervalMs: 30 * 60_000,            delayMs: 85_000 },
+  { name: 'nuclear',          fn: () => nuclearService.getCombinedData(),                      intervalMs: 30 * 60_000,            delayMs: 88_000 },
+  { name: 'aitech',           fn: () => aitechService.getCombinedData(),                       intervalMs: 30 * 60_000,            delayMs: 91_000 },
+  { name: 'emerging-news',    fn: () => emergingNewsService.getCombinedData(),                 intervalMs: 10 * 60_000,            delayMs: 94_000 },
+];
+
+// Runtime state for each worker
+const workerState = new Map(); // name → { intervalId, timeoutId, lastRun, lastError, running }
+
+// ===========================================
 // MIDDLEWARE
 // ===========================================
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors(config.cors));
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: MAX_JSON_BODY }));
+
+// Request timeout — prevent slow clients from holding connections forever
+app.use((req, res, next) => {
+  req.setTimeout(REQUEST_TIMEOUT_MS);
+  res.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Request timeout' });
+    }
+  });
+  next();
+});
+
+// In-flight request tracking for graceful shutdown
+let inFlightRequests = 0;
+app.use((req, res, next) => {
+  inFlightRequests++;
+  let counted = true;
+  const done = () => { if (counted) { counted = false; inFlightRequests--; } };
+  res.on('finish', done);
+  res.on('close', done);
+  next();
+});
 
 // Request logging
 app.use((req, res, next) => {
@@ -125,12 +214,30 @@ app.get('/', (req, res) => {
 app.get('/health', async (req, res) => {
   const redisHealth = await cacheService.health();
   const isHealthy = redisHealth.status === 'healthy';
-  
+  const mem = process.memoryUsage();
+
+  // Worker summary
+  const workers = {};
+  for (const [name, state] of workerState) {
+    workers[name] = {
+      running: state.running,
+      lastRun: state.lastRun,
+      lastError: state.lastError,
+    };
+  }
+
   res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    memory: {
+      rss: Math.round(mem.rss / 1024 / 1024),
+      heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+    },
+    inFlightRequests,
     redis: redisHealth,
+    workers,
   });
 });
 
@@ -149,55 +256,16 @@ app.use((err, req, res, next) => {
 });
 
 // ===========================================
-// BACKGROUND REFRESH
+// NETWORK CONNECTIVITY
 // ===========================================
 
-let refreshInterval = null;
-let conflictRefreshInterval = null;
-let tariffRefreshInterval = null;
-let leadersRefreshInterval = null;
-let economicRefreshInterval = null;
-let ucdpRefreshInterval = null;
-let electionRefreshInterval = null;
-let electionNewsRefreshInterval = null;
-let stabilityRefreshInterval = null;
-let disasterRefreshInterval = null;
-let cyberRefreshInterval = null;
-let refugeeRefreshInterval = null;
-let courtRefreshInterval = null;
-let commoditiesRefreshInterval = null;
-let metaculusRefreshInterval = null;
-let sanctionsRefreshInterval = null;
-let shippingRefreshInterval = null;
-let riskRefreshInterval = null;
-let tensionRefreshInterval = null;
-let briefingRefreshInterval = null;
-let narrativeRefreshInterval = null;
-let regimeRefreshInterval = null;
-let allianceRefreshInterval = null;
-let infrastructureRefreshInterval = null;
-let demographicRefreshInterval = null;
-let credibilityRefreshInterval = null;
-let leadershipRefreshInterval = null;
-let healthRefreshInterval = null;
-let climateRefreshInterval = null;
-let nuclearRefreshInterval = null;
-let aitechRefreshInterval = null;
-let emergingRefreshInterval = null;
-
-// Network connectivity state
 let _networkOnline = false;
 let _networkCheckInterval = null;
 
-/**
- * Quick DNS probe to test if we have internet access.
- * Tries to resolve a reliable hostname — if it fails, we're offline.
- */
 async function checkNetworkConnectivity() {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    // Use a small, fast endpoint for the probe
+    const timeout = setTimeout(() => controller.abort(), NETWORK_PROBE_TIMEOUT_MS);
     const resp = await fetch('https://dns.google/resolve?name=example.com&type=A', {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
@@ -209,10 +277,83 @@ async function checkNetworkConnectivity() {
   }
 }
 
-/**
- * Run background refresh only when network is available.
- * If offline at startup, start a probe interval and defer all fetches.
- */
+// ===========================================
+// BACKGROUND WORKERS (data-driven)
+// ===========================================
+
+function runWorker(worker) {
+  const state = workerState.get(worker.name);
+  if (state.running) return; // skip if previous run still in progress
+
+  state.running = true;
+  worker.fn()
+    .then(() => {
+      state.lastRun = new Date().toISOString();
+      state.lastError = null;
+    })
+    .catch((err) => {
+      state.lastError = err.message;
+      console.error(`[Worker:${worker.name}] Error: ${err.message}`);
+    })
+    .finally(() => {
+      state.running = false;
+    });
+}
+
+function startBackgroundRefresh() {
+  console.log(`[Worker] Starting ${WORKERS.length} background workers...`);
+
+  for (const worker of WORKERS) {
+    const state = { intervalId: null, timeoutId: null, lastRun: null, lastError: null, running: false };
+    workerState.set(worker.name, state);
+
+    if (worker.delayMs === 0) {
+      // Immediate start
+      console.log(`[Worker] Starting ${worker.name} (every ${worker.intervalMs / 1000}s)`);
+      runWorker(worker);
+    } else {
+      // Delayed start
+      state.timeoutId = setTimeout(() => {
+        console.log(`[Worker] Starting ${worker.name} (every ${worker.intervalMs / 1000}s)`);
+        runWorker(worker);
+        state.timeoutId = null;
+      }, worker.delayMs);
+    }
+
+    // Periodic refresh
+    state.intervalId = setInterval(() => runWorker(worker), worker.intervalMs);
+  }
+
+  // Timeseries snapshots — piggyback on tension index refresh
+  const SNAPSHOT_POLL_MS = 15 * 60_000;
+  const snapshotState = { intervalId: null, timeoutId: null, lastRun: null, lastError: null, running: false };
+  workerState.set('timeseries-snapshot', snapshotState);
+  snapshotState.intervalId = setInterval(async () => {
+    if (snapshotState.running) return;
+    snapshotState.running = true;
+    try {
+      const tension = await tensionIndexService.getGlobalTension();
+      await timeseriesService.snapshot({
+        tensionIndex: tension?.index,
+        activeConflictCount: tension?.summary?.totalConflicts,
+        conflictIntensities: tension?.activeConflicts?.reduce((acc, c) => {
+          acc[c.id] = c.intensity;
+          return acc;
+        }, {}),
+      });
+      snapshotState.lastRun = new Date().toISOString();
+      snapshotState.lastError = null;
+    } catch (err) {
+      snapshotState.lastError = err.message;
+      console.error('[Worker:timeseries-snapshot] Error:', err.message);
+    } finally {
+      snapshotState.running = false;
+    }
+  }, SNAPSHOT_POLL_MS);
+
+  console.log(`[Worker] All ${WORKERS.length} workers registered`);
+}
+
 async function startBackgroundRefreshWhenReady() {
   _networkOnline = await checkNetworkConnectivity();
 
@@ -233,407 +374,12 @@ async function startBackgroundRefreshWhenReady() {
         _networkCheckInterval = null;
         startBackgroundRefresh();
       }
-    }, 60000);
+    }, NETWORK_PROBE_INTERVAL_MS);
     return;
   }
 
   console.log('[Network] Internet access confirmed');
   startBackgroundRefresh();
-}
-
-function startBackgroundRefresh() {
-  // Initial fetch
-  console.log('[Worker] Starting initial content fetch...');
-  aggregationService.getCombinedFeed({ refresh: true }).catch(console.error);
-
-  // Initial conflict data fetch
-  console.log('[Worker] Starting initial conflict data fetch...');
-  conflictService.getLiveData().catch(console.error);
-
-  // Initial tariff data fetch
-  console.log('[Worker] Starting initial tariff data fetch...');
-  tariffService.getLiveData().catch(console.error);
-
-  // Initial world leaders fetch (Wikidata)
-  console.log('[Worker] Starting initial world leaders fetch...');
-  wikidataService.getWorldLeaders().catch(console.error);
-
-  // Initial UCDP conflict events fetch
-  console.log('[Worker] Starting initial UCDP conflict events fetch...');
-  ucdpService.getActiveConflicts().catch(console.error);
-
-  // Pre-warm World Bank economic data for major countries (delayed to avoid startup contention)
-  setTimeout(() => {
-    console.log('[Worker] Pre-warming World Bank economic data...');
-    worldBankService.preloadCountries(PRELOAD_COUNTRIES).catch(console.error);
-  }, 10000);
-
-  // Periodic refresh — news content
-  refreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing content...');
-    aggregationService.getCombinedFeed({ refresh: true }).catch(console.error);
-  }, config.polling.news);
-
-  // Periodic refresh — conflict data (every 30 min)
-  const CONFLICT_POLL_MS = 30 * 60 * 1000;
-  conflictRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing conflict data...');
-    conflictService.getLiveData().catch(console.error);
-  }, CONFLICT_POLL_MS);
-
-  // Periodic refresh — tariff data (every 15 min)
-  const TARIFF_POLL_MS = 15 * 60 * 1000;
-  tariffRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing tariff data...');
-    tariffService.getLiveData().catch(console.error);
-  }, TARIFF_POLL_MS);
-
-  // Periodic refresh — world leaders (every 24 hours)
-  const LEADERS_POLL_MS = 24 * 60 * 60 * 1000;
-  leadersRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing world leaders data...');
-    wikidataService.getWorldLeaders().catch(console.error);
-  }, LEADERS_POLL_MS);
-
-  // Periodic refresh — World Bank economic data (every 24 hours)
-  const ECONOMIC_POLL_MS = 24 * 60 * 60 * 1000;
-  economicRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing World Bank economic data...');
-    worldBankService.preloadCountries(PRELOAD_COUNTRIES).catch(console.error);
-  }, ECONOMIC_POLL_MS);
-
-  // Periodic refresh — UCDP conflict events (every 24 hours)
-  const UCDP_POLL_MS = 24 * 60 * 60 * 1000;
-  ucdpRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing UCDP conflict events...');
-    ucdpService.getActiveConflicts().catch(console.error);
-  }, UCDP_POLL_MS);
-
-  // Initial election live data fetch (delayed to let market services warm up)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial election live data fetch...');
-    electionLiveService.getLiveData().catch(err => {
-      console.warn('[Worker] Election live data initial fetch incomplete:', err.message);
-    });
-  }, 30000);
-
-  // Periodic refresh — election live data (every 15 min)
-  const ELECTION_POLL_MS = 15 * 60 * 1000;
-  electionRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing election live data...');
-    electionLiveService.getLiveData().catch(console.error);
-  }, ELECTION_POLL_MS);
-
-  // Initial election news fetch (GDELT — no auth needed)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial election news fetch...');
-    electionNewsService.getTopElectionNews().catch(console.error);
-    electionNewsService.getBattlegroundOverview().catch(console.error);
-  }, 20000);
-
-  // Periodic refresh — election news (every 10 min)
-  const ELECTION_NEWS_POLL_MS = 10 * 60 * 1000;
-  electionNewsRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing election news...');
-    electionNewsService.getTopElectionNews().catch(console.error);
-    electionNewsService.getBattlegroundOverview().catch(console.error);
-  }, ELECTION_NEWS_POLL_MS);
-
-  // Initial stability data fetch (delayed to avoid GDELT contention with electionNews at 20s)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial stability data fetch...');
-    stabilityService.getCombinedData().catch(console.error);
-  }, 35000);
-
-  // Periodic refresh — stability data (every 15 min)
-  const STABILITY_POLL_MS = 15 * 60 * 1000;
-  stabilityRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing stability data...');
-    stabilityService.getCombinedData().catch(console.error);
-  }, STABILITY_POLL_MS);
-
-  // ── New service workers (staggered startup to avoid contention) ──
-
-  // Disasters — every 10 minutes (NASA EONET + ReliefWeb)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial disasters fetch...');
-    disastersService.getCombinedData().catch(console.error);
-  }, 25000);
-  const DISASTER_POLL_MS = 10 * 60 * 1000;
-  disasterRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing disaster data...');
-    disastersService.getCombinedData().catch(console.error);
-  }, DISASTER_POLL_MS);
-
-  // Cyber — every 10 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial cyber fetch...');
-    cyberService.getCombinedData().catch(console.error);
-  }, 28000);
-  const CYBER_POLL_MS = 10 * 60 * 1000;
-  cyberRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing cyber data...');
-    cyberService.getCombinedData().catch(console.error);
-  }, CYBER_POLL_MS);
-
-  // Refugees — every 1 hour
-  setTimeout(() => {
-    console.log('[Worker] Starting initial refugee data fetch...');
-    refugeeService.getCombinedData().catch(console.error);
-  }, 30000);
-  const REFUGEE_POLL_MS = 60 * 60 * 1000;
-  refugeeRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing refugee data...');
-    refugeeService.getCombinedData().catch(console.error);
-  }, REFUGEE_POLL_MS);
-
-  // Court — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial court data fetch...');
-    courtService.getCombinedData().catch(console.error);
-  }, 32000);
-  const COURT_POLL_MS = 15 * 60 * 1000;
-  courtRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing court data...');
-    courtService.getCombinedData().catch(console.error);
-  }, COURT_POLL_MS);
-
-  // Commodities — every 5 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial commodities fetch...');
-    commoditiesService.getCombinedData().catch(console.error);
-  }, 34000);
-  const COMMODITIES_POLL_MS = 5 * 60 * 1000;
-  commoditiesRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing commodity data...');
-    commoditiesService.getCombinedData().catch(console.error);
-  }, COMMODITIES_POLL_MS);
-
-  // Metaculus — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial Metaculus fetch...');
-    metaculusService.getCombinedData().catch(console.error);
-  }, 36000);
-  const METACULUS_POLL_MS = 15 * 60 * 1000;
-  metaculusRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing Metaculus data...');
-    metaculusService.getCombinedData().catch(console.error);
-  }, METACULUS_POLL_MS);
-
-  // Sanctions — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial sanctions fetch...');
-    sanctionsService.getCombinedData().catch(console.error);
-  }, 38000);
-  const SANCTIONS_POLL_MS = 15 * 60 * 1000;
-  sanctionsRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing sanctions data...');
-    sanctionsService.getCombinedData().catch(console.error);
-  }, SANCTIONS_POLL_MS);
-
-  // Shipping — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial shipping fetch...');
-    shippingService.getCombinedData().catch(console.error);
-  }, 40000);
-  const SHIPPING_POLL_MS = 15 * 60 * 1000;
-  shippingRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing shipping data...');
-    shippingService.getCombinedData().catch(console.error);
-  }, SHIPPING_POLL_MS);
-
-  // Country risk scores — every 30 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial risk score computation...');
-    countryRiskService.getCountryRiskScores().catch(console.error);
-  }, 45000);
-  const RISK_POLL_MS = 30 * 60 * 1000;
-  riskRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing risk scores...');
-    countryRiskService.getCountryRiskScores().catch(console.error);
-  }, RISK_POLL_MS);
-
-  // Global tension index — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial tension index computation...');
-    tensionIndexService.getGlobalTension().catch(console.error);
-  }, 48000);
-  const TENSION_POLL_MS = 15 * 60 * 1000;
-  tensionRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing tension index...');
-    tensionIndexService.getGlobalTension().catch(console.error);
-  }, TENSION_POLL_MS);
-
-  // Briefing — every 10 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial briefing generation...');
-    briefingService.getGlobalBriefing().catch(console.error);
-  }, 55000);
-  const BRIEFING_POLL_MS = 10 * 60 * 1000;
-  briefingRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing global briefing...');
-    briefingService.getGlobalBriefing().catch(console.error);
-  }, BRIEFING_POLL_MS);
-
-  // ── New Phase 2 services (staggered startup) ──
-
-  // Narrative & Sentiment — every 10 minutes (GDELT Tone)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial narrative tracking...');
-    narrativeService.getCombinedData().catch(console.error);
-  }, 58000);
-  const NARRATIVE_POLL_MS = 10 * 60 * 1000;
-  narrativeRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing narrative data...');
-    narrativeService.getCombinedData().catch(console.error);
-  }, NARRATIVE_POLL_MS);
-
-  // Regime Stability — every 30 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial regime stability computation...');
-    regimeService.getCombinedData().catch(console.error);
-  }, 62000);
-  const REGIME_POLL_MS = 30 * 60 * 1000;
-  regimeRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing regime data...');
-    regimeService.getCombinedData().catch(console.error);
-  }, REGIME_POLL_MS);
-
-  // Alliance Network — every 1 hour
-  setTimeout(() => {
-    console.log('[Worker] Starting initial alliance network analysis...');
-    allianceService.getCombinedData().catch(console.error);
-  }, 65000);
-  const ALLIANCE_POLL_MS = 60 * 60 * 1000;
-  allianceRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing alliance data...');
-    allianceService.getCombinedData().catch(console.error);
-  }, ALLIANCE_POLL_MS);
-
-  // Infrastructure Vulnerability — every 15 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial infrastructure monitoring...');
-    infrastructureService.getCombinedData().catch(console.error);
-  }, 68000);
-  const INFRA_POLL_MS = 15 * 60 * 1000;
-  infrastructureRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing infrastructure data...');
-    infrastructureService.getCombinedData().catch(console.error);
-  }, INFRA_POLL_MS);
-
-  // Demographic Risk — every 24 hours (World Bank data is slow-moving)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial demographic risk analysis...');
-    demographicService.getCombinedData().catch(console.error);
-  }, 72000);
-  const DEMOGRAPHIC_POLL_MS = 24 * 60 * 60 * 1000;
-  demographicRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing demographic data...');
-    demographicService.getCombinedData().catch(console.error);
-  }, DEMOGRAPHIC_POLL_MS);
-
-  // Source Credibility — every 10 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial credibility analysis...');
-    credibilityService.getCombinedData().catch(console.error);
-  }, 75000);
-  const CREDIBILITY_POLL_MS = 10 * 60 * 1000;
-  credibilityRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing credibility data...');
-    credibilityService.getCombinedData().catch(console.error);
-  }, CREDIBILITY_POLL_MS);
-
-  // Leadership Intelligence — every 1 hour
-  setTimeout(() => {
-    console.log('[Worker] Starting initial leadership intelligence...');
-    leadershipService.getCombinedData().catch(console.error);
-  }, 78000);
-  const LEADERSHIP_POLL_MS = 60 * 60 * 1000;
-  leadershipRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing leadership data...');
-    leadershipService.getCombinedData().catch(console.error);
-  }, LEADERSHIP_POLL_MS);
-
-  // Health & pandemic monitoring
-  setTimeout(() => {
-    console.log('[Worker] Starting initial health & pandemic fetch...');
-    healthService.getCombinedData().catch(console.error);
-  }, 82000);
-  const HEALTH_POLL_MS = 30 * 60 * 1000;
-  healthRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing health & pandemic data...');
-    healthService.getCombinedData().catch(console.error);
-  }, HEALTH_POLL_MS);
-
-  // Climate & environment monitoring — every 30 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial climate & environment fetch...');
-    climateService.getCombinedData().catch(console.error);
-  }, 85000);
-  const CLIMATE_POLL_MS = 30 * 60 * 1000;
-  climateRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing climate & environment data...');
-    climateService.getCombinedData().catch(console.error);
-  }, CLIMATE_POLL_MS);
-
-  // Nuclear threat monitoring — every 30 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial nuclear threat fetch...');
-    nuclearService.getCombinedData().catch(console.error);
-  }, 88000);
-  const NUCLEAR_POLL_MS = 30 * 60 * 1000;
-  nuclearRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing nuclear threat data...');
-    nuclearService.getCombinedData().catch(console.error);
-  }, NUCLEAR_POLL_MS);
-
-  // AI & technology monitoring — every 30 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial AI/tech fetch...');
-    aitechService.getCombinedData().catch(console.error);
-  }, 91000);
-  const AITECH_POLL_MS = 30 * 60 * 1000;
-  aitechRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing AI/tech data...');
-    aitechService.getCombinedData().catch(console.error);
-  }, AITECH_POLL_MS);
-
-  // Emerging news capture — every 10 minutes
-  setTimeout(() => {
-    console.log('[Worker] Starting initial emerging news scan...');
-    emergingNewsService.getCombinedData().catch(console.error);
-  }, 94000);
-  const EMERGING_POLL_MS = 10 * 60 * 1000;
-  emergingRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing emerging news...');
-    emergingNewsService.getCombinedData().catch(console.error);
-  }, EMERGING_POLL_MS);
-
-  // Timeseries snapshots — piggyback on tension index refresh
-  const SNAPSHOT_POLL_MS = 15 * 60 * 1000;
-  setInterval(async () => {
-    try {
-      const tension = await tensionIndexService.getGlobalTension();
-      await timeseriesService.snapshot({
-        tensionIndex: tension?.index,
-        activeConflictCount: tension?.summary?.totalConflicts,
-        conflictIntensities: tension?.activeConflicts?.reduce((acc, c) => {
-          acc[c.id] = c.intensity;
-          return acc;
-        }, {}),
-      });
-    } catch (err) {
-      console.error('[Worker] Timeseries snapshot error:', err.message);
-    }
-  }, SNAPSHOT_POLL_MS);
-
-  console.log(`[Worker] Background refresh every ${config.polling.news / 1000}s`);
-  console.log(`[Worker] Conflict data refresh every ${CONFLICT_POLL_MS / 1000}s`);
-  console.log(`[Worker] Tariff data refresh every ${TARIFF_POLL_MS / 1000}s`);
-  console.log(`[Worker] World leaders refresh every ${LEADERS_POLL_MS / 1000}s`);
-  console.log(`[Worker] Economic data refresh every ${ECONOMIC_POLL_MS / 1000}s`);
-  console.log(`[Worker] UCDP conflict data refresh every ${UCDP_POLL_MS / 1000}s`);
-  console.log(`[Worker] New services: disasters(${DISASTER_POLL_MS/1000}s) cyber(${CYBER_POLL_MS/1000}s) commodities(${COMMODITIES_POLL_MS/1000}s) tensions(${TENSION_POLL_MS/1000}s)`);
 }
 
 // ===========================================
@@ -643,7 +389,11 @@ function startBackgroundRefresh() {
 async function start() {
   console.log('===========================================');
   console.log('  Monitored API - Starting...');
+  console.log(`  Node ${process.version} | PID ${process.pid}`);
   console.log('===========================================');
+
+  // Validate critical config
+  config.validate();
 
   // Connect to Redis
   console.log('[Startup] Connecting to Redis...');
@@ -675,44 +425,34 @@ async function start() {
 // GRACEFUL SHUTDOWN
 // ===========================================
 
+let _shuttingDown = false;
+
 async function shutdown(signal) {
+  if (_shuttingDown) return; // prevent double-shutdown
+  _shuttingDown = true;
+
   console.log(`\n[Shutdown] Received ${signal}...`);
 
+  // Stop accepting new connections
   server.close(() => console.log('[Shutdown] HTTP server closed'));
-  
-  if (refreshInterval) clearInterval(refreshInterval);
-  if (conflictRefreshInterval) clearInterval(conflictRefreshInterval);
-  if (tariffRefreshInterval) clearInterval(tariffRefreshInterval);
-  if (leadersRefreshInterval) clearInterval(leadersRefreshInterval);
-  if (economicRefreshInterval) clearInterval(economicRefreshInterval);
-  if (ucdpRefreshInterval) clearInterval(ucdpRefreshInterval);
-  if (electionRefreshInterval) clearInterval(electionRefreshInterval);
-  if (electionNewsRefreshInterval) clearInterval(electionNewsRefreshInterval);
-  if (stabilityRefreshInterval) clearInterval(stabilityRefreshInterval);
-  if (disasterRefreshInterval) clearInterval(disasterRefreshInterval);
-  if (cyberRefreshInterval) clearInterval(cyberRefreshInterval);
-  if (refugeeRefreshInterval) clearInterval(refugeeRefreshInterval);
-  if (courtRefreshInterval) clearInterval(courtRefreshInterval);
-  if (commoditiesRefreshInterval) clearInterval(commoditiesRefreshInterval);
-  if (metaculusRefreshInterval) clearInterval(metaculusRefreshInterval);
-  if (sanctionsRefreshInterval) clearInterval(sanctionsRefreshInterval);
-  if (shippingRefreshInterval) clearInterval(shippingRefreshInterval);
-  if (riskRefreshInterval) clearInterval(riskRefreshInterval);
-  if (tensionRefreshInterval) clearInterval(tensionRefreshInterval);
-  if (briefingRefreshInterval) clearInterval(briefingRefreshInterval);
-  if (narrativeRefreshInterval) clearInterval(narrativeRefreshInterval);
-  if (regimeRefreshInterval) clearInterval(regimeRefreshInterval);
-  if (allianceRefreshInterval) clearInterval(allianceRefreshInterval);
-  if (infrastructureRefreshInterval) clearInterval(infrastructureRefreshInterval);
-  if (demographicRefreshInterval) clearInterval(demographicRefreshInterval);
-  if (credibilityRefreshInterval) clearInterval(credibilityRefreshInterval);
-  if (leadershipRefreshInterval) clearInterval(leadershipRefreshInterval);
-  if (healthRefreshInterval) clearInterval(healthRefreshInterval);
-  if (climateRefreshInterval) clearInterval(climateRefreshInterval);
-  if (nuclearRefreshInterval) clearInterval(nuclearRefreshInterval);
-  if (aitechRefreshInterval) clearInterval(aitechRefreshInterval);
-  if (emergingRefreshInterval) clearInterval(emergingRefreshInterval);
+
+  // Clear all worker intervals and pending timeouts
+  for (const [name, state] of workerState) {
+    if (state.intervalId) clearInterval(state.intervalId);
+    if (state.timeoutId) clearTimeout(state.timeoutId);
+  }
   if (_networkCheckInterval) clearInterval(_networkCheckInterval);
+
+  // Wait for in-flight requests to drain (up to SHUTDOWN_TIMEOUT_MS)
+  const drainStart = Date.now();
+  while (inFlightRequests > 0 && (Date.now() - drainStart) < SHUTDOWN_TIMEOUT_MS) {
+    console.log(`[Shutdown] Waiting for ${inFlightRequests} in-flight requests...`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  if (inFlightRequests > 0) {
+    console.warn(`[Shutdown] Forcing shutdown with ${inFlightRequests} requests still in-flight`);
+  }
+
   wsHandler.shutdown();
   await cacheService.disconnect();
 
@@ -722,6 +462,11 @@ async function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Catch unhandled rejections so they don't silently crash the process
+process.on('unhandledRejection', (reason) => {
+  console.error('[Fatal] Unhandled promise rejection:', reason);
+});
 
 start().catch((error) => {
   console.error('[Fatal]', error);

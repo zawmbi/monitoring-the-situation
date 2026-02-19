@@ -1,8 +1,8 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl dumb-init
 
 # Copy root workspace config first for better layer caching
 COPY package*.json ./
@@ -25,4 +25,6 @@ EXPOSE 4000
 ENV NODE_ENV=production
 ENV PORT=4000
 
+# dumb-init ensures signals (SIGTERM) are forwarded properly to Node
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "backend/src/index.js"]

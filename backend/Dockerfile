@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl dumb-init
 
 COPY package*.json ./
 
@@ -18,4 +18,8 @@ USER nodejs
 
 EXPOSE 4000
 
+ENV NODE_ENV=production
+ENV PORT=4000
+
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "src/index.js"]
