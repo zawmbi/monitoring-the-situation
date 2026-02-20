@@ -1,17 +1,17 @@
 /**
  * useElectionLive Hook
- * Fetches live election data from the backend (market-derived ratings + FEC data).
+ * Fetches live prediction market odds from the backend (Polymarket + Kalshi + PredictIt).
  * Merges with static fallback data from electionData.js.
- * Auto-refreshes every 5 minutes for a live feel.
+ * Auto-refreshes every 60 seconds for a live feel.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStateElectionData, SENATE_RACES, GOVERNOR_RACES } from '../features/elections/electionData';
 import { API_URL } from '../services/api';
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 45000; // 45s — model first-compute can take 15-30s
-const RETRY_DELAY = 8000; // Retry quickly after first failure (model may still be computing)
+const REFRESH_INTERVAL = 60 * 1000; // 1 minute — market odds update frequently
+const FETCH_TIMEOUT = 15000; // 15s — markets-only fetch is fast
+const RETRY_DELAY = 5000;
 const MAX_RETRIES = 2;
 
 export function useElectionLive(stateName) {
@@ -85,169 +85,49 @@ export function useElectionLive(stateName) {
   }, [fetchLiveData]);
 
   /**
-   * Merge static election data with live data for a specific state.
-   * Live market-derived ratings override static ratings.
-   * FEC fundraising supplements static fundraising data.
+   * Merge static election data with live market odds.
+   * Market data overrides static probabilities when available.
    */
   const getStateData = useCallback((state) => {
     const staticData = getStateElectionData(state);
     if (!liveData) return { ...staticData, live: null };
 
     const marketRatings = liveData.marketRatings || {};
-    const fecData = liveData.fecData || {};
 
-    // Merge polling data from Wikipedia
-    const pollingData = liveData.pollingData || {};
-    const statePolls = pollingData.byState?.[state] || null;
-
-    // Merge Senate data
-    let senate = staticData.senate;
-    const senateKey = `${state}:senate`;
-    const senateLive = marketRatings[senateKey];
-    if (senate && senateLive) {
-      senate = {
-        ...senate,
-        liveRating: senateLive.derivedRating,
-        dWinProb: senateLive.dWinProb,
-        rWinProb: senateLive.rWinProb,
-        marketUrl: senateLive.marketUrl,
-        marketSource: senateLive.marketSource,
-        marketVolume: senateLive.marketVolume,
-        marketOutcomes: senateLive.outcomes,
-        // Ensemble model fields
-        confidence: senateLive.confidence || null,
-        signalCount: senateLive.signalCount || 0,
-        breakdown: senateLive.breakdown || null,
-        pollingMargin: senateLive.pollingMargin || null,
-        pollCount: senateLive.pollCount || 0,
-        pollingSources: senateLive.pollingSources || [],
-        pvi: senateLive.pvi || null,
-        primaryProjections: senateLive.primaryProjections || null,
+    // Helper: merge live market data into a race object
+    const mergeMarketData = (race, liveRace) => {
+      if (!race || !liveRace) return race;
+      return {
+        ...race,
+        liveRating: liveRace.derivedRating,
+        dWinProb: liveRace.dWinProb,
+        rWinProb: liveRace.rWinProb,
+        marketUrl: liveRace.marketUrl,
+        marketSource: liveRace.marketSource,
+        marketVolume: liveRace.marketVolume,
+        marketOutcomes: liveRace.outcomes,
+        _fundamentalsOnly: false,
       };
-    }
-    // Attach live polls to senate race
-    if (senate && statePolls) {
-      senate = {
-        ...senate,
-        liveGeneralPolls: statePolls.generalPolls || [],
-        livePrimaryPolls: statePolls.primaryPolls || [],
-      };
-    }
-
-    // Merge Governor data
-    let governor = staticData.governor;
-    const govKey = `${state}:governor`;
-    const govLive = marketRatings[govKey];
-    if (governor && govLive) {
-      governor = {
-        ...governor,
-        liveRating: govLive.derivedRating,
-        dWinProb: govLive.dWinProb,
-        rWinProb: govLive.rWinProb,
-        marketUrl: govLive.marketUrl,
-        marketSource: govLive.marketSource,
-        marketVolume: govLive.marketVolume,
-        marketOutcomes: govLive.outcomes,
-        confidence: govLive.confidence || null,
-        signalCount: govLive.signalCount || 0,
-        breakdown: govLive.breakdown || null,
-        pvi: govLive.pvi || null,
-        primaryProjections: govLive.primaryProjections || null,
-      };
-    }
-
-    // Merge House district data
-    let houseDistricts = staticData.houseDistricts || [];
-    if (houseDistricts.length > 0) {
-      houseDistricts = houseDistricts.map(d => {
-        const distKey = `${state}:house:${d.code}`;
-        const distLive = marketRatings[distKey];
-        if (!distLive) return d;
-        return {
-          ...d,
-          liveRating: distLive.derivedRating,
-          dWinProb: distLive.dWinProb,
-          rWinProb: distLive.rWinProb,
-          marketUrl: distLive.marketUrl,
-          marketSource: distLive.marketSource,
-          marketVolume: distLive.marketVolume,
-          marketOutcomes: distLive.outcomes,
-          confidence: distLive.confidence || null,
-          signalCount: distLive.signalCount || 0,
-          breakdown: distLive.breakdown || null,
-        };
-      });
-    }
-
-    // State code lookup for FEC/IE data
-    const stateCodeMap = {
-      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-      'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-      'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-      'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-      'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-      'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-      'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-      'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-      'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-      'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-      'Wisconsin': 'WI', 'Wyoming': 'WY',
     };
-    const sc = stateCodeMap[state] || '';
-    const ieData = (liveData.independentExpenditures || {})[sc] || null;
 
-    // Merge FEC candidate data into race fundraising
-    const fecCandidates = (liveData.fecCandidates || {})[sc] || [];
-    const fecSummary = fecData[sc] || null;
+    const senate = mergeMarketData(staticData.senate, marketRatings[`${state}:senate`]);
+    const governor = mergeMarketData(staticData.governor, marketRatings[`${state}:governor`]);
 
-    // Build live fundraising from FEC candidates
-    if (fecCandidates.length > 0) {
-      const liveFundraising = {};
-      for (const c of fecCandidates) {
-        const p = c.party;
-        if (!p) continue;
-        if (!liveFundraising[p]) liveFundraising[p] = 0;
-        liveFundraising[p] += c.totalRaised || 0;
-      }
-      const formatMoney = (num) => {
-        if (!num || num === 0) return null;
-        if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-        if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
-        return `$${num.toFixed(0)}`;
-      };
-      const liveFundraisingFormatted = {};
-      for (const [p, total] of Object.entries(liveFundraising)) {
-        const formatted = formatMoney(total);
-        if (formatted) liveFundraisingFormatted[p] = formatted;
-      }
-
-      if (Object.keys(liveFundraisingFormatted).length > 0) {
-        if (senate) {
-          senate = { ...senate, liveFundraising: liveFundraisingFormatted, fecCandidates };
-        }
-      }
-    }
+    let houseDistricts = staticData.houseDistricts || [];
+    houseDistricts = houseDistricts.map(d => {
+      const distLive = marketRatings[`${state}:house:${d.code}`];
+      return distLive ? mergeMarketData(d, distLive) : d;
+    });
 
     return {
       ...staticData,
       senate,
       governor,
       houseDistricts,
-      independentExpenditures: ieData,
-      fecCandidates,
-      fecSummary,
-      upcomingElections: liveData.upcomingElections || [],
-      genericBallot: pollingData.genericBallot || null,
-      approval: pollingData.approval || null,
       live: {
         timestamp: liveData.timestamp,
-        fecConfigured: liveData.fecConfigured,
-        civicConfigured: liveData.civicConfigured,
         marketCount: liveData.marketCount,
-        model: liveData.model || null,
-        senateProjection: liveData.model?.senateProjection || null,
+        racesMatched: liveData.racesMatched,
       },
     };
   }, [liveData]);

@@ -314,19 +314,15 @@ function startBackgroundRefresh() {
     ucdpService.getActiveConflicts().catch(console.error);
   }, UCDP_POLL_MS);
 
-  // Initial election live data fetch (short delay — model uses Promise.allSettled
-  // internally so it gracefully handles services that aren't warmed up yet)
-  setTimeout(() => {
-    console.log('[Worker] Starting initial election live data fetch...');
-    electionLiveService.getLiveData().catch(err => {
-      console.warn('[Worker] Election live data initial fetch incomplete:', err.message);
-    });
-  }, 5000);
+  // Initial election market odds fetch (immediate — markets-only is fast)
+  console.log('[Worker] Starting initial election market odds fetch...');
+  electionLiveService.getLiveData().catch(err => {
+    console.warn('[Worker] Election market odds initial fetch incomplete:', err.message);
+  });
 
-  // Periodic refresh — election live data (every 15 min)
-  const ELECTION_POLL_MS = 15 * 60 * 1000;
+  // Periodic refresh — election market odds (every 2 min for live feel)
+  const ELECTION_POLL_MS = 2 * 60 * 1000;
   electionRefreshInterval = setInterval(() => {
-    console.log('[Worker] Refreshing election live data...');
     electionLiveService.getLiveData().catch(console.error);
   }, ELECTION_POLL_MS);
 
