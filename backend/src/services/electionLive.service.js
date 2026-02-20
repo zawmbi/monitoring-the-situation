@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v7'; // v7: comprehensive slug-based market fetching
+const CACHE_KEY = 'elections:live:v8'; // v8: research-verified slug patterns + expanded districts
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -36,51 +36,102 @@ const GOVERNOR_STATES = [
   'South Dakota', 'Tennessee', 'Texas', 'Vermont', 'Wisconsin', 'Wyoming',
 ];
 
-// Competitive House districts to track (includes all districts with Polymarket markets)
+// Competitive House districts to track (confirmed across Polymarket + Kalshi + PredictIt)
 const HOUSE_DISTRICTS = [
+  { state: 'Alabama', district: 2, code: 'AL-02' },
   { state: 'Arizona', district: 1, code: 'AZ-01' },
+  { state: 'Arizona', district: 2, code: 'AZ-02' },
   { state: 'Arizona', district: 4, code: 'AZ-04' },
   { state: 'Arizona', district: 6, code: 'AZ-06' },
+  { state: 'Arkansas', district: 4, code: 'AR-04' },
   { state: 'California', district: 13, code: 'CA-13' },
+  { state: 'California', district: 14, code: 'CA-14' },
+  { state: 'California', district: 21, code: 'CA-21' },
   { state: 'California', district: 22, code: 'CA-22' },
+  { state: 'California', district: 25, code: 'CA-25' },
   { state: 'California', district: 27, code: 'CA-27' },
+  { state: 'California', district: 39, code: 'CA-39' },
   { state: 'California', district: 40, code: 'CA-40' },
   { state: 'California', district: 41, code: 'CA-41' },
   { state: 'California', district: 45, code: 'CA-45' },
+  { state: 'California', district: 47, code: 'CA-47' },
+  { state: 'California', district: 48, code: 'CA-48' },
+  { state: 'California', district: 49, code: 'CA-49' },
+  { state: 'Colorado', district: 3, code: 'CO-03' },
   { state: 'Colorado', district: 8, code: 'CO-08' },
+  { state: 'Connecticut', district: 5, code: 'CT-05' },
   { state: 'Florida', district: 13, code: 'FL-13' },
+  { state: 'Florida', district: 22, code: 'FL-22' },
   { state: 'Florida', district: 23, code: 'FL-23' },
+  { state: 'Florida', district: 27, code: 'FL-27' },
+  { state: 'Florida', district: 28, code: 'FL-28' },
+  { state: 'Georgia', district: 6, code: 'GA-06' },
+  { state: 'Georgia', district: 7, code: 'GA-07' },
+  { state: 'Indiana', district: 5, code: 'IN-05' },
   { state: 'Iowa', district: 1, code: 'IA-01' },
+  { state: 'Iowa', district: 2, code: 'IA-02' },
   { state: 'Iowa', district: 3, code: 'IA-03' },
   { state: 'Iowa', district: 4, code: 'IA-04' },
+  { state: 'Kansas', district: 3, code: 'KS-03' },
+  { state: 'Kentucky', district: 6, code: 'KY-06' },
   { state: 'Louisiana', district: 6, code: 'LA-06' },
   { state: 'Maine', district: 1, code: 'ME-01' },
   { state: 'Maine', district: 2, code: 'ME-02' },
+  { state: 'Michigan', district: 3, code: 'MI-03' },
   { state: 'Michigan', district: 5, code: 'MI-05' },
+  { state: 'Michigan', district: 6, code: 'MI-06' },
   { state: 'Michigan', district: 7, code: 'MI-07' },
   { state: 'Michigan', district: 8, code: 'MI-08' },
+  { state: 'Michigan', district: 10, code: 'MI-10' },
+  { state: 'Minnesota', district: 1, code: 'MN-01' },
   { state: 'Minnesota', district: 2, code: 'MN-02' },
+  { state: 'Minnesota', district: 3, code: 'MN-03' },
   { state: 'Nebraska', district: 2, code: 'NE-02' },
   { state: 'Nevada', district: 3, code: 'NV-03' },
+  { state: 'Nevada', district: 4, code: 'NV-04' },
+  { state: 'New Hampshire', district: 1, code: 'NH-01' },
+  { state: 'New Hampshire', district: 2, code: 'NH-02' },
+  { state: 'New Jersey', district: 2, code: 'NJ-02' },
+  { state: 'New Jersey', district: 5, code: 'NJ-05' },
   { state: 'New Jersey', district: 7, code: 'NJ-07' },
+  { state: 'New Mexico', district: 2, code: 'NM-02' },
+  { state: 'New York', district: 1, code: 'NY-01' },
+  { state: 'New York', district: 2, code: 'NY-02' },
   { state: 'New York', district: 4, code: 'NY-04' },
+  { state: 'New York', district: 11, code: 'NY-11' },
   { state: 'New York', district: 17, code: 'NY-17' },
   { state: 'New York', district: 18, code: 'NY-18' },
   { state: 'New York', district: 19, code: 'NY-19' },
   { state: 'New York', district: 22, code: 'NY-22' },
   { state: 'North Carolina', district: 1, code: 'NC-01' },
+  { state: 'North Carolina', district: 7, code: 'NC-07' },
+  { state: 'North Carolina', district: 9, code: 'NC-09' },
+  { state: 'North Carolina', district: 13, code: 'NC-13' },
+  { state: 'North Carolina', district: 14, code: 'NC-14' },
+  { state: 'Ohio', district: 1, code: 'OH-01' },
   { state: 'Ohio', district: 9, code: 'OH-09' },
   { state: 'Ohio', district: 13, code: 'OH-13' },
+  { state: 'Oregon', district: 4, code: 'OR-04' },
   { state: 'Oregon', district: 5, code: 'OR-05' },
+  { state: 'Oregon', district: 6, code: 'OR-06' },
   { state: 'Pennsylvania', district: 1, code: 'PA-01' },
+  { state: 'Pennsylvania', district: 4, code: 'PA-04' },
+  { state: 'Pennsylvania', district: 5, code: 'PA-05' },
   { state: 'Pennsylvania', district: 7, code: 'PA-07' },
   { state: 'Pennsylvania', district: 8, code: 'PA-08' },
   { state: 'Pennsylvania', district: 10, code: 'PA-10' },
+  { state: 'Pennsylvania', district: 17, code: 'PA-17' },
+  { state: 'South Carolina', district: 1, code: 'SC-01' },
+  { state: 'Texas', district: 15, code: 'TX-15' },
+  { state: 'Texas', district: 23, code: 'TX-23' },
+  { state: 'Texas', district: 24, code: 'TX-24' },
   { state: 'Texas', district: 28, code: 'TX-28' },
+  { state: 'Texas', district: 32, code: 'TX-32' },
   { state: 'Texas', district: 34, code: 'TX-34' },
   { state: 'Virginia', district: 2, code: 'VA-02' },
   { state: 'Virginia', district: 7, code: 'VA-07' },
   { state: 'Washington', district: 3, code: 'WA-03' },
+  { state: 'Washington', district: 8, code: 'WA-08' },
   { state: 'Wisconsin', district: 1, code: 'WI-01' },
   { state: 'Wisconsin', district: 3, code: 'WI-03' },
 ];
@@ -124,38 +175,63 @@ class ElectionLiveService {
 
   /**
    * Generate Polymarket event slugs for all 2026 races.
-   * These are fetched directly by slug to guarantee coverage.
-   * Slug patterns discovered from Polymarket's actual URL structure.
+   * Slug patterns confirmed via direct Gamma API testing.
    */
   _generatePolymarketSlugs() {
     const slugs = [];
     const toSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
 
-    // Senate general + primaries
+    // Senate general election
     for (const state of SENATE_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-senate-election-winner`);
+      slugs.push(`${s}-us-senate-election-winner`);
+    }
+    // Senate primaries (both parties)
+    for (const state of SENATE_STATES) {
+      const s = toSlug(state);
       slugs.push(`${s}-republican-senate-primary-winner`);
       slugs.push(`${s}-democratic-senate-primary-winner`);
     }
-    // Governor general (multiple slug patterns observed)
+    // Michigan Republican Senate Primary has special suffix
+    slugs.push('michigan-republican-senate-primary-winner-954');
+
+    // Governor general election (confirmed pattern: {state}-governor-winner-2026)
     for (const state of GOVERNOR_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-governor-winner-2026`);
-      slugs.push(`${s}-governor-election-winner`);
-      slugs.push(`${s}-governor-election-2026`);
     }
-    // House districts (pattern: {state-code}-{district}-house-election-winner)
+    // California uses a different slug pattern
+    slugs.push('california-governor-election-2026');
+
+    // Governor primaries (confirmed pattern: {state}-governor-{party}-primary-winner)
+    for (const state of GOVERNOR_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-governor-republican-primary-winner`);
+      slugs.push(`${s}-governor-democratic-primary-winner`);
+    }
+    // Florida uses alternate governor primary slugs
+    slugs.push('republican-nominee-for-florida-governor');
+    slugs.push('democratic-nominee-for-florida-governor');
+    // California jungle primary
+    slugs.push('parties-advancing-from-the-california-governor-primary');
+
+    // House districts (confirmed pattern: {xx}-{dd}-house-election-winner, zero-padded)
     for (const d of HOUSE_DISTRICTS) {
-      const code = d.code.toLowerCase();
-      slugs.push(`${code}-house-election-winner`);
+      const [st, dist] = d.code.split('-');
+      const paddedDist = dist.padStart(2, '0');
+      slugs.push(`${st.toLowerCase()}-${paddedDist}-house-election-winner`);
     }
+
     // Meta / control markets
     slugs.push(
       'which-party-will-win-the-senate-in-2026',
       'which-party-will-win-the-house-in-2026',
       'balance-of-power-2026-midterms',
       'republican-senate-seats-after-the-2026-midterm-elections-927',
+      'republican-house-seats-after-the-2026-midterm-elections',
+      'will-democrats-win-all-core-four-senate-races',
+      'florida-us-senate-election-winner',
     );
     return slugs;
   }
@@ -185,9 +261,16 @@ class ElectionLiveService {
     const kalshiSearches = [
       kalshiService.getMarketsByTopic(['2026'], boost, false),
       kalshiService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary'], false),
-      kalshiService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner'], false),
+      kalshiService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'gubernatorial'], false),
+      kalshiService.getMarketsByTopic(['house'], ['2026', 'election', 'district', 'winner'], false),
+      kalshiService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat', 'nominee'], false),
     ];
-    const predictitSearch = predictitService.getMarketsByTopic(['2026'], boost, false);
+    const predictitSearches = [
+      predictitService.getMarketsByTopic(['2026'], boost, false),
+      predictitService.getMarketsByTopic(['senate'], ['2026', 'election', 'primary', 'nomination'], false),
+      predictitService.getMarketsByTopic(['governor'], ['2026', 'gubernatorial', 'election'], false),
+      predictitService.getMarketsByTopic(['house'], ['2026', 'election', 'district'], false),
+    ];
 
     // Direct slug-based Polymarket fetching for guaranteed coverage
     const slugs = this._generatePolymarketSlugs();
@@ -199,7 +282,7 @@ class ElectionLiveService {
     const allResults = await Promise.allSettled([
       ...polySearches,
       ...kalshiSearches,
-      predictitSearch,
+      ...predictitSearches,
       slugFetch,
     ]);
 
