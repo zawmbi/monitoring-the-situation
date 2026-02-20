@@ -9,7 +9,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStateElectionData, SENATE_RACES, GOVERNOR_RACES } from '../features/elections/electionData';
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 20000;
+const FETCH_TIMEOUT = 45000; // 45s — model first-compute can take 15-30s
+const RETRY_DELAY = 8000; // Retry quickly after first failure (model may still be computing)
+const MAX_RETRIES = 2;
 
 export function useElectionLive(stateName) {
   const [liveData, setLiveData] = useState(null);
@@ -24,7 +26,7 @@ export function useElectionLive(stateName) {
     return () => { isMounted.current = false; };
   }, []);
 
-  const fetchLiveData = useCallback(async () => {
+  const fetchLiveData = useCallback(async (retryCount = 0) => {
     setLoading(true);
     try {
       const controller = new AbortController();
@@ -41,6 +43,14 @@ export function useElectionLive(stateName) {
       if (!isMounted.current) return;
 
       if (result.success && result.data) {
+        const mr = result.data.marketRatings || {};
+        // If the response has no market ratings and we haven't retried yet,
+        // the model may still be computing — retry after a short delay.
+        if (Object.keys(mr).length === 0 && retryCount < MAX_RETRIES) {
+          console.log(`[useElectionLive] Empty ratings, retrying in ${RETRY_DELAY / 1000}s (${retryCount + 1}/${MAX_RETRIES})...`);
+          setTimeout(() => { if (isMounted.current) fetchLiveData(retryCount + 1); }, RETRY_DELAY);
+          return;
+        }
         globalCache.current = result.data;
         fetchedGlobal.current = true;
         setLiveData(result.data);
@@ -48,8 +58,13 @@ export function useElectionLive(stateName) {
       }
     } catch (err) {
       if (!isMounted.current) return;
-      // Keep showing stale data on error
-      console.warn('[useElectionLive] Fetch failed:', err.message);
+      // Retry on timeout/network errors — model may still be computing on first load
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[useElectionLive] Fetch failed (${err.message}), retrying in ${RETRY_DELAY / 1000}s (${retryCount + 1}/${MAX_RETRIES})...`);
+        setTimeout(() => { if (isMounted.current) fetchLiveData(retryCount + 1); }, RETRY_DELAY);
+        return;
+      }
+      console.warn('[useElectionLive] Fetch failed after retries:', err.message);
     } finally {
       if (isMounted.current) setLoading(false);
     }

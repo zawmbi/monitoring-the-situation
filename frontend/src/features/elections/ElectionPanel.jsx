@@ -239,21 +239,20 @@ function HouseDistrictRace({ district, electionView }) {
       {race.note && <div className="el-note">{race.note}</div>}
       {electionView === 'general' && (
         <>
-          {race.dWinProb != null ? (
-            <>
-              {race.marketOutcomes && race.marketOutcomes.length > 0 && (
-                <MarketOutcomes
-                  outcomes={race.marketOutcomes}
-                  marketSource={race.marketSource}
-                  marketUrl={race.marketUrl}
-                />
-              )}
-            </>
-          ) : (
+          {race.marketOutcomes && race.marketOutcomes.length > 0 && (
+            <MarketOutcomes
+              outcomes={race.marketOutcomes}
+              marketSource={race.marketSource}
+              marketUrl={race.marketUrl}
+            />
+          )}
+          {!race.marketOutcomes?.length && (
             <>
               <div className="el-section-title el-static-label">
                 General Election (Estimated)
-                <span className="el-static-badge">NO LIVE DATA</span>
+                {race.dWinProb == null && (
+                  <span className="el-static-badge">NO LIVE DATA</span>
+                )}
               </div>
               <PollBar candidates={race.candidates.general} partyColors={PARTY_COLORS} />
             </>
@@ -1238,24 +1237,22 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 )}
 
                 {/* Market probabilities */}
-                {activeRace.dWinProb != null && (
-                  <>
-                    {activeRace.marketOutcomes && activeRace.marketOutcomes.length > 0 && (
-                      <MarketOutcomes
-                        outcomes={activeRace.marketOutcomes}
-                        marketSource={activeRace.marketSource}
-                        marketUrl={activeRace.marketUrl}
-                      />
-                    )}
-                  </>
+                {activeRace.marketOutcomes && activeRace.marketOutcomes.length > 0 && (
+                  <MarketOutcomes
+                    outcomes={activeRace.marketOutcomes}
+                    marketSource={activeRace.marketSource}
+                    marketUrl={activeRace.marketUrl}
+                  />
                 )}
 
-                {/* Fallback: static estimates only when no live data at all */}
-                {!activeRace.liveGeneralPolls?.length && activeRace.dWinProb == null && (
+                {/* Static poll estimates: shown when no live polls or market outcomes */}
+                {!activeRace.liveGeneralPolls?.length && !activeRace.marketOutcomes?.length && (
                   <>
                     <div className="el-section-title el-static-label">
                       General Election (Estimated)
-                      <span className="el-static-badge">NO LIVE DATA</span>
+                      {activeRace.dWinProb == null && (
+                        <span className="el-static-badge">NO LIVE DATA</span>
+                      )}
                     </div>
                     <PollBar candidates={activeRace.candidates.general} partyColors={PARTY_COLORS} />
                   </>

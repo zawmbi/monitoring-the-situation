@@ -221,6 +221,14 @@ async function startBackgroundRefreshWhenReady() {
     console.warn('  Server is still running with cached/mock data');
     console.warn('===========================================');
 
+    // Pre-compute election model even offline — fundamentals (Cook PVI) are
+    // embedded and don't require network.  This ensures the frontend always
+    // has at least fundamentals-based probabilities on first load.
+    console.log('[Worker] Pre-computing election model (offline, fundamentals only)...');
+    electionLiveService.getLiveData().catch(err => {
+      console.warn('[Worker] Offline election pre-compute incomplete:', err.message);
+    });
+
     _networkCheckInterval = setInterval(async () => {
       const online = await checkNetworkConnectivity();
       if (online && !_networkOnline) {
@@ -306,13 +314,14 @@ function startBackgroundRefresh() {
     ucdpService.getActiveConflicts().catch(console.error);
   }, UCDP_POLL_MS);
 
-  // Initial election live data fetch (delayed to let market services warm up)
+  // Initial election live data fetch (short delay — model uses Promise.allSettled
+  // internally so it gracefully handles services that aren't warmed up yet)
   setTimeout(() => {
     console.log('[Worker] Starting initial election live data fetch...');
     electionLiveService.getLiveData().catch(err => {
       console.warn('[Worker] Election live data initial fetch incomplete:', err.message);
     });
-  }, 30000);
+  }, 5000);
 
   // Periodic refresh — election live data (every 15 min)
   const ELECTION_POLL_MS = 15 * 60 * 1000;
