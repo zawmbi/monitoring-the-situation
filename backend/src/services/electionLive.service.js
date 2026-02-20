@@ -18,7 +18,7 @@ import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
 import { electionModelService } from './electionModel.service.js';
 
-const CACHE_KEY = 'elections:live:v4'; // v4: RCP replaces 538, diagnostics added
+const CACHE_KEY = 'elections:live:v5'; // v5: RCP race page fallback, proper state mapping
 const CACHE_TTL = 900; // 15 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)

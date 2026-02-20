@@ -19,7 +19,7 @@ import { realClearPollingService } from './realClearPolling.service.js';
 import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
 
-const CACHE_KEY = 'polling-agg:v2';
+const CACHE_KEY = 'polling-agg:v3';
 const CACHE_TTL = 1800; // 30 min
 
 /**

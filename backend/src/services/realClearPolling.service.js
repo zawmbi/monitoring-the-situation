@@ -2,20 +2,27 @@
  * RealClearPolling Service
  *
  * Replaces the defunct FiveThirtyEight polling CSV service.
- * Dynamically discovers races from RealClearPolling's index pages
- * and fetches individual poll data via their JSON API.
+ * Discovers races from RealClearPolling index pages, then fetches
+ * poll data from individual race pages (RSC-embedded JSON).
+ *
+ * Data flow:
+ *   1. Index page → discover races (fullPath + pollId from RSC cardsCollection)
+ *   2. For each race, try JSON API (usually 403)
+ *   3. Fallback: fetch individual race page, extract polls from RSC flight data
+ *   4. Last resort: parse rendered HTML on index page for recent polls
  *
  * Sources:
  *   Index:  https://www.realclearpolling.com/latest-polls/senate (and /governor, /house)
- *   Data:   https://www.realclearpolitics.com/epolls/json/polling_data/{ID}.json
+ *   Races:  https://www.realclearpolling.com/polls/senate/general/2026/georgia/...
+ *   JSON:   https://orig.realclearpolitics.com/poll/race/{ID}/polling_data.json (often 403)
  *
- * No auth required. Uses browser-like User-Agent.
  * Attribution: RealClearPolling / RealClearPolitics
  */
 
 import { cacheService } from './cache.service.js';
 
 const INDEX_BASE = 'https://www.realclearpolling.com/latest-polls';
+const RACE_PAGE_BASE = 'https://www.realclearpolling.com/polls';
 const JSON_BASE = 'https://www.realclearpolitics.com/epolls/json';
 const ORIG_JSON_BASE = 'https://orig.realclearpolitics.com/poll/race';
 const CACHE_PREFIX = 'rcp-polls:';
@@ -51,9 +58,6 @@ const PARTY_KEYWORDS = {
   'DEM': 'D', 'REP': 'R', 'IND': 'I',
 };
 
-/**
- * Infer party from candidate name or affiliation string.
- */
 function inferParty(name, affiliation) {
   if (affiliation) {
     const aff = affiliation.trim();
@@ -63,23 +67,16 @@ function inferParty(name, affiliation) {
     if (/libertarian/i.test(aff) || aff === 'L') return 'L';
     if (/green/i.test(aff) || aff === 'G') return 'G';
   }
-  // Check name for party indicators
   for (const [keyword, party] of Object.entries(PARTY_KEYWORDS)) {
     if (name && name.includes(keyword)) return party;
   }
   return '?';
 }
 
-/**
- * Parse a state name from a URL slug.
- */
 function stateFromSlug(slug) {
   return STATE_SLUG_MAP[slug?.toLowerCase()] || null;
 }
 
-/**
- * Strip HTML tags from a string.
- */
 function stripHtml(html) {
   return (html || '')
     .replace(/<[^>]+>/g, '')
@@ -97,9 +94,6 @@ class RealClearPollingService {
     this._available = null; // null = untested
   }
 
-  /**
-   * Fetch a URL with browser-like headers.
-   */
   async _fetch(url) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
@@ -134,82 +128,160 @@ class RealClearPollingService {
   }
 
   /**
-   * Discover race IDs and metadata from an RCP index page.
-   * Extracts pollingDataUrl references and race information.
-   * Returns: [{ raceId, state, stage, jsonUrl, title }]
+   * Extract and unescape all RSC flight data chunks from HTML.
+   */
+  _extractRscData(html) {
+    const re = /self\.__next_f\.push\(\[[\d,]+,"((?:[^"\\]|\\.)*)"\]\)/g;
+    let m;
+    const chunks = [];
+    while ((m = re.exec(html)) !== null) {
+      try {
+        chunks.push(
+          m[1]
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\')
+        );
+      } catch { /* skip malformed */ }
+    }
+    return chunks.join('\n');
+  }
+
+  /**
+   * Discover races from an RCP index page using RSC card data.
+   * Correlates "fullPath" with "pollId" from the cardsCollection to
+   * get race ID, state, stage, and race page URL for each race.
+   *
+   * Returns: [{ raceId, state, stage, racePageUrl, jsonUrl }]
    */
   _extractRaceInfo(html, raceType) {
     const races = [];
     const seen = new Set();
+    const rscData = this._extractRscData(html);
+    let m;
 
-    // Pattern 1: Extract pollingDataUrl from embedded JSON
-    // e.g., "pollingDataUrl":"https://orig.realclearpolitics.com/poll/race/8689/polling_data.json"
-    const jsonUrlRe = /pollingDataUrl["']?\s*[:=]\s*["']([^"']+)["']/g;
-    let match;
-    while ((match = jsonUrlRe.exec(html)) !== null) {
-      const url = match[1];
-      const idMatch = url.match(/race\/(\d+)\//);
-      if (idMatch && !seen.has(idMatch[1])) {
-        seen.add(idMatch[1]);
-        races.push({ raceId: idMatch[1], jsonUrl: url });
+    // ── Strategy 1: fullPath + pollId correlation from RSC card data ────
+    const paths = [];
+    const fpRe = /"fullPath"\s*:\s*"([^"]+)"/g;
+    while ((m = fpRe.exec(rscData)) !== null)
+      paths.push({ val: m[1], pos: m.index });
+
+    const ids = [];
+    const idRe = /"pollId"\s*:\s*"(\d+)"/g;
+    while ((m = idRe.exec(rscData)) !== null)
+      ids.push({ val: m[1], pos: m.index });
+
+    const pollingUrls = [];
+    const puRe = /"pollingDataUrl"\s*:\s*"([^"]+)"/g;
+    while ((m = puRe.exec(rscData)) !== null)
+      pollingUrls.push({ val: m[1], pos: m.index });
+
+    for (const fp of paths) {
+      let bestId = null, bestIdDist = Infinity;
+      for (const id of ids) {
+        const d = Math.abs(fp.pos - id.pos);
+        if (d < bestIdDist && d < 500) { bestIdDist = d; bestId = id.val; }
+      }
+
+      let bestUrl = null, bestUrlDist = Infinity;
+      for (const pu of pollingUrls) {
+        const d = Math.abs(fp.pos - pu.pos);
+        if (d < bestUrlDist && d < 500) { bestUrlDist = d; bestUrl = pu.val; }
+      }
+
+      if (!bestId && bestUrl) {
+        const idM = bestUrl.match(/(?:race\/|polling_data\/)(\d+)/);
+        if (idM) bestId = idM[1];
+      }
+
+      if (!bestId) continue;
+      if (seen.has(bestId)) continue;
+      seen.add(bestId);
+
+      // Extract state from fullPath: "senate/general/2026/georgia" → "georgia"
+      const parts = fp.val.split('/');
+      let stateSlug = null;
+      for (const part of parts) {
+        if (stateFromSlug(part)) { stateSlug = part; break; }
+      }
+
+      const state = stateFromSlug(stateSlug);
+      const stage = fp.val.includes('primary') ? 'primary' : 'general';
+
+      races.push({
+        raceId: bestId,
+        state,
+        stage,
+        racePageUrl: `${RACE_PAGE_BASE}/${fp.val}`,
+        jsonUrl: bestUrl || `${ORIG_JSON_BASE}/${bestId}/polling_data.json`,
+      });
+    }
+
+    // ── Strategy 2: pollingDataUrl not matched above ────────────────────
+    const puRe2 = /pollingDataUrl["']?\s*[:=]\s*["']([^"']+)["']/g;
+    while ((m = puRe2.exec(html)) !== null) {
+      const url = m[1];
+      const idM = url.match(/(?:race\/|polling_data\/)(\d+)/);
+      if (idM && !seen.has(idM[1])) {
+        seen.add(idM[1]);
+        races.push({ raceId: idM[1], jsonUrl: url });
       }
     }
 
-    // Pattern 2: Extract race IDs from epolls links
-    // e.g., /epolls/2026/senate/ga/2026_georgia_senate_...-8717.html
-    const epollsRe = /\/epolls\/\d{4}\/(\w+)\/(\w+)\/[^"']*?-(\d+)\.html/g;
-    while ((match = epollsRe.exec(html)) !== null) {
-      const raceId = match[3];
-      if (!seen.has(raceId)) {
-        seen.add(raceId);
-        races.push({
-          raceId,
-          jsonUrl: `${JSON_BASE}/polling_data/${raceId}.json`,
-        });
+    // ── Strategy 3: /poll/race/{id}/ patterns ───────────────────────────
+    const prRe = /\/poll\/race\/(\d+)\//g;
+    while ((m = prRe.exec(html)) !== null) {
+      if (!seen.has(m[1])) {
+        seen.add(m[1]);
+        races.push({ raceId: m[1], jsonUrl: `${ORIG_JSON_BASE}/${m[1]}/polling_data.json` });
       }
     }
 
-    // Pattern 3: Extract from /poll/race/{id}/ patterns
-    const pollRaceRe = /\/poll\/race\/(\d+)\//g;
-    while ((match = pollRaceRe.exec(html)) !== null) {
-      const raceId = match[1];
-      if (!seen.has(raceId)) {
-        seen.add(raceId);
-        races.push({
-          raceId,
-          jsonUrl: `${ORIG_JSON_BASE}/${raceId}/polling_data.json`,
-        });
+    // ── Strategy 4: epolls links ────────────────────────────────────────
+    const epRe = /\/epolls\/\d{4}\/(\w+)\/(\w+)\/[^"']*?-(\d+)\.html/g;
+    while ((m = epRe.exec(html)) !== null) {
+      if (!seen.has(m[3])) {
+        seen.add(m[3]);
+        races.push({ raceId: m[3], state: stateFromSlug(m[2]), jsonUrl: `${JSON_BASE}/polling_data/${m[3]}.json` });
       }
     }
 
-    // Pattern 4: Extract from RCP URL paths for state/race info
-    // /polls/senate/general/2026/georgia/ossoff-vs-taylor-greene
-    const raceUrlRe = /\/polls\/(senate|governor|house)\/(general|primary[^/]*)\/(2026|2025)\/([a-z-]+)\//g;
-    while ((match = raceUrlRe.exec(html)) !== null) {
-      const state = stateFromSlug(match[4]);
-      const stage = match[2].startsWith('primary') ? 'primary' : 'general';
-      // Associate with any unassigned race
-      for (const race of races) {
-        if (!race.state && state) {
-          race.state = state;
-          race.stage = stage;
-        }
-      }
+    // ── Fill missing states from "name" fields in RSC data ──────────────
+    const nameRe = /"name"\s*:\s*"2026\s+([\w\s]+?)\s+(?:Senate|Governor|House)/g;
+    const rscStateNames = [];
+    while ((m = nameRe.exec(rscData)) !== null) {
+      const slug = m[1].trim().toLowerCase().replace(/\s+/g, '-');
+      const state = stateFromSlug(slug);
+      if (state) rscStateNames.push(state);
     }
 
-    // Try to extract state from page titles and race labels
-    // "2026 Georgia Senate" or "2026 Ohio Senate Special Election"
-    const titleRe = /2026\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:Senate|Governor|House)/g;
-    const stateMentions = [];
-    while ((match = titleRe.exec(html)) !== null) {
-      stateMentions.push(match[1]);
-    }
-
-    // Assign states to races that don't have one yet
-    let stateIdx = 0;
+    let nameIdx = 0;
     for (const race of races) {
-      if (!race.state && stateIdx < stateMentions.length) {
-        race.state = stateMentions[stateIdx++];
+      if (race.state) continue;
+      if (nameIdx < rscStateNames.length) {
+        race.state = rscStateNames[nameIdx++];
+      }
+    }
+
+    // ── Fill remaining from race links in rendered HTML ─────────────────
+    const linkRe = /href="\/polls\/(?:senate|governor|house)\/(general|republican-primary|democratic-primary|special-election)[^"]*?\/(2026|2025)\/([a-z-]+)(?:\/[^"]*)?"/g;
+    const linkStates = [];
+    while ((m = linkRe.exec(html)) !== null) {
+      const state = stateFromSlug(m[3]);
+      if (state) linkStates.push({ state, stage: m[1].includes('primary') ? 'primary' : 'general', url: m[0].match(/href="([^"]+)"/)?.[1] });
+    }
+
+    let linkIdx = 0;
+    for (const race of races) {
+      if (race.state) continue;
+      if (linkIdx < linkStates.length) {
+        race.state = linkStates[linkIdx].state;
+        race.stage = linkStates[linkIdx].stage;
+        if (!race.racePageUrl && linkStates[linkIdx].url) {
+          race.racePageUrl = `https://www.realclearpolling.com${linkStates[linkIdx].url}`;
+        }
+        linkIdx++;
       }
     }
 
@@ -217,102 +289,155 @@ class RealClearPollingService {
   }
 
   /**
-   * Extract poll data from embedded page content (fallback when JSON fails).
-   * Parses the Next.js server-rendered HTML for poll entries.
+   * Extract poll objects from RSC flight data on an individual race page.
+   * Race pages embed poll data as props to a PollsTable component.
+   * Each poll: { id, pollster, date, sampleSize, candidate: [{name, value, affiliation}] }
    */
-  _extractPollsFromHtml(html, raceType) {
-    const byState = {};
+  _extractPollsFromRacePage(html, state, raceId) {
+    const rscData = this._extractRscData(html);
+    if (!rscData || rscData.length < 50) return [];
 
-    // Look for poll entries in the HTML structure
-    // RCP renders poll rows with: race title, pollster, date, sample, candidates, spread
-    // Pattern: "Pollster" ... "Date" ... "Sample" ... "Candidate X%" ... "Spread"
+    const polls = [];
+    const pollsterRe = /"pollster"\s*:\s*"/g;
+    let m;
+    while ((m = pollsterRe.exec(rscData)) !== null) {
+      // Search backwards for the opening '{'
+      let start = m.index;
+      let backtrack = 0;
+      while (start > 0 && rscData[start] !== '{' && backtrack < 200) { start--; backtrack++; }
+      if (rscData[start] !== '{') continue;
 
-    // Extract individual poll blocks from the serialized React data
-    // Look for patterns like: "pollster":"Name","date":"Feb 15"
-    const pollsterRe = /"pollster"\s*:\s*"([^"]+)"/g;
-    const dateRe = /"date"\s*:\s*"([^"]+)"/g;
-    const sampleRe = /"sample"\s*:\s*"?(\d+)\s*(RV|LV|A|V)?"?/gi;
+      // Search forwards with depth counting (handles nested arrays/objects + strings)
+      let depth = 0;
+      let end = -1;
+      let inStr = false;
+      for (let i = start; i < rscData.length && i < start + 5000; i++) {
+        const c = rscData[i];
+        if (inStr) {
+          if (c === '\\') { i++; continue; }
+          if (c === '"') inStr = false;
+          continue;
+        }
+        if (c === '"') { inStr = true; continue; }
+        if (c === '{' || c === '[') depth++;
+        else if (c === '}' || c === ']') {
+          depth--;
+          if (depth === 0) { end = i + 1; break; }
+        }
+      }
 
-    // Broader pattern: extract race+poll groups from the streaming data
-    // RCP uses React Server Components with self.__next_f.push data
-    const nextDataRe = /self\.__next_f\.push\(\[[\d,]+,"([^]*?)"\]\)/g;
-    let nextMatch;
-    const dataChunks = [];
-    while ((nextMatch = nextDataRe.exec(html)) !== null) {
-      // Unescape the JSON string
+      if (end <= start) continue;
+
       try {
-        const chunk = nextMatch[1]
-          .replace(/\\"/g, '"')
-          .replace(/\\n/g, '\n')
-          .replace(/\\\\/g, '\\');
-        dataChunks.push(chunk);
-      } catch { /* skip malformed */ }
-    }
+        const obj = JSON.parse(rscData.substring(start, end));
+        if (!obj.pollster || !Array.isArray(obj.candidate) || obj.candidate.length < 2) continue;
+        if (/rcp.average/i.test(obj.pollster) || obj.type === 'rcp_average') continue;
 
-    const allData = dataChunks.join('\n');
+        const pollster = stripHtml(obj.pollster);
+        const date = obj.date || '';
+        const sampleStr = obj.sampleSize || '';
+        const sampleMatch = String(sampleStr).match(/(\d+)/);
+        const sampleSize = sampleMatch ? parseInt(sampleMatch[1], 10) : null;
+        const populationMatch = String(sampleStr).match(/(LV|RV|A|V)\b/i);
+        const population = populationMatch ? populationMatch[1].toUpperCase() : '';
 
-    // Extract race sections: "2026 STATE RACETYPE - TYPE"
-    // Then extract poll entries within each section
-    const raceBlockRe = /2026\s+([\w\s]+?)\s+(?:Senate|Governor|House)\s*(?:-\s*(\w[\w\s]*))?/g;
-    let raceMatch;
-    const racePositions = [];
-    while ((raceMatch = raceBlockRe.exec(allData)) !== null) {
-      racePositions.push({
-        state: raceMatch[1].trim(),
-        type: (raceMatch[2] || 'General').trim(),
-        pos: raceMatch.index,
-      });
-    }
-
-    // For each race section, extract polls between this position and the next
-    for (let i = 0; i < racePositions.length; i++) {
-      const race = racePositions[i];
-      const start = race.pos;
-      const end = i + 1 < racePositions.length ? racePositions[i + 1].pos : allData.length;
-      const section = allData.substring(start, end);
-
-      const state = race.state;
-      if (!state) continue;
-
-      const isPrimary = /primary/i.test(race.type);
-
-      // Look for individual polls in this section
-      // Pattern varies but typically: "Pollster Name" ... numbers representing percentages
-      // We try to extract structured data from the serialized format
-      const pollEntryRe = /(?:"pollster"|"poll"|"source")\s*:\s*"([^"]+)"[\s\S]*?(?:"date"|"endDate")\s*:\s*"([^"]+)"[\s\S]*?(?:"candidates?"|"results?")\s*:\s*\[([\s\S]*?)\]/g;
-      let pollMatch;
-      while ((pollMatch = pollEntryRe.exec(section)) !== null) {
-        const pollster = pollMatch[1];
-        const date = pollMatch[2];
-        const candidatesStr = pollMatch[3];
-
-        // Parse candidates from JSON-like array
         const candidates = [];
-        const candRe = /\{[^}]*"name"\s*:\s*"([^"]+)"[^}]*"(?:pct|value|percentage)"\s*:\s*([\d.]+)[^}]*\}/g;
-        let candMatch;
-        while ((candMatch = candRe.exec(candidatesStr)) !== null) {
-          candidates.push({
-            name: candMatch[1],
-            party: '?', // Will be inferred later
-            pct: parseFloat(candMatch[2]),
-          });
+        for (const c of obj.candidate) {
+          const pct = parseFloat(c.value || c.pct || c.percentage);
+          if (!isNaN(pct) && pct > 0) {
+            candidates.push({
+              name: stripHtml(c.name || 'Unknown'),
+              party: inferParty(c.name, c.affiliation || c.party),
+              pct,
+            });
+          }
         }
 
         if (candidates.length >= 2) {
-          if (!byState[state]) byState[state] = [];
-          byState[state].push({
-            pollId: `rcp-html-${state}-${date}-${pollster}`.replace(/\s+/g, '-').toLowerCase(),
+          const parties = new Set(candidates.map(c => c.party).filter(p => p !== '?'));
+          const isPrimary = parties.size === 1 && candidates.length >= 2;
+
+          polls.push({
+            pollId: `rcp-${raceId}-${obj.id || polls.length}`,
             pollster,
             startDate: '',
             endDate: date,
-            sampleSize: null,
-            population: '',
-            state,
+            sampleSize,
+            population,
+            state: state || 'Unknown',
             stage: isPrimary ? 'primary' : 'general',
+            primaryParty: isPrimary ? [...parties][0] : undefined,
             candidates,
             source: 'realclearpolling',
           });
         }
+      } catch { /* not valid JSON, skip */ }
+    }
+
+    return polls;
+  }
+
+  /**
+   * Parse rendered HTML on the index page for recent poll entries (last resort).
+   * Each poll entry has a race title link (with state in URL) followed by
+   * pollster name, results, and spread.
+   */
+  _extractPollsFromHtml(html, raceType) {
+    const byState = {};
+
+    // Find race title links containing state slug
+    const titleLinkRe = /href="\/polls\/(?:senate|governor|house)\/[^"]*?\/(?:2026|2025)\/([a-z-]+)[^"]*"[^>]*>([^<]+)<\/a>/gi;
+    let m;
+    const entries = [];
+    while ((m = titleLinkRe.exec(html)) !== null) {
+      const stateSlug = m[1];
+      const state = stateFromSlug(stateSlug);
+      const title = stripHtml(m[2]);
+      entries.push({ state, title, pos: m.index + m[0].length });
+    }
+
+    for (const entry of entries) {
+      if (!entry.state) continue;
+
+      const chunk = stripHtml(html.substring(entry.pos, entry.pos + 2000));
+
+      // Extract pollster
+      const pollsterM = chunk.match(/(?:Poll|Pollster)\s*:?\s*([A-Z][\w\s.&'-]+?)(?:\s+Results|\s+\d)/i);
+      const pollster = pollsterM ? pollsterM[1].trim() : 'Unknown';
+
+      // Extract results: "Results: Name1 XX, Name2 YY"
+      const resultsM = chunk.match(/Results?\s*:?\s*((?:[A-Z][\w.' -]+\s+\d+(?:\.\d+)?(?:\s*,\s*)?){2,})/i);
+      if (!resultsM) continue;
+
+      const resultsText = resultsM[1];
+      const candidates = [];
+      const candRe = /([A-Z][\w.' -]+?)\s+(\d+(?:\.\d+)?)/g;
+      let cm;
+      while ((cm = candRe.exec(resultsText)) !== null) {
+        const name = cm[1].trim();
+        const pct = parseFloat(cm[2]);
+        if (name.length > 1 && !isNaN(pct) && pct > 0 && pct < 100) {
+          candidates.push({ name, party: inferParty(name, ''), pct });
+        }
+      }
+
+      if (candidates.length >= 2) {
+        const state = entry.state;
+        if (!byState[state]) byState[state] = [];
+        const isPrimary = /primary/i.test(entry.title);
+
+        byState[state].push({
+          pollId: `rcp-idx-${state}-${pollster}-${byState[state].length}`.replace(/\s+/g, '-').toLowerCase(),
+          pollster,
+          startDate: '',
+          endDate: '',
+          sampleSize: null,
+          population: '',
+          state,
+          stage: isPrimary ? 'primary' : 'general',
+          candidates,
+          source: 'realclearpolling',
+        });
       }
     }
 
@@ -321,23 +446,15 @@ class RealClearPollingService {
 
   /**
    * Parse the RCP JSON polling data response.
-   * The JSON format from RCP typically contains an array of poll objects.
    */
   _parseJsonPollingData(jsonText, state, raceId) {
     try {
       const data = JSON.parse(jsonText);
-
-      // RCP JSON can be structured as:
-      // { poll: [...], rcp_avg: {...} }
-      // or just an array of poll objects
       const rawPolls = Array.isArray(data) ? data : (data.poll || data.polls || []);
-
       if (!Array.isArray(rawPolls) || rawPolls.length === 0) return [];
 
       const polls = [];
-
       for (const raw of rawPolls) {
-        // Skip the RCP Average entry
         if (/rcp\s*average/i.test(raw.type || raw.pollster || '')) continue;
         if (raw.id === 0 || raw.type === 'rcp_average') continue;
 
@@ -346,15 +463,10 @@ class RealClearPollingService {
         const sampleStr = raw.sample || raw.Sample || raw.sampleSize || '';
         const sampleMatch = String(sampleStr).match(/(\d+)/);
         const sampleSize = sampleMatch ? parseInt(sampleMatch[1], 10) : null;
-
         const populationMatch = String(sampleStr).match(/(LV|RV|A|V)\b/i);
         const population = populationMatch ? populationMatch[1].toUpperCase() : '';
 
-        // Extract candidates from the poll entry
-        // RCP JSON has candidate data in various formats
         const candidates = [];
-
-        // Format 1: candidate array
         if (Array.isArray(raw.candidate)) {
           for (const c of raw.candidate) {
             const pct = parseFloat(c.value || c.pct || c.percentage);
@@ -366,9 +478,7 @@ class RealClearPollingService {
               });
             }
           }
-        }
-        // Format 2: named candidate fields (e.g., "Collins (R)": "36")
-        else {
+        } else {
           const skipFields = new Set([
             'id', 'type', 'pollster', 'poll', 'date', 'sample', 'samplesize',
             'moe', 'spread', 'link', 'source', 'end_date', 'start_date',
@@ -390,7 +500,6 @@ class RealClearPollingService {
         }
 
         if (candidates.length >= 2) {
-          // Detect primary: all same party
           const parties = new Set(candidates.map(c => c.party).filter(p => p !== '?'));
           const isPrimary = parties.size === 1 && candidates.length >= 2;
 
@@ -419,19 +528,18 @@ class RealClearPollingService {
 
   /**
    * Fetch polls for a given race type.
-   * 1. Fetches the index page to discover races
-   * 2. Fetches JSON data for each discovered race
-   * 3. Falls back to HTML parsing if JSON fails
-   * Returns: { 'State': [...polls] }
+   *
+   * Three-phase approach:
+   *   Phase 1: Try JSON API for each discovered race (fast but usually 403)
+   *   Phase 2: Fetch individual race pages and parse RSC-embedded poll data
+   *   Phase 3: Parse rendered HTML on index page for recent polls (last resort)
    */
   async _getPolls(raceType) {
     const cacheKey = `${CACHE_PREFIX}${raceType}`;
 
-    // Redis cache
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    // Memory cache (2hr stale)
     if (this._memCache[raceType] && (Date.now() - (this._memCacheTime[raceType] || 0)) < CACHE_TTL * 1000) {
       return this._memCache[raceType];
     }
@@ -448,74 +556,85 @@ class RealClearPollingService {
 
     this._available = true;
 
-    // Discover races from the index page
     const races = this._extractRaceInfo(html, raceType);
-    console.log(`[RCP] Discovered ${races.length} ${raceType} races`);
+    const withState = races.filter(r => r.state);
+    console.log(`[RCP] Discovered ${races.length} ${raceType} races (${withState.length} with state info)`);
 
     if (races.length === 0) {
-      // Try HTML fallback parsing
       const htmlPolls = this._extractPollsFromHtml(html, raceType);
-      if (Object.keys(htmlPolls).length > 0) {
-        console.log(`[RCP] Extracted ${Object.values(htmlPolls).flat().length} polls from HTML fallback`);
+      const count = Object.values(htmlPolls).flat().length;
+      if (count > 0) {
+        console.log(`[RCP] HTML fallback: ${count} polls from ${Object.keys(htmlPolls).length} states`);
         return htmlPolls;
       }
       return {};
     }
 
-    // Fetch JSON data for each race (batched, max 5 concurrent)
     const byState = {};
     const BATCH_SIZE = 5;
+    let jsonSuccesses = 0;
+    let pageSuccesses = 0;
 
     for (let i = 0; i < races.length; i += BATCH_SIZE) {
       const batch = races.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
         batch.map(async (race) => {
-          // Try orig JSON URL first, then epolls JSON
-          const urls = [
+          // ── Phase 1: Try JSON endpoints ──────────────────────────────
+          const jsonUrls = [...new Set([
             race.jsonUrl,
             `${ORIG_JSON_BASE}/${race.raceId}/polling_data.json`,
             `${JSON_BASE}/polling_data/${race.raceId}.json`,
-          ];
+          ].filter(Boolean))];
 
-          for (const url of urls) {
-            if (!url) continue;
+          for (const url of jsonUrls) {
             const jsonText = await this._fetch(url);
             if (jsonText) {
               const polls = this._parseJsonPollingData(jsonText, race.state, race.raceId);
-              return { raceId: race.raceId, state: race.state, polls };
+              if (polls.length > 0) return { state: race.state, polls, via: 'json' };
             }
           }
-          return { raceId: race.raceId, state: race.state, polls: [] };
+
+          // ── Phase 2: Fetch individual race page ──────────────────────
+          if (race.racePageUrl && race.state) {
+            const pageHtml = await this._fetch(race.racePageUrl);
+            if (pageHtml) {
+              const polls = this._extractPollsFromRacePage(pageHtml, race.state, race.raceId);
+              if (polls.length > 0) return { state: race.state, polls, via: 'page' };
+            }
+          }
+
+          return { state: race.state, polls: [], via: 'none' };
         })
       );
 
       for (const result of results) {
         if (result.status !== 'fulfilled') continue;
-        const { state, polls } = result.value;
+        const { state, polls, via } = result.value;
         if (!state || polls.length === 0) continue;
 
-        // Infer state from poll data if not set from index
-        const actualState = state || polls[0]?.state;
-        if (!actualState) continue;
+        if (via === 'json') jsonSuccesses++;
+        if (via === 'page') pageSuccesses++;
 
-        if (!byState[actualState]) byState[actualState] = [];
-        byState[actualState].push(...polls);
+        if (!byState[state]) byState[state] = [];
+        byState[state].push(...polls);
       }
 
-      // Small delay between batches to be polite
       if (i + BATCH_SIZE < races.length) {
         await new Promise(r => setTimeout(r, 300));
       }
     }
 
-    // If JSON fetches all failed, try HTML fallback
-    const totalPolls = Object.values(byState).reduce((s, arr) => s + arr.length, 0);
+    let totalPolls = Object.values(byState).reduce((s, arr) => s + arr.length, 0);
+    console.log(`[RCP] Phase 1+2: ${totalPolls} polls (${jsonSuccesses} JSON, ${pageSuccesses} race pages)`);
+
+    // ── Phase 3: Index HTML fallback if nothing worked ─────────────────
     if (totalPolls === 0) {
-      console.log(`[RCP] JSON fetch yielded no polls, trying HTML fallback...`);
+      console.log(`[RCP] All fetches failed, trying index HTML fallback...`);
       const htmlPolls = this._extractPollsFromHtml(html, raceType);
       const htmlTotal = Object.values(htmlPolls).flat().length;
       if (htmlTotal > 0) {
-        console.log(`[RCP] HTML fallback extracted ${htmlTotal} polls`);
+        const stateCount = Object.keys(htmlPolls).length;
+        console.log(`[RCP] HTML fallback: ${htmlTotal} polls across ${stateCount} states`);
         await cacheService.set(cacheKey, htmlPolls, CACHE_TTL);
         this._memCache[raceType] = htmlPolls;
         this._memCacheTime[raceType] = Date.now();
@@ -528,7 +647,6 @@ class RealClearPollingService {
       polls.sort((a, b) => (b.endDate || '').localeCompare(a.endDate || ''));
     }
 
-    // Cache results
     if (Object.keys(byState).length > 0) {
       await cacheService.set(cacheKey, byState, CACHE_TTL);
       this._memCache[raceType] = byState;
@@ -536,37 +654,24 @@ class RealClearPollingService {
     }
 
     const stateCount = Object.keys(byState).length;
+    totalPolls = Object.values(byState).reduce((s, arr) => s + arr.length, 0);
     console.log(`[RCP] ${raceType}: ${totalPolls} polls across ${stateCount} states`);
 
     return byState;
   }
 
-  /**
-   * Get Senate polls grouped by state.
-   * Returns: { 'Georgia': [...polls], 'Michigan': [...], ... }
-   */
   async getSenatePolls() {
     return this._getPolls('senate');
   }
 
-  /**
-   * Get Governor polls grouped by state.
-   */
   async getGovernorPolls() {
     return this._getPolls('governor');
   }
 
-  /**
-   * Get House polls grouped by state.
-   */
   async getHousePolls() {
     return this._getPolls('house');
   }
 
-  /**
-   * Get Generic Ballot polls.
-   * Returns: { '_national': [...polls] }
-   */
   async getGenericBallotPolls() {
     const cacheKey = `${CACHE_PREFIX}generic`;
 
@@ -577,31 +682,46 @@ class RealClearPollingService {
       return this._memCache.generic;
     }
 
-    // RCP generic ballot URL
     const url = 'https://www.realclearpolling.com/polls/state-of-the-union/generic-congressional-vote';
     const html = await this._fetch(url);
     if (!html) return {};
 
-    // Try to extract race IDs for the JSON endpoint
     const races = this._extractRaceInfo(html, 'generic');
     const polls = [];
 
     for (const race of races) {
-      const urls = [
+      // Try JSON first
+      const jsonUrls = [...new Set([
         race.jsonUrl,
         `${ORIG_JSON_BASE}/${race.raceId}/polling_data.json`,
         `${JSON_BASE}/polling_data/${race.raceId}.json`,
-      ];
+      ].filter(Boolean))];
 
-      for (const jsonUrl of urls) {
-        if (!jsonUrl) continue;
+      let found = false;
+      for (const jsonUrl of jsonUrls) {
         const jsonText = await this._fetch(jsonUrl);
         if (jsonText) {
           const parsed = this._parseJsonPollingData(jsonText, 'National', race.raceId);
           polls.push(...parsed);
+          found = true;
           break;
         }
       }
+
+      // Try race page if JSON failed
+      if (!found && race.racePageUrl) {
+        const pageHtml = await this._fetch(race.racePageUrl);
+        if (pageHtml) {
+          const pagePollsList = this._extractPollsFromRacePage(pageHtml, 'National', race.raceId);
+          polls.push(...pagePollsList);
+        }
+      }
+    }
+
+    // If still nothing, try extracting from the page RSC data directly
+    if (polls.length === 0) {
+      const directPolls = this._extractPollsFromRacePage(html, 'National', 'generic');
+      polls.push(...directPolls);
     }
 
     const result = polls.length > 0 ? { '_national': polls } : {};
@@ -616,9 +736,6 @@ class RealClearPollingService {
     return result;
   }
 
-  /**
-   * Check if RCP data appears to be available.
-   */
   get isAvailable() {
     return this._available !== false;
   }
