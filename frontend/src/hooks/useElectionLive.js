@@ -104,6 +104,7 @@ export function useElectionLive(stateName) {
         breakdown: senateLive.breakdown || null,
         pollingMargin: senateLive.pollingMargin || null,
         pollCount: senateLive.pollCount || 0,
+        pollingSources: senateLive.pollingSources || [],
         pvi: senateLive.pvi || null,
       };
     }

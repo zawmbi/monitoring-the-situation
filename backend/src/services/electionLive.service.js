@@ -367,6 +367,7 @@ class ElectionLiveService {
             // Polling info for display
             pollingMargin: model.pollingSignal?.margin || null,
             pollCount: model.pollingSignal?.pollCount || 0,
+            pollingSources: model.pollingSignal?.sources || [],
             // Fundamentals
             pvi: model.fundamentals?.pvi || null,
           };

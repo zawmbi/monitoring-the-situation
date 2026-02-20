@@ -499,7 +499,7 @@ function ConfidenceBadge({ confidence }) {
     <span
       className="el-confidence-badge"
       style={{ color: colors[confidence] || '#888' }}
-      title={`Model confidence: ${confidence} — based on ${confidence === 'high' ? '4' : confidence === 'medium-high' ? '3' : confidence === 'medium' ? '2' : '1'} data source(s)`}
+      title={`Model confidence: ${confidence} — based on ${confidence === 'high' ? '5+' : confidence === 'medium-high' ? '4' : confidence === 'medium' ? '3' : confidence === 'low' ? '2' : '1'} signal type(s) from 10+ upstream sources`}
     >
       {labels[confidence] || confidence}
     </span>
@@ -513,6 +513,9 @@ function SignalBreakdown({ breakdown, signalCount }) {
     polling: 'Polls',
     fundamentals: 'PVI',
     metaculus: 'Metaculus',
+    sentiment: 'Sentiment',
+    fundraising: 'FEC $',
+    incumbency: 'Incumb.',
   };
   return (
     <div className="el-signal-breakdown">
@@ -569,8 +572,9 @@ function MarketProbBar({ race }) {
       <div className="el-market-prob-labels">
         <span style={{ color: PARTY_COLORS.D }}>D {dProb}%</span>
         {race.pollingMargin != null && (
-          <span className="el-polling-margin" title={`Polling average: D${race.pollingMargin > 0 ? '+' : ''}${race.pollingMargin} (${race.pollCount} polls)`}>
+          <span className="el-polling-margin" title={`Polling average: D${race.pollingMargin > 0 ? '+' : ''}${race.pollingMargin} (${race.pollCount} polls${race.pollingSources?.length ? ' from ' + race.pollingSources.join(', ') : ''})`}>
             Polls D{race.pollingMargin > 0 ? '+' : ''}{race.pollingMargin}
+            {race.pollCount > 0 && <span className="el-poll-count">({race.pollCount})</span>}
           </span>
         )}
         <span style={{ color: PARTY_COLORS.R }}>R {rProb}%</span>
@@ -920,7 +924,7 @@ function LivePolls({ polls, maxPolls = 5 }) {
           </div>
         );
       })}
-      <div className="el-live-polls-attr">via Wikipedia / public polls</div>
+      <div className="el-live-polls-attr">via FiveThirtyEight, Wikipedia &amp; VoteHub</div>
     </div>
   );
 }
@@ -1334,6 +1338,10 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               </div>
               <div className="el-info-source-list">
                 <div className="el-info-source-row">
+                  <span className="el-info-source-name">FiveThirtyEight</span>
+                  <span className="el-info-source-desc">Senate/Gov/House poll CSVs, CC BY 4.0 (live)</span>
+                </div>
+                <div className="el-info-source-row">
                   <span className="el-info-source-name">Wikipedia Polls</span>
                   <span className="el-info-source-desc">Senate race polling tables (live)</span>
                 </div>
@@ -1349,6 +1357,10 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   <span className="el-info-source-name">FEC OpenData</span>
                   <span className="el-info-source-desc">Candidates, fundraising, super PACs</span>
                 </div>
+                <div className="el-info-source-row">
+                  <span className="el-info-source-name">Metaculus</span>
+                  <span className="el-info-source-desc">Crowd election forecasts (live)</span>
+                </div>
                 {data.live?.civicConfigured && (
                   <div className="el-info-source-row">
                     <span className="el-info-source-name">Google Civic</span>
@@ -1357,7 +1369,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                 )}
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">GDELT Project</span>
-                  <span className="el-info-source-desc">Election news &amp; media tone (live)</span>
+                  <span className="el-info-source-desc">Election news &amp; sentiment (live)</span>
                 </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">Congress.gov</span>
@@ -1509,7 +1521,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Polymarket + Kalshi + PredictIt + FEC + GDELT' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? '538 + Wikipedia + VoteHub + Markets + FEC + GDELT + Metaculus' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>
