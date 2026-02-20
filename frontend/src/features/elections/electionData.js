@@ -2388,7 +2388,53 @@ export function getElectionColor(stateName) {
 export function getStateHouseDistricts(stateName) {
   return Object.entries(HOUSE_DISTRICTS)
     .filter(([, d]) => d.state === stateName)
-    .map(([code, data]) => ({ code, ...data }));
+    .map(([code, data]) => enrichRaceWithFundamentals({ code, ...data }, data.pvi));
+}
+
+/**
+ * Convert Cook PVI to a D-win probability (same formula as backend electionModel).
+ * PVI of 0 (EVEN) maps to 0.50. Each PVI point shifts probability ~2.5%.
+ */
+function pviToProbability(pviString) {
+  if (!pviString) return 50;
+  if (pviString.toUpperCase() === 'EVEN') return 50;
+  const match = pviString.match(/([DR])\+(\d+)/i);
+  if (!match) return 50;
+  const party = match[1].toUpperCase();
+  const magnitude = parseInt(match[2], 10);
+  const shift = magnitude * 0.025;
+  const raw = party === 'D' ? 0.50 + shift : 0.50 - shift;
+  return Math.round(Math.max(0.05, Math.min(0.95, raw)) * 100);
+}
+
+function probabilityToRating(dProb) {
+  if (dProb == null) return null;
+  if (dProb >= 85) return 'safe-d';
+  if (dProb >= 70) return 'likely-d';
+  if (dProb >= 57) return 'lean-d';
+  if (dProb >= 43) return 'toss-up';
+  if (dProb >= 30) return 'lean-r';
+  if (dProb >= 15) return 'likely-r';
+  return 'safe-r';
+}
+
+/**
+ * Enrich a race object with PVI-based dWinProb when not already set.
+ * This ensures probability data is always available even without live API.
+ */
+function enrichRaceWithFundamentals(race, statePvi) {
+  if (!race || !statePvi) return race;
+  const dWinProb = pviToProbability(statePvi);
+  return {
+    ...race,
+    dWinProb: race.dWinProb ?? dWinProb,
+    rWinProb: race.rWinProb ?? (100 - dWinProb),
+    pvi: race.pvi ?? statePvi,
+    confidence: race.confidence ?? 'prior-only',
+    signalCount: race.signalCount ?? 1,
+    breakdown: race.breakdown ?? { fundamentals: dWinProb / 100 },
+    _fundamentalsOnly: true, // flag so frontend knows this is static
+  };
 }
 
 /**
@@ -2402,15 +2448,19 @@ export function hasElectionRaces(stateName) {
  * Get all election data for a state
  */
 export function getStateElectionData(stateName) {
+  const pvi = STATE_PVI[stateName] || null;
+  const senate = SENATE_RACES[stateName] || null;
+  const governor = GOVERNOR_RACES[stateName] || null;
+
   return {
-    senate: SENATE_RACES[stateName] || null,
-    governor: GOVERNOR_RACES[stateName] || null,
+    senate: enrichRaceWithFundamentals(senate, pvi),
+    governor: enrichRaceWithFundamentals(governor, pvi),
     house: HOUSE_FORECAST[stateName] || null,
     houseDistricts: getStateHouseDistricts(stateName),
     redistricting: REDISTRICTING[stateName] || null,
     primaryDate: PRIMARY_DATES[stateName] || null,
     generalDate: GENERAL_ELECTION_DATE,
-    pvi: STATE_PVI[stateName] || null,
+    pvi,
     lastUpdated: DATA_LAST_UPDATED,
   };
 }
