@@ -117,6 +117,57 @@ function PrimaryView({ party, candidates }) {
   );
 }
 
+function PrimaryProjectionView({ projection, party }) {
+  if (!projection || !projection.candidates || projection.candidates.length === 0) return null;
+
+  const color = PARTY_COLORS[party] || '#888';
+  const { candidates, confidence, signalCount } = projection;
+
+  return (
+    <div className="el-primary-projection">
+      <div className="el-primary-projection-header">
+        <span className="el-primary-projection-label">
+          Ensemble Forecast
+        </span>
+        <ConfidenceBadge confidence={confidence} />
+        <span className="el-primary-projection-signals">{signalCount} signal{signalCount !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="el-primary-list">
+        {candidates.slice(0, 8).map((c, i) => {
+          const pct = Math.round(c.winProb * 100);
+          const isLeader = i === 0;
+          return (
+            <div key={i} className={`el-primary-row ${isLeader ? 'el-primary-leader' : ''}`}>
+              <span className="el-primary-rank">{i + 1}</span>
+              <span className="el-primary-name">{c.name}</span>
+              <div className="el-primary-bar-track">
+                <div
+                  className="el-primary-bar-fill"
+                  style={{
+                    width: `${Math.max(pct, 3)}%`,
+                    background: color,
+                    opacity: isLeader ? 1 : 0.7,
+                  }}
+                />
+              </div>
+              <span className="el-primary-pct" style={{ color }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {candidates[0]?.signals && Object.keys(candidates[0].signals).length > 1 && (
+        <div className="el-primary-signal-detail">
+          {Object.entries(candidates[0].signals).map(([sig, prob]) => (
+            <span key={sig} className="el-signal-chip" title={`${sig}: ${Math.round(prob * 100)}%`}>
+              {sig} {Math.round(prob * 100)}%
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HouseMapMini({ house }) {
   if (!house) return null;
 
@@ -209,18 +260,27 @@ function HouseDistrictRace({ district, electionView }) {
           )}
         </>
       )}
-      {electionView === 'primary' && race.candidates.primary && (
+      {electionView === 'primary' && (
         <>
-          {Object.entries(race.candidates.primary).map(([party, cands]) => {
-            if (!cands || cands.length === 0) return null;
+          {['D', 'R'].map(party => {
+            const projection = race.primaryProjections?.[party];
+            const staticCands = race.candidates?.primary?.[party];
+            const hasProjection = projection && projection.candidates?.length > 0;
+            const hasStatic = staticCands && staticCands.length > 0;
+            if (!hasProjection && !hasStatic) return null;
             return (
               <div key={party} className="el-primary-section">
                 <div className="el-section-title">
                   <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
-                  {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party} Primary
-                  {!race.dWinProb && <span className="el-static-badge">EST</span>}
+                  {party === 'D' ? 'Democratic' : 'Republican'} Primary
+                  {hasProjection && <span className="el-live-micro">LIVE</span>}
+                  {!hasProjection && <span className="el-static-badge">EST</span>}
                 </div>
-                <PrimaryView party={party} candidates={cands} />
+                {hasProjection ? (
+                  <PrimaryProjectionView projection={projection} party={party} />
+                ) : (
+                  <PrimaryView party={party} candidates={staticCands} />
+                )}
               </div>
             );
           })}
@@ -1193,29 +1253,38 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               </>
             )}
 
-            {electionView === 'primary' && activeRace.candidates.primary && (
+            {electionView === 'primary' && (
               <>
-                {/* Live primary polls from Wikipedia */}
+                {/* Model-derived primary projections → live polls → static fallback per party */}
+                {['D', 'R'].map(party => {
+                  const projection = activeRace.primaryProjections?.[party];
+                  const staticCands = activeRace.candidates?.primary?.[party];
+                  const hasProjection = projection && projection.candidates?.length > 0;
+                  const hasStatic = staticCands && staticCands.length > 0;
+
+                  if (!hasProjection && !hasStatic) return null;
+
+                  return (
+                    <div key={party} className="el-primary-section">
+                      <div className="el-section-title">
+                        <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
+                        {party === 'D' ? 'Democratic' : 'Republican'} Primary
+                        {hasProjection && <span className="el-live-micro">LIVE</span>}
+                        {!hasProjection && <span className="el-static-badge">EST</span>}
+                      </div>
+                      {hasProjection ? (
+                        <PrimaryProjectionView projection={projection} party={party} />
+                      ) : (
+                        <PrimaryView party={party} candidates={staticCands} />
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Live primary polls from Wikipedia / 538 */}
                 {activeRace.livePrimaryPolls && activeRace.livePrimaryPolls.length > 0 && (
                   <LivePolls polls={activeRace.livePrimaryPolls} maxPolls={5} />
                 )}
-
-                {/* Static primary data as fallback */}
-                {(!activeRace.livePrimaryPolls || activeRace.livePrimaryPolls.length === 0) &&
-                  Object.entries(activeRace.candidates.primary).map(([party, cands]) => {
-                    if (!cands || cands.length === 0) return null;
-                    return (
-                      <div key={party} className="el-primary-section">
-                        <div className="el-section-title">
-                          <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
-                          {party === 'D' ? 'Democratic' : party === 'R' ? 'Republican' : party === 'I' ? 'Independent' : party} Primary
-                          <span className="el-static-badge">EST</span>
-                        </div>
-                        <PrimaryView party={party} candidates={cands} />
-                      </div>
-                    );
-                  })
-                }
               </>
             )}
 

@@ -370,6 +370,8 @@ class ElectionLiveService {
             pollingSources: model.pollingSignal?.sources || [],
             // Fundamentals
             pvi: model.fundamentals?.pvi || null,
+            // Primary projections (per-party candidate win probabilities)
+            primaryProjections: model.primaryProjections || null,
           };
         }
         console.log(`[ElectionLive] Ensemble model: ${Object.keys(marketRatings).length} races modeled`);

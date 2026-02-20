@@ -188,6 +188,10 @@ class FiveThirtyEightService {
       const key = raceType === 'generic' ? '_national' : state;
       if (!byState[key]) byState[key] = {};
 
+      // Detect primary vs general from CSV stage/type fields
+      const stage = (row.stage || row.race_type || row.type || '').toLowerCase();
+      const isPrimary = stage === 'primary' || stage === 'pri';
+
       // Group by poll_id to collect all candidates from the same poll
       const pollId = row.poll_id || row.question_id || `${row.pollster}-${endDate}`;
       if (!byState[key][pollId]) {
@@ -201,6 +205,7 @@ class FiveThirtyEightService {
           methodology: row.methodology || '',
           state: state || 'National',
           district: row.seat_number || row.district || null,
+          stage: isPrimary ? 'primary' : 'general',
           candidates: [],
           source: 'fivethirtyeight',
         };
@@ -225,11 +230,25 @@ class FiveThirtyEightService {
       });
     }
 
+    // Infer primary polls from candidate party composition:
+    // If all candidates in a poll share the same party, it's a primary poll.
+    for (const polls of Object.values(byState)) {
+      for (const poll of Object.values(polls)) {
+        if (poll.stage === 'general' && poll.candidates.length >= 2) {
+          const parties = new Set(poll.candidates.map(c => c.party).filter(p => p && p !== '?'));
+          if (parties.size === 1) {
+            poll.stage = 'primary';
+            poll.primaryParty = [...parties][0];
+          }
+        }
+      }
+    }
+
     // Flatten poll groups into arrays, sorted by date (most recent first)
     const result = {};
     for (const [stateKey, polls] of Object.entries(byState)) {
       const pollList = Object.values(polls)
-        .filter(p => p.candidates.length >= 2) // Need at least D vs R
+        .filter(p => p.candidates.length >= 2)
         .sort((a, b) => {
           const dateA = a.endDate || a.startDate || '';
           const dateB = b.endDate || b.startDate || '';

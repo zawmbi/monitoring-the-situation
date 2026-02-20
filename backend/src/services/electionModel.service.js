@@ -48,6 +48,15 @@ const SIGNAL_WEIGHTS = {
   incumbency:   0.05,   // Incumbency advantage
 };
 
+// Primary model weights — primaries are more poll-driven and less predictable.
+// Fundamentals (PVI) and generic ballot don't apply intra-party.
+const PRIMARY_SIGNAL_WEIGHTS = {
+  polling:      0.45,   // Primary polls from 538 + Wikipedia (strongest signal)
+  markets:      0.25,   // Candidate-level prediction market odds
+  fundraising:  0.20,   // FEC per-candidate receipts (viability proxy)
+  incumbency:   0.10,   // Incumbents almost never lose primaries
+};
+
 // Cook PVI → base D-win probability lookup.
 // PVI of 0 (EVEN) maps to 0.50.  Each PVI point shifts probability ~2.5%.
 // Capped at 0.05 / 0.95 to avoid prior dominating in safe seats.
@@ -534,6 +543,202 @@ class ElectionModelService {
     return null;
   }
 
+  // ── Primary Model ──────────────────────────────────────────────────
+
+  /**
+   * Extract candidate-level market odds for a primary.
+   * Searches for markets about a specific party's primary in a state.
+   * Returns array of { name, winProb } per candidate.
+   */
+  _collectPrimaryCandidateMarkets(allMarkets, stateName, raceType, party) {
+    const stateNameLower = stateName.toLowerCase();
+    const stateCode = (STATE_CODES[stateName] || '').toLowerCase();
+    const partyName = party === 'D' ? 'democrat' : party === 'R' ? 'republican' : '';
+
+    for (const market of allMarkets) {
+      const text = normalizeText(`${market.question} ${market.description} ${market.rawSearchText || ''}`);
+
+      // Must mention the state
+      const hasState = text.includes(stateNameLower) ||
+        (stateCode.length === 2 && new RegExp(`\\b${stateCode}\\b`).test(text));
+      if (!hasState) continue;
+
+      // Must be about a primary
+      if (!/primary|nomin/.test(text)) continue;
+
+      // Must match the party
+      if (partyName && !text.includes(partyName)) continue;
+
+      // Must match the race type
+      const hasRace = raceType === 'senate' ? /\bsenat/.test(text)
+        : raceType === 'governor' ? /\bgovern|\bgubern/.test(text)
+        : /\bhouse\b|\bcongress/.test(text);
+      if (!hasRace) continue;
+
+      // Wrong cycle filter
+      if (/202[0-4]|2028|2030|2032/.test(text) && !/2026/.test(text)) continue;
+
+      // This market has multiple candidate outcomes — extract them
+      const outcomes = market.outcomes || [];
+      if (outcomes.length < 2) continue;
+
+      const candidates = [];
+      for (const o of outcomes) {
+        if (o.price == null || o.price <= 0) continue;
+        const name = o.name || '';
+        if (!name || name === 'Yes' || name === 'No' || name === 'Other') continue;
+        candidates.push({ name, winProb: o.price });
+      }
+
+      if (candidates.length >= 2) {
+        // Normalize probabilities to sum to 1
+        const total = candidates.reduce((s, c) => s + c.winProb, 0);
+        for (const c of candidates) {
+          c.winProb = total > 0 ? Math.round((c.winProb / total) * 1000) / 1000 : 0;
+        }
+        return { candidates, source: market.source, url: market.url };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get FEC candidates for a specific party in a state.
+   * Returns sorted by total receipts (fundraising).
+   */
+  _getFECPrimaryCandidates(fecCandidates, state, party) {
+    const stateCode = STATE_CODES[state];
+    if (!stateCode || !fecCandidates) return [];
+
+    const stateCands = fecCandidates[stateCode];
+    if (!stateCands) return [];
+
+    return stateCands
+      .filter(c => c.party === party)
+      .sort((a, b) => (b.totalReceipts || 0) - (a.totalReceipts || 0));
+  }
+
+  /**
+   * Compute primary projections for one party in one race.
+   * Combines polling, markets, fundraising, and incumbency into
+   * per-candidate win probabilities.
+   *
+   * Returns { candidates: [{ name, winProb, signals }], confidence, signalCount }
+   */
+  _computePrimaryProjection(pollingData, marketData, fecCandidates, incumbentName) {
+    // Collect all known candidate names across signals
+    const candidateMap = {}; // normalized name → { signals, name }
+
+    function normName(n) { return (n || '').toLowerCase().replace(/[^a-z\s]/g, '').trim(); }
+    function getOrCreate(name) {
+      const key = normName(name);
+      if (!key) return null;
+      if (!candidateMap[key]) candidateMap[key] = { name, signals: {}, totalWeight: 0, weightedProb: 0 };
+      return candidateMap[key];
+    }
+
+    let signalCount = 0;
+
+    // 1. Polling signal
+    if (pollingData && pollingData.candidates && pollingData.candidates.length >= 2) {
+      signalCount++;
+      const weight = PRIMARY_SIGNAL_WEIGHTS.polling;
+      for (const c of pollingData.candidates) {
+        const entry = getOrCreate(c.name);
+        if (!entry) continue;
+        entry.signals.polling = c.winProb;
+        entry.weightedProb += c.winProb * weight;
+        entry.totalWeight += weight;
+      }
+    }
+
+    // 2. Market signal
+    if (marketData && marketData.candidates && marketData.candidates.length >= 2) {
+      signalCount++;
+      const weight = PRIMARY_SIGNAL_WEIGHTS.markets;
+      for (const c of marketData.candidates) {
+        const entry = getOrCreate(c.name);
+        if (!entry) continue;
+        entry.signals.markets = c.winProb;
+        entry.weightedProb += c.winProb * weight;
+        entry.totalWeight += weight;
+      }
+    }
+
+    // 3. Fundraising signal — convert FEC receipts to win probabilities
+    if (fecCandidates && fecCandidates.length >= 2) {
+      const totalReceipts = fecCandidates.reduce((s, c) => s + (c.totalReceipts || 0), 0);
+      if (totalReceipts > 100000) {
+        signalCount++;
+        const weight = PRIMARY_SIGNAL_WEIGHTS.fundraising;
+        for (const c of fecCandidates) {
+          const entry = getOrCreate(c.name);
+          if (!entry) continue;
+          const share = totalReceipts > 0 ? (c.totalReceipts || 0) / totalReceipts : 0;
+          // Regress toward uniform to avoid fundraising dominating
+          const numCands = fecCandidates.length;
+          const uniform = 1 / numCands;
+          const fundProb = uniform + (share - uniform) * 0.6;
+          entry.signals.fundraising = Math.round(fundProb * 1000) / 1000;
+          entry.weightedProb += fundProb * weight;
+          entry.totalWeight += weight;
+        }
+      }
+    }
+
+    // 4. Incumbency signal — boost the incumbent
+    if (incumbentName && signalCount > 0) {
+      const incEntry = getOrCreate(incumbentName);
+      if (incEntry) {
+        signalCount++;
+        const weight = PRIMARY_SIGNAL_WEIGHTS.incumbency;
+        // Incumbents win primaries ~95% of the time; model as 0.75 among field
+        const incBoost = 0.75;
+        incEntry.signals.incumbency = incBoost;
+        incEntry.weightedProb += incBoost * weight;
+        incEntry.totalWeight += weight;
+
+        // Distribute remaining 0.25 among other candidates
+        const others = Object.values(candidateMap).filter(e => normName(e.name) !== normName(incumbentName));
+        const otherShare = (1 - incBoost) / Math.max(others.length, 1);
+        for (const o of others) {
+          o.signals.incumbency = Math.round(otherShare * 1000) / 1000;
+          o.weightedProb += otherShare * weight;
+          o.totalWeight += weight;
+        }
+      }
+    }
+
+    // Build final candidate list
+    const candidates = Object.values(candidateMap)
+      .filter(c => c.totalWeight > 0)
+      .map(c => ({
+        name: c.name,
+        winProb: Math.round((c.weightedProb / c.totalWeight) * 1000) / 1000,
+        signals: c.signals,
+      }));
+
+    if (candidates.length === 0) return null;
+
+    // Normalize win probabilities to sum to 1
+    const total = candidates.reduce((s, c) => s + c.winProb, 0);
+    for (const c of candidates) {
+      c.winProb = total > 0 ? Math.round((c.winProb / total) * 1000) / 1000 : 0;
+    }
+
+    // Sort by win probability descending
+    candidates.sort((a, b) => b.winProb - a.winProb);
+
+    let confidence;
+    if (signalCount >= 4) confidence = 'high';
+    else if (signalCount === 3) confidence = 'medium-high';
+    else if (signalCount === 2) confidence = 'medium';
+    else confidence = 'low';
+
+    return { candidates, confidence, signalCount };
+  }
+
   // ── 5. Ensemble ─────────────────────────────────────────────────────
 
   /**
@@ -792,6 +997,40 @@ class ElectionModelService {
           party: incumbencySignal.incumbentParty,
         } : null,
       };
+
+      // ── Primary projections per party ───────────────────────────────
+
+      const primaryProjections = {};
+      for (const party of ['D', 'R']) {
+        const primaryKey = `${race.state}:${race.type}:${party}`;
+
+        // Primary polling from aggregator
+        const primaryPolling = aggregatedPolling?.byPrimary?.[primaryKey] || null;
+
+        // Primary candidate-level market odds
+        const primaryMarkets = this._collectPrimaryCandidateMarkets(allMarkets, race.state, race.type, party);
+
+        // FEC candidates for this party
+        const partyFecCands = this._getFECPrimaryCandidates(fecCandidates, race.state, party);
+
+        // Detect incumbent name from FEC
+        const incumbentCandidate = partyFecCands.find(c =>
+          c.incumbentChallenge === 'I' || c.incumbentChallenge === 'incumbent'
+        );
+        const incumbentName = incumbentCandidate?.name || null;
+
+        const projection = this._computePrimaryProjection(
+          primaryPolling, primaryMarkets, partyFecCands, incumbentName
+        );
+
+        if (projection && projection.candidates.length > 0) {
+          primaryProjections[party] = projection;
+        }
+      }
+
+      if (Object.keys(primaryProjections).length > 0) {
+        raceModels[key].primaryProjections = primaryProjections;
+      }
 
       signalStats.totalRaces++;
       if (marketConsensus) signalStats.withMarkets++;

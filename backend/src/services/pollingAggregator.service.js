@@ -117,6 +117,77 @@ function computeWeightedAverage(polls) {
   };
 }
 
+/**
+ * Compute weighted average for primary polls.
+ * Returns per-candidate win probabilities (normalized from polling %).
+ * Uses recency + sample-size weighting, same as general.
+ */
+function computePrimaryAverage(polls) {
+  if (polls.length === 0) return null;
+
+  // Collect all candidate names across polls
+  const candidateTotals = {}; // name -> { weightedPct, totalWeight }
+  let totalWeight = 0;
+  let totalSample = 0;
+  let sampleCount = 0;
+  const sourcesUsed = new Set();
+
+  for (const poll of polls) {
+    const candidates = poll.candidates || [];
+    if (candidates.length < 2) continue;
+
+    // Recency weight
+    let recencyWeight = 1.0;
+    if (poll.endDate || poll.date) {
+      const pollDate = new Date(poll.endDate || poll.date);
+      const daysSince = Math.max(0, (Date.now() - pollDate.getTime()) / (1000 * 60 * 60 * 24));
+      recencyWeight = Math.exp(-0.023 * daysSince);
+    }
+
+    const n = poll.sampleSize || 600;
+    const sampleWeight = Math.sqrt(n) / Math.sqrt(1000);
+    const weight = recencyWeight * sampleWeight;
+
+    for (const c of candidates) {
+      if (c.pct == null || c.pct <= 0) continue;
+      const name = c.name || 'Unknown';
+      if (!candidateTotals[name]) candidateTotals[name] = { weightedPct: 0, totalWeight: 0, party: c.party };
+      candidateTotals[name].weightedPct += c.pct * weight;
+      candidateTotals[name].totalWeight += weight;
+    }
+
+    totalWeight += weight;
+    if (poll.sampleSize) { totalSample += poll.sampleSize; sampleCount++; }
+    if (poll.source) sourcesUsed.add(poll.source);
+  }
+
+  if (Object.keys(candidateTotals).length === 0) return null;
+
+  // Compute weighted average percentage per candidate
+  const candidates = [];
+  let totalPct = 0;
+  for (const [name, data] of Object.entries(candidateTotals)) {
+    const avgPct = data.totalWeight > 0 ? data.weightedPct / data.totalWeight : 0;
+    totalPct += avgPct;
+    candidates.push({ name, party: data.party, avgPct: Math.round(avgPct * 10) / 10 });
+  }
+
+  // Normalize to win probabilities (percentage share → implied win probability)
+  for (const c of candidates) {
+    c.winProb = totalPct > 0 ? Math.round((c.avgPct / totalPct) * 1000) / 1000 : 0;
+  }
+
+  // Sort by win probability descending
+  candidates.sort((a, b) => b.winProb - a.winProb);
+
+  return {
+    candidates,
+    pollCount: polls.length,
+    sources: Array.from(sourcesUsed),
+    avgSampleSize: sampleCount > 0 ? Math.round(totalSample / sampleCount) : null,
+  };
+}
+
 class PollingAggregatorService {
   constructor() {
     this._memCache = null;
@@ -177,38 +248,63 @@ class PollingAggregatorService {
       }
     }
 
+    // Primary polls aggregation: keyed by "state:raceType:party"
+    const byPrimary = {};
+    function addPrimaryPolls(key, polls) {
+      if (!byPrimary[key]) byPrimary[key] = {};
+      for (const poll of polls) {
+        const dk = dedupKey(poll);
+        if (!byPrimary[key][dk] || (poll.sampleSize && !byPrimary[key][dk].sampleSize)) {
+          byPrimary[key][dk] = poll;
+        }
+      }
+    }
+
     // 1. FiveThirtyEight Senate polls
     for (const [state, polls] of Object.entries(fteSenate)) {
-      const normalized = polls.map(p => ({
-        pollster: p.pollster,
-        date: p.endDate || p.startDate,
-        endDate: p.endDate,
-        sampleSize: p.sampleSize,
-        state,
-        candidates: p.candidates,
-        source: 'fivethirtyeight',
-      }));
-      addPolls(`${state}:senate`, normalized);
-      sourceStats.fivethirtyeight += normalized.length;
+      for (const p of polls) {
+        const normalized = {
+          pollster: p.pollster,
+          date: p.endDate || p.startDate,
+          endDate: p.endDate,
+          sampleSize: p.sampleSize,
+          state,
+          candidates: p.candidates,
+          source: 'fivethirtyeight',
+        };
+        if (p.stage === 'primary' && p.primaryParty) {
+          addPrimaryPolls(`${state}:senate:${p.primaryParty}`, [normalized]);
+        } else {
+          addPolls(`${state}:senate`, [normalized]);
+        }
+        sourceStats.fivethirtyeight++;
+      }
     }
 
     // 2. FiveThirtyEight Governor polls
     for (const [state, polls] of Object.entries(fteGov)) {
-      const normalized = polls.map(p => ({
-        pollster: p.pollster,
-        date: p.endDate || p.startDate,
-        endDate: p.endDate,
-        sampleSize: p.sampleSize,
-        state,
-        candidates: p.candidates,
-        source: 'fivethirtyeight',
-      }));
-      addPolls(`${state}:governor`, normalized);
-      sourceStats.fivethirtyeight += normalized.length;
+      for (const p of polls) {
+        const normalized = {
+          pollster: p.pollster,
+          date: p.endDate || p.startDate,
+          endDate: p.endDate,
+          sampleSize: p.sampleSize,
+          state,
+          candidates: p.candidates,
+          source: 'fivethirtyeight',
+        };
+        if (p.stage === 'primary' && p.primaryParty) {
+          addPrimaryPolls(`${state}:governor:${p.primaryParty}`, [normalized]);
+        } else {
+          addPolls(`${state}:governor`, [normalized]);
+        }
+        sourceStats.fivethirtyeight++;
+      }
     }
 
-    // 3. Wikipedia Senate polls
+    // 3. Wikipedia Senate polls (general + primary)
     for (const [state, data] of Object.entries(wikiPolls)) {
+      // General election polls
       const generals = (data.generalPolls || []).map(p => ({
         pollster: p.pollster,
         date: p.date,
@@ -224,6 +320,29 @@ class PollingAggregatorService {
       }));
       addPolls(`${state}:senate`, generals);
       sourceStats.wikipedia += generals.length;
+
+      // Primary polls
+      const primaries = (data.primaryPolls || []).map(p => ({
+        pollster: p.pollster,
+        date: p.date,
+        endDate: p.date,
+        sampleSize: p.sampleSize ? parseInt(String(p.sampleSize).replace(/[^0-9]/g, ''), 10) || null : null,
+        state,
+        candidates: (p.candidates || []).map(c => ({
+          name: c.name,
+          party: c.party,
+          pct: c.pct,
+        })),
+        primaryParty: p.primaryParty,
+        source: 'wikipedia',
+      }));
+      for (const pp of primaries) {
+        const party = pp.primaryParty || (pp.candidates[0]?.party);
+        if (party) {
+          addPrimaryPolls(`${state}:senate:${party}`, [pp]);
+        }
+      }
+      sourceStats.wikipedia += primaries.length;
     }
 
     // 4. VoteHub generic ballot → special key
@@ -261,7 +380,7 @@ class PollingAggregatorService {
       sourceStats.fivethirtyeight += normalized.length;
     }
 
-    // ── Compute weighted averages per race ───────────────────────────────
+    // ── Compute weighted averages per race (general) ────────────────────
 
     const results = {};
     for (const [raceKey, pollMap] of Object.entries(byRace)) {
@@ -274,16 +393,32 @@ class PollingAggregatorService {
       }
     }
 
+    // ── Compute primary averages per race+party ───────────────────────
+
+    const primaryResults = {};
+    for (const [primaryKey, pollMap] of Object.entries(byPrimary)) {
+      const polls = Object.values(pollMap);
+      if (polls.length === 0) continue;
+
+      const avg = computePrimaryAverage(polls);
+      if (avg) {
+        primaryResults[primaryKey] = avg;
+      }
+    }
+
     const elapsedMs = Date.now() - startTime;
     const totalPolls = Object.values(byRace).reduce((s, m) => s + Object.keys(m).length, 0);
+    const totalPrimaryPolls = Object.values(byPrimary).reduce((s, m) => s + Object.keys(m).length, 0);
     const raceCount = Object.keys(results).length;
 
-    console.log(`[PollingAgg] Done in ${elapsedMs}ms: ${totalPolls} unique polls across ${raceCount} races (538: ${sourceStats.fivethirtyeight}, Wiki: ${sourceStats.wikipedia}, VH: ${sourceStats.votehub})`);
+    console.log(`[PollingAgg] Done in ${elapsedMs}ms: ${totalPolls} general + ${totalPrimaryPolls} primary polls across ${raceCount} races (538: ${sourceStats.fivethirtyeight}, Wiki: ${sourceStats.wikipedia}, VH: ${sourceStats.votehub})`);
 
     const output = {
       byRace: results,
+      byPrimary: primaryResults,
       sourceStats,
       totalPolls,
+      totalPrimaryPolls,
       raceCount,
       timestamp: new Date().toISOString(),
     };

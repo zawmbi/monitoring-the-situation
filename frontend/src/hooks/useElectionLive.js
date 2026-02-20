@@ -106,6 +106,7 @@ export function useElectionLive(stateName) {
         pollCount: senateLive.pollCount || 0,
         pollingSources: senateLive.pollingSources || [],
         pvi: senateLive.pvi || null,
+        primaryProjections: senateLive.primaryProjections || null,
       };
     }
     // Attach live polls to senate race
@@ -135,6 +136,7 @@ export function useElectionLive(stateName) {
         signalCount: govLive.signalCount || 0,
         breakdown: govLive.breakdown || null,
         pvi: govLive.pvi || null,
+        primaryProjections: govLive.primaryProjections || null,
       };
     }
 
