@@ -24,6 +24,28 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Detect bracket/margin-of-victory style outcomes that produce cluttered
+ * cards instead of clean head-to-head displays.
+ */
+function isBracketMarket(outcomes) {
+  if (!outcomes || outcomes.length === 0) return false;
+  const bracketPatterns = [
+    /[≥≤><]\s*\d/,
+    /\d+\.?\d*\s*%?\s*[-–—]\s*\d+\.?\d*\s*%/,
+    /\d+\.?\d*\s*[-–—]\s*\d+\.?\d*\s*%/,
+    /\bor more\b/i,
+    /\bor fewer\b/i,
+    /\bor less\b/i,
+    /\bmargin\b/i,
+  ];
+  const bracketCount = outcomes.filter(o => {
+    const name = (o.name || o || '').toString();
+    return bracketPatterns.some(p => p.test(name));
+  }).length;
+  return bracketCount >= Math.max(1, Math.ceil(outcomes.length / 3));
+}
+
 class PredictItService {
   constructor() {
     this._memCache = null;
@@ -99,7 +121,7 @@ class PredictItService {
           rawSearchText: searchParts.join(' '),
         };
       })
-      .filter(m => m.outcomes.length > 0);
+      .filter(m => m.outcomes.length > 0 && !isBracketMarket(m.outcomes));
   }
 
   scoreMarket(market, requiredKeywords, boostKeywords = [], matchAll = false) {

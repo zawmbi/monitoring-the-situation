@@ -655,8 +655,17 @@ router.get('/predictions', async (req, res) => {
       ? kalshiResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'kalshi' }))
       : [];
 
+    // Filter out bracket/margin-of-victory style markets (safety net)
+    function hasBracketOutcomes(market) {
+      if (!market.outcomes || market.outcomes.length === 0) return false;
+      const pat = [/[≥≤><]\s*\d/, /\d+%?\s*[-–—]\s*\d+%/, /\bor more\b/i, /\bor fewer\b/i, /\bor less\b/i, /\bmargin\b/i];
+      const hits = market.outcomes.filter(o => pat.some(p => p.test((o.name || '').toString()))).length;
+      return hits >= Math.max(1, Math.ceil(market.outcomes.length / 3));
+    }
+
     // Merge both lists, sort by volume descending
     const combined = [...polymarkets, ...kalshiMarkets]
+      .filter(m => !hasBracketOutcomes(m))
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
       .slice(0, maxResults * 2);
 

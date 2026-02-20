@@ -105,6 +105,31 @@ function buildCountrySearchProfile(countryName) {
 }
 
 /**
+ * Detect bracket/margin-of-victory style outcomes (e.g. "Talarico ≥ 10%",
+ * "8% - 10%", "200-249 seats") that produce cluttered cards instead of
+ * clean head-to-head displays.  Returns true when the market should be
+ * excluded.
+ */
+function isBracketMarket(outcomes) {
+  if (!outcomes || outcomes.length === 0) return false;
+  const bracketPatterns = [
+    /[≥≤><]\s*\d/,                // ≥ 10, < 5, etc.
+    /\d+\.?\d*\s*%?\s*[-–—]\s*\d+\.?\d*\s*%/, // "8% - 10%", "5%-10%"
+    /\d+\.?\d*\s*[-–—]\s*\d+\.?\d*\s*%/,       // "8 - 10%"
+    /\bor more\b/i,
+    /\bor fewer\b/i,
+    /\bor less\b/i,
+    /\bmargin\b/i,
+  ];
+  const bracketCount = outcomes.filter(o => {
+    const name = (o.name || o || '').toString();
+    return bracketPatterns.some(p => p.test(name));
+  }).length;
+  // If more than a third of outcomes look like brackets, skip this market
+  return bracketCount >= Math.max(1, Math.ceil(outcomes.length / 3));
+}
+
+/**
  * Try to parse a JSON-ish string (e.g. "[\"0.85\",\"0.15\"]")
  */
 function tryParseJSON(str) {
@@ -269,7 +294,7 @@ class PolymarketService {
           rawSearchText: searchParts.join(' '),
         };
       })
-      .filter(m => m.volume >= MIN_VOLUME && m.active && !m.closed)
+      .filter(m => m.volume >= MIN_VOLUME && m.active && !m.closed && !isBracketMarket(m.outcomes))
       .sort((a, b) => b.volume - a.volume);
   }
 
