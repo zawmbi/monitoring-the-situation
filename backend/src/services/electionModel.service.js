@@ -32,7 +32,7 @@ import { fecService } from './fec.service.js';
 
 // ── Constants ────────────────────────────────────────────────────────────
 
-const CACHE_KEY = 'election-model:v2';
+const CACHE_KEY = 'election-model:v2.1';
 const CACHE_TTL = 600; // 10 minutes
 
 // Weight configuration — 7 signal types from 10+ sources.

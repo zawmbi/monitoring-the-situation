@@ -18,7 +18,7 @@ import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
 import { electionModelService } from './electionModel.service.js';
 
-const CACHE_KEY = 'elections:live:v3'; // v3: integrated ensemble model
+const CACHE_KEY = 'elections:live:v4'; // v4: RCP replaces 538, diagnostics added
 const CACHE_TTL = 900; // 15 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -376,7 +376,7 @@ class ElectionLiveService {
         }
         console.log(`[ElectionLive] Ensemble model: ${Object.keys(marketRatings).length} races modeled`);
       } catch (modelErr) {
-        console.warn('[ElectionLive] Model failed, falling back to single-market ratings:', modelErr.message);
+        console.error('[ElectionLive] Model failed, falling back to single-market ratings:', modelErr.message, modelErr.stack);
         marketRatings = this._deriveRatingsFromMarkets(markets);
       }
 
