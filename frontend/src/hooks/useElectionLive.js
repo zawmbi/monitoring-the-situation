@@ -94,7 +94,7 @@ export function useElectionLive(stateName) {
 
     const marketRatings = liveData.marketRatings || {};
 
-    // Helper: merge live market data into a race object
+    // Helper: merge live general election market data into a race object
     const mergeMarketData = (race, liveRace) => {
       if (!race || !liveRace) return race;
       return {
@@ -110,8 +110,23 @@ export function useElectionLive(stateName) {
       };
     };
 
-    const senate = mergeMarketData(staticData.senate, marketRatings[`${state}:senate`]);
-    const governor = mergeMarketData(staticData.governor, marketRatings[`${state}:governor`]);
+    // Helper: merge live primary market data into a race object
+    const mergePrimaryMarketData = (race, raceType, state) => {
+      if (!race) return race;
+      const rPrimary = marketRatings[`${state}:${raceType}:primary:R`];
+      const dPrimary = marketRatings[`${state}:${raceType}:primary:D`];
+      if (!rPrimary && !dPrimary) return race;
+      return {
+        ...race,
+        livePrimaryR: rPrimary || null,
+        livePrimaryD: dPrimary || null,
+      };
+    };
+
+    let senate = mergeMarketData(staticData.senate, marketRatings[`${state}:senate`]);
+    senate = mergePrimaryMarketData(senate, 'senate', state);
+    let governor = mergeMarketData(staticData.governor, marketRatings[`${state}:governor`]);
+    governor = mergePrimaryMarketData(governor, 'governor', state);
 
     let houseDistricts = staticData.houseDistricts || [];
     houseDistricts = houseDistricts.map(d => {

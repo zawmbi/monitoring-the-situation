@@ -118,6 +118,48 @@ function PrimaryView({ party, candidates }) {
   );
 }
 
+function LivePrimaryCandidates({ primary, party }) {
+  if (!primary || !primary.candidates || primary.candidates.length === 0) return null;
+
+  const color = PARTY_COLORS[party] || '#888';
+  const { candidates, marketSource, marketUrl } = primary;
+
+  return (
+    <div className="el-primary-projection">
+      <div className="el-primary-list">
+        {candidates.slice(0, 8).map((c, i) => {
+          const isLeader = i === 0;
+          return (
+            <div key={i} className={`el-primary-row ${isLeader ? 'el-primary-leader' : ''}`}>
+              <span className="el-primary-rank">{i + 1}</span>
+              <span className="el-primary-name">{c.name}</span>
+              <div className="el-primary-bar-track">
+                <div
+                  className="el-primary-bar-fill"
+                  style={{
+                    width: `${Math.max(c.pct, 3)}%`,
+                    background: color,
+                    opacity: isLeader ? 1 : 0.7,
+                  }}
+                />
+              </div>
+              <span className="el-primary-pct" style={{ color }}>{c.pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {marketSource && (
+        <div className="el-market-outcomes-source">
+          via{' '}
+          <a href={marketUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+            {marketSource === 'kalshi' ? 'Kalshi' : marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PrimaryProjectionView({ projection, party }) {
   if (!projection || !projection.candidates || projection.candidates.length === 0) return null;
 
@@ -262,22 +304,23 @@ function HouseDistrictRace({ district, electionView }) {
       )}
       {electionView === 'primary' && (
         <>
-          {['D', 'R'].map(party => {
-            const projection = race.primaryProjections?.[party];
+          {['R', 'D'].map(party => {
+            const liveKey = party === 'R' ? 'livePrimaryR' : 'livePrimaryD';
+            const livePrimary = race[liveKey];
             const staticCands = race.candidates?.primary?.[party];
-            const hasProjection = projection && projection.candidates?.length > 0;
+            const hasLive = livePrimary && livePrimary.candidates?.length > 0;
             const hasStatic = staticCands && staticCands.length > 0;
-            if (!hasProjection && !hasStatic) return null;
+            if (!hasLive && !hasStatic) return null;
             return (
               <div key={party} className="el-primary-section">
                 <div className="el-section-title">
                   <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
                   {party === 'D' ? 'Democratic' : 'Republican'} Primary
-                  {hasProjection && <span className="el-live-micro">LIVE</span>}
-                  {!hasProjection && <span className="el-static-badge">EST</span>}
+                  {hasLive && <span className="el-live-micro">LIVE</span>}
+                  {!hasLive && <span className="el-static-badge">EST</span>}
                 </div>
-                {hasProjection ? (
-                  <PrimaryProjectionView projection={projection} party={party} />
+                {hasLive ? (
+                  <LivePrimaryCandidates primary={livePrimary} party={party} />
                 ) : (
                   <PrimaryView party={party} candidates={staticCands} />
                 )}
@@ -1234,17 +1277,26 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
 
             {electionView === 'primary' && (
               <>
-                {['D', 'R'].map(party => {
+                {['R', 'D'].map(party => {
+                  const liveKey = party === 'R' ? 'livePrimaryR' : 'livePrimaryD';
+                  const livePrimary = activeRace[liveKey];
                   const staticCands = activeRace.candidates?.primary?.[party];
+                  const hasLive = livePrimary && livePrimary.candidates?.length > 0;
                   const hasStatic = staticCands && staticCands.length > 0;
-                  if (!hasStatic) return null;
+                  if (!hasLive && !hasStatic) return null;
                   return (
                     <div key={party} className="el-primary-section">
                       <div className="el-section-title">
                         <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
                         {party === 'D' ? 'Democratic' : 'Republican'} Primary
+                        {hasLive && <span className="el-live-micro">LIVE</span>}
+                        {!hasLive && <span className="el-static-badge">EST</span>}
                       </div>
-                      <PrimaryView party={party} candidates={staticCands} />
+                      {hasLive ? (
+                        <LivePrimaryCandidates primary={livePrimary} party={party} />
+                      ) : (
+                        <PrimaryView party={party} candidates={staticCands} />
+                      )}
                     </div>
                   );
                 })}

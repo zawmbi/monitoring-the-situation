@@ -107,7 +107,7 @@ class ElectionLiveService {
    */
   async _fetchAllMarkets() {
     const required = ['2026'];
-    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican'];
+    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican', 'primary'];
 
     const [polyResults, kalshiResults, predictitResults] = await Promise.allSettled([
       polymarketService.getMarketsByTopic(required, boost, false),
@@ -124,6 +124,8 @@ class ElectionLiveService {
 
   /**
    * Score how well a market matches a specific race (0 = no match).
+   * raceType can be: 'senate', 'governor', 'house',
+   *   'senate-primary-r', 'senate-primary-d', 'governor-primary-r', 'governor-primary-d'
    */
   _scoreMatch(market, stateName, raceType, districtNum = null) {
     const text = normalizeText(`${market.question} ${market.description} ${market.rawSearchText || ''}`);
@@ -134,14 +136,32 @@ class ElectionLiveService {
       (stateCode.length === 2 && new RegExp(`\\b${stateCode}\\b`).test(text));
     if (!hasState) return 0;
 
-    const hasRaceType = raceType === 'senate'
+    // Determine base office type and whether this is a primary race
+    const isPrimary = raceType.includes('-primary-');
+    const baseType = raceType.replace(/-primary-[rd]$/, '');
+    const primaryParty = raceType.endsWith('-r') ? 'r' : raceType.endsWith('-d') ? 'd' : null;
+
+    const hasOffice = baseType === 'senate'
       ? /\bsenat/.test(text)
-      : raceType === 'governor'
+      : baseType === 'governor'
         ? /\bgovern|\bgubern/.test(text)
         : /\bhouse\b|\bcongress|\bdistrict\b|\bcd\b/.test(text);
-    if (!hasRaceType) return 0;
+    if (!hasOffice) return 0;
 
-    if (raceType === 'house' && districtNum != null) {
+    // Primary matching: must mention "primary" and the correct party
+    if (isPrimary) {
+      if (!/\bprimary\b/.test(text)) return 0;
+      const hasParty = primaryParty === 'r'
+        ? /\brepublican\b|\bgop\b|\brep\b/.test(text)
+        : /\bdemocrat\b|\bdem\b|\bdfl\b/.test(text);
+      if (!hasParty) return 0;
+    } else {
+      // General election markets should NOT be primary-specific
+      // (skip markets that are clearly about a primary for general race matching)
+      if (/\bprimary\b/.test(text) && (/\brepublican\b|\bdemocrat\b|\bgop\b/.test(text))) return 0;
+    }
+
+    if (baseType === 'house' && districtNum != null) {
       const distStr = String(districtNum);
       const hasDistrict = text.includes(`district ${distStr}`) ||
         text.includes(`cd ${distStr}`) ||
@@ -155,6 +175,7 @@ class ElectionLiveService {
     let score = 1;
     if (/2026/.test(text)) score += 2;
     if (text.includes(stateNameLower)) score += 1;
+    if (isPrimary && /\bprimary\b/.test(text)) score += 2;
     if (districtNum != null && text.includes(`district ${String(districtNum)}`)) score += 1;
     score += Math.log10(Math.max(market.volume || 1, 1));
     return score;
@@ -192,45 +213,78 @@ class ElectionLiveService {
 
   /**
    * Match markets to races. For each race, pick the best matching market
-   * and extract win probabilities.
+   * and extract win probabilities. Also matches primary markets.
    */
   _deriveRatings(allMarkets) {
     const results = {};
     const allRaces = [
+      // General election races
       ...SENATE_STATES.map(s => ({ state: s, type: 'senate' })),
       ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor' })),
       ...HOUSE_DISTRICTS.map(d => ({ state: d.state, type: 'house', district: d.district, code: d.code })),
+      // Primary races (R and D for each office)
+      ...SENATE_STATES.map(s => ({ state: s, type: 'senate-primary-r' })),
+      ...SENATE_STATES.map(s => ({ state: s, type: 'senate-primary-d' })),
+      ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor-primary-r' })),
+      ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor-primary-d' })),
     ];
 
     for (const race of allRaces) {
+      const isPrimary = race.type.includes('-primary-');
       const scored = allMarkets
         .map(m => ({ market: m, score: this._scoreMatch(m, race.state, race.type, race.district || null) }))
         .filter(s => s.score > 0)
         .sort((a, b) => b.score - a.score);
 
       if (scored.length === 0) continue;
-
       const bestMatch = scored[0].market;
-      const dProb = this._extractDemProbability(bestMatch);
-      if (dProb == null) continue;
 
-      const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
-      results[key] = {
-        state: race.state,
-        raceType: race.type,
-        district: race.code || null,
-        derivedRating: probabilityToRating(dProb),
-        dWinProb: Math.round(dProb * 100),
-        rWinProb: Math.round((1 - dProb) * 100),
-        marketQuestion: bestMatch.question,
-        marketUrl: bestMatch.url,
-        marketSource: bestMatch.source,
-        marketVolume: bestMatch.volume,
-        outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
-          name: o.name,
-          price: o.price != null ? Math.round(o.price * 100) : null,
-        })),
-      };
+      if (isPrimary) {
+        // Primary markets: pass through all candidate outcomes with prices
+        const outcomes = (bestMatch.outcomes || [])
+          .filter(o => o.name && o.price != null)
+          .sort((a, b) => b.price - a.price)
+          .slice(0, 10)
+          .map(o => ({ name: o.name, pct: Math.round(o.price * 100) }));
+
+        if (outcomes.length === 0) continue;
+
+        const party = race.type.endsWith('-r') ? 'R' : 'D';
+        const baseType = race.type.replace(/-primary-[rd]$/, '');
+        const key = `${race.state}:${baseType}:primary:${party}`;
+        results[key] = {
+          state: race.state,
+          raceType: race.type,
+          party,
+          candidates: outcomes,
+          marketQuestion: bestMatch.question,
+          marketUrl: bestMatch.url,
+          marketSource: bestMatch.source,
+          marketVolume: bestMatch.volume,
+        };
+      } else {
+        // General election: extract D-win probability
+        const dProb = this._extractDemProbability(bestMatch);
+        if (dProb == null) continue;
+
+        const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
+        results[key] = {
+          state: race.state,
+          raceType: race.type,
+          district: race.code || null,
+          derivedRating: probabilityToRating(dProb),
+          dWinProb: Math.round(dProb * 100),
+          rWinProb: Math.round((1 - dProb) * 100),
+          marketQuestion: bestMatch.question,
+          marketUrl: bestMatch.url,
+          marketSource: bestMatch.source,
+          marketVolume: bestMatch.volume,
+          outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
+            name: o.name,
+            price: o.price != null ? Math.round(o.price * 100) : null,
+          })),
+        };
+      }
     }
 
     return results;
