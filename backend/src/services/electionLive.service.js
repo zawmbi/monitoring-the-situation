@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v6'; // v6: markets-only simplification
+const CACHE_KEY = 'elections:live:v7'; // v7: comprehensive slug-based market fetching
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -36,33 +36,53 @@ const GOVERNOR_STATES = [
   'South Dakota', 'Tennessee', 'Texas', 'Vermont', 'Wisconsin', 'Wyoming',
 ];
 
-// Competitive House districts to track
+// Competitive House districts to track (includes all districts with Polymarket markets)
 const HOUSE_DISTRICTS = [
   { state: 'Arizona', district: 1, code: 'AZ-01' },
+  { state: 'Arizona', district: 4, code: 'AZ-04' },
   { state: 'Arizona', district: 6, code: 'AZ-06' },
   { state: 'California', district: 13, code: 'CA-13' },
   { state: 'California', district: 22, code: 'CA-22' },
   { state: 'California', district: 27, code: 'CA-27' },
+  { state: 'California', district: 40, code: 'CA-40' },
+  { state: 'California', district: 41, code: 'CA-41' },
   { state: 'California', district: 45, code: 'CA-45' },
   { state: 'Colorado', district: 8, code: 'CO-08' },
+  { state: 'Florida', district: 13, code: 'FL-13' },
+  { state: 'Florida', district: 23, code: 'FL-23' },
   { state: 'Iowa', district: 1, code: 'IA-01' },
   { state: 'Iowa', district: 3, code: 'IA-03' },
+  { state: 'Iowa', district: 4, code: 'IA-04' },
+  { state: 'Louisiana', district: 6, code: 'LA-06' },
+  { state: 'Maine', district: 1, code: 'ME-01' },
   { state: 'Maine', district: 2, code: 'ME-02' },
+  { state: 'Michigan', district: 5, code: 'MI-05' },
   { state: 'Michigan', district: 7, code: 'MI-07' },
   { state: 'Michigan', district: 8, code: 'MI-08' },
   { state: 'Minnesota', district: 2, code: 'MN-02' },
   { state: 'Nebraska', district: 2, code: 'NE-02' },
-  { state: 'North Carolina', district: 1, code: 'NC-01' },
+  { state: 'Nevada', district: 3, code: 'NV-03' },
+  { state: 'New Jersey', district: 7, code: 'NJ-07' },
+  { state: 'New York', district: 4, code: 'NY-04' },
   { state: 'New York', district: 17, code: 'NY-17' },
+  { state: 'New York', district: 18, code: 'NY-18' },
   { state: 'New York', district: 19, code: 'NY-19' },
+  { state: 'New York', district: 22, code: 'NY-22' },
+  { state: 'North Carolina', district: 1, code: 'NC-01' },
   { state: 'Ohio', district: 9, code: 'OH-09' },
   { state: 'Ohio', district: 13, code: 'OH-13' },
+  { state: 'Oregon', district: 5, code: 'OR-05' },
   { state: 'Pennsylvania', district: 1, code: 'PA-01' },
   { state: 'Pennsylvania', district: 7, code: 'PA-07' },
+  { state: 'Pennsylvania', district: 8, code: 'PA-08' },
   { state: 'Pennsylvania', district: 10, code: 'PA-10' },
   { state: 'Texas', district: 28, code: 'TX-28' },
   { state: 'Texas', district: 34, code: 'TX-34' },
+  { state: 'Virginia', district: 2, code: 'VA-02' },
+  { state: 'Virginia', district: 7, code: 'VA-07' },
   { state: 'Washington', district: 3, code: 'WA-03' },
+  { state: 'Wisconsin', district: 1, code: 'WI-01' },
+  { state: 'Wisconsin', district: 3, code: 'WI-03' },
 ];
 
 const STATE_CODES = {
@@ -103,23 +123,101 @@ class ElectionLiveService {
   }
 
   /**
+   * Generate Polymarket event slugs for all 2026 races.
+   * These are fetched directly by slug to guarantee coverage.
+   * Slug patterns discovered from Polymarket's actual URL structure.
+   */
+  _generatePolymarketSlugs() {
+    const slugs = [];
+    const toSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
+
+    // Senate general + primaries
+    for (const state of SENATE_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-senate-election-winner`);
+      slugs.push(`${s}-republican-senate-primary-winner`);
+      slugs.push(`${s}-democratic-senate-primary-winner`);
+    }
+    // Governor general (multiple slug patterns observed)
+    for (const state of GOVERNOR_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-governor-winner-2026`);
+      slugs.push(`${s}-governor-election-winner`);
+      slugs.push(`${s}-governor-election-2026`);
+    }
+    // House districts (pattern: {state-code}-{district}-house-election-winner)
+    for (const d of HOUSE_DISTRICTS) {
+      const code = d.code.toLowerCase();
+      slugs.push(`${code}-house-election-winner`);
+    }
+    // Meta / control markets
+    slugs.push(
+      'which-party-will-win-the-senate-in-2026',
+      'which-party-will-win-the-house-in-2026',
+      'balance-of-power-2026-midterms',
+      'republican-senate-seats-after-the-2026-midterm-elections-927',
+    );
+    return slugs;
+  }
+
+  /**
    * Fetch all election markets from Polymarket + Kalshi + PredictIt.
+   * Uses multiple search strategies to maximize coverage:
+   * 1. Keyword search for "2026" (catches explicit year references)
+   * 2. Keyword search for "senate" (catches state senate race markets)
+   * 3. Keyword search for "governor" (catches governor race markets)
+   * 4. Direct slug-based fetching for known Polymarket event patterns
+   * 5. Standard Kalshi + PredictIt topic search
    */
   async _fetchAllMarkets() {
-    const required = ['2026'];
-    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican', 'primary'];
+    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican', 'primary', '2026'];
 
-    const [polyResults, kalshiResults, predictitResults] = await Promise.allSettled([
-      polymarketService.getMarketsByTopic(required, boost, false),
-      kalshiService.getMarketsByTopic(required, boost, false),
-      predictitService.getMarketsByTopic(required, boost, false),
+    // Multiple search strategies for Polymarket (many markets don't contain "2026" in text)
+    const polySearches = [
+      polymarketService.getMarketsByTopic(['2026'], boost, false),
+      polymarketService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary', 'democrat', 'republican'], false),
+      polymarketService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'primary'], false),
+      polymarketService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor', 'house'], false),
+      polymarketService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
+    ];
+
+    // Kalshi + PredictIt — broader searches
+    const kalshiSearches = [
+      kalshiService.getMarketsByTopic(['2026'], boost, false),
+      kalshiService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary'], false),
+      kalshiService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner'], false),
+    ];
+    const predictitSearch = predictitService.getMarketsByTopic(['2026'], boost, false);
+
+    // Direct slug-based Polymarket fetching for guaranteed coverage
+    const slugs = this._generatePolymarketSlugs();
+    const slugFetch = polymarketService.fetchEventsBySlugs(slugs, 10)
+      .then(events => polymarketService.normalizeMarkets(events))
+      .catch(() => []);
+
+    // Execute all in parallel
+    const allResults = await Promise.allSettled([
+      ...polySearches,
+      ...kalshiSearches,
+      predictitSearch,
+      slugFetch,
     ]);
 
-    return [
-      ...(polyResults.status === 'fulfilled' ? polyResults.value : []),
-      ...(kalshiResults.status === 'fulfilled' ? kalshiResults.value : []),
-      ...(predictitResults.status === 'fulfilled' ? predictitResults.value : []),
-    ];
+    // Merge and deduplicate by market ID
+    const seen = new Set();
+    const markets = [];
+    for (const result of allResults) {
+      if (result.status !== 'fulfilled' || !Array.isArray(result.value)) continue;
+      for (const market of result.value) {
+        const key = market.id || market.url || market.question;
+        if (!seen.has(key)) {
+          seen.add(key);
+          markets.push(market);
+        }
+      }
+    }
+
+    return markets;
   }
 
   /**

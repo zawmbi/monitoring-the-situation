@@ -120,11 +120,57 @@ class PolymarketService {
     this._memCacheTime = 0;
   }
 
-  async fetchMarkets() {
-    const url = `${this.baseUrl}/events?limit=100&active=true&closed=false&order=volume&ascending=false`;
+  async fetchMarkets(limit = 200) {
+    // Fetch multiple pages to get more than 100 events
+    const allEvents = [];
+    const pageSize = Math.min(limit, 100);
+    const pages = Math.ceil(limit / pageSize);
 
+    for (let page = 0; page < pages; page++) {
+      const offset = page * pageSize;
+      const url = `${this.baseUrl}/events?limit=${pageSize}&offset=${offset}&active=true&closed=false&order=volume&ascending=false`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(url, {
+          headers: { 'Accept': 'application/json', 'User-Agent': 'MonitoringTheSituation/1.0' },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) throw new Error(`Polymarket API ${response.status}`);
+
+        const data = await response.json();
+        const events = Array.isArray(data) ? data
+          : Array.isArray(data?.data) ? data.data
+          : Array.isArray(data?.events) ? data.events
+          : [];
+
+        allEvents.push(...events);
+        if (events.length < pageSize) break; // No more pages
+      } catch (error) {
+        clearTimeout(timeout);
+        if (page === 0) {
+          console.error('[Polymarket] Fetch failed:', error.message);
+          throw error;
+        }
+        break; // Got some pages, stop here
+      }
+    }
+
+    return allEvents;
+  }
+
+  /**
+   * Fetch a specific event by slug (e.g. "texas-senate-election-winner").
+   * Returns the raw event object or null.
+   */
+  async fetchEventBySlug(slug) {
+    const url = `${this.baseUrl}/events?slug=${encodeURIComponent(slug)}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch(url, {
@@ -133,21 +179,30 @@ class PolymarketService {
       });
       clearTimeout(timeout);
 
-      if (!response.ok) throw new Error(`Polymarket API ${response.status}`);
-
+      if (!response.ok) return null;
       const data = await response.json();
-
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object') {
-        if (Array.isArray(data.data)) return data.data;
-        if (Array.isArray(data.events)) return data.events;
-      }
-      return [];
-    } catch (error) {
-      clearTimeout(timeout);
-      console.error('[Polymarket] Fetch failed:', error.message);
-      throw error;
+      const events = Array.isArray(data) ? data : data?.data ? [data.data] : [data];
+      return events.find(e => e && (e.slug || e.id)) || null;
+    } catch {
+      return null;
     }
+  }
+
+  /**
+   * Fetch multiple events by slug in parallel batches.
+   */
+  async fetchEventsBySlugs(slugs, concurrency = 5) {
+    const results = [];
+    for (let i = 0; i < slugs.length; i += concurrency) {
+      const batch = slugs.slice(i, i + concurrency);
+      const batchResults = await Promise.allSettled(
+        batch.map(slug => this.fetchEventBySlug(slug))
+      );
+      for (const r of batchResults) {
+        if (r.status === 'fulfilled' && r.value) results.push(r.value);
+      }
+    }
+    return results;
   }
 
   normalizeMarkets(rawEvents) {
@@ -269,7 +324,7 @@ class PolymarketService {
     if (cached) return cached;
 
     try {
-      const raw = await this.fetchMarkets();
+      const raw = await this.fetchMarkets(300); // 300 events to cover election markets
       const normalized = this.normalizeMarkets(raw);
 
       // Store in both Redis and memory
