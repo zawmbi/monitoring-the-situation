@@ -2419,12 +2419,31 @@ function probabilityToRating(dProb) {
 }
 
 /**
- * Enrich a race object with PVI-based dWinProb when not already set.
- * This ensures probability data is always available even without live API.
+ * Convert a static rating (e.g. from Cook/Sabato) to a D-win probability.
+ * Uses midpoint of each rating band to produce race-specific probabilities.
+ */
+function ratingToProbability(rating) {
+  const map = {
+    'safe-d': 92, 'likely-d': 78, 'lean-d': 60, 'toss-up': 50,
+    'lean-r': 37, 'likely-r': 22, 'safe-r': 8,
+  };
+  return map[rating] ?? null;
+}
+
+/**
+ * Enrich a race object with fundamentals-based dWinProb when not already set.
+ * Uses the race's static rating (expert analysis) when available, which
+ * differentiates Senate from Governor for the same state.  Falls back to
+ * raw PVI if no rating exists.
  */
 function enrichRaceWithFundamentals(race, statePvi) {
-  if (!race || !statePvi) return race;
-  const dWinProb = pviToProbability(statePvi);
+  if (!race) return race;
+  if (!statePvi && !race.pvi && !race.rating) return race;
+  const racePvi = race.pvi || statePvi;
+  // Prefer the expert rating (differentiates races); fall back to PVI math
+  const ratingProb = ratingToProbability(race.rating);
+  const pviProb = pviToProbability(racePvi);
+  const dWinProb = ratingProb ?? pviProb;
   return {
     ...race,
     dWinProb: race.dWinProb ?? dWinProb,
@@ -2432,8 +2451,8 @@ function enrichRaceWithFundamentals(race, statePvi) {
     pvi: race.pvi ?? statePvi,
     confidence: race.confidence ?? 'prior-only',
     signalCount: race.signalCount ?? 1,
-    breakdown: race.breakdown ?? { fundamentals: dWinProb / 100 },
-    _fundamentalsOnly: true, // flag so frontend knows this is static
+    breakdown: race.breakdown ?? { fundamentals: (ratingProb ?? pviProb) / 100 },
+    _fundamentalsOnly: true,
   };
 }
 

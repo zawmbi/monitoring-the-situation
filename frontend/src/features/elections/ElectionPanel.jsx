@@ -16,6 +16,7 @@ import {
   REDISTRICTING_STATUS_COLORS,
 } from './electionData';
 import { useElectionLive } from '../../hooks/useElectionLive';
+import { API_URL } from '../../services/api';
 import InlineMarkets from '../../components/InlineMarkets';
 import './elections.css';
 
@@ -791,7 +792,7 @@ function VoterInfoLookup() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch(`/api/civic/voterinfo?address=${encodeURIComponent(address.trim())}`);
+      const resp = await fetch(`${API_URL}/api/civic/voterinfo?address=${encodeURIComponent(address.trim())}`);
       const data = await resp.json();
       if (data.success && data.data) {
         setVoterInfo(data.data);

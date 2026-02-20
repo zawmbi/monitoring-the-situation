@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStateElectionData, SENATE_RACES, GOVERNOR_RACES } from '../features/elections/electionData';
+import { API_URL } from '../services/api';
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT = 45000; // 45s — model first-compute can take 15-30s
@@ -32,7 +33,7 @@ export function useElectionLive(stateName) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch('/api/elections/live', {
+      const response = await fetch(`${API_URL}/api/elections/live`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -260,7 +261,7 @@ export function useElectionLive(stateName) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch('/api/elections/news', {
+      const response = await fetch(`${API_URL}/api/elections/news`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -283,7 +284,7 @@ export function useElectionLive(stateName) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch(`/api/elections/news/${encodeURIComponent(state)}`, {
+      const response = await fetch(`${API_URL}/api/elections/news/${encodeURIComponent(state)}`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
