@@ -760,6 +760,28 @@ router.get('/elections/live/:state', async (req, res) => {
 });
 
 // ===========================================
+// ELECTION MODEL (Free Multi-Source Ensemble)
+// ===========================================
+
+/**
+ * GET /api/elections/model
+ * Full ensemble model output: per-race probabilities averaged from
+ * prediction markets (Polymarket + Kalshi + PredictIt), Wikipedia polls,
+ * VoteHub generic ballot, Cook PVI fundamentals, and Metaculus forecasts.
+ * 100% free APIs — no keys required.
+ */
+router.get('/elections/model', async (req, res) => {
+  try {
+    const { default: electionModelService } = await import('../services/electionModel.service.js');
+    const data = await electionModelService.computeModel();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Election model error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute election model' });
+  }
+});
+
+// ===========================================
 // GOOGLE CIVIC INFORMATION
 // ===========================================
 

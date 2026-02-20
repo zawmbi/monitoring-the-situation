@@ -926,9 +926,59 @@
 .el-market-prob-labels {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-top: 4px;
   font-size: 10px;
   font-weight: 700;
+}
+
+.el-market-prob-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.el-polling-margin {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ── Confidence badge ── */
+
+.el-confidence-badge {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: help;
+}
+
+/* ── Signal breakdown chips ── */
+
+.el-signal-breakdown {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.el-signal-chip {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: help;
 }
 
 /* ── PVI mini badge (in district view) ── */

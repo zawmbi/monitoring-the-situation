@@ -16,8 +16,9 @@ import { fecService } from './fec.service.js';
 import { googleCivicService } from './googleCivic.service.js';
 import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
+import { electionModelService } from './electionModel.service.js';
 
-const CACHE_KEY = 'elections:live:v2'; // v2: includes pollingData from Wikipedia + VoteHub
+const CACHE_KEY = 'elections:live:v3'; // v3: integrated ensemble model
 const CACHE_TTL = 900; // 15 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -334,8 +335,47 @@ class ElectionLiveService {
       const genericBallot = genericBallotResult.status === 'fulfilled' ? genericBallotResult.value : { polls: [], average: null };
       const approval = approvalResult.status === 'fulfilled' ? approvalResult.value : { polls: [], average: null };
 
-      // Derive ratings from market probabilities
-      const marketRatings = this._deriveRatingsFromMarkets(markets);
+      // ── Ensemble model: replaces single-market-pick with multi-source average ──
+      // The model averages Polymarket + Kalshi + PredictIt probabilities (volume-weighted),
+      // blends in Wikipedia polling, Cook PVI fundamentals, and Metaculus forecasts.
+      // Falls back to the old single-market approach if the model fails.
+      let marketRatings;
+      let modelOutput = null;
+      try {
+        modelOutput = await electionModelService.computeModel();
+        // Convert model raceModels to the marketRatings format the frontend expects
+        marketRatings = {};
+        for (const [key, model] of Object.entries(modelOutput.raceModels || {})) {
+          marketRatings[key] = {
+            state: model.state,
+            raceType: model.raceType,
+            district: model.district,
+            derivedRating: model.rating,
+            dWinProb: model.dWinProb,
+            rWinProb: model.rWinProb,
+            confidence: model.confidence,
+            signalCount: model.signalCount,
+            breakdown: model.breakdown,
+            // Preserve market display info from the best source
+            marketQuestion: model.marketConsensus?.sources?.[0]?.question || null,
+            marketUrl: model.marketConsensus?.sources?.[0]?.url || null,
+            marketSource: model.marketConsensus?.sourceCount > 1
+              ? `${model.marketConsensus.sourceCount} markets`
+              : model.marketConsensus?.sources?.[0]?.source || null,
+            marketVolume: model.marketConsensus?.totalVolume || null,
+            outcomes: model.marketConsensus?.sources?.[0]?.outcomes || [],
+            // Polling info for display
+            pollingMargin: model.pollingSignal?.margin || null,
+            pollCount: model.pollingSignal?.pollCount || 0,
+            // Fundamentals
+            pvi: model.fundamentals?.pvi || null,
+          };
+        }
+        console.log(`[ElectionLive] Ensemble model: ${Object.keys(marketRatings).length} races modeled`);
+      } catch (modelErr) {
+        console.warn('[ElectionLive] Model failed, falling back to single-market ratings:', modelErr.message);
+        marketRatings = this._deriveRatingsFromMarkets(markets);
+      }
 
       // Build FEC fundraising summaries by state
       const fecSummaries = {};
@@ -420,6 +460,15 @@ class ElectionLiveService {
           genericBallot,
           approval,
         },
+        // Model metadata (for frontend transparency display)
+        model: modelOutput ? {
+          version: modelOutput.meta?.version,
+          signalWeights: modelOutput.meta?.signalWeights,
+          stats: modelOutput.meta?.stats,
+          computeTimeMs: modelOutput.meta?.computeTimeMs,
+          sources: modelOutput.meta?.sources,
+          senateProjection: modelOutput.national?.senateProjection,
+        } : null,
         marketCount: markets.length,
         fecConfigured: fecService.isConfigured,
         civicConfigured: googleCivicService.isConfigured,

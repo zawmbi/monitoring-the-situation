@@ -479,30 +479,82 @@ function RaceDetails({ race }) {
   );
 }
 
+function ConfidenceBadge({ confidence }) {
+  if (!confidence) return null;
+  const colors = {
+    'high': '#2d8a4e',
+    'medium-high': '#5a9e3f',
+    'medium': '#b8860b',
+    'low': '#b85c00',
+    'prior-only': '#888',
+  };
+  const labels = {
+    'high': 'High',
+    'medium-high': 'Med-High',
+    'medium': 'Medium',
+    'low': 'Low',
+    'prior-only': 'Prior Only',
+  };
+  return (
+    <span
+      className="el-confidence-badge"
+      style={{ color: colors[confidence] || '#888' }}
+      title={`Model confidence: ${confidence} — based on ${confidence === 'high' ? '4' : confidence === 'medium-high' ? '3' : confidence === 'medium' ? '2' : '1'} data source(s)`}
+    >
+      {labels[confidence] || confidence}
+    </span>
+  );
+}
+
+function SignalBreakdown({ breakdown, signalCount }) {
+  if (!breakdown || signalCount <= 1) return null;
+  const signalLabels = {
+    markets: 'Markets',
+    polling: 'Polls',
+    fundamentals: 'PVI',
+    metaculus: 'Metaculus',
+  };
+  return (
+    <div className="el-signal-breakdown">
+      {Object.entries(breakdown).map(([key, prob]) => (
+        <span key={key} className="el-signal-chip" title={`${signalLabels[key] || key}: ${Math.round(prob * 100)}% D`}>
+          {signalLabels[key] || key} {Math.round(prob * 100)}%
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function MarketProbBar({ race }) {
   if (!race?.dWinProb && !race?.rWinProb) return null;
   const dProb = race.dWinProb || 0;
   const rProb = race.rWinProb || 0;
+  const hasModel = race.signalCount > 0;
   return (
     <div className="el-market-prob">
       <div className="el-market-prob-header">
-        <span className="el-market-prob-label">Market Probability</span>
-        {race.marketSource && (
-          <a
-            className="el-market-prob-source"
-            href={race.marketUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-          >
-            {race.marketSource === 'kalshi' ? 'Kalshi' : race.marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 3, opacity: 0.6 }}>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </a>
-        )}
+        <span className="el-market-prob-label">
+          {hasModel ? 'Ensemble Forecast' : 'Market Probability'}
+        </span>
+        <span className="el-market-prob-meta">
+          {race.confidence && <ConfidenceBadge confidence={race.confidence} />}
+          {race.marketSource && (
+            <a
+              className="el-market-prob-source"
+              href={race.marketUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+            >
+              {race.marketSource}
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 3, opacity: 0.6 }}>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          )}
+        </span>
       </div>
       <div className="el-market-prob-bar">
         <div
@@ -516,19 +568,32 @@ function MarketProbBar({ race }) {
       </div>
       <div className="el-market-prob-labels">
         <span style={{ color: PARTY_COLORS.D }}>D {dProb}%</span>
+        {race.pollingMargin != null && (
+          <span className="el-polling-margin" title={`Polling average: D${race.pollingMargin > 0 ? '+' : ''}${race.pollingMargin} (${race.pollCount} polls)`}>
+            Polls D{race.pollingMargin > 0 ? '+' : ''}{race.pollingMargin}
+          </span>
+        )}
         <span style={{ color: PARTY_COLORS.R }}>R {rProb}%</span>
       </div>
+      <SignalBreakdown breakdown={race.breakdown} signalCount={race.signalCount} />
     </div>
   );
 }
 
-function LiveIndicator({ isLive, marketCount }) {
+function LiveIndicator({ isLive, marketCount, model }) {
   if (!isLive) return null;
+  const sourceCount = model?.sources
+    ? Object.values(model.sources).filter(v => v > 0).length
+    : 0;
+  const title = model
+    ? `Ensemble model: ${model.stats?.totalRaces || 0} races from ${sourceCount} data sources — updates every 5min`
+    : `Live data from ${marketCount || 0} prediction markets — updates every 5min`;
   return (
-    <span className="el-live-indicator" title={`Live data from ${marketCount || 0} prediction markets — updates every 5min`}>
+    <span className="el-live-indicator" title={title}>
       <span className="el-live-dot" />
       LIVE
-      {marketCount > 0 && <span className="el-live-count">{marketCount}</span>}
+      {model && <span className="el-live-count" title="Data sources">{sourceCount}src</span>}
+      {!model && marketCount > 0 && <span className="el-live-count">{marketCount}</span>}
     </span>
   );
 }
@@ -1003,7 +1068,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           </div>
           <div className="el-subtitle">2026 Midterm Elections</div>
         </div>
-        <LiveIndicator isLive={isLive} marketCount={data.live?.marketCount} />
+        <LiveIndicator isLive={isLive} marketCount={data.live?.marketCount} model={data.live?.model} />
       </div>
 
       {/* Race type tabs */}

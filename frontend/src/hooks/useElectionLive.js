@@ -98,6 +98,13 @@ export function useElectionLive(stateName) {
         marketSource: senateLive.marketSource,
         marketVolume: senateLive.marketVolume,
         marketOutcomes: senateLive.outcomes,
+        // Ensemble model fields
+        confidence: senateLive.confidence || null,
+        signalCount: senateLive.signalCount || 0,
+        breakdown: senateLive.breakdown || null,
+        pollingMargin: senateLive.pollingMargin || null,
+        pollCount: senateLive.pollCount || 0,
+        pvi: senateLive.pvi || null,
       };
     }
     // Attach live polls to senate race
@@ -123,6 +130,10 @@ export function useElectionLive(stateName) {
         marketSource: govLive.marketSource,
         marketVolume: govLive.marketVolume,
         marketOutcomes: govLive.outcomes,
+        confidence: govLive.confidence || null,
+        signalCount: govLive.signalCount || 0,
+        breakdown: govLive.breakdown || null,
+        pvi: govLive.pvi || null,
       };
     }
 
@@ -142,6 +153,9 @@ export function useElectionLive(stateName) {
           marketSource: distLive.marketSource,
           marketVolume: distLive.marketVolume,
           marketOutcomes: distLive.outcomes,
+          confidence: distLive.confidence || null,
+          signalCount: distLive.signalCount || 0,
+          breakdown: distLive.breakdown || null,
         };
       });
     }
@@ -213,6 +227,8 @@ export function useElectionLive(stateName) {
         fecConfigured: liveData.fecConfigured,
         civicConfigured: liveData.civicConfigured,
         marketCount: liveData.marketCount,
+        model: liveData.model || null,
+        senateProjection: liveData.model?.senateProjection || null,
       },
     };
   }, [liveData]);
