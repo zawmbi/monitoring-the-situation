@@ -646,17 +646,27 @@ function MarketProbBar({ race }) {
 
 function LiveIndicator({ isLive, marketCount, model }) {
   if (!isLive) return null;
+  const diag = model?.diagnostics;
   const sourceCount = model?.sources
     ? Object.values(model.sources).filter(v => v > 0).length
     : 0;
+  const signalStatus = diag
+    ? `${diag.signalsAvailable}/${diag.signalsTotal} signals`
+    : null;
   const title = model
     ? `Ensemble model: ${model.stats?.totalRaces || 0} races from ${sourceCount} data sources — updates every 5min`
     : `Live data from ${marketCount || 0} prediction markets — updates every 5min`;
+  const signalTitle = diag
+    ? `Markets: ${diag.markets ? 'up' : 'down'}, Polling: ${diag.polling ? 'up' : 'down'}, Fundamentals: ${diag.fundamentals ? 'up' : 'down'}, Sentiment: ${diag.sentiment ? 'up' : 'down'}, Fundraising: ${diag.fundraising ? 'up' : 'down'}, Metaculus: ${diag.metaculus ? 'up' : 'down'}, Incumbency: ${diag.incumbency ? 'up' : 'down'}`
+    : '';
   return (
     <span className="el-live-indicator" title={title}>
       <span className="el-live-dot" />
       LIVE
-      {model && <span className="el-live-count" title="Data sources">{sourceCount}src</span>}
+      {signalStatus && (
+        <span className="el-live-count" title={signalTitle}>{signalStatus}</span>
+      )}
+      {!signalStatus && model && <span className="el-live-count" title="Data sources">{sourceCount}src</span>}
       {!model && marketCount > 0 && <span className="el-live-count">{marketCount}</span>}
     </span>
   );
@@ -984,7 +994,7 @@ function LivePolls({ polls, maxPolls = 5 }) {
           </div>
         );
       })}
-      <div className="el-live-polls-attr">via FiveThirtyEight, Wikipedia &amp; VoteHub</div>
+      <div className="el-live-polls-attr">via RealClearPolling, Wikipedia &amp; VoteHub</div>
     </div>
   );
 }
@@ -1281,7 +1291,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   );
                 })}
 
-                {/* Live primary polls from Wikipedia / 538 */}
+                {/* Live primary polls from Wikipedia / RealClearPolling */}
                 {activeRace.livePrimaryPolls && activeRace.livePrimaryPolls.length > 0 && (
                   <LivePolls polls={activeRace.livePrimaryPolls} maxPolls={5} />
                 )}
@@ -1407,8 +1417,8 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               </div>
               <div className="el-info-source-list">
                 <div className="el-info-source-row">
-                  <span className="el-info-source-name">FiveThirtyEight</span>
-                  <span className="el-info-source-desc">Senate/Gov/House poll CSVs, CC BY 4.0 (live)</span>
+                  <span className="el-info-source-name">RealClearPolling</span>
+                  <span className="el-info-source-desc">Senate/Gov/House polls (live)</span>
                 </div>
                 <div className="el-info-source-row">
                   <span className="el-info-source-name">Wikipedia Polls</span>
@@ -1584,13 +1594,26 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
         </div>}
 
         <div className="el-data-footer">
+          {(() => {
+            const diag = data.live?.model?.diagnostics;
+            if (diag && diag.signalsAvailable < diag.signalsTotal) {
+              return (
+                <span className="el-data-signal-status" title={`${diag.signalsAvailable} of ${diag.signalsTotal} data signals active`}>
+                  {diag.signalsAvailable === 0
+                    ? 'Live data temporarily unavailable'
+                    : `${diag.signalsAvailable}/${diag.signalsTotal} data signals active`}
+                </span>
+              );
+            }
+            return null;
+          })()}
           <span className="el-data-updated">
             {isLive && liveUpdated
               ? `Live ${Math.round((Date.now() - liveUpdated.getTime()) / 60000)}m ago`
               : `Data as of ${DATA_LAST_UPDATED}`}
           </span>
           <span className="el-data-sources">
-            {isLive ? '538 + Wikipedia + VoteHub + Markets + FEC + GDELT + Metaculus' : 'Cook/Sabato/OpenSecrets'}
+            {isLive ? 'RCP + Wikipedia + VoteHub + Markets + FEC + GDELT + Metaculus' : 'Cook/Sabato/OpenSecrets'}
           </span>
         </div>
       </div>

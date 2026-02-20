@@ -470,6 +470,7 @@ class ElectionLiveService {
           stats: modelOutput.meta?.stats,
           computeTimeMs: modelOutput.meta?.computeTimeMs,
           sources: modelOutput.meta?.sources,
+          diagnostics: modelOutput.meta?.diagnostics || null,
           senateProjection: modelOutput.national?.senateProjection,
         } : null,
         marketCount: markets.length,

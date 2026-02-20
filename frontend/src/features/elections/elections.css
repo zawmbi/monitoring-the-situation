@@ -797,9 +797,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   font-size: 9px;
   color: var(--color-text-muted);
   opacity: 0.6;
+}
+
+.el-data-signal-status {
+  width: 100%;
+  text-align: center;
+  color: #f0ad4e;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.3px;
 }
 
 .el-data-updated {

@@ -6,7 +6,7 @@
  * Weights by recency and sample size.
  *
  * Sources:
- *   1. FiveThirtyEight CSVs (CC BY 4.0)  — individual polls with methodology
+ *   1. RealClearPolling (JSON/HTML)       — individual polls from RCP
  *   2. Wikipedia senate polls             — parsed from wikitables
  *   3. VoteHub                            — generic ballot + approval
  *
@@ -15,7 +15,7 @@
  */
 
 import { cacheService } from './cache.service.js';
-import { fiveThirtyEightService } from './fiveThirtyEight.service.js';
+import { realClearPollingService } from './realClearPolling.service.js';
 import { wikipediaPollsService } from './wikipedia-polls.service.js';
 import { voteHubService } from './votehub.service.js';
 
@@ -212,29 +212,29 @@ class PollingAggregatorService {
     // ── Fetch from all sources in parallel ──────────────────────────────
 
     const [
-      fteSenatePollsResult,
-      fteGovPollsResult,
-      fteGenericResult,
+      rcpSenatePollsResult,
+      rcpGovPollsResult,
+      rcpGenericResult,
       wikiResult,
       vhGenericResult,
     ] = await Promise.allSettled([
-      fiveThirtyEightService.getSenatePolls(),
-      fiveThirtyEightService.getGovernorPolls(),
-      fiveThirtyEightService.getGenericBallotPolls(),
+      realClearPollingService.getSenatePolls(),
+      realClearPollingService.getGovernorPolls(),
+      realClearPollingService.getGenericBallotPolls(),
       senateRaceTypes ? wikipediaPollsService.fetchAllSenatePolls(senateRaceTypes) : Promise.resolve({}),
       voteHubService.getGenericBallot(),
     ]);
 
-    const fteSenate = fteSenatePollsResult.status === 'fulfilled' ? fteSenatePollsResult.value : {};
-    const fteGov = fteGovPollsResult.status === 'fulfilled' ? fteGovPollsResult.value : {};
-    const fteGeneric = fteGenericResult.status === 'fulfilled' ? fteGenericResult.value : {};
+    const rcpSenate = rcpSenatePollsResult.status === 'fulfilled' ? rcpSenatePollsResult.value : {};
+    const rcpGov = rcpGovPollsResult.status === 'fulfilled' ? rcpGovPollsResult.value : {};
+    const rcpGeneric = rcpGenericResult.status === 'fulfilled' ? rcpGenericResult.value : {};
     const wikiPolls = wikiResult.status === 'fulfilled' ? wikiResult.value : {};
     const vhGeneric = vhGenericResult.status === 'fulfilled' ? vhGenericResult.value : { polls: [], average: null };
 
     // ── Merge and deduplicate per race ──────────────────────────────────
 
     const byRace = {};
-    const sourceStats = { fivethirtyeight: 0, wikipedia: 0, votehub: 0 };
+    const sourceStats = { realclearpolling: 0, wikipedia: 0, votehub: 0 };
 
     // Helper: add polls for a state+raceType key
     function addPolls(stateKey, polls) {
@@ -260,8 +260,8 @@ class PollingAggregatorService {
       }
     }
 
-    // 1. FiveThirtyEight Senate polls
-    for (const [state, polls] of Object.entries(fteSenate)) {
+    // 1. RealClearPolling Senate polls
+    for (const [state, polls] of Object.entries(rcpSenate)) {
       for (const p of polls) {
         const normalized = {
           pollster: p.pollster,
@@ -270,19 +270,19 @@ class PollingAggregatorService {
           sampleSize: p.sampleSize,
           state,
           candidates: p.candidates,
-          source: 'fivethirtyeight',
+          source: 'realclearpolling',
         };
         if (p.stage === 'primary' && p.primaryParty) {
           addPrimaryPolls(`${state}:senate:${p.primaryParty}`, [normalized]);
         } else {
           addPolls(`${state}:senate`, [normalized]);
         }
-        sourceStats.fivethirtyeight++;
+        sourceStats.realclearpolling++;
       }
     }
 
-    // 2. FiveThirtyEight Governor polls
-    for (const [state, polls] of Object.entries(fteGov)) {
+    // 2. RealClearPolling Governor polls
+    for (const [state, polls] of Object.entries(rcpGov)) {
       for (const p of polls) {
         const normalized = {
           pollster: p.pollster,
@@ -291,14 +291,14 @@ class PollingAggregatorService {
           sampleSize: p.sampleSize,
           state,
           candidates: p.candidates,
-          source: 'fivethirtyeight',
+          source: 'realclearpolling',
         };
         if (p.stage === 'primary' && p.primaryParty) {
           addPrimaryPolls(`${state}:governor:${p.primaryParty}`, [normalized]);
         } else {
           addPolls(`${state}:governor`, [normalized]);
         }
-        sourceStats.fivethirtyeight++;
+        sourceStats.realclearpolling++;
       }
     }
 
@@ -364,20 +364,20 @@ class PollingAggregatorService {
       sourceStats.votehub += vhPolls.length;
     }
 
-    // 5. FiveThirtyEight generic ballot
-    const fteGenericPolls = fteGeneric['_national'] || [];
-    if (fteGenericPolls.length > 0) {
-      const normalized = fteGenericPolls.map(p => ({
+    // 5. RealClearPolling generic ballot
+    const rcpGenericPolls = rcpGeneric['_national'] || [];
+    if (rcpGenericPolls.length > 0) {
+      const normalized = rcpGenericPolls.map(p => ({
         pollster: p.pollster,
         date: p.endDate || p.startDate,
         endDate: p.endDate,
         sampleSize: p.sampleSize,
         state: 'National',
         candidates: p.candidates,
-        source: 'fivethirtyeight',
+        source: 'realclearpolling',
       }));
       addPolls('_generic', normalized);
-      sourceStats.fivethirtyeight += normalized.length;
+      sourceStats.realclearpolling += normalized.length;
     }
 
     // ── Compute weighted averages per race (general) ────────────────────
@@ -411,7 +411,7 @@ class PollingAggregatorService {
     const totalPrimaryPolls = Object.values(byPrimary).reduce((s, m) => s + Object.keys(m).length, 0);
     const raceCount = Object.keys(results).length;
 
-    console.log(`[PollingAgg] Done in ${elapsedMs}ms: ${totalPolls} general + ${totalPrimaryPolls} primary polls across ${raceCount} races (538: ${sourceStats.fivethirtyeight}, Wiki: ${sourceStats.wikipedia}, VH: ${sourceStats.votehub})`);
+    console.log(`[PollingAgg] Done in ${elapsedMs}ms: ${totalPolls} general + ${totalPrimaryPolls} primary polls across ${raceCount} races (RCP: ${sourceStats.realclearpolling}, Wiki: ${sourceStats.wikipedia}, VH: ${sourceStats.votehub})`);
 
     const output = {
       byRace: results,

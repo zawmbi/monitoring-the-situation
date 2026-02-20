@@ -3,7 +3,7 @@
  *
  * Produces race-level win probabilities by averaging signals from:
  *   1. Prediction markets  — Polymarket, Kalshi, PredictIt  (volume-weighted)
- *   2. Polling data        — FiveThirtyEight CSVs + Wikipedia + VoteHub  (aggregated, deduped)
+ *   2. Polling data        — RealClearPolling + Wikipedia + VoteHub  (aggregated, deduped)
  *   3. Fundamentals        — Cook PVI + national environment (generic ballot)
  *   4. Forecasting crowds  — Metaculus community predictions
  *   5. News sentiment      — GDELT state-level election tone
@@ -12,8 +12,8 @@
  * 10+ upstream sources, ALL free & keyless.  Each signal can be audited
  * independently via the breakdown{} in the API response.
  *
- * Commercial viability: every source is either public domain (FEC),
- * CC BY 4.0 (FiveThirtyEight), or keyless public API (GDELT, Wikipedia,
+ * Commercial viability: every source is either public domain (FEC)
+ * or keyless public API (GDELT, Wikipedia, RealClearPolling,
  * Polymarket, Kalshi, PredictIt, VoteHub, Metaculus).
  *
  * Output per race:
@@ -40,7 +40,7 @@ const CACHE_TTL = 600; // 10 minutes
 // have their weight redistributed proportionally among present signals.
 const SIGNAL_WEIGHTS = {
   markets:      0.35,   // Prediction market consensus (Polymarket + Kalshi + PredictIt)
-  polling:      0.28,   // Multi-source polling average (538 + Wikipedia + VoteHub)
+  polling:      0.28,   // Multi-source polling average (RCP + Wikipedia + VoteHub)
   fundamentals: 0.12,   // Cook PVI + generic ballot national environment
   sentiment:    0.08,   // GDELT state-level election news tone
   fundraising:  0.07,   // FEC D/R fundraising differential
@@ -51,7 +51,7 @@ const SIGNAL_WEIGHTS = {
 // Primary model weights — primaries are more poll-driven and less predictable.
 // Fundamentals (PVI) and generic ballot don't apply intra-party.
 const PRIMARY_SIGNAL_WEIGHTS = {
-  polling:      0.45,   // Primary polls from 538 + Wikipedia (strongest signal)
+  polling:      0.45,   // Primary polls from RCP + Wikipedia (strongest signal)
   markets:      0.25,   // Candidate-level prediction market odds
   fundraising:  0.20,   // FEC per-candidate receipts (viability proxy)
   incumbency:   0.10,   // Incumbents almost never lose primaries
@@ -833,7 +833,7 @@ class ElectionModelService {
       polymarketService.getMarketsByTopic(['2026'], boostKw, false),
       kalshiService.getMarketsByTopic(['2026'], boostKw, false),
       predictitService.getMarketsByTopic(['2026'], boostKw, false),
-      // Multi-source polling (FiveThirtyEight + Wikipedia + VoteHub aggregated)
+      // Multi-source polling (RealClearPolling + Wikipedia + VoteHub aggregated)
       pollingAggregatorService.aggregateAll(senateRaceTypes),
       // VoteHub raw generic ballot (backup for national env)
       voteHubService.getGenericBallot(),
@@ -885,7 +885,7 @@ class ElectionModelService {
       const marketSignals = this._collectMarketSignals(allMarkets, race.state, race.type, race.district || null);
       const marketConsensus = this._computeMarketConsensus(marketSignals);
 
-      // 2. Polling signal (FiveThirtyEight + Wikipedia + VoteHub — aggregated & deduped)
+      // 2. Polling signal (RealClearPolling + Wikipedia + VoteHub — aggregated & deduped)
       const pollingSignal = this._extractPollingSignal(aggregatedPolling, race.state, race.type);
 
       // 3. Fundamentals (PVI + national environment)
@@ -1092,7 +1092,7 @@ class ElectionModelService {
 
       // Model metadata
       meta: {
-        version: '2.0',
+        version: '2.1',
         signalWeights: SIGNAL_WEIGHTS,
         stats: signalStats,
         totalMarkets: allMarkets.length,
@@ -1110,6 +1110,35 @@ class ElectionModelService {
           gdeltBattleground: battlegroundData?.states ? Object.keys(battlegroundData.states).length : 0,
           fecCandidates: Object.values(fecCandidates).reduce((s, arr) => s + (arr?.length || 0), 0),
         },
+        diagnostics: (() => {
+          const polyCount = polyResult.status === 'fulfilled' ? polyResult.value.length : 0;
+          const kalshiCount = kalshiResult.status === 'fulfilled' ? kalshiResult.value.length : 0;
+          const predictitCount = predictitResult.status === 'fulfilled' ? predictitResult.value.length : 0;
+          const marketsUp = polyCount > 0 || kalshiCount > 0 || predictitCount > 0;
+          const pollingUp = (aggregatedPolling?.totalPolls || 0) > 0;
+          const fundamentalsUp = true; // Cook PVI is static, always available
+          const sentimentUp = battlegroundData?.states ? Object.keys(battlegroundData.states).length > 0 : false;
+          const fundraisingUp = Object.values(fecCandidates).some(arr => arr?.length > 0);
+          const metaculusUp = metaculusQuestions.length > 0;
+          const incumbencyUp = fundraisingUp; // derived from FEC data
+
+          const signals = { markets: marketsUp, polling: pollingUp, fundamentals: fundamentalsUp, sentiment: sentimentUp, fundraising: fundraisingUp, metaculus: metaculusUp, incumbency: incumbencyUp };
+          const signalsAvailable = Object.values(signals).filter(Boolean).length;
+
+          return {
+            ...signals,
+            signalsAvailable,
+            signalsTotal: 7,
+            marketSources: [
+              ...(polyCount > 0 ? ['polymarket'] : []),
+              ...(kalshiCount > 0 ? ['kalshi'] : []),
+              ...(predictitCount > 0 ? ['predictit'] : []),
+            ],
+            pollingSources: Object.entries(aggregatedPolling?.sourceStats || {})
+              .filter(([, count]) => count > 0)
+              .map(([name]) => name),
+          };
+        })(),
       },
     };
 
