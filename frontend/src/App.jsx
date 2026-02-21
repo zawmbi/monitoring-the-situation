@@ -830,10 +830,12 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState('world');
   const [sidebarTabOrder, setSidebarTabOrder] = useState([
     { id: 'world', label: 'World' },
-    { id: 'chat', label: 'Chat' },
+    { id: 'overlays', label: 'Overlays' },
+    { id: 'sources', label: 'Sources' },
     { id: 'themes', label: 'Themes' },
     { id: 'settings', label: 'Settings' },
   ]);
+  const [chatOpen, setChatOpen] = useState(false);
   const dragTabRef = useRef(null);
   // Collapsible sidebar sections — only 'live-data' open by default for a clean start
   const [openSections, setOpenSections] = useState(new Set(['live-data']));
@@ -2600,7 +2602,7 @@ function App() {
 
       <div className="app-body">
         {/* Sidebar */}
-        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`} style={{ '--panel-opacity': panelOpacity }}>
           <div className="sidebar-header">
             {viewMode !== 'world' && (
               <div className="sidebar-breadcrumb">
@@ -2833,9 +2835,56 @@ function App() {
               />
             )}
 
-            {/* Chat Tab */}
-            {sidebarExpanded && sidebarTab === 'chat' && (
-              <ChatPanel chatId="global" />
+            {/* Overlays Tab */}
+            {sidebarExpanded && sidebarTab === 'overlays' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Map Overlays</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral switch-disabled">
+                    <span className="switch-label">Timezones (WIP)</span>
+                    <input type="checkbox" checked={false} disabled />
+                    <span className="slider" />
+                  </label>
+                  {[
+                    { id: 'us', label: 'US State Borders', state: showUSStates, set: setShowUSStates },
+                    { id: 'ca', label: 'CA Province Borders', state: showCAProvinces, set: setShowCAProvinces },
+                    { id: 'in', label: 'IN State Borders', state: showINStates, set: setShowINStates },
+                    { id: 'ru', label: 'RU Oblast Borders', state: showRUOblasts, set: setShowRUOblasts },
+                    { id: 'uk', label: 'UK Nation Borders', state: showUKNations, set: setShowUKNations },
+                    { id: 'eu', label: 'EU Country Borders', state: showEUCountries, set: setShowEUCountries },
+                  ].map(b => (
+                    <label key={b.id} className="switch switch-neutral">
+                      <span className="switch-label">{b.label}</span>
+                      <input type="checkbox" checked={b.state} onChange={() => b.set(prev => !prev)} />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sources Tab */}
+            {sidebarExpanded && sidebarTab === 'sources' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Data Sources</div>
+                <div className="settings-group">
+                  {[
+                    { id: 'news', label: 'Major News', tone: 'news' },
+                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
+                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
+                  ].map((layer) => (
+                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
+                      <span className="switch-label">{layer.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={enabledLayers[layer.id]}
+                        onChange={() => toggleLayer(layer.id)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Themes Tab */}
@@ -2959,50 +3008,6 @@ function App() {
                   </label>
                 </div>
 
-                {/* ─── Map Overlays ─── */}
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Overlays</div>
-                <div className="settings-group">
-                  <label className="switch switch-neutral switch-disabled">
-                    <span className="switch-label">Timezones (WIP)</span>
-                    <input type="checkbox" checked={false} disabled />
-                    <span className="slider" />
-                  </label>
-                  {[
-                    { id: 'us', label: 'US State Borders', state: showUSStates, set: setShowUSStates },
-                    { id: 'ca', label: 'CA Province Borders', state: showCAProvinces, set: setShowCAProvinces },
-                    { id: 'in', label: 'IN State Borders', state: showINStates, set: setShowINStates },
-                    { id: 'ru', label: 'RU Oblast Borders', state: showRUOblasts, set: setShowRUOblasts },
-                    { id: 'uk', label: 'UK Nation Borders', state: showUKNations, set: setShowUKNations },
-                    { id: 'eu', label: 'EU Country Borders', state: showEUCountries, set: setShowEUCountries },
-                  ].map(b => (
-                    <label key={b.id} className="switch switch-neutral">
-                      <span className="switch-label">{b.label}</span>
-                      <input type="checkbox" checked={b.state} onChange={() => b.set(prev => !prev)} />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-
-                {/* ─── Data Sources ─── */}
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Data Sources</div>
-                <div className="settings-group">
-                  {[
-                    { id: 'news', label: 'Major News', tone: 'news' },
-                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
-                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
-                  ].map((layer) => (
-                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
-                      <span className="switch-label">{layer.label}</span>
-                      <input
-                        type="checkbox"
-                        checked={enabledLayers[layer.id]}
-                        onChange={() => toggleLayer(layer.id)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-
                 {/* ─── Units & Language ─── */}
                 <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units & Language</div>
                 <div className="settings-group">
@@ -3045,6 +3050,26 @@ function App() {
               </div>
             )}
 
+
+            {/* Collapsible Chat */}
+            {sidebarExpanded && (
+              <div className={`sidebar-chat-wrapper${chatOpen ? ' sidebar-chat-open' : ''}`}>
+                <button
+                  className="sidebar-chat-toggle"
+                  onClick={() => setChatOpen(prev => !prev)}
+                  aria-expanded={chatOpen}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Chat
+                  <svg className={`sidebar-chat-chevron${chatOpen ? ' open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                </button>
+                {chatOpen && <ChatPanel chatId="global" />}
+              </div>
+            )}
 
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
