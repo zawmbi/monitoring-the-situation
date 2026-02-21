@@ -1,0 +1,204 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "monitr design tokens — syncs with index.css custom properties. Import into Figma via Tokens Studio plugin.",
+  "color": {
+    "bg": {
+      "primary": { "$value": "{color.bg.primary}", "$type": "color" },
+      "secondary": { "$value": "{color.bg.secondary}", "$type": "color" },
+      "card": { "$value": "{color.bg.card}", "$type": "color" },
+      "hover": { "$value": "{color.bg.hover}", "$type": "color" }
+    },
+    "text": {
+      "primary": { "$value": "{color.text.primary}", "$type": "color" },
+      "secondary": { "$value": "{color.text.secondary}", "$type": "color" },
+      "muted": { "$value": "{color.text.muted}", "$type": "color" }
+    },
+    "border": {
+      "default": { "$value": "{color.border.default}", "$type": "color" },
+      "light": { "$value": "{color.border.light}", "$type": "color" }
+    },
+    "accent": {
+      "primary": { "$value": "{color.accent.primary}", "$type": "color" },
+      "secondary": { "$value": "{color.accent.secondary}", "$type": "color" }
+    },
+    "semantic": {
+      "positive": { "$value": "{color.semantic.positive}", "$type": "color" },
+      "negative": { "$value": "{color.semantic.negative}", "$type": "color" }
+    },
+    "source": {
+      "twitter": { "$value": "{color.source.twitter}", "$type": "color" },
+      "reddit": { "$value": "{color.source.reddit}", "$type": "color" },
+      "rss": { "$value": "{color.source.rss}", "$type": "color" },
+      "news": { "$value": "{color.source.news}", "$type": "color" },
+      "rumors": { "$value": "{color.source.rumors}", "$type": "color" },
+      "flights": { "$value": "{color.source.flights}", "$type": "color" }
+    }
+  },
+  "font": {
+    "sans": { "$value": "'Space Grotesk', 'JetBrains Mono', monospace", "$type": "fontFamily" },
+    "mono": { "$value": "'JetBrains Mono', monospace", "$type": "fontFamily" },
+    "nav": { "$value": "'Inter', 'Space Grotesk', sans-serif", "$type": "fontFamily" },
+    "serif": { "$value": "'Playfair Display', Georgia, 'Times New Roman', serif", "$type": "fontFamily" }
+  },
+  "radius": {
+    "md": { "$value": "4px", "$type": "dimension" },
+    "lg": { "$value": "6px", "$type": "dimension" }
+  },
+  "spacing": {
+    "nav-expanded-height": { "$value": "64px", "$type": "dimension" },
+    "nav-handle-height": { "$value": "28px", "$type": "dimension" }
+  },
+  "themes": {
+    "cyber-control-room": {
+      "color": {
+        "bg": {
+          "primary": { "$value": "#030810", "$type": "color" },
+          "secondary": { "$value": "#071020", "$type": "color" },
+          "card": { "$value": "#0a1628", "$type": "color" },
+          "hover": { "$value": "#0f1f38", "$type": "color" }
+        },
+        "text": {
+          "primary": { "$value": "#e8f0fa", "$type": "color" },
+          "secondary": { "$value": "#b0d0ea", "$type": "color" },
+          "muted": { "$value": "#7aa4c4", "$type": "color" }
+        },
+        "border": {
+          "default": { "$value": "rgba(0, 210, 255, 0.12)", "$type": "color" },
+          "light": { "$value": "rgba(0, 240, 255, 0.35)", "$type": "color" }
+        },
+        "accent": {
+          "primary": { "$value": "#00d4ff", "$type": "color" },
+          "secondary": { "$value": "#00f0ff", "$type": "color" }
+        },
+        "semantic": {
+          "positive": { "$value": "#00ffa8", "$type": "color" },
+          "negative": { "$value": "#ff4466", "$type": "color" }
+        },
+        "source": {
+          "twitter": { "$value": "#57c7ff", "$type": "color" },
+          "reddit": { "$value": "#ff7a6d", "$type": "color" },
+          "rss": { "$value": "#ffcf70", "$type": "color" },
+          "news": { "$value": "#00ffa8", "$type": "color" },
+          "rumors": { "$value": "#ff7bde", "$type": "color" },
+          "flights": { "$value": "#6ee6ff", "$type": "color" }
+        },
+        "glass": {
+          "bg": { "$value": "rgba(3, 8, 18, 0.82)", "$type": "color" },
+          "bg-dense": { "$value": "rgba(3, 8, 18, 0.92)", "$type": "color" },
+          "border": { "$value": "rgba(0, 210, 255, 0.15)", "$type": "color" },
+          "border-accent": { "$value": "rgba(0, 240, 255, 0.3)", "$type": "color" }
+        },
+        "neon": {
+          "cyan": { "$value": "#00f0ff", "$type": "color" },
+          "blue": { "$value": "#0088ff", "$type": "color" },
+          "teal": { "$value": "#00c8b4", "$type": "color" }
+        },
+        "panel": {
+          "neon": { "$value": "rgba(0, 210, 255, 0.4)", "$type": "color" },
+          "row-bg": { "$value": "rgba(3, 10, 24, 0.65)", "$type": "color" },
+          "card-bg": { "$value": "rgba(5, 15, 35, 0.5)", "$type": "color" },
+          "card-border": { "$value": "rgba(0, 210, 255, 0.12)", "$type": "color" }
+        }
+      }
+    },
+    "dark-minimal": {
+      "color": {
+        "bg": {
+          "primary": { "$value": "#0a0a0e", "$type": "color" },
+          "secondary": { "$value": "#111116", "$type": "color" },
+          "card": { "$value": "#161620", "$type": "color" },
+          "hover": { "$value": "#1e1e2a", "$type": "color" }
+        },
+        "text": {
+          "primary": { "$value": "#e0e0e8", "$type": "color" },
+          "secondary": { "$value": "#a0a0b0", "$type": "color" },
+          "muted": { "$value": "#606070", "$type": "color" }
+        },
+        "border": {
+          "default": { "$value": "rgba(140, 140, 180, 0.12)", "$type": "color" },
+          "light": { "$value": "rgba(160, 160, 200, 0.3)", "$type": "color" }
+        },
+        "accent": {
+          "primary": { "$value": "#8080ff", "$type": "color" },
+          "secondary": { "$value": "#60a0ff", "$type": "color" }
+        },
+        "semantic": {
+          "positive": { "$value": "#60e8a0", "$type": "color" },
+          "negative": { "$value": "#ff5060", "$type": "color" }
+        },
+        "source": {
+          "news": { "$value": "#60e8a0", "$type": "color" }
+        },
+        "glass": {
+          "bg": { "$value": "rgba(10, 10, 14, 0.85)", "$type": "color" },
+          "bg-dense": { "$value": "rgba(10, 10, 14, 0.93)", "$type": "color" },
+          "border": { "$value": "rgba(140, 140, 180, 0.1)", "$type": "color" },
+          "border-accent": { "$value": "rgba(96, 160, 255, 0.2)", "$type": "color" }
+        },
+        "neon": {
+          "cyan": { "$value": "#60a0ff", "$type": "color" },
+          "blue": { "$value": "#8080ff", "$type": "color" },
+          "teal": { "$value": "#60e8a0", "$type": "color" }
+        },
+        "panel": {
+          "neon": { "$value": "rgba(140, 140, 180, 0.2)", "$type": "color" },
+          "row-bg": { "$value": "rgba(10, 10, 16, 0.6)", "$type": "color" },
+          "card-bg": { "$value": "rgba(16, 16, 22, 0.5)", "$type": "color" },
+          "card-border": { "$value": "rgba(140, 140, 180, 0.1)", "$type": "color" }
+        }
+      }
+    },
+    "light-analytic": {
+      "color": {
+        "bg": {
+          "primary": { "$value": "#f0f4f8", "$type": "color" },
+          "secondary": { "$value": "#f8fafc", "$type": "color" },
+          "card": { "$value": "#ffffff", "$type": "color" },
+          "hover": { "$value": "#e8edf2", "$type": "color" }
+        },
+        "text": {
+          "primary": { "$value": "#1a2030", "$type": "color" },
+          "secondary": { "$value": "#3d4e68", "$type": "color" },
+          "muted": { "$value": "#7088a8", "$type": "color" }
+        },
+        "border": {
+          "default": { "$value": "rgba(60, 80, 120, 0.15)", "$type": "color" },
+          "light": { "$value": "rgba(40, 100, 180, 0.3)", "$type": "color" }
+        },
+        "accent": {
+          "primary": { "$value": "#2060c0", "$type": "color" },
+          "secondary": { "$value": "#3080e0", "$type": "color" }
+        },
+        "semantic": {
+          "positive": { "$value": "#2ba870", "$type": "color" },
+          "negative": { "$value": "#d03040", "$type": "color" }
+        },
+        "source": {
+          "twitter": { "$value": "#3ba7ff", "$type": "color" },
+          "reddit": { "$value": "#ff6f6a", "$type": "color" },
+          "rss": { "$value": "#e6a040", "$type": "color" },
+          "news": { "$value": "#2ba870", "$type": "color" },
+          "rumors": { "$value": "#d06aa0", "$type": "color" },
+          "flights": { "$value": "#5ab8d4", "$type": "color" }
+        },
+        "glass": {
+          "bg": { "$value": "rgba(255, 255, 255, 0.85)", "$type": "color" },
+          "bg-dense": { "$value": "rgba(255, 255, 255, 0.92)", "$type": "color" },
+          "border": { "$value": "rgba(60, 80, 120, 0.12)", "$type": "color" },
+          "border-accent": { "$value": "rgba(32, 96, 192, 0.2)", "$type": "color" }
+        },
+        "neon": {
+          "cyan": { "$value": "#3080e0", "$type": "color" },
+          "blue": { "$value": "#2060c0", "$type": "color" },
+          "teal": { "$value": "#2ba870", "$type": "color" }
+        },
+        "panel": {
+          "neon": { "$value": "rgba(32, 96, 192, 0.15)", "$type": "color" },
+          "row-bg": { "$value": "rgba(248, 250, 252, 0.7)", "$type": "color" },
+          "card-bg": { "$value": "rgba(255, 255, 255, 0.8)", "$type": "color" },
+          "card-border": { "$value": "rgba(60, 80, 120, 0.1)", "$type": "color" }
+        }
+      }
+    }
+  }
+}

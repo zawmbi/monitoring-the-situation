@@ -797,9 +797,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   font-size: 9px;
   color: var(--color-text-muted);
   opacity: 0.6;
+}
+
+.el-data-signal-status {
+  width: 100%;
+  text-align: center;
+  color: #f0ad4e;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.3px;
 }
 
 .el-data-updated {
@@ -926,9 +937,107 @@
 .el-market-prob-labels {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-top: 4px;
   font-size: 10px;
   font-weight: 700;
+}
+
+.el-market-prob-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.el-polling-margin {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.el-poll-count {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* ── Confidence badge ── */
+
+.el-confidence-badge {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: help;
+}
+
+/* ── Signal breakdown chips ── */
+
+.el-signal-breakdown {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.el-signal-chip {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: help;
+}
+
+/* ── Primary Projection ── */
+
+.el-primary-projection {
+  margin: 4px 0 8px 0;
+}
+
+.el-primary-projection-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.el-primary-projection-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.el-primary-projection-signals {
+  font-size: 8px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.el-primary-leader .el-primary-name {
+  font-weight: 700;
+}
+
+.el-primary-signal-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* ── PVI mini badge (in district view) ── */

@@ -713,8 +713,17 @@ router.get('/predictions', async (req, res) => {
       ? kalshiResults.value.slice(0, maxResults).map(m => ({ ...m, source: 'kalshi' }))
       : [];
 
+    // Filter out bracket/margin-of-victory style markets (safety net)
+    function hasBracketOutcomes(market) {
+      if (!market.outcomes || market.outcomes.length === 0) return false;
+      const pat = [/[≥≤><]\s*\d/, /\d+%?\s*[-–—]\s*\d+%/, /\bor more\b/i, /\bor fewer\b/i, /\bor less\b/i, /\bmargin\b/i];
+      const hits = market.outcomes.filter(o => pat.some(p => p.test((o.name || '').toString()))).length;
+      return hits >= Math.max(1, Math.ceil(market.outcomes.length / 3));
+    }
+
     // Merge both lists, sort by volume descending
     const combined = [...polymarkets, ...kalshiMarkets]
+      .filter(m => !hasBracketOutcomes(m))
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
       .slice(0, maxResults * 2);
 
@@ -814,6 +823,28 @@ router.get('/elections/live/:state', async (req, res) => {
   } catch (error) {
     console.error('[API] Elections state error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch state election data' });
+  }
+});
+
+// ===========================================
+// ELECTION MODEL (Free Multi-Source Ensemble)
+// ===========================================
+
+/**
+ * GET /api/elections/model
+ * Full ensemble model output: per-race probabilities averaged from
+ * prediction markets (Polymarket + Kalshi + PredictIt), Wikipedia polls,
+ * VoteHub generic ballot, Cook PVI fundamentals, and Metaculus forecasts.
+ * 100% free APIs — no keys required.
+ */
+router.get('/elections/model', async (req, res) => {
+  try {
+    const { default: electionModelService } = await import('../services/electionModel.service.js');
+    const data = await electionModelService.computeModel();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Election model error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute election model' });
   }
 });
 

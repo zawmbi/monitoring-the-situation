@@ -38,8 +38,11 @@ export default defineConfig(({ mode }) => {
   const viteLoadedEnv = loadEnv(mode, rootDir, '');
   const env = { ...viteLoadedEnv, ...rawEnv };
 
-  const backendPort = env.BACKEND_PORT || env.PORT || '4100';
-  const backendUrl = `http://127.0.0.1:${backendPort}`;
+  // In Docker, BACKEND_HOST points to the backend service name (e.g. 'backend')
+  // Locally, falls back to 127.0.0.1 for direct dev usage
+  const backendHost = process.env.BACKEND_HOST || '127.0.0.1';
+  const backendPort = process.env.BACKEND_PORT || env.BACKEND_PORT || env.PORT || '4100';
+  const backendUrl = `http://${backendHost}:${backendPort}`;
 
   // Collect VITE_* vars for client-side injection
   const viteEnv = {};
@@ -87,7 +90,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         '/ws': {
-          target: `ws://127.0.0.1:${backendPort}`,
+          target: `ws://${backendHost}:${backendPort}`,
           ws: true,
         },
       },

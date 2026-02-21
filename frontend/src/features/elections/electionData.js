@@ -2388,7 +2388,72 @@ export function getElectionColor(stateName) {
 export function getStateHouseDistricts(stateName) {
   return Object.entries(HOUSE_DISTRICTS)
     .filter(([, d]) => d.state === stateName)
-    .map(([code, data]) => ({ code, ...data }));
+    .map(([code, data]) => enrichRaceWithFundamentals({ code, ...data }, data.pvi));
+}
+
+/**
+ * Convert Cook PVI to a D-win probability (same formula as backend electionModel).
+ * PVI of 0 (EVEN) maps to 0.50. Each PVI point shifts probability ~2.5%.
+ */
+function pviToProbability(pviString) {
+  if (!pviString) return 50;
+  if (pviString.toUpperCase() === 'EVEN') return 50;
+  const match = pviString.match(/([DR])\+(\d+)/i);
+  if (!match) return 50;
+  const party = match[1].toUpperCase();
+  const magnitude = parseInt(match[2], 10);
+  const shift = magnitude * 0.025;
+  const raw = party === 'D' ? 0.50 + shift : 0.50 - shift;
+  return Math.round(Math.max(0.05, Math.min(0.95, raw)) * 100);
+}
+
+function probabilityToRating(dProb) {
+  if (dProb == null) return null;
+  if (dProb >= 85) return 'safe-d';
+  if (dProb >= 70) return 'likely-d';
+  if (dProb >= 57) return 'lean-d';
+  if (dProb >= 43) return 'toss-up';
+  if (dProb >= 30) return 'lean-r';
+  if (dProb >= 15) return 'likely-r';
+  return 'safe-r';
+}
+
+/**
+ * Convert a static rating (e.g. from Cook/Sabato) to a D-win probability.
+ * Uses midpoint of each rating band to produce race-specific probabilities.
+ */
+function ratingToProbability(rating) {
+  const map = {
+    'safe-d': 92, 'likely-d': 78, 'lean-d': 60, 'toss-up': 50,
+    'lean-r': 37, 'likely-r': 22, 'safe-r': 8,
+  };
+  return map[rating] ?? null;
+}
+
+/**
+ * Enrich a race object with fundamentals-based dWinProb when not already set.
+ * Uses the race's static rating (expert analysis) when available, which
+ * differentiates Senate from Governor for the same state.  Falls back to
+ * raw PVI if no rating exists.
+ */
+function enrichRaceWithFundamentals(race, statePvi) {
+  if (!race) return race;
+  if (!statePvi && !race.pvi && !race.rating) return race;
+  const racePvi = race.pvi || statePvi;
+  // Prefer the expert rating (differentiates races); fall back to PVI math
+  const ratingProb = ratingToProbability(race.rating);
+  const pviProb = pviToProbability(racePvi);
+  const dWinProb = ratingProb ?? pviProb;
+  return {
+    ...race,
+    dWinProb: race.dWinProb ?? dWinProb,
+    rWinProb: race.rWinProb ?? (100 - dWinProb),
+    pvi: race.pvi ?? statePvi,
+    confidence: race.confidence ?? 'prior-only',
+    signalCount: race.signalCount ?? 1,
+    breakdown: race.breakdown ?? { fundamentals: (ratingProb ?? pviProb) / 100 },
+    _fundamentalsOnly: true,
+  };
 }
 
 /**
@@ -2402,15 +2467,19 @@ export function hasElectionRaces(stateName) {
  * Get all election data for a state
  */
 export function getStateElectionData(stateName) {
+  const pvi = STATE_PVI[stateName] || null;
+  const senate = SENATE_RACES[stateName] || null;
+  const governor = GOVERNOR_RACES[stateName] || null;
+
   return {
-    senate: SENATE_RACES[stateName] || null,
-    governor: GOVERNOR_RACES[stateName] || null,
+    senate: enrichRaceWithFundamentals(senate, pvi),
+    governor: enrichRaceWithFundamentals(governor, pvi),
     house: HOUSE_FORECAST[stateName] || null,
     houseDistricts: getStateHouseDistricts(stateName),
     redistricting: REDISTRICTING[stateName] || null,
     primaryDate: PRIMARY_DATES[stateName] || null,
     generalDate: GENERAL_ELECTION_DATE,
-    pvi: STATE_PVI[stateName] || null,
+    pvi,
     lastUpdated: DATA_LAST_UPDATED,
   };
 }

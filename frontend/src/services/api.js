@@ -1,6 +1,6 @@
 // In dev, use empty string so requests go through the Vite proxy (avoids CORS/IPv6 issues).
 // In production, VITE_API_URL should point to the backend origin.
-const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
+export const API_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
 
 export const api = {
   async fetch(endpoint) {

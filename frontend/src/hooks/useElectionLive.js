@@ -1,15 +1,18 @@
 /**
  * useElectionLive Hook
- * Fetches live election data from the backend (market-derived ratings + FEC data).
+ * Fetches live prediction market odds from the backend (Polymarket + Kalshi + PredictIt).
  * Merges with static fallback data from electionData.js.
- * Auto-refreshes every 5 minutes for a live feel.
+ * Auto-refreshes every 60 seconds for a live feel.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStateElectionData, SENATE_RACES, GOVERNOR_RACES } from '../features/elections/electionData';
+import { API_URL } from '../services/api';
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 20000;
+const REFRESH_INTERVAL = 60 * 1000; // 1 minute — market odds update frequently
+const FETCH_TIMEOUT = 15000; // 15s — markets-only fetch is fast
+const RETRY_DELAY = 5000;
+const MAX_RETRIES = 2;
 
 export function useElectionLive(stateName) {
   const [liveData, setLiveData] = useState(null);
@@ -24,13 +27,13 @@ export function useElectionLive(stateName) {
     return () => { isMounted.current = false; };
   }, []);
 
-  const fetchLiveData = useCallback(async () => {
+  const fetchLiveData = useCallback(async (retryCount = 0) => {
     setLoading(true);
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch('/api/elections/live', {
+      const response = await fetch(`${API_URL}/api/elections/live`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -41,6 +44,14 @@ export function useElectionLive(stateName) {
       if (!isMounted.current) return;
 
       if (result.success && result.data) {
+        const mr = result.data.marketRatings || {};
+        // If the response has no market ratings and we haven't retried yet,
+        // the model may still be computing — retry after a short delay.
+        if (Object.keys(mr).length === 0 && retryCount < MAX_RETRIES) {
+          console.log(`[useElectionLive] Empty ratings, retrying in ${RETRY_DELAY / 1000}s (${retryCount + 1}/${MAX_RETRIES})...`);
+          setTimeout(() => { if (isMounted.current) fetchLiveData(retryCount + 1); }, RETRY_DELAY);
+          return;
+        }
         globalCache.current = result.data;
         fetchedGlobal.current = true;
         setLiveData(result.data);
@@ -48,8 +59,13 @@ export function useElectionLive(stateName) {
       }
     } catch (err) {
       if (!isMounted.current) return;
-      // Keep showing stale data on error
-      console.warn('[useElectionLive] Fetch failed:', err.message);
+      // Retry on timeout/network errors — model may still be computing on first load
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[useElectionLive] Fetch failed (${err.message}), retrying in ${RETRY_DELAY / 1000}s (${retryCount + 1}/${MAX_RETRIES})...`);
+        setTimeout(() => { if (isMounted.current) fetchLiveData(retryCount + 1); }, RETRY_DELAY);
+        return;
+      }
+      console.warn('[useElectionLive] Fetch failed after retries:', err.message);
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -69,150 +85,64 @@ export function useElectionLive(stateName) {
   }, [fetchLiveData]);
 
   /**
-   * Merge static election data with live data for a specific state.
-   * Live market-derived ratings override static ratings.
-   * FEC fundraising supplements static fundraising data.
+   * Merge static election data with live market odds.
+   * Market data overrides static probabilities when available.
    */
   const getStateData = useCallback((state) => {
     const staticData = getStateElectionData(state);
     if (!liveData) return { ...staticData, live: null };
 
     const marketRatings = liveData.marketRatings || {};
-    const fecData = liveData.fecData || {};
 
-    // Merge polling data from Wikipedia
-    const pollingData = liveData.pollingData || {};
-    const statePolls = pollingData.byState?.[state] || null;
-
-    // Merge Senate data
-    let senate = staticData.senate;
-    const senateKey = `${state}:senate`;
-    const senateLive = marketRatings[senateKey];
-    if (senate && senateLive) {
-      senate = {
-        ...senate,
-        liveRating: senateLive.derivedRating,
-        dWinProb: senateLive.dWinProb,
-        rWinProb: senateLive.rWinProb,
-        marketUrl: senateLive.marketUrl,
-        marketSource: senateLive.marketSource,
-        marketVolume: senateLive.marketVolume,
-        marketOutcomes: senateLive.outcomes,
+    // Helper: merge live general election market data into a race object
+    const mergeMarketData = (race, liveRace) => {
+      if (!race || !liveRace) return race;
+      return {
+        ...race,
+        liveRating: liveRace.derivedRating,
+        dWinProb: liveRace.dWinProb,
+        rWinProb: liveRace.rWinProb,
+        marketUrl: liveRace.marketUrl,
+        marketSource: liveRace.marketSource,
+        marketVolume: liveRace.marketVolume,
+        marketOutcomes: liveRace.outcomes,
+        _fundamentalsOnly: false,
       };
-    }
-    // Attach live polls to senate race
-    if (senate && statePolls) {
-      senate = {
-        ...senate,
-        liveGeneralPolls: statePolls.generalPolls || [],
-        livePrimaryPolls: statePolls.primaryPolls || [],
-      };
-    }
-
-    // Merge Governor data
-    let governor = staticData.governor;
-    const govKey = `${state}:governor`;
-    const govLive = marketRatings[govKey];
-    if (governor && govLive) {
-      governor = {
-        ...governor,
-        liveRating: govLive.derivedRating,
-        dWinProb: govLive.dWinProb,
-        rWinProb: govLive.rWinProb,
-        marketUrl: govLive.marketUrl,
-        marketSource: govLive.marketSource,
-        marketVolume: govLive.marketVolume,
-        marketOutcomes: govLive.outcomes,
-      };
-    }
-
-    // Merge House district data
-    let houseDistricts = staticData.houseDistricts || [];
-    if (houseDistricts.length > 0) {
-      houseDistricts = houseDistricts.map(d => {
-        const distKey = `${state}:house:${d.code}`;
-        const distLive = marketRatings[distKey];
-        if (!distLive) return d;
-        return {
-          ...d,
-          liveRating: distLive.derivedRating,
-          dWinProb: distLive.dWinProb,
-          rWinProb: distLive.rWinProb,
-          marketUrl: distLive.marketUrl,
-          marketSource: distLive.marketSource,
-          marketVolume: distLive.marketVolume,
-          marketOutcomes: distLive.outcomes,
-        };
-      });
-    }
-
-    // State code lookup for FEC/IE data
-    const stateCodeMap = {
-      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-      'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-      'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-      'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-      'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-      'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-      'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-      'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-      'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-      'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-      'Wisconsin': 'WI', 'Wyoming': 'WY',
     };
-    const sc = stateCodeMap[state] || '';
-    const ieData = (liveData.independentExpenditures || {})[sc] || null;
 
-    // Merge FEC candidate data into race fundraising
-    const fecCandidates = (liveData.fecCandidates || {})[sc] || [];
-    const fecSummary = fecData[sc] || null;
-
-    // Build live fundraising from FEC candidates
-    if (fecCandidates.length > 0) {
-      const liveFundraising = {};
-      for (const c of fecCandidates) {
-        const p = c.party;
-        if (!p) continue;
-        if (!liveFundraising[p]) liveFundraising[p] = 0;
-        liveFundraising[p] += c.totalRaised || 0;
-      }
-      const formatMoney = (num) => {
-        if (!num || num === 0) return null;
-        if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-        if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
-        return `$${num.toFixed(0)}`;
+    // Helper: merge live primary market data into a race object
+    const mergePrimaryMarketData = (race, raceType, state) => {
+      if (!race) return race;
+      const rPrimary = marketRatings[`${state}:${raceType}:primary:R`];
+      const dPrimary = marketRatings[`${state}:${raceType}:primary:D`];
+      if (!rPrimary && !dPrimary) return race;
+      return {
+        ...race,
+        livePrimaryR: rPrimary || null,
+        livePrimaryD: dPrimary || null,
       };
-      const liveFundraisingFormatted = {};
-      for (const [p, total] of Object.entries(liveFundraising)) {
-        const formatted = formatMoney(total);
-        if (formatted) liveFundraisingFormatted[p] = formatted;
-      }
+    };
 
-      if (Object.keys(liveFundraisingFormatted).length > 0) {
-        if (senate) {
-          senate = { ...senate, liveFundraising: liveFundraisingFormatted, fecCandidates };
-        }
-      }
-    }
+    let senate = mergeMarketData(staticData.senate, marketRatings[`${state}:senate`]);
+    senate = mergePrimaryMarketData(senate, 'senate', state);
+    let governor = mergeMarketData(staticData.governor, marketRatings[`${state}:governor`]);
+    governor = mergePrimaryMarketData(governor, 'governor', state);
+
+    let houseDistricts = staticData.houseDistricts || [];
+    houseDistricts = houseDistricts.map(d => {
+      const distLive = marketRatings[`${state}:house:${d.code}`];
+      return distLive ? mergeMarketData(d, distLive) : d;
+    });
 
     return {
       ...staticData,
       senate,
       governor,
       houseDistricts,
-      independentExpenditures: ieData,
-      fecCandidates,
-      fecSummary,
-      upcomingElections: liveData.upcomingElections || [],
-      genericBallot: pollingData.genericBallot || null,
-      approval: pollingData.approval || null,
       live: {
         timestamp: liveData.timestamp,
-        fecConfigured: liveData.fecConfigured,
-        civicConfigured: liveData.civicConfigured,
         marketCount: liveData.marketCount,
+        racesMatched: liveData.racesMatched,
       },
     };
   }, [liveData]);
@@ -226,7 +156,7 @@ export function useElectionLive(stateName) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch('/api/elections/news', {
+      const response = await fetch(`${API_URL}/api/elections/news`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -249,7 +179,7 @@ export function useElectionLive(stateName) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-      const response = await fetch(`/api/elections/news/${encodeURIComponent(state)}`, {
+      const response = await fetch(`${API_URL}/api/elections/news/${encodeURIComponent(state)}`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);

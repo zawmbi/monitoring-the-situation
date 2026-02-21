@@ -1,24 +1,20 @@
 /**
- * Election Live Service
- * Aggregates live election data from multiple free sources:
- * 1. Prediction markets (Polymarket + Kalshi) → derive race ratings & win probabilities
- * 2. FEC API → candidate lists & fundraising (Senate/House only)
+ * Election Live Service — Prediction Markets Only
  *
- * Refreshes every 15 minutes via background interval.
- * Frontend merges this with static fallback data.
+ * Fetches live odds from Polymarket + Kalshi + PredictIt, matches them to
+ * 2026 races, and derives win probabilities.  Refreshes every 2 minutes.
+ *
+ * No ensemble model, no polling aggregation, no FEC/GDELT/Metaculus.
+ * Just real-time market prices.
  */
 
 import { cacheService } from './cache.service.js';
 import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
-import { fecService } from './fec.service.js';
-import { googleCivicService } from './googleCivic.service.js';
-import { wikipediaPollsService } from './wikipedia-polls.service.js';
-import { voteHubService } from './votehub.service.js';
 
-const CACHE_KEY = 'elections:live:v2'; // v2: includes pollingData from Wikipedia + VoteHub
-const CACHE_TTL = 900; // 15 minutes
+const CACHE_KEY = 'elections:live:v8'; // v8: research-verified slug patterns + expanded districts
+const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
 const SENATE_STATES = [
@@ -30,9 +26,6 @@ const SENATE_STATES = [
   'Virginia', 'West Virginia', 'Wyoming',
 ];
 
-// Special elections use different Wikipedia article naming
-const SPECIAL_ELECTION_STATES = ['Florida'];
-
 // States with Governor races in 2026
 const GOVERNOR_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
@@ -43,33 +36,104 @@ const GOVERNOR_STATES = [
   'South Dakota', 'Tennessee', 'Texas', 'Vermont', 'Wisconsin', 'Wyoming',
 ];
 
-// Competitive House districts to track in live markets
+// Competitive House districts to track (confirmed across Polymarket + Kalshi + PredictIt)
 const HOUSE_DISTRICTS = [
+  { state: 'Alabama', district: 2, code: 'AL-02' },
   { state: 'Arizona', district: 1, code: 'AZ-01' },
+  { state: 'Arizona', district: 2, code: 'AZ-02' },
+  { state: 'Arizona', district: 4, code: 'AZ-04' },
   { state: 'Arizona', district: 6, code: 'AZ-06' },
+  { state: 'Arkansas', district: 4, code: 'AR-04' },
   { state: 'California', district: 13, code: 'CA-13' },
+  { state: 'California', district: 14, code: 'CA-14' },
+  { state: 'California', district: 21, code: 'CA-21' },
   { state: 'California', district: 22, code: 'CA-22' },
+  { state: 'California', district: 25, code: 'CA-25' },
   { state: 'California', district: 27, code: 'CA-27' },
+  { state: 'California', district: 39, code: 'CA-39' },
+  { state: 'California', district: 40, code: 'CA-40' },
+  { state: 'California', district: 41, code: 'CA-41' },
   { state: 'California', district: 45, code: 'CA-45' },
+  { state: 'California', district: 47, code: 'CA-47' },
+  { state: 'California', district: 48, code: 'CA-48' },
+  { state: 'California', district: 49, code: 'CA-49' },
+  { state: 'Colorado', district: 3, code: 'CO-03' },
   { state: 'Colorado', district: 8, code: 'CO-08' },
+  { state: 'Connecticut', district: 5, code: 'CT-05' },
+  { state: 'Florida', district: 13, code: 'FL-13' },
+  { state: 'Florida', district: 22, code: 'FL-22' },
+  { state: 'Florida', district: 23, code: 'FL-23' },
+  { state: 'Florida', district: 27, code: 'FL-27' },
+  { state: 'Florida', district: 28, code: 'FL-28' },
+  { state: 'Georgia', district: 6, code: 'GA-06' },
+  { state: 'Georgia', district: 7, code: 'GA-07' },
+  { state: 'Indiana', district: 5, code: 'IN-05' },
   { state: 'Iowa', district: 1, code: 'IA-01' },
+  { state: 'Iowa', district: 2, code: 'IA-02' },
   { state: 'Iowa', district: 3, code: 'IA-03' },
+  { state: 'Iowa', district: 4, code: 'IA-04' },
+  { state: 'Kansas', district: 3, code: 'KS-03' },
+  { state: 'Kentucky', district: 6, code: 'KY-06' },
+  { state: 'Louisiana', district: 6, code: 'LA-06' },
+  { state: 'Maine', district: 1, code: 'ME-01' },
   { state: 'Maine', district: 2, code: 'ME-02' },
+  { state: 'Michigan', district: 3, code: 'MI-03' },
+  { state: 'Michigan', district: 5, code: 'MI-05' },
+  { state: 'Michigan', district: 6, code: 'MI-06' },
   { state: 'Michigan', district: 7, code: 'MI-07' },
   { state: 'Michigan', district: 8, code: 'MI-08' },
+  { state: 'Michigan', district: 10, code: 'MI-10' },
+  { state: 'Minnesota', district: 1, code: 'MN-01' },
   { state: 'Minnesota', district: 2, code: 'MN-02' },
+  { state: 'Minnesota', district: 3, code: 'MN-03' },
   { state: 'Nebraska', district: 2, code: 'NE-02' },
-  { state: 'North Carolina', district: 1, code: 'NC-01' },
+  { state: 'Nevada', district: 3, code: 'NV-03' },
+  { state: 'Nevada', district: 4, code: 'NV-04' },
+  { state: 'New Hampshire', district: 1, code: 'NH-01' },
+  { state: 'New Hampshire', district: 2, code: 'NH-02' },
+  { state: 'New Jersey', district: 2, code: 'NJ-02' },
+  { state: 'New Jersey', district: 5, code: 'NJ-05' },
+  { state: 'New Jersey', district: 7, code: 'NJ-07' },
+  { state: 'New Mexico', district: 2, code: 'NM-02' },
+  { state: 'New York', district: 1, code: 'NY-01' },
+  { state: 'New York', district: 2, code: 'NY-02' },
+  { state: 'New York', district: 4, code: 'NY-04' },
+  { state: 'New York', district: 11, code: 'NY-11' },
   { state: 'New York', district: 17, code: 'NY-17' },
+  { state: 'New York', district: 18, code: 'NY-18' },
   { state: 'New York', district: 19, code: 'NY-19' },
+  { state: 'New York', district: 22, code: 'NY-22' },
+  { state: 'North Carolina', district: 1, code: 'NC-01' },
+  { state: 'North Carolina', district: 7, code: 'NC-07' },
+  { state: 'North Carolina', district: 9, code: 'NC-09' },
+  { state: 'North Carolina', district: 13, code: 'NC-13' },
+  { state: 'North Carolina', district: 14, code: 'NC-14' },
+  { state: 'Ohio', district: 1, code: 'OH-01' },
   { state: 'Ohio', district: 9, code: 'OH-09' },
   { state: 'Ohio', district: 13, code: 'OH-13' },
+  { state: 'Oregon', district: 4, code: 'OR-04' },
+  { state: 'Oregon', district: 5, code: 'OR-05' },
+  { state: 'Oregon', district: 6, code: 'OR-06' },
   { state: 'Pennsylvania', district: 1, code: 'PA-01' },
+  { state: 'Pennsylvania', district: 4, code: 'PA-04' },
+  { state: 'Pennsylvania', district: 5, code: 'PA-05' },
   { state: 'Pennsylvania', district: 7, code: 'PA-07' },
+  { state: 'Pennsylvania', district: 8, code: 'PA-08' },
   { state: 'Pennsylvania', district: 10, code: 'PA-10' },
+  { state: 'Pennsylvania', district: 17, code: 'PA-17' },
+  { state: 'South Carolina', district: 1, code: 'SC-01' },
+  { state: 'Texas', district: 15, code: 'TX-15' },
+  { state: 'Texas', district: 23, code: 'TX-23' },
+  { state: 'Texas', district: 24, code: 'TX-24' },
   { state: 'Texas', district: 28, code: 'TX-28' },
+  { state: 'Texas', district: 32, code: 'TX-32' },
   { state: 'Texas', district: 34, code: 'TX-34' },
+  { state: 'Virginia', district: 2, code: 'VA-02' },
+  { state: 'Virginia', district: 7, code: 'VA-07' },
   { state: 'Washington', district: 3, code: 'WA-03' },
+  { state: 'Washington', district: 8, code: 'WA-08' },
+  { state: 'Wisconsin', district: 1, code: 'WI-01' },
+  { state: 'Wisconsin', district: 3, code: 'WI-03' },
 ];
 
 const STATE_CODES = {
@@ -88,10 +152,6 @@ const STATE_CODES = {
   'Wisconsin': 'WI', 'Wyoming': 'WY',
 };
 
-/**
- * Convert a D-win probability (0–1) to a rating string.
- * Thresholds tuned to match Cook Political Report scale.
- */
 function probabilityToRating(dProb) {
   if (dProb == null || !Number.isFinite(dProb)) return null;
   if (dProb >= 0.85) return 'safe-d';
@@ -114,50 +174,175 @@ class ElectionLiveService {
   }
 
   /**
-   * Fetch all election-related markets from Polymarket + Kalshi in one shot.
-   * Broadly search for "2026" with election-related boost keywords.
+   * Generate Polymarket event slugs for all 2026 races.
+   * Slug patterns confirmed via direct Gamma API testing.
    */
-  async _fetchAllElectionMarkets() {
-    const required = ['2026'];
-    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican'];
+  _generatePolymarketSlugs() {
+    const slugs = [];
+    const toSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
 
-    const [polyResults, kalshiResults, predictitResults] = await Promise.allSettled([
-      polymarketService.getMarketsByTopic(required, boost, false),
-      kalshiService.getMarketsByTopic(required, boost, false),
-      predictitService.getMarketsByTopic(required, boost, false),
-    ]);
+    // Senate general election
+    for (const state of SENATE_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-senate-election-winner`);
+      slugs.push(`${s}-us-senate-election-winner`);
+    }
+    // Senate primaries (both parties)
+    for (const state of SENATE_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-republican-senate-primary-winner`);
+      slugs.push(`${s}-democratic-senate-primary-winner`);
+    }
+    // Michigan Republican Senate Primary has special suffix
+    slugs.push('michigan-republican-senate-primary-winner-954');
 
-    const polyMarkets = polyResults.status === 'fulfilled' ? polyResults.value : [];
-    const kalshiMarkets = kalshiResults.status === 'fulfilled' ? kalshiResults.value : [];
-    const predictitMarkets = predictitResults.status === 'fulfilled' ? predictitResults.value : [];
+    // Governor general election (confirmed pattern: {state}-governor-winner-2026)
+    for (const state of GOVERNOR_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-governor-winner-2026`);
+    }
+    // California uses a different slug pattern
+    slugs.push('california-governor-election-2026');
 
-    return [...polyMarkets, ...kalshiMarkets, ...predictitMarkets];
+    // Governor primaries (confirmed pattern: {state}-governor-{party}-primary-winner)
+    for (const state of GOVERNOR_STATES) {
+      const s = toSlug(state);
+      slugs.push(`${s}-governor-republican-primary-winner`);
+      slugs.push(`${s}-governor-democratic-primary-winner`);
+    }
+    // Florida uses alternate governor primary slugs
+    slugs.push('republican-nominee-for-florida-governor');
+    slugs.push('democratic-nominee-for-florida-governor');
+    // California jungle primary
+    slugs.push('parties-advancing-from-the-california-governor-primary');
+
+    // House districts (confirmed pattern: {xx}-{dd}-house-election-winner, zero-padded)
+    for (const d of HOUSE_DISTRICTS) {
+      const [st, dist] = d.code.split('-');
+      const paddedDist = dist.padStart(2, '0');
+      slugs.push(`${st.toLowerCase()}-${paddedDist}-house-election-winner`);
+    }
+
+    // Meta / control markets
+    slugs.push(
+      'which-party-will-win-the-senate-in-2026',
+      'which-party-will-win-the-house-in-2026',
+      'balance-of-power-2026-midterms',
+      'republican-senate-seats-after-the-2026-midterm-elections-927',
+      'republican-house-seats-after-the-2026-midterm-elections',
+      'will-democrats-win-all-core-four-senate-races',
+      'florida-us-senate-election-winner',
+    );
+    return slugs;
   }
 
   /**
-   * Try to match a market to a specific state + race type.
-   * Returns a match score (0 = no match).
+   * Fetch all election markets from Polymarket + Kalshi + PredictIt.
+   * Uses multiple search strategies to maximize coverage:
+   * 1. Keyword search for "2026" (catches explicit year references)
+   * 2. Keyword search for "senate" (catches state senate race markets)
+   * 3. Keyword search for "governor" (catches governor race markets)
+   * 4. Direct slug-based fetching for known Polymarket event patterns
+   * 5. Standard Kalshi + PredictIt topic search
    */
-  _matchMarketToRace(market, stateName, raceType, districtNum = null) {
+  async _fetchAllMarkets() {
+    const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican', 'primary', '2026'];
+
+    // Multiple search strategies for Polymarket (many markets don't contain "2026" in text)
+    const polySearches = [
+      polymarketService.getMarketsByTopic(['2026'], boost, false),
+      polymarketService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary', 'democrat', 'republican'], false),
+      polymarketService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'primary'], false),
+      polymarketService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor', 'house'], false),
+      polymarketService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
+    ];
+
+    // Kalshi + PredictIt — broader searches
+    const kalshiSearches = [
+      kalshiService.getMarketsByTopic(['2026'], boost, false),
+      kalshiService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary'], false),
+      kalshiService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'gubernatorial'], false),
+      kalshiService.getMarketsByTopic(['house'], ['2026', 'election', 'district', 'winner'], false),
+      kalshiService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat', 'nominee'], false),
+    ];
+    const predictitSearches = [
+      predictitService.getMarketsByTopic(['2026'], boost, false),
+      predictitService.getMarketsByTopic(['senate'], ['2026', 'election', 'primary', 'nomination'], false),
+      predictitService.getMarketsByTopic(['governor'], ['2026', 'gubernatorial', 'election'], false),
+      predictitService.getMarketsByTopic(['house'], ['2026', 'election', 'district'], false),
+    ];
+
+    // Direct slug-based Polymarket fetching for guaranteed coverage
+    const slugs = this._generatePolymarketSlugs();
+    const slugFetch = polymarketService.fetchEventsBySlugs(slugs, 10)
+      .then(events => polymarketService.normalizeMarkets(events))
+      .catch(() => []);
+
+    // Execute all in parallel
+    const allResults = await Promise.allSettled([
+      ...polySearches,
+      ...kalshiSearches,
+      ...predictitSearches,
+      slugFetch,
+    ]);
+
+    // Merge and deduplicate by market ID
+    const seen = new Set();
+    const markets = [];
+    for (const result of allResults) {
+      if (result.status !== 'fulfilled' || !Array.isArray(result.value)) continue;
+      for (const market of result.value) {
+        const key = market.id || market.url || market.question;
+        if (!seen.has(key)) {
+          seen.add(key);
+          markets.push(market);
+        }
+      }
+    }
+
+    return markets;
+  }
+
+  /**
+   * Score how well a market matches a specific race (0 = no match).
+   * raceType can be: 'senate', 'governor', 'house',
+   *   'senate-primary-r', 'senate-primary-d', 'governor-primary-r', 'governor-primary-d'
+   */
+  _scoreMatch(market, stateName, raceType, districtNum = null) {
     const text = normalizeText(`${market.question} ${market.description} ${market.rawSearchText || ''}`);
 
-    // Must mention the state
     const stateNameLower = stateName.toLowerCase();
     const stateCode = (STATE_CODES[stateName] || '').toLowerCase();
     const hasState = text.includes(stateNameLower) ||
       (stateCode.length === 2 && new RegExp(`\\b${stateCode}\\b`).test(text));
     if (!hasState) return 0;
 
-    // Must match race type
-    const hasRaceType = raceType === 'senate'
+    // Determine base office type and whether this is a primary race
+    const isPrimary = raceType.includes('-primary-');
+    const baseType = raceType.replace(/-primary-[rd]$/, '');
+    const primaryParty = raceType.endsWith('-r') ? 'r' : raceType.endsWith('-d') ? 'd' : null;
+
+    const hasOffice = baseType === 'senate'
       ? /\bsenat/.test(text)
-      : raceType === 'governor'
+      : baseType === 'governor'
         ? /\bgovern|\bgubern/.test(text)
         : /\bhouse\b|\bcongress|\bdistrict\b|\bcd\b/.test(text);
-    if (!hasRaceType) return 0;
+    if (!hasOffice) return 0;
 
-    // For House races, must mention the district number
-    if (raceType === 'house' && districtNum != null) {
+    // Primary matching: must mention "primary" and the correct party
+    if (isPrimary) {
+      if (!/\bprimary\b/.test(text)) return 0;
+      const hasParty = primaryParty === 'r'
+        ? /\brepublican\b|\bgop\b|\brep\b/.test(text)
+        : /\bdemocrat\b|\bdem\b|\bdfl\b/.test(text);
+      if (!hasParty) return 0;
+    } else {
+      // General election markets should NOT be primary-specific
+      // (skip markets that are clearly about a primary for general race matching)
+      if (/\bprimary\b/.test(text) && (/\brepublican\b|\bdemocrat\b|\bgop\b/.test(text))) return 0;
+    }
+
+    if (baseType === 'house' && districtNum != null) {
       const distStr = String(districtNum);
       const hasDistrict = text.includes(`district ${distStr}`) ||
         text.includes(`cd ${distStr}`) ||
@@ -166,36 +351,29 @@ class ElectionLiveService {
       if (!hasDistrict) return 0;
     }
 
-    // Filter out wrong years
     if (/202[0-4]|2028|2030|2032/.test(text) && !/2026/.test(text)) return 0;
 
-    // Score: prefer higher volume and more specific matches
     let score = 1;
     if (/2026/.test(text)) score += 2;
-    if (text.includes(stateNameLower)) score += 1; // Full state name > abbreviation
+    if (text.includes(stateNameLower)) score += 1;
+    if (isPrimary && /\bprimary\b/.test(text)) score += 2;
     if (districtNum != null && text.includes(`district ${String(districtNum)}`)) score += 1;
-    score += Math.log10(Math.max(market.volume || 1, 1)); // Volume bonus
-
+    score += Math.log10(Math.max(market.volume || 1, 1));
     return score;
   }
 
   /**
-   * Extract D-win probability from a matched market.
-   * Handles various outcome naming conventions.
+   * Extract D-win probability from a market's outcomes.
    */
   _extractDemProbability(market) {
     const outcomes = market.outcomes || [];
     if (outcomes.length === 0) return null;
 
-    // Look for explicit party outcomes
     for (const o of outcomes) {
       const name = normalizeText(o.name || '');
-      if (/democrat|dem\b|blue/.test(name) && o.price != null) {
-        return o.price;
-      }
+      if (/democrat|dem\b|blue/.test(name) && o.price != null) return o.price;
     }
 
-    // Binary Yes/No market — check if question implies D win
     const qText = normalizeText(market.question || '');
     const isAboutDemWinning = /democrat.*win|will.*democrat|dem.*flip|blue.*wave/.test(qText);
     const isAboutRepWinning = /republican.*win|will.*republican|rep.*flip|gop.*win|red.*wave/.test(qText);
@@ -206,270 +384,148 @@ class ElectionLiveService {
       if (isAboutRepWinning && yesPrice != null) return 1 - yesPrice;
     }
 
-    // Multi-outcome market — look for R outcome and infer D
     for (const o of outcomes) {
       const name = normalizeText(o.name || '');
-      if (/republican|rep\b|gop|red/.test(name) && o.price != null) {
-        return 1 - o.price;
-      }
+      if (/republican|rep\b|gop|red/.test(name) && o.price != null) return 1 - o.price;
     }
 
-    // Candidate name heuristics — check for known party affiliations in outcome names
-    // This is a fallback; won't always work
     return null;
   }
 
   /**
-   * Match all election markets to specific races and derive ratings.
+   * Match markets to races. For each race, pick the best matching market
+   * and extract win probabilities. Also matches primary markets.
    */
-  _deriveRatingsFromMarkets(allMarkets) {
+  _deriveRatings(allMarkets) {
     const results = {};
-
     const allRaces = [
+      // General election races
       ...SENATE_STATES.map(s => ({ state: s, type: 'senate' })),
       ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor' })),
       ...HOUSE_DISTRICTS.map(d => ({ state: d.state, type: 'house', district: d.district, code: d.code })),
+      // Primary races (R and D for each office)
+      ...SENATE_STATES.map(s => ({ state: s, type: 'senate-primary-r' })),
+      ...SENATE_STATES.map(s => ({ state: s, type: 'senate-primary-d' })),
+      ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor-primary-r' })),
+      ...GOVERNOR_STATES.map(s => ({ state: s, type: 'governor-primary-d' })),
     ];
 
     for (const race of allRaces) {
-      // Score all markets against this race
+      const isPrimary = race.type.includes('-primary-');
       const scored = allMarkets
-        .map(m => ({ market: m, score: this._matchMarketToRace(m, race.state, race.type, race.district || null) }))
+        .map(m => ({ market: m, score: this._scoreMatch(m, race.state, race.type, race.district || null) }))
         .filter(s => s.score > 0)
         .sort((a, b) => b.score - a.score);
 
       if (scored.length === 0) continue;
-
       const bestMatch = scored[0].market;
-      const dProb = this._extractDemProbability(bestMatch);
-      const derivedRating = probabilityToRating(dProb);
 
-      const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
-      results[key] = {
-        state: race.state,
-        raceType: race.type,
-        district: race.code || null,
-        derivedRating,
-        dWinProb: dProb != null ? Math.round(dProb * 100) : null,
-        rWinProb: dProb != null ? Math.round((1 - dProb) * 100) : null,
-        marketQuestion: bestMatch.question,
-        marketUrl: bestMatch.url,
-        marketSource: bestMatch.source,
-        marketVolume: bestMatch.volume,
-        outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
-          name: o.name,
-          price: o.price != null ? Math.round(o.price * 100) : null,
-        })),
-      };
+      if (isPrimary) {
+        // Primary markets: pass through all candidate outcomes with prices
+        const outcomes = (bestMatch.outcomes || [])
+          .filter(o => o.name && o.price != null)
+          .sort((a, b) => b.price - a.price)
+          .slice(0, 10)
+          .map(o => ({ name: o.name, pct: Math.round(o.price * 100) }));
+
+        if (outcomes.length === 0) continue;
+
+        const party = race.type.endsWith('-r') ? 'R' : 'D';
+        const baseType = race.type.replace(/-primary-[rd]$/, '');
+        const key = `${race.state}:${baseType}:primary:${party}`;
+        results[key] = {
+          state: race.state,
+          raceType: race.type,
+          party,
+          candidates: outcomes,
+          marketQuestion: bestMatch.question,
+          marketUrl: bestMatch.url,
+          marketSource: bestMatch.source,
+          marketVolume: bestMatch.volume,
+        };
+      } else {
+        // General election: extract D-win probability
+        const dProb = this._extractDemProbability(bestMatch);
+        if (dProb == null) continue;
+
+        const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
+        results[key] = {
+          state: race.state,
+          raceType: race.type,
+          district: race.code || null,
+          derivedRating: probabilityToRating(dProb),
+          dWinProb: Math.round(dProb * 100),
+          rWinProb: Math.round((1 - dProb) * 100),
+          marketQuestion: bestMatch.question,
+          marketUrl: bestMatch.url,
+          marketSource: bestMatch.source,
+          marketVolume: bestMatch.volume,
+          outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
+            name: o.name,
+            price: o.price != null ? Math.round(o.price * 100) : null,
+          })),
+        };
+      }
     }
 
     return results;
   }
 
   /**
-   * Format FEC fundraising numbers for display
-   */
-  _formatMoney(num) {
-    num = Number(num);
-    if (!num || isNaN(num)) return null;
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
-    return `$${num.toFixed(0)}`;
-  }
-
-  /**
-   * Main method: fetch and aggregate all live election data.
+   * Main method: fetch prediction market odds for all 2026 races.
    */
   async getLiveData() {
-    const cacheKey = CACHE_KEY;
-    const cached = await cacheService.get(cacheKey);
+    const cached = await cacheService.get(CACHE_KEY);
     if (cached) return cached;
 
-    // Stale memory fallback
-    if (this._memCache && (Date.now() - this._memCacheTime) < 30 * 60 * 1000) {
+    // Short-lived memory cache (5 min stale fallback)
+    if (this._memCache && (Date.now() - this._memCacheTime) < 5 * 60 * 1000) {
       return this._memCache;
     }
 
-    console.log('[ElectionLive] Fetching live election data...');
+    console.log('[ElectionLive] Fetching prediction market odds...');
+    const startTime = Date.now();
 
     try {
-      // Fetch market data, FEC data, and Google Civic elections in parallel
-      // FEC works with DEMO_KEY but may get rate-limited quickly; still try it
-      // Build race type map for Wikipedia polls
-      const senateRaceTypes = {};
-      for (const s of SENATE_STATES) {
-        senateRaceTypes[s] = { type: SPECIAL_ELECTION_STATES.includes(s) ? 'special' : 'regular' };
-      }
+      const allMarkets = await this._fetchAllMarkets();
+      const marketRatings = this._deriveRatings(allMarkets);
 
-      const [allMarkets, fecData, civicElections, wikiPollsResult, genericBallotResult, approvalResult] = await Promise.allSettled([
-        this._fetchAllElectionMarkets(),
-        fecService.getAllSenateCandidates().catch(err => {
-          if (!fecService.isConfigured) {
-            if (!this._fecDemoWarned) {
-              console.log('[ElectionLive] FEC using DEMO_KEY — set FEC_API_KEY for reliable data');
-              this._fecDemoWarned = true;
-            }
-          }
-          return {};
-        }),
-        googleCivicService.isConfigured ? googleCivicService.getUpcomingElections() : Promise.resolve([]),
-        wikipediaPollsService.fetchAllSenatePolls(senateRaceTypes).catch(err => {
-          console.warn('[ElectionLive] Wikipedia polls failed:', err.message);
-          return {};
-        }),
-        voteHubService.getGenericBallot().catch(err => {
-          console.warn('[ElectionLive] VoteHub generic ballot failed:', err.message);
-          return { polls: [], average: null };
-        }),
-        voteHubService.getApproval().catch(err => {
-          console.warn('[ElectionLive] VoteHub approval failed:', err.message);
-          return { polls: [], average: null };
-        }),
-      ]);
-
-      const markets = allMarkets.status === 'fulfilled' ? allMarkets.value : [];
-      const fecCandidates = fecData.status === 'fulfilled' ? fecData.value : {};
-      const upcomingElections = civicElections.status === 'fulfilled' ? civicElections.value : [];
-      const wikiPolls = wikiPollsResult.status === 'fulfilled' ? wikiPollsResult.value : {};
-      const genericBallot = genericBallotResult.status === 'fulfilled' ? genericBallotResult.value : { polls: [], average: null };
-      const approval = approvalResult.status === 'fulfilled' ? approvalResult.value : { polls: [], average: null };
-
-      // Derive ratings from market probabilities
-      const marketRatings = this._deriveRatingsFromMarkets(markets);
-
-      // Build FEC fundraising summaries by state
-      const fecSummaries = {};
-      for (const [stateCode, candidates] of Object.entries(fecCandidates)) {
-        const byParty = {};
-        for (const c of candidates) {
-          if (!byParty[c.party]) byParty[c.party] = { total: 0, cashOnHand: 0, topCandidate: null };
-          byParty[c.party].total += c.totalReceipts;
-          byParty[c.party].cashOnHand += c.cashOnHand;
-          if (!byParty[c.party].topCandidate || c.totalReceipts > byParty[c.party].topCandidate.totalReceipts) {
-            byParty[c.party].topCandidate = c;
-          }
-        }
-        fecSummaries[stateCode] = {
-          candidates: candidates.slice(0, 10),
-          fundraisingByParty: Object.fromEntries(
-            Object.entries(byParty).map(([party, data]) => [
-              party,
-              {
-                totalRaised: this._formatMoney(data.total),
-                cashOnHand: this._formatMoney(data.cashOnHand),
-                topCandidate: data.topCandidate?.name || null,
-              },
-            ])
-          ),
-        };
-      }
-
-      // Fetch independent expenditures for key competitive Senate races
-      const ieResults = {};
-      const keyStates = ['GA', 'NC', 'MI', 'PA', 'OH', 'TX', 'AZ', 'NV', 'WI', 'NH', 'ME', 'CO', 'VA', 'IA', 'AK'];
-      if (fecService.isConfigured) {
-        const iePromises = keyStates.map(async (sc) => {
-          try {
-            const ie = await fecService.getRaceExpenditures(sc, 'S');
-            if (ie && ie.expenditureCount > 0) ieResults[sc] = ie;
-          } catch (e) { /* skip */ }
-        });
-        await Promise.allSettled(iePromises);
-      }
-
-      // Build per-state FEC candidate lists for live candidate data
-      const fecCandidatesByState = {};
-      for (const [stateCode, candidates] of Object.entries(fecCandidates)) {
-        fecCandidatesByState[stateCode] = candidates
-          .sort((a, b) => b.totalReceipts - a.totalReceipts)
-          .slice(0, 12)
-          .map(c => ({
-            name: c.name,
-            party: c.party,
-            totalRaised: c.totalReceipts,
-            totalRaisedFormatted: this._formatMoney(c.totalReceipts),
-            cashOnHand: c.cashOnHand,
-            cashOnHandFormatted: this._formatMoney(c.cashOnHand),
-            disbursements: c.totalDisbursements,
-            disbursementsFormatted: this._formatMoney(c.totalDisbursements),
-            incumbentChallenge: c.incumbentChallenge,
-            candidateId: c.candidateId,
-          }));
-      }
-
-      // Build compact polling data by state (only include states with polls)
-      const pollingByState = {};
-      for (const [state, data] of Object.entries(wikiPolls)) {
-        if (data.polls && data.polls.length > 0) {
-          pollingByState[state] = {
-            generalPolls: (data.generalPolls || []).slice(0, 10),
-            primaryPolls: (data.primaryPolls || []).slice(0, 10),
-            fetchedAt: data.fetchedAt,
-          };
-        }
-      }
+      const elapsed = Date.now() - startTime;
+      const ratingCount = Object.keys(marketRatings).length;
+      console.log(`[ElectionLive] Done in ${elapsed}ms: ${ratingCount} races matched from ${allMarkets.length} markets`);
 
       const result = {
         marketRatings,
-        fecData: fecSummaries,
-        fecCandidates: fecCandidatesByState,
-        independentExpenditures: ieResults,
-        upcomingElections,
-        pollingData: {
-          byState: pollingByState,
-          genericBallot,
-          approval,
-        },
-        marketCount: markets.length,
-        fecConfigured: fecService.isConfigured,
-        civicConfigured: googleCivicService.isConfigured,
+        marketCount: allMarkets.length,
+        racesMatched: ratingCount,
         timestamp: new Date().toISOString(),
       };
 
-      // Cache
-      await cacheService.set(cacheKey, result, CACHE_TTL);
+      await cacheService.set(CACHE_KEY, result, CACHE_TTL);
       this._memCache = result;
       this._memCacheTime = Date.now();
-
-      const ratingCount = Object.keys(marketRatings).length;
-      const fecStateCount = Object.keys(fecSummaries).length;
-      const pollStates = Object.keys(pollingByState).length;
-      console.log(`[ElectionLive] Done: ${ratingCount} market ratings, ${fecStateCount} FEC states, ${pollStates} states w/ polls, ${markets.length} total markets`);
 
       return result;
     } catch (error) {
       console.error('[ElectionLive] Error:', error.message);
-      // Return stale cache if available
       if (this._memCache) return this._memCache;
-      return { marketRatings: {}, fecData: {}, marketCount: 0, fecConfigured: false, timestamp: new Date().toISOString() };
+      return { marketRatings: {}, marketCount: 0, racesMatched: 0, timestamp: new Date().toISOString() };
     }
   }
 
   /**
-   * Get live data for a single state
+   * Get live data for a single state.
    */
   async getStateData(stateName) {
     const all = await this.getLiveData();
-    const senateKey = `${stateName}:senate`;
-    const governorKey = `${stateName}:governor`;
-    const stateCode = STATE_CODES[stateName] || '';
-
-    // Collect House district ratings for this state
-    const houseRatings = {};
-    for (const [key, val] of Object.entries(all.marketRatings)) {
-      if (key.startsWith(`${stateName}:house:`)) {
-        const distCode = val.district || key.split(':')[2];
-        houseRatings[distCode] = val;
-      }
-    }
-
     return {
-      senate: all.marketRatings[senateKey] || null,
-      governor: all.marketRatings[governorKey] || null,
-      house: houseRatings,
-      fec: all.fecData[stateCode] || null,
-      independentExpenditures: (all.independentExpenditures || {})[stateCode] || null,
-      upcomingElections: all.upcomingElections || [],
+      senate: all.marketRatings[`${stateName}:senate`] || null,
+      governor: all.marketRatings[`${stateName}:governor`] || null,
+      house: Object.fromEntries(
+        Object.entries(all.marketRatings)
+          .filter(([key]) => key.startsWith(`${stateName}:house:`))
+          .map(([key, val]) => [val.district || key.split(':')[2], val])
+      ),
       timestamp: all.timestamp,
     };
   }

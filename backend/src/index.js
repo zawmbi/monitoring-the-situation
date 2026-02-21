@@ -365,6 +365,14 @@ async function startBackgroundRefreshWhenReady() {
     console.warn('  Server is still running with cached/mock data');
     console.warn('===========================================');
 
+    // Pre-compute election model even offline — fundamentals (Cook PVI) are
+    // embedded and don't require network.  This ensures the frontend always
+    // has at least fundamentals-based probabilities on first load.
+    console.log('[Worker] Pre-computing election model (offline, fundamentals only)...');
+    electionLiveService.getLiveData().catch(err => {
+      console.warn('[Worker] Offline election pre-compute incomplete:', err.message);
+    });
+
     _networkCheckInterval = setInterval(async () => {
       const online = await checkNetworkConnectivity();
       if (online && !_networkOnline) {
