@@ -837,39 +837,28 @@ function App() {
   const dragTabRef = useRef(null);
   // Collapsible sidebar sections — only 'live-data' open by default for a clean start
   const [openSections, setOpenSections] = useState(new Set(['live-data']));
-  const SNAP_ZONES = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
-  const [snapAssignments, setSnapAssignments] = useState({}); // sectionId -> zone
   const [panelOpacity, setPanelOpacity] = useState(0.75);
+
+  // Each drawer gets a unique position so they don't overlap
+  const DRAWER_POSITIONS = {
+    'live-data':    { top: 12, left: 12 },
+    'us-politics':  { top: 12, left: 348 },
+    'conflicts':    { top: 12, right: 12 },
+    'intel':        { top: 220, left: 12 },
+    'disasters':    { top: 220, left: 348 },
+    'env-tech':     { top: 220, right: 12 },
+    'trade':        { bottom: 60, left: 12 },
+    'migration':    { bottom: 60, left: 348 },
+    'geopolitical': { bottom: 60, right: 12 },
+    'lifestyle':    { bottom: 260, right: 12 },
+  };
 
   const toggleSection = (id) => {
     setOpenSections(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        setSnapAssignments(sa => { const n = { ...sa }; delete n[id]; return n; });
-      } else {
-        next.add(id);
-        // Auto-assign to first available snap zone
-        setSnapAssignments(sa => {
-          const usedZones = new Set(Object.values(sa));
-          const freeZone = SNAP_ZONES.find(z => !usedZones.has(z)) || SNAP_ZONES[0];
-          return { ...sa, [id]: freeZone };
-        });
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
-
-  const cycleSnapZone = (sectionId) => {
-    setSnapAssignments(prev => {
-      const currentZone = prev[sectionId] || SNAP_ZONES[0];
-      const idx = SNAP_ZONES.indexOf(currentZone);
-      return { ...prev, [sectionId]: SNAP_ZONES[(idx + 1) % SNAP_ZONES.length] };
-    });
-  };
-
-  const setSnapZone = (sectionId, zone) => {
-    setSnapAssignments(prev => ({ ...prev, [sectionId]: zone }));
   };
 
   // ─── Preset Profiles ───
@@ -3133,16 +3122,10 @@ function App() {
           <div
             key={drawer.id}
             className="snap-zone-drawer"
-            data-zone={snapAssignments[drawer.id] || 'top-left'}
-            style={{ background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})` }}
+            style={{ ...DRAWER_POSITIONS[drawer.id], background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})` }}
           >
             <div className="folder-drawer-header">
               <span className="folder-drawer-icon">{drawer.icon}</span> {drawer.label}
-              <div className="snap-zone-selector">
-                {SNAP_ZONES.map(z => (
-                  <button key={z} className={`snap-zone-dot ${(snapAssignments[drawer.id] || 'top-left') === z ? 'snap-zone-dot--active' : ''}`} onClick={() => setSnapZone(drawer.id, z)} title={z} />
-                ))}
-              </div>
               <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)}>✕</span>
             </div>
             {drawer.content}

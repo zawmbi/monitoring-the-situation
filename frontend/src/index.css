@@ -3340,7 +3340,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Snap-Zone Floating Drawers
+   Floating Drawers (positioned over the map)
    ═══════════════════════════════════════════════════════════════ */
 .snap-zone-drawer {
   position: absolute;
@@ -3359,6 +3359,7 @@ body {
   pointer-events: auto;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  padding: 10px 12px;
 }
 
 .snap-zone-drawer .folder-drawer-header {
@@ -3370,43 +3371,6 @@ body {
 
 .snap-zone-drawer .source-group-items {
   padding: 0 2px;
-}
-
-/* Snap zone positions — 6 zones in a 3x2 grid */
-.snap-zone-drawer[data-zone="top-left"]     { top: 12px;  left: 12px;  }
-.snap-zone-drawer[data-zone="top-center"]   { top: 12px;  left: 50%; transform: translateX(-50%); }
-.snap-zone-drawer[data-zone="top-right"]    { top: 12px;  right: 12px; }
-.snap-zone-drawer[data-zone="bottom-left"]  { bottom: 60px; left: 12px;  }
-.snap-zone-drawer[data-zone="bottom-center"]{ bottom: 60px; left: 50%; transform: translateX(-50%); }
-.snap-zone-drawer[data-zone="bottom-right"] { bottom: 60px; right: 12px; }
-
-/* Snap zone selector buttons */
-.snap-zone-selector {
-  display: flex;
-  gap: 3px;
-  margin-left: auto;
-  margin-right: 6px;
-}
-
-.snap-zone-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  border: 1px solid rgba(var(--accent-rgb), 0.3);
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s;
-}
-
-.snap-zone-dot:hover {
-  background: rgba(var(--accent-rgb), 0.4);
-  border-color: var(--color-accent);
-}
-
-.snap-zone-dot--active {
-  background: var(--color-accent);
-  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
 }
 
 /* Transparency slider in settings */
