@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v8'; // v8: research-verified slug patterns + expanded districts
+const CACHE_KEY = 'elections:live:v9'; // v9: fix ambiguous state code matching + expanded slugs
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -167,6 +167,14 @@ function normalizeText(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Two-letter state codes that are common English words — matching these as bare \bXX\b
+// would cause massive false positives (e.g. "or" matches Oregon, "me" matches Maine).
+// For these codes, only match when adjacent to a digit (district context like "or 04").
+const AMBIGUOUS_STATE_CODES = new Set([
+  'al', 'ar', 'co', 'de', 'ga', 'hi', 'id', 'il', 'in',
+  'la', 'ma', 'me', 'mo', 'mt', 'ne', 'oh', 'ok', 'or', 'pa',
+]);
+
 class ElectionLiveService {
   constructor() {
     this._memCache = null;
@@ -181,34 +189,46 @@ class ElectionLiveService {
     const slugs = [];
     const toSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
 
-    // Senate general election
+    // Senate general election — multiple slug variants per state for maximum coverage
     for (const state of SENATE_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-senate-election-winner`);
       slugs.push(`${s}-us-senate-election-winner`);
+      slugs.push(`${s}-senate-winner-2026`);
+      slugs.push(`${s}-senate-race-2026`);
+      slugs.push(`${s}-senate-election-2026`);
     }
     // Senate primaries (both parties)
     for (const state of SENATE_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-republican-senate-primary-winner`);
       slugs.push(`${s}-democratic-senate-primary-winner`);
+      slugs.push(`${s}-senate-republican-primary-winner`);
+      slugs.push(`${s}-senate-democratic-primary-winner`);
     }
     // Michigan Republican Senate Primary has special suffix
     slugs.push('michigan-republican-senate-primary-winner-954');
 
-    // Governor general election (confirmed pattern: {state}-governor-winner-2026)
+    // Governor general election — multiple slug variants per state
     for (const state of GOVERNOR_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-governor-winner-2026`);
+      slugs.push(`${s}-governor-election-winner`);
+      slugs.push(`${s}-governor-election-2026`);
+      slugs.push(`${s}-governor-race-2026`);
+      slugs.push(`${s}-gubernatorial-election-winner`);
+      slugs.push(`${s}-gubernatorial-election-2026`);
     }
     // California uses a different slug pattern
     slugs.push('california-governor-election-2026');
 
-    // Governor primaries (confirmed pattern: {state}-governor-{party}-primary-winner)
+    // Governor primaries — multiple slug variants for party primary ordering
     for (const state of GOVERNOR_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-governor-republican-primary-winner`);
       slugs.push(`${s}-governor-democratic-primary-winner`);
+      slugs.push(`${s}-republican-governor-primary-winner`);
+      slugs.push(`${s}-democratic-governor-primary-winner`);
     }
     // Florida uses alternate governor primary slugs
     slugs.push('republican-nominee-for-florida-governor');
@@ -216,11 +236,19 @@ class ElectionLiveService {
     // California jungle primary
     slugs.push('parties-advancing-from-the-california-governor-primary');
 
-    // House districts (confirmed pattern: {xx}-{dd}-house-election-winner, zero-padded)
+    // House districts — multiple slug variants (zero-padded and non-padded)
     for (const d of HOUSE_DISTRICTS) {
       const [st, dist] = d.code.split('-');
+      const stLower = st.toLowerCase();
       const paddedDist = dist.padStart(2, '0');
-      slugs.push(`${st.toLowerCase()}-${paddedDist}-house-election-winner`);
+      slugs.push(`${stLower}-${paddedDist}-house-election-winner`);
+      slugs.push(`${stLower}-${paddedDist}-congressional-election-winner`);
+      // Also try with the full state name for multi-word states
+      const stateSlug = toSlug(d.state);
+      if (stateSlug !== stLower) {
+        slugs.push(`${stateSlug}-${paddedDist}-house-election-winner`);
+        slugs.push(`${stateSlug}-district-${paddedDist}-house-election-winner`);
+      }
     }
 
     // Meta / control markets
@@ -231,7 +259,8 @@ class ElectionLiveService {
       'republican-senate-seats-after-the-2026-midterm-elections-927',
       'republican-house-seats-after-the-2026-midterm-elections',
       'will-democrats-win-all-core-four-senate-races',
-      'florida-us-senate-election-winner',
+      '2026-midterms-senate-control',
+      '2026-midterms-house-control',
     );
     return slugs;
   }
@@ -253,8 +282,11 @@ class ElectionLiveService {
       polymarketService.getMarketsByTopic(['2026'], boost, false),
       polymarketService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary', 'democrat', 'republican'], false),
       polymarketService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'primary'], false),
+      polymarketService.getMarketsByTopic(['gubernatorial'], ['2026', 'election', 'winner', 'primary'], false),
       polymarketService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor', 'house'], false),
       polymarketService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
+      polymarketService.getMarketsByTopic(['congress'], ['2026', 'house', 'district', 'election', 'winner'], false),
+      polymarketService.getMarketsByTopic(['house'], ['2026', 'election', 'district', 'winner', 'representative'], false),
     ];
 
     // Kalshi + PredictIt — broader searches
@@ -262,14 +294,20 @@ class ElectionLiveService {
       kalshiService.getMarketsByTopic(['2026'], boost, false),
       kalshiService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary'], false),
       kalshiService.getMarketsByTopic(['governor'], ['2026', 'election', 'winner', 'gubernatorial'], false),
+      kalshiService.getMarketsByTopic(['gubernatorial'], ['2026', 'election', 'winner'], false),
       kalshiService.getMarketsByTopic(['house'], ['2026', 'election', 'district', 'winner'], false),
+      kalshiService.getMarketsByTopic(['congress'], ['2026', 'house', 'district', 'election'], false),
       kalshiService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat', 'nominee'], false),
+      kalshiService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor', 'house'], false),
     ];
     const predictitSearches = [
       predictitService.getMarketsByTopic(['2026'], boost, false),
       predictitService.getMarketsByTopic(['senate'], ['2026', 'election', 'primary', 'nomination'], false),
       predictitService.getMarketsByTopic(['governor'], ['2026', 'gubernatorial', 'election'], false),
+      predictitService.getMarketsByTopic(['gubernatorial'], ['2026', 'election'], false),
       predictitService.getMarketsByTopic(['house'], ['2026', 'election', 'district'], false),
+      predictitService.getMarketsByTopic(['congress'], ['2026', 'house', 'election'], false),
+      predictitService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor'], false),
     ];
 
     // Direct slug-based Polymarket fetching for guaranteed coverage
@@ -313,8 +351,22 @@ class ElectionLiveService {
 
     const stateNameLower = stateName.toLowerCase();
     const stateCode = (STATE_CODES[stateName] || '').toLowerCase();
-    const hasState = text.includes(stateNameLower) ||
-      (stateCode.length === 2 && new RegExp(`\\b${stateCode}\\b`).test(text));
+
+    // For ambiguous codes (common English words like "me", "or", "oh"), only match
+    // when they appear adjacent to a digit (district context like "or 04", "me 01").
+    // For non-ambiguous codes ("tx", "fl", "nh"), standard word-boundary matching is safe.
+    let hasState;
+    if (text.includes(stateNameLower)) {
+      hasState = true;
+    } else if (stateCode.length === 2) {
+      if (AMBIGUOUS_STATE_CODES.has(stateCode)) {
+        hasState = new RegExp(`\\b${stateCode}[\\s-]?\\d`).test(text);
+      } else {
+        hasState = new RegExp(`\\b${stateCode}\\b`).test(text);
+      }
+    } else {
+      hasState = false;
+    }
     if (!hasState) return 0;
 
     // Determine base office type and whether this is a primary race
@@ -350,7 +402,7 @@ class ElectionLiveService {
       if (!hasDistrict) return 0;
     }
 
-    if (/202[0-4]|2028|2030|2032/.test(text) && !/2026/.test(text)) return 0;
+    if (/202[0-5]|2028|2030|2032/.test(text) && !/2026/.test(text)) return 0;
 
     let score = 1;
     if (/2026/.test(text)) score += 2;
