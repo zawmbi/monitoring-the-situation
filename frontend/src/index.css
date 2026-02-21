@@ -932,6 +932,17 @@ body {
   50%      { opacity: 0.82; }
 }
 
+/* Dune theme — amber/spice atmosphere halo */
+[data-theme="dune"] .globe-halo-ring {
+  box-shadow:
+    0 0 6px 1px  rgba(224, 160, 32, 0.70),
+    0 0 16px 4px rgba(210, 150, 40, 0.50),
+    0 0 35px 10px rgba(200, 140, 30, 0.35),
+    0 0 60px 18px rgba(180, 120, 20, 0.22),
+    0 0 100px 35px rgba(160, 100, 10, 0.12),
+    0 0 160px 55px rgba(140, 80, 0, 0.05);
+}
+
 .map-controls-bl {
   position: absolute;
   bottom: 170px;

@@ -328,6 +328,34 @@ const REGION_MAP = {
   'Vanuatu': 'oceania',
 };
 
+// Dune theme — warm desert tones: amber, sand, ochre, sienna, umber
+const DUNE = {
+  western:    ['#3a3020', '#3d3224', '#403428', '#38301e', '#3b3222'],
+  nordic:     ['#2e3828', '#303a2c', '#323c30', '#2c3626', '#2f3a2a'],
+  easternEU:  ['#3a342a', '#3d362e', '#403832', '#383228', '#3b342c'],
+  russia:     ['#5a2018'],
+  postSoviet: ['#4a2828', '#4d2a2c', '#502c30', '#482626', '#4b2a2a'],
+  centralAsia:['#44382a', '#463a2e', '#483c32', '#423628', '#453a2c'],
+  china:      ['#5a2020'],
+  eastAsia:   ['#4a3030', '#4d3234', '#503438'],
+  seAsia:     ['#2a4030', '#2c4234', '#2e4438', '#283e2e', '#2b4032'],
+  southAsia:  ['#50402a', '#53422e', '#564432', '#4e3e28', '#51402c'],
+  middleEast: ['#4e4428', '#51462c', '#544830', '#4c4226', '#4f442a'],
+  northAfrica:['#4e3c28', '#513e2c', '#544030', '#4c3a26', '#4f3c2a'],
+  westAfrica: ['#2a4428', '#2c462c', '#2e4830', '#284226', '#2b442a'],
+  eastAfrica: ['#344428', '#36462c', '#384830', '#324226', '#35442a'],
+  centralAfr: ['#203820', '#223a24', '#243c28', '#1e361e', '#213822'],
+  southernAfr:['#363820', '#383a24', '#3a3c28', '#34361e', '#373822'],
+  latam:      ['#204432', '#224636', '#244838', '#1e4230', '#214434'],
+  brazil:     ['#2a4428'],
+  caribbean:  ['#283c3a', '#2a3e3c', '#2c403e', '#263a38', '#293c3a'],
+  oceania:    ['#283848', '#2a3a4a', '#2c3c4c', '#263646', '#293a48'],
+  turkey:     ['#3e3040'],
+  israel:     ['#2a3860'],
+  balkans:    ['#343040', '#363244', '#383448', '#322e3e', '#353042'],
+  fallback:   ['#2c2820', '#2e2a22', '#302c24', '#2a261e', '#2d2922'],
+};
+
 // Simple hash for consistent variation within a palette
 function nameHash(name) {
   let h = 0;
@@ -341,10 +369,17 @@ function nameHash(name) {
  * Get a culturally-informed fill color for a country.
  * @param {string} name - TopoJSON country name
  * @param {number} index - Feature array index (fallback)
- * @param {boolean} isLight - Whether light theme is active
+ * @param {boolean|string} themeOrIsLight - Theme ID string or boolean (true = light)
  */
-export function getCountryFillColor(name, index, isLight) {
-  const palettes = isLight ? LIGHT : DARK;
+export function getCountryFillColor(name, index, themeOrIsLight) {
+  let palettes;
+  if (themeOrIsLight === true || themeOrIsLight === 'light-analytic') {
+    palettes = LIGHT;
+  } else if (themeOrIsLight === 'dune') {
+    palettes = DUNE;
+  } else {
+    palettes = DARK;
+  }
   const region = REGION_MAP[name];
 
   if (region && palettes[region]) {
