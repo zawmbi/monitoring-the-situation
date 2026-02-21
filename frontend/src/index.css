@@ -1425,7 +1425,14 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+}
+
+/* Spacing between controls and the arrow toggle */
+.map-collapse-toggle-bl + .map-controls-bl {
+  margin-top: 8px;
+}
+.map-controls-bl + .map-collapse-toggle-bl {
+  margin-top: 8px;
 }
 
 .map-rotation-controls {
