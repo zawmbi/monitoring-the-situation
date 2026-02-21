@@ -402,11 +402,14 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: row;
+  position: relative;
 }
 
 /* Sidebar Layout */
 .sidebar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
   max-height: 100%;
   background: var(--sidebar-bg);
@@ -416,7 +419,7 @@ body {
   box-shadow: var(--sidebar-shadow);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s;
   flex-shrink: 0;
   z-index: 10;
   min-height: 0;
@@ -616,35 +619,43 @@ body {
   outline-offset: 2px;
 }
 
-.sidebar-layer-btn {
-  background: transparent;
-  border: none;
-  border-radius: 6px;
+/* Eye toggle — bottom-left corner of sidebar */
+.sidebar-eye-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: var(--glass-bg-dense);
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  border-radius: 50%;
   width: 28px;
   height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  transition: all 0.25s;
   color: var(--color-text-muted);
-  opacity: 0.5;
+  opacity: 0.45;
+  z-index: 2;
 }
 
-.sidebar-layer-btn:hover {
-  background: var(--color-bg-hover);
+.sidebar-eye-btn:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.4);
   color: var(--color-text-primary);
   opacity: 1;
 }
 
-.sidebar-layer-btn.sidebar-layer-front {
+.sidebar-eye-btn.sidebar-eye-front {
   color: var(--color-accent);
-  opacity: 0.8;
+  opacity: 0.7;
+  border-color: rgba(var(--accent-rgb), 0.3);
+  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.15);
 }
 
-.sidebar-layer-btn.sidebar-layer-front:hover {
+.sidebar-eye-btn.sidebar-eye-front:hover {
   opacity: 1;
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
 }
 
 .sidebar-logo {
@@ -1055,6 +1066,7 @@ body {
   overflow: hidden;
   background: var(--map-bg);
   isolation: isolate;
+  z-index: 5;
 }
 
 /* Globe mode: force black space behind the globe regardless of theme */
@@ -1193,15 +1205,23 @@ body {
     0 0 160px 55px rgba(140, 80, 0, 0.05);
 }
 
-.map-controls-bl {
+/* Wrapper for all bottom-left map controls (draggable when collapsed) */
+.map-controls-group {
   position: absolute;
-  bottom: 170px;
+  bottom: 52px;
   left: 17px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.map-controls-bl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .map-rotation-controls {
@@ -1212,10 +1232,7 @@ body {
 }
 
 .map-collapse-toggle-bl {
-  position: absolute;
-  bottom: 52px;
-  left: 17px;
-  z-index: 10;
+  position: relative;
 }
 
 .map-controls-collapse-btn {
@@ -1223,6 +1240,12 @@ body {
 }
 .map-controls-collapse-btn:hover {
   opacity: 1;
+}
+.map-controls-collapse-btn.map-controls-draggable {
+  cursor: grab;
+}
+.map-controls-collapse-btn.map-controls-draggable:active {
+  cursor: grabbing;
 }
 
 .map-recenter-btn,
