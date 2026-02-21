@@ -1,14 +1,13 @@
 /**
- * Country Risk Scoring Service
- * Dynamically computes composite risk scores from multiple live data sources:
- * - UCDP conflict events (event counts, fatalities, active conflicts)
- * - Stability data (protests intensity, military indicators, instability alerts)
- * - Sanctions status (comprehensive vs targeted regimes)
- * - World Bank economic indicators (inflation, unemployment, debt)
+ * Country Risk Data Service
+ * Pure data passthrough — returns raw upstream data per country from:
+ *   - UCDP conflict events (event counts, fatalities)
+ *   - Stability data (protest counts, military indicator counts)
+ *   - Sanctions status (active sanctions regimes)
+ *   - World Bank economic indicators (inflation, GDP growth, unemployment)
  *
- * Instead of hardcoded per-country BASE_RISK scores, countries are assigned a
- * category-based baseline (fragile=70, developing=40, stable=20) which is then
- * adjusted dynamically from live data feeds.
+ * No composite scores, no baselines, no risk level classifications,
+ * no weighted adjustments, no 0-100 indices.
  */
 
 import { cacheService } from './cache.service.js';
@@ -50,26 +49,6 @@ const COUNTRY_COORDS = {
   'Saudi Arabia': { lat: 24.69, lon: 46.72 }, 'United Arab Emirates': { lat: 24.45, lon: 54.65 },
 };
 
-// Fragile States (derived from the Fund for Peace Fragile States Index top-tier countries)
-const FRAGILE_STATES = new Set([
-  'Afghanistan', 'Syria', 'Yemen', 'Somalia', 'Sudan', 'South Sudan',
-  'DR Congo', 'Central African Republic', 'Chad', 'Haiti', 'Mali',
-  'Burkina Faso', 'Niger', 'Eritrea', 'Myanmar', 'Libya', 'Iraq',
-  'Palestine', 'Ethiopia', 'Mozambique', 'Nigeria', 'Cameroon',
-  'Lebanon',
-]);
-
-// Developing countries (elevated baseline, not fragile but not fully stable)
-const DEVELOPING_STATES = new Set([
-  'Pakistan', 'Venezuela', 'North Korea', 'Iran', 'Ukraine', 'Cuba',
-  'Colombia', 'Mexico', 'Honduras', 'Guatemala', 'El Salvador',
-  'Bangladesh', 'Philippines', 'Kenya', 'Uganda', 'Zimbabwe',
-  'Egypt', 'Tunisia', 'Algeria', 'Russia', 'Belarus', 'India',
-  'Turkey',
-]);
-
-// All other countries in COUNTRY_COORDS default to "stable" baseline
-
 // Map country names to ISO alpha-2 codes for cross-referencing with stability data
 const COUNTRY_TO_ISO = {
   'Afghanistan': 'AF', 'Iraq': 'IQ', 'Syria': 'SY', 'Yemen': 'YE',
@@ -88,180 +67,91 @@ const COUNTRY_TO_ISO = {
   'United Arab Emirates': 'AE',
 };
 
-/**
- * Determine the category-based baseline score for a country.
- *   Fragile state  -> 70
- *   Developing     -> 40
- *   Stable         -> 20
- */
-function getBaselineScore(country) {
-  if (FRAGILE_STATES.has(country)) return 70;
-  if (DEVELOPING_STATES.has(country)) return 40;
-  return 20;
-}
+// ---------------------------------------------------------------------------
+// Raw data extraction helpers (no scoring)
+// ---------------------------------------------------------------------------
 
 /**
- * Compute the UCDP conflict adjustment for a country.
- * Considers both event counts and fatalities.
- * Returns 0-20 additional risk points.
+ * Extract raw UCDP events and fatalities for a country.
  */
-function computeUCDPAdjustment(country, ucdpEvents, activeConflicts) {
-  let adjustment = 0;
+function extractUcdpData(country, ucdpEvents, activeConflicts) {
+  let eventCount = 0;
+  let totalDeaths = 0;
+  let hasActiveWar = false;
 
-  // Count events for this country
   if (ucdpEvents?.events) {
     const countryEvents = ucdpEvents.events.filter(
       e => e.country?.toLowerCase() === country.toLowerCase()
     );
-    const eventCount = countryEvents.length;
-    const totalDeaths = countryEvents.reduce(
+    eventCount = countryEvents.length;
+    totalDeaths = countryEvents.reduce(
       (sum, e) => sum + (e.deathsBest || 0), 0
     );
-
-    // Event count contribution (0-10 points)
-    if (eventCount >= 50) adjustment += 10;
-    else if (eventCount >= 20) adjustment += 7;
-    else if (eventCount >= 10) adjustment += 5;
-    else if (eventCount >= 5) adjustment += 3;
-    else if (eventCount >= 1) adjustment += 1;
-
-    // Fatality contribution (0-10 points)
-    if (totalDeaths >= 1000) adjustment += 10;
-    else if (totalDeaths >= 500) adjustment += 7;
-    else if (totalDeaths >= 100) adjustment += 5;
-    else if (totalDeaths >= 25) adjustment += 3;
-    else if (totalDeaths >= 1) adjustment += 1;
   }
 
-  // Check if country has active conflicts marked as "War" intensity
   if (activeConflicts?.conflicts) {
-    const hasWar = activeConflicts.conflicts.some(
+    hasActiveWar = activeConflicts.conflicts.some(
       c => c.location?.toLowerCase().includes(country.toLowerCase()) &&
            c.intensity === 'War'
     );
-    if (hasWar) adjustment += 5;
   }
 
-  return Math.min(adjustment, 20);
+  return { eventCount, totalDeaths, hasActiveWar };
 }
 
 /**
- * Compute stability adjustment based on protest, military, and instability data.
- * Uses the ISO alpha-2 country code to match stability heatmap points.
- * Returns 0-15 additional risk points.
+ * Extract raw stability indicators for a country.
  */
-function computeStabilityAdjustment(isoCode, stabilityData) {
-  if (!isoCode || !stabilityData) return 0;
+function extractStabilityData(isoCode, stabilityData) {
+  if (!isoCode || !stabilityData) return { protestCount: 0, protestIntensity: null, militaryIndicators: [], instabilityAlerts: [] };
 
-  let adjustment = 0;
   const code = isoCode.toUpperCase();
 
-  // Protest intensity (0-5 points)
-  if (stabilityData.protests?.heatmapPoints) {
-    const protestPoint = stabilityData.protests.heatmapPoints.find(
-      p => p.countryCode === code
-    );
-    if (protestPoint) {
-      const intensity = protestPoint.intensity || 0;
-      if (intensity >= 8) adjustment += 5;
-      else if (intensity >= 5) adjustment += 3;
-      else if (intensity >= 2) adjustment += 1;
-    }
-  }
+  const protestPoint = (stabilityData.protests?.heatmapPoints || []).find(
+    p => p.countryCode === code
+  );
 
-  // Military indicators (0-5 points)
-  if (stabilityData.military?.indicators) {
-    const milIndicator = stabilityData.military.indicators.find(
-      m => m.countryCode === code
-    );
-    if (milIndicator) {
-      if (milIndicator.severity === 'critical') adjustment += 5;
-      else if (milIndicator.severity === 'high') adjustment += 3;
-      else if (milIndicator.severity === 'elevated') adjustment += 2;
-    }
-  }
+  const militaryIndicators = (stabilityData.military?.indicators || []).filter(
+    m => m.countryCode === code
+  );
 
-  // Instability alerts (0-5 points)
-  if (stabilityData.instability?.alerts) {
-    const alert = stabilityData.instability.alerts.find(
-      a => a.countryCode === code
-    );
-    if (alert) {
-      if (alert.severity === 'critical') adjustment += 5;
-      else if (alert.severity === 'high') adjustment += 3;
-      else if (alert.severity === 'elevated') adjustment += 2;
-      else adjustment += 1;
-    }
-  }
+  const instabilityAlerts = (stabilityData.instability?.alerts || []).filter(
+    a => a.countryCode === code
+  );
 
-  return Math.min(adjustment, 15);
+  return {
+    protestCount: protestPoint?.count || 0,
+    protestIntensity: protestPoint?.intensity ?? null,
+    militaryIndicators: militaryIndicators.map(m => ({
+      count: m.count || 0,
+      severity: m.severity || null,
+    })),
+    instabilityAlerts: instabilityAlerts.map(a => ({
+      count: a.count || 0,
+      severity: a.severity || null,
+    })),
+  };
 }
 
 /**
- * Compute sanctions adjustment.
- * Comprehensive sanctions add more risk than targeted sanctions.
- * Returns 0-10 additional risk points.
+ * Find sanctions data for a country from the sanctions service response.
  */
-function computeSanctionsAdjustment(country, sanctionsData) {
-  if (!sanctionsData?.regimes) return 0;
+function extractSanctionsData(country, sanctionsData) {
+  if (!sanctionsData?.regimes) return null;
 
   const regime = sanctionsData.regimes.find(
     r => r.country?.toLowerCase() === country.toLowerCase() ||
          r.country?.toLowerCase().startsWith(country.toLowerCase())
   );
 
-  if (!regime) return 0;
+  if (!regime) return null;
 
-  if (regime.level === 'comprehensive') return 10;
-  if (regime.level === 'targeted') return 5;
-  return 3;
-}
-
-/**
- * Compute economic risk adjustment from World Bank indicators.
- * High inflation, unemployment, or debt contribute to risk.
- * Returns 0-10 additional risk points.
- */
-function computeEconomicAdjustment(wbData) {
-  if (!wbData) return 0;
-
-  let adjustment = 0;
-
-  // High inflation (>20% = +3, >10% = +2, >7% = +1)
-  if (wbData.inflation != null) {
-    if (wbData.inflation > 20) adjustment += 3;
-    else if (wbData.inflation > 10) adjustment += 2;
-    else if (wbData.inflation > 7) adjustment += 1;
-  }
-
-  // Negative GDP growth (recession indicator)
-  if (wbData.gdpGrowth != null) {
-    if (wbData.gdpGrowth < -5) adjustment += 3;
-    else if (wbData.gdpGrowth < -2) adjustment += 2;
-    else if (wbData.gdpGrowth < 0) adjustment += 1;
-  }
-
-  // High unemployment (>20% = +2, >12% = +1)
-  if (wbData.unemployment != null) {
-    if (wbData.unemployment > 20) adjustment += 2;
-    else if (wbData.unemployment > 12) adjustment += 1;
-  }
-
-  // Extreme debt-to-GDP (>100% = +2, >80% = +1)
-  if (wbData.debtToGdp != null) {
-    if (wbData.debtToGdp > 100) adjustment += 2;
-    else if (wbData.debtToGdp > 80) adjustment += 1;
-  }
-
-  return Math.min(adjustment, 10);
-}
-
-function computeRiskLevel(score) {
-  if (score >= 80) return 'critical';
-  if (score >= 60) return 'high';
-  if (score >= 40) return 'elevated';
-  if (score >= 20) return 'moderate';
-  return 'low';
+  return {
+    country: regime.country,
+    level: regime.level,
+    programs: regime.programs || [],
+    sectors: regime.sectors || [],
+  };
 }
 
 export const countryRiskService = {
@@ -283,7 +173,7 @@ export const countryRiskService = {
     const stabilityData = stabilityResult.status === 'fulfilled' ? stabilityResult.value : null;
     const sanctionsData = sanctionsResult.status === 'fulfilled' ? sanctionsResult.value : null;
 
-    // Fetch World Bank data for all countries in parallel (batched)
+    // Fetch World Bank data for all countries in parallel
     const countries = Object.keys(COUNTRY_COORDS);
     const wbDataMap = {};
 
@@ -300,68 +190,63 @@ export const countryRiskService = {
 
     await Promise.allSettled(wbPromises);
 
-    // Build the sanctioned countries set for the result flag
-    const sanctionedCountries = new Set(
-      (sanctionsData?.regimes || []).map(r => r.country)
-    );
-
-    // Compute dynamic scores for every country
-    const scores = countries.map((country) => {
+    // Build raw data for every country
+    const countryData = countries.map((country) => {
       const isoCode = COUNTRY_TO_ISO[country] || null;
-
-      // 1. Category-based baseline (fragile=70, developing=40, stable=20)
-      const baseline = getBaselineScore(country);
-
-      // 2. UCDP conflict adjustment (0-20)
-      const ucdpAdj = computeUCDPAdjustment(country, ucdpEvents, activeConflicts);
-
-      // 3. Stability adjustment — protests, military, instability (0-15)
-      const stabilityAdj = computeStabilityAdjustment(isoCode, stabilityData);
-
-      // 4. Sanctions adjustment (0-10)
-      const sanctionsAdj = computeSanctionsAdjustment(country, sanctionsData);
-
-      // 5. Economic risk adjustment from World Bank (0-10)
-      const economicAdj = computeEconomicAdjustment(wbDataMap[country] || null);
-
-      // Composite score clamped to [0, 100]
-      const rawScore = baseline + ucdpAdj + stabilityAdj + sanctionsAdj + economicAdj;
-      const finalScore = Math.max(0, Math.min(100, rawScore));
-
       const coords = COUNTRY_COORDS[country] || {};
-      const isSanctioned = sanctionedCountries.has(country);
+
+      // UCDP raw data
+      const ucdp = extractUcdpData(country, ucdpEvents, activeConflicts);
+
+      // Stability raw data
+      const stability = extractStabilityData(isoCode, stabilityData);
+
+      // Sanctions raw data
+      const sanctions = extractSanctionsData(country, sanctionsData);
+
+      // World Bank raw economic data
+      const wb = wbDataMap[country] || null;
+      const economics = wb ? {
+        inflation: wb.inflation ?? null,
+        gdpGrowth: wb.gdpGrowth ?? null,
+        unemployment: wb.unemployment ?? null,
+        debtToGdp: wb.debtToGdp ?? null,
+        population: wb.population ?? null,
+        tradePercGdp: wb.tradePercGdp ?? null,
+        currentAccount: wb.currentAccount ?? null,
+      } : null;
 
       return {
         country,
-        score: finalScore,
-        level: computeRiskLevel(finalScore),
-        sanctioned: isSanctioned,
+        isoCode,
         lat: coords.lat || null,
         lon: coords.lon || null,
-        trend: 'stable', // Could be computed from historical snapshots
-        breakdown: {
-          baseline,
-          ucdpConflict: ucdpAdj,
-          stability: stabilityAdj,
-          sanctions: sanctionsAdj,
-          economic: economicAdj,
+        ucdp: {
+          eventCount: ucdp.eventCount,
+          totalDeaths: ucdp.totalDeaths,
+          hasActiveWar: ucdp.hasActiveWar,
         },
+        stability,
+        sanctions,
+        economics,
       };
     });
 
-    scores.sort((a, b) => b.score - a.score);
-
     const result = {
-      scores,
+      countries: countryData,
       summary: {
-        total: scores.length,
-        critical: scores.filter(s => s.level === 'critical').length,
-        high: scores.filter(s => s.level === 'high').length,
-        elevated: scores.filter(s => s.level === 'elevated').length,
-        moderate: scores.filter(s => s.level === 'moderate').length,
-        low: scores.filter(s => s.level === 'low').length,
-        avgScore: Math.round(scores.reduce((s, c) => s + c.score, 0) / scores.length),
+        total: countryData.length,
+        withUcdpEvents: countryData.filter(c => c.ucdp.eventCount > 0).length,
+        withActiveWar: countryData.filter(c => c.ucdp.hasActiveWar).length,
+        withSanctions: countryData.filter(c => c.sanctions !== null).length,
+        withEconomicData: countryData.filter(c => c.economics !== null).length,
       },
+      dataSources: [
+        'UCDP (Uppsala Conflict Data Program) — https://ucdp.uu.se',
+        'World Bank Indicators API — https://api.worldbank.org/v2/',
+        'Stability service (GDELT + Google News RSS aggregation)',
+        'Sanctions service (OFAC/EU sanctions data + Google News RSS)',
+      ],
       updatedAt: new Date().toISOString(),
     };
 

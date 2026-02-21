@@ -1,7 +1,8 @@
 /**
- * Auto-Generated Briefing Service
- * Aggregates data from all services into structured intelligence briefings
- * Provides "What's happening here?" situational awareness
+ * Briefing Service
+ * Aggregates raw data from upstream services into structured briefings.
+ * No custom scoring or composite analysis — just raw data passthrough
+ * with clear attribution to upstream data sources.
  */
 
 import { cacheService } from './cache.service.js';
@@ -13,57 +14,6 @@ import { cyberService } from './cyber.service.js';
 
 const CACHE_KEY = 'briefing:global';
 const CACHE_TTL = 600; // 10 minutes
-
-function categorizeHeadlines(items) {
-  const categories = {
-    conflict: [],
-    politics: [],
-    economy: [],
-    disaster: [],
-    technology: [],
-    other: [],
-  };
-
-  const patterns = {
-    conflict: /\b(war|attack|strike|bomb|missile|military|troops|invasion|conflict|killed|casualties|ceasefire|ukraine|russia|israel|hamas|gaza)\b/i,
-    politics: /\b(election|president|congress|parliament|vote|law|legislation|court|ruling|sanction|diplomacy|summit|treaty|policy)\b/i,
-    economy: /\b(market|stock|trade|tariff|GDP|inflation|recession|fed|rate|oil|price|economy|fiscal|debt|deficit|bank)\b/i,
-    disaster: /\b(earthquake|hurricane|flood|wildfire|tsunami|volcano|storm|drought|disaster|emergency|evacuation)\b/i,
-    technology: /\b(AI|cyber|hack|data breach|tech|algorithm|regulation|social media|surveillance|quantum)\b/i,
-  };
-
-  (items || []).forEach(item => {
-    const text = `${item.title || ''} ${item.summary || ''}`;
-    let matched = false;
-    for (const [category, pattern] of Object.entries(patterns)) {
-      if (pattern.test(text)) {
-        categories[category].push({
-          title: item.title,
-          source: item.sourceName || item.source,
-          date: item.publishedAt,
-          url: item.url,
-        });
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      categories.other.push({
-        title: item.title,
-        source: item.sourceName || item.source,
-        date: item.publishedAt,
-        url: item.url,
-      });
-    }
-  });
-
-  // Limit each category
-  Object.keys(categories).forEach(key => {
-    categories[key] = categories[key].slice(0, 5);
-  });
-
-  return categories;
-}
 
 export const briefingService = {
   async getGlobalBriefing() {
@@ -84,23 +34,31 @@ export const briefingService = {
     const disasters = disasterResult.status === 'fulfilled' ? disasterResult.value : null;
     const cyber = cyberResult.status === 'fulfilled' ? cyberResult.value : null;
 
-    const categorizedHeadlines = categorizeHeadlines(feed);
-
     const result = {
       generatedAt: new Date().toISOString(),
-      globalTension: tension ? {
-        index: tension.index,
-        label: tension.label,
-        criticalConflicts: tension.summary?.criticalConflicts || 0,
-      } : null,
-      topRisks: risk ? risk.scores.slice(0, 10).map(s => ({
-        country: s.country,
-        score: s.score,
-        level: s.level,
-      })) : [],
-      activeDisasters: disasters ? disasters.summary?.totalActive || 0 : 0,
-      cyberThreats: cyber ? cyber.summary?.totalIncidents || 0 : 0,
-      headlines: categorizedHeadlines,
+
+      // Raw tension data from upstream tensionIndexService
+      globalTension: tension || null,
+
+      // Raw country risk scores from upstream countryRiskService (top 10)
+      topRisks: risk ? risk.scores.slice(0, 10) : [],
+
+      // Raw disaster data from upstream disastersService
+      activeDisasters: disasters || null,
+
+      // Raw cyber incident data from upstream cyberService
+      cyberThreats: cyber || null,
+
+      // Recent headlines from aggregated feeds (no categorization or scoring)
+      headlines: feed.slice(0, 20).map(item => ({
+        title: item.title,
+        source: item.sourceName || item.source,
+        date: item.publishedAt,
+        url: item.url,
+        type: item.contentType,
+      })),
+
+      // Key developments — raw feed items
       keyDevelopments: feed.slice(0, 10).map(item => ({
         title: item.title,
         source: item.sourceName || item.source,
@@ -127,7 +85,8 @@ export const briefingService = {
     const feed = feedResult.status === 'fulfilled' ? feedResult.value : [];
     const risk = riskResult.status === 'fulfilled' ? riskResult.value : null;
 
-    const countryRisk = risk?.scores?.find(s => s.country.toLowerCase() === countryName.toLowerCase());
+    // Raw country risk data from upstream (no recomputation)
+    const countryRisk = risk?.scores?.find(s => s.country.toLowerCase() === countryName.toLowerCase()) || null;
 
     // Filter news for this country
     const countryNews = feed.filter(item => {
@@ -137,8 +96,7 @@ export const briefingService = {
 
     const result = {
       country: countryName,
-      riskScore: countryRisk?.score || null,
-      riskLevel: countryRisk?.level || 'unknown',
+      risk: countryRisk,
       recentNews: countryNews.map(item => ({
         title: item.title,
         source: item.sourceName || item.source,

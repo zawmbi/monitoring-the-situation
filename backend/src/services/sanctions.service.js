@@ -1,14 +1,12 @@
 /**
  * Sanctions & Compliance Monitoring Service
- * Sources: Google News RSS for sanctions updates
- *          OFAC SDN data (US Treasury - free)
- *          EU sanctions data
+ * Sources: GDELT Doc API for sanctions-related news
+ *          Static sanctioned regimes reference data
  */
 
 import { cacheService } from './cache.service.js';
-import Parser from 'rss-parser';
+import { fetchGDELT } from './gdelt.client.js';
 
-const parser = new Parser({ timeout: 10000 });
 const CACHE_KEY = 'sanctions:combined';
 const CACHE_TTL = 900; // 15 minutes
 
@@ -26,38 +24,33 @@ const SANCTIONED_REGIMES = [
   { country: 'Yemen (Houthis)', code: 'YE', programs: ['YEMEN'], level: 'targeted', sectors: ['defense', 'maritime'], lat: 15.37, lon: 44.21 },
 ];
 
-async function fetchSanctionsNews() {
-  const allItems = [];
-  const sources = [
-    { url: 'https://news.google.com/rss/search?q=sanctions+imposed+OR+%22new+sanctions%22+OR+%22sanctions+package%22&hl=en-US&gl=US&ceid=US:en', name: 'Sanctions News' },
-    { url: 'https://news.google.com/rss/search?q=OFAC+OR+%22sanctions+evasion%22+OR+%22sanctions+compliance%22&hl=en-US&gl=US&ceid=US:en', name: 'Compliance News' },
-  ];
+const SANCTIONS_QUERIES = [
+  'sanctions imposed OR "new sanctions" OR "sanctions package"',
+  'OFAC OR "sanctions evasion" OR "sanctions compliance"',
+];
 
-  for (const source of sources) {
-    try {
-      const feed = await parser.parseURL(source.url);
-      (feed.items || []).forEach(item => {
-        allItems.push({
-          title: item.title,
-          link: item.link,
-          date: item.pubDate || item.isoDate,
-          source: source.name,
-          snippet: item.contentSnippet?.slice(0, 200) || '',
-        });
-      });
-    } catch (err) {
-      console.error(`[Sanctions] RSS error for ${source.name}:`, err.message);
-    }
-  }
+async function fetchSanctionsArticles() {
+  const allArticles = [];
 
-  // Dedup
+  const results = await Promise.allSettled(
+    SANCTIONS_QUERIES.map(query =>
+      fetchGDELT(query, { maxRecords: 30, timespan: '7d', caller: 'Sanctions' })
+    )
+  );
+
+  results.forEach(r => {
+    if (r.status === 'fulfilled') allArticles.push(...r.value);
+  });
+
+  // Deduplicate by URL
   const seen = new Set();
-  return allItems.filter(item => {
-    const key = item.title?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 25);
+  return allArticles
+    .filter(article => {
+      if (seen.has(article.url)) return false;
+      seen.add(article.url);
+      return true;
+    })
+    .slice(0, 40);
 }
 
 export const sanctionsService = {
@@ -65,16 +58,20 @@ export const sanctionsService = {
     const cached = await cacheService.get(CACHE_KEY);
     if (cached) return cached;
 
-    const news = await fetchSanctionsNews();
+    const articles = await fetchSanctionsArticles();
 
     const result = {
       regimes: SANCTIONED_REGIMES,
-      recentNews: news,
+      articles,
       summary: {
         totalRegimes: SANCTIONED_REGIMES.length,
-        comprehensive: SANCTIONED_REGIMES.filter(r => r.level === 'comprehensive').length,
-        targeted: SANCTIONED_REGIMES.filter(r => r.level === 'targeted').length,
+        totalArticles: articles.length,
       },
+      dataSource: {
+        regimes: 'Static reference data (OFAC/EU programs)',
+        articles: 'GDELT Doc API',
+      },
+      lastUpdated: new Date().toISOString(),
     };
 
     await cacheService.set(CACHE_KEY, result, CACHE_TTL);

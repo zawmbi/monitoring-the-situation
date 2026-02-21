@@ -1,17 +1,17 @@
 /**
  * Health & Pandemic Monitoring Service
- * Fetches disease outbreak data from WHO, FDA drug shortages, and health news.
+ * Fetches disease outbreak data from WHO and health-related news via GDELT.
  *
  * Sources:
- *   - WHO Disease Outbreak News (DON) RSS
- *   - Google News RSS (pandemic/health keywords)
- *   - WHO Emergency declarations via news monitoring
+ *   - WHO Disease Outbreak News (DON) RSS (official WHO data)
+ *   - GDELT Doc API (pandemic/health keywords)
  *
  * Cache: 30 minutes (health alerts don't change minute-by-minute)
  */
 
 import Parser from 'rss-parser';
 import { cacheService } from './cache.service.js';
+import { fetchGDELT } from './gdelt.client.js';
 
 const CACHE_KEY = 'health:combined';
 const CACHE_TTL = 1800; // 30 minutes
@@ -21,7 +21,7 @@ const WHO_DON_RSS = 'https://www.who.int/feeds/entity/don/en/rss.xml';
 const HEALTH_QUERIES = [
   'H5N1 bird flu pandemic human transmission',
   'WHO disease outbreak emergency declaration',
-  'pandemic preparedness global health threat 2026',
+  'pandemic preparedness global health threat',
   'drug shortage hospital crisis',
 ];
 
@@ -39,34 +39,30 @@ class HealthService {
 
     console.log('[Health] Fetching health & pandemic data...');
 
-    const [whoResult, newsResult] = await Promise.allSettled([
+    const [whoResult, gdeltResult] = await Promise.allSettled([
       this.fetchWHOOutbreaks(),
-      this.fetchHealthNews(),
+      this.fetchHealthArticles(),
     ]);
 
     const outbreaks = whoResult.status === 'fulfilled' ? whoResult.value : [];
-    const news = newsResult.status === 'fulfilled' ? newsResult.value : [];
-
-    // Categorize outbreaks by threat level
-    const critical = outbreaks.filter(o => o.threatLevel === 'critical');
-    const elevated = outbreaks.filter(o => o.threatLevel === 'elevated');
-    const monitoring = outbreaks.filter(o => o.threatLevel === 'monitoring');
+    const articles = gdeltResult.status === 'fulfilled' ? gdeltResult.value : [];
 
     const result = {
       outbreaks,
-      news,
+      articles,
       summary: {
         totalOutbreaks: outbreaks.length,
-        criticalThreats: critical.length,
-        elevatedThreats: elevated.length,
-        monitoringThreats: monitoring.length,
-        topThreats: critical.slice(0, 3).map(o => o.title),
+        totalArticles: articles.length,
+      },
+      dataSource: {
+        outbreaks: 'WHO Disease Outbreak News RSS',
+        articles: 'GDELT Doc API',
       },
       lastUpdated: new Date().toISOString(),
     };
 
     await cacheService.set(CACHE_KEY, result, CACHE_TTL);
-    console.log(`[Health] ${outbreaks.length} outbreaks, ${news.length} news articles`);
+    console.log(`[Health] ${outbreaks.length} outbreaks, ${articles.length} GDELT articles`);
 
     return result;
   }
@@ -76,17 +72,13 @@ class HealthService {
       const parsed = await this.rssParser.parseURL(WHO_DON_RSS);
       return (parsed.items || []).slice(0, 30).map(item => {
         const title = item.title || '';
-        const threatLevel = this.classifyThreatLevel(title, item.contentSnippet || '');
-
         return {
-          id: this.hashString(item.link || item.guid || title),
           title,
           link: item.link,
           summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').substring(0, 400),
           publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
           source: 'WHO',
           type: 'outbreak',
-          threatLevel,
           disease: this.extractDisease(title),
           region: this.extractRegion(title),
         };
@@ -97,55 +89,28 @@ class HealthService {
     }
   }
 
-  async fetchHealthNews() {
-    const allItems = [];
+  async fetchHealthArticles() {
+    const allArticles = [];
 
     const results = await Promise.allSettled(
-      HEALTH_QUERIES.map(async (query) => {
-        try {
-          const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}+when:7d&hl=en-US&gl=US&ceid=US:en`;
-          const parsed = await this.rssParser.parseURL(url);
-          return (parsed.items || []).slice(0, 10).map(item => ({
-            id: this.hashString(item.link || item.guid || item.title),
-            title: item.title,
-            link: item.link,
-            summary: (item.contentSnippet || '').replace(/<[^>]*>/g, '').substring(0, 300),
-            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
-            source: this.extractSource(item.title),
-            type: 'news',
-            query,
-          }));
-        } catch (err) {
-          console.error(`[Health] News error (${query}):`, err.message);
-          return [];
-        }
-      })
+      HEALTH_QUERIES.map(query =>
+        fetchGDELT(query, { maxRecords: 25, timespan: '7d', caller: 'Health' })
+      )
     );
 
     results.forEach(r => {
-      if (r.status === 'fulfilled') allItems.push(...r.value);
+      if (r.status === 'fulfilled') allArticles.push(...r.value);
     });
 
-    // Deduplicate and sort
+    // Deduplicate by URL
     const seen = new Set();
-    return allItems
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .filter(item => {
-        if (seen.has(item.link)) return false;
-        seen.add(item.link);
+    return allArticles
+      .filter(article => {
+        if (seen.has(article.url)) return false;
+        seen.add(article.url);
         return true;
       })
-      .slice(0, 30);
-  }
-
-  classifyThreatLevel(title, content) {
-    const text = `${title} ${content}`.toLowerCase();
-    const criticalTerms = ['pandemic', 'emergency', 'pheic', 'h5n1 human', 'human-to-human', 'sustained transmission', 'novel virus'];
-    const elevatedTerms = ['outbreak', 'epidemic', 'surge', 'cluster', 'spreading', 'mutation', 'variant'];
-
-    if (criticalTerms.some(t => text.includes(t))) return 'critical';
-    if (elevatedTerms.some(t => text.includes(t))) return 'elevated';
-    return 'monitoring';
+      .slice(0, 50);
   }
 
   extractDisease(title) {
@@ -175,20 +140,6 @@ class HealthService {
       if (keywords.some(k => lower.includes(k))) return region;
     }
     return 'Global';
-  }
-
-  extractSource(title) {
-    const match = title?.match(/ - ([^-]+)$/);
-    return match ? match[1].trim() : 'Google News';
-  }
-
-  hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < (str || '').length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return `health-${Math.abs(hash).toString(36)}`;
   }
 }
 

@@ -2,10 +2,11 @@
  * Election Live Service — Prediction Markets Only
  *
  * Fetches live odds from Polymarket + Kalshi + PredictIt, matches them to
- * 2026 races, and derives win probabilities.  Refreshes every 2 minutes.
+ * 2026 races, and returns raw market probabilities with clear data source
+ * attribution. No custom rating derivation (safe-d/lean-d/toss-up etc.).
  *
- * No ensemble model, no polling aggregation, no FEC/GDELT/Metaculus.
- * Just real-time market prices.
+ * Probabilities are market-implied and come directly from prediction market
+ * prices. Refreshes every 2 minutes.
  */
 
 import { cacheService } from './cache.service.js';
@@ -13,7 +14,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v8'; // v8: research-verified slug patterns + expanded districts
+const CACHE_KEY = 'elections:live:v9'; // v9: raw probabilities, no custom ratings
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -152,17 +153,6 @@ const STATE_CODES = {
   'Wisconsin': 'WI', 'Wyoming': 'WY',
 };
 
-function probabilityToRating(dProb) {
-  if (dProb == null || !Number.isFinite(dProb)) return null;
-  if (dProb >= 0.85) return 'safe-d';
-  if (dProb >= 0.70) return 'likely-d';
-  if (dProb >= 0.57) return 'lean-d';
-  if (dProb >= 0.43) return 'toss-up';
-  if (dProb >= 0.30) return 'lean-r';
-  if (dProb >= 0.15) return 'likely-r';
-  return 'safe-r';
-}
-
 function normalizeText(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -238,17 +228,12 @@ class ElectionLiveService {
 
   /**
    * Fetch all election markets from Polymarket + Kalshi + PredictIt.
-   * Uses multiple search strategies to maximize coverage:
-   * 1. Keyword search for "2026" (catches explicit year references)
-   * 2. Keyword search for "senate" (catches state senate race markets)
-   * 3. Keyword search for "governor" (catches governor race markets)
-   * 4. Direct slug-based fetching for known Polymarket event patterns
-   * 5. Standard Kalshi + PredictIt topic search
+   * Uses multiple search strategies to maximize coverage.
    */
   async _fetchAllMarkets() {
     const boost = ['senate', 'governor', 'election', 'midterm', 'congress', 'house', 'democrat', 'republican', 'primary', '2026'];
 
-    // Multiple search strategies for Polymarket (many markets don't contain "2026" in text)
+    // Multiple search strategies for Polymarket
     const polySearches = [
       polymarketService.getMarketsByTopic(['2026'], boost, false),
       polymarketService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary', 'democrat', 'republican'], false),
@@ -257,7 +242,7 @@ class ElectionLiveService {
       polymarketService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
     ];
 
-    // Kalshi + PredictIt — broader searches
+    // Kalshi + PredictIt -- broader searches
     const kalshiSearches = [
       kalshiService.getMarketsByTopic(['2026'], boost, false),
       kalshiService.getMarketsByTopic(['senate'], ['2026', 'election', 'winner', 'primary'], false),
@@ -338,7 +323,6 @@ class ElectionLiveService {
       if (!hasParty) return 0;
     } else {
       // General election markets should NOT be primary-specific
-      // (skip markets that are clearly about a primary for general race matching)
       if (/\bprimary\b/.test(text) && (/\brepublican\b|\bdemocrat\b|\bgop\b/.test(text))) return 0;
     }
 
@@ -363,40 +347,28 @@ class ElectionLiveService {
   }
 
   /**
-   * Extract D-win probability from a market's outcomes.
+   * Extract raw outcome probabilities from a market.
+   * Returns all outcomes with their market-implied probabilities.
    */
-  _extractDemProbability(market) {
+  _extractOutcomeProbabilities(market) {
     const outcomes = market.outcomes || [];
     if (outcomes.length === 0) return null;
 
-    for (const o of outcomes) {
-      const name = normalizeText(o.name || '');
-      if (/democrat|dem\b|blue/.test(name) && o.price != null) return o.price;
-    }
-
-    const qText = normalizeText(market.question || '');
-    const isAboutDemWinning = /democrat.*win|will.*democrat|dem.*flip|blue.*wave/.test(qText);
-    const isAboutRepWinning = /republican.*win|will.*republican|rep.*flip|gop.*win|red.*wave/.test(qText);
-
-    if (outcomes.length >= 2) {
-      const yesPrice = outcomes[0]?.price;
-      if (isAboutDemWinning && yesPrice != null) return yesPrice;
-      if (isAboutRepWinning && yesPrice != null) return 1 - yesPrice;
-    }
-
-    for (const o of outcomes) {
-      const name = normalizeText(o.name || '');
-      if (/republican|rep\b|gop|red/.test(name) && o.price != null) return 1 - o.price;
-    }
-
-    return null;
+    return outcomes
+      .filter(o => o.name && o.price != null)
+      .map(o => ({
+        name: o.name,
+        probability: Math.round(o.price * 100),
+        rawPrice: o.price,
+      }))
+      .sort((a, b) => b.probability - a.probability);
   }
 
   /**
    * Match markets to races. For each race, pick the best matching market
-   * and extract win probabilities. Also matches primary markets.
+   * and return raw market-implied probabilities. No custom rating derivation.
    */
-  _deriveRatings(allMarkets) {
+  _matchRaces(allMarkets) {
     const results = {};
     const allRaces = [
       // General election races
@@ -420,13 +392,19 @@ class ElectionLiveService {
       if (scored.length === 0) continue;
       const bestMatch = scored[0].market;
 
+      const dataSourceLabel = `market-implied probability from ${bestMatch.source || 'prediction market'}`;
+
       if (isPrimary) {
         // Primary markets: pass through all candidate outcomes with prices
         const outcomes = (bestMatch.outcomes || [])
           .filter(o => o.name && o.price != null)
           .sort((a, b) => b.price - a.price)
           .slice(0, 10)
-          .map(o => ({ name: o.name, pct: Math.round(o.price * 100) }));
+          .map(o => ({
+            name: o.name,
+            probability: Math.round(o.price * 100),
+            rawPrice: o.price,
+          }));
 
         if (outcomes.length === 0) continue;
 
@@ -442,28 +420,24 @@ class ElectionLiveService {
           marketUrl: bestMatch.url,
           marketSource: bestMatch.source,
           marketVolume: bestMatch.volume,
+          dataSource: dataSourceLabel,
         };
       } else {
-        // General election: extract D-win probability
-        const dProb = this._extractDemProbability(bestMatch);
-        if (dProb == null) continue;
+        // General election: return raw outcome probabilities
+        const outcomeProbabilities = this._extractOutcomeProbabilities(bestMatch);
+        if (!outcomeProbabilities || outcomeProbabilities.length === 0) continue;
 
         const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
         results[key] = {
           state: race.state,
           raceType: race.type,
           district: race.code || null,
-          derivedRating: probabilityToRating(dProb),
-          dWinProb: Math.round(dProb * 100),
-          rWinProb: Math.round((1 - dProb) * 100),
+          outcomes: outcomeProbabilities,
           marketQuestion: bestMatch.question,
           marketUrl: bestMatch.url,
           marketSource: bestMatch.source,
           marketVolume: bestMatch.volume,
-          outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
-            name: o.name,
-            price: o.price != null ? Math.round(o.price * 100) : null,
-          })),
+          dataSource: dataSourceLabel,
         };
       }
     }
@@ -488,7 +462,7 @@ class ElectionLiveService {
 
     try {
       const allMarkets = await this._fetchAllMarkets();
-      const marketRatings = this._deriveRatings(allMarkets);
+      const marketRatings = this._matchRaces(allMarkets);
 
       const elapsed = Date.now() - startTime;
       const ratingCount = Object.keys(marketRatings).length;

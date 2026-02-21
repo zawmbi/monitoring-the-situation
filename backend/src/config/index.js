@@ -134,6 +134,12 @@ export const config = {
     accessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
   },
 
+  // Financial Modeling Prep (FMP) — replaces Yahoo Finance for market data
+  fmp: {
+    key: process.env.FMP_API_KEY || process.env.VITE_FMP_API_KEY || '',
+    baseUrl: 'https://financialmodelingprep.com/api/v3',
+  },
+
   // RSS Feeds
   rssFeeds: (process.env.RSS_FEEDS || '').split(',').filter(Boolean),
 

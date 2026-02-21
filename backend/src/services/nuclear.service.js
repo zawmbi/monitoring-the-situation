@@ -1,18 +1,23 @@
 /**
- * Nuclear Threat Monitoring Service
- * Fetches nuclear-related news from Google News RSS and computes risk scores.
+ * Nuclear News Monitoring Service
+ * Fetches nuclear-related articles from GDELT and returns raw article data
+ * with GDELT tone scores. Pure data passthrough — no risk scores or risk labels.
  *
- * Sources:
- *   - Google News RSS (nuclear weapons, proliferation, ICBM keywords)
+ * Data sources:
+ *   - GDELT Project API (article feeds with tone metadata)
+ *   - Static NUCLEAR_STATES reference data
  *
+ * API: https://api.gdeltproject.org/api/v2/doc/doc (no key required)
  * Cache: 30 minutes
  */
 
-import Parser from 'rss-parser';
 import { cacheService } from './cache.service.js';
+import { fetchGDELTRaw } from './gdelt.client.js';
 
 const CACHE_KEY = 'nuclear:combined';
 const CACHE_TTL = 1800; // 30 minutes
+
+const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 
 const NUCLEAR_QUERIES = [
   'nuclear weapon threat',
@@ -33,182 +38,139 @@ const NUCLEAR_STATES = [
   { name: 'Iran', code: 'IR', estimatedWarheads: 0, status: 'suspected-program' },
 ];
 
-class NuclearService {
-  constructor() {
-    this.rssParser = new Parser({
-      timeout: 15000,
-      headers: { 'User-Agent': 'NuclearMonitor/1.0' },
-    });
+/**
+ * Parse the GDELT tone field into a numeric value.
+ * GDELT tone is sometimes a comma-separated string (avgTone,posScore,negScore,...).
+ */
+function parseTone(tone) {
+  if (typeof tone === 'number') return tone;
+  if (typeof tone === 'string') return parseFloat(tone.split(',')[0]) || 0;
+  return 0;
+}
+
+/**
+ * Generate a deterministic short ID from a string.
+ */
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < (str || '').length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return `nuclear-${Math.abs(hash).toString(36)}`;
+}
+
+/**
+ * Check if an article mentions a given nuclear state.
+ */
+function mentionsState(article, state) {
+  const text = `${article.title} ${article.source}`.toLowerCase();
+  const searchTerms = [state.name.toLowerCase(), state.code.toLowerCase()];
+
+  const aliases = {
+    'United States': ['usa', 'u.s.', 'american', 'pentagon'],
+    'Russia': ['russian', 'moscow', 'kremlin', 'putin'],
+    'China': ['chinese', 'beijing', 'prc'],
+    'United Kingdom': ['uk', 'british', 'britain'],
+    'France': ['french', 'paris'],
+    'India': ['indian', 'delhi'],
+    'Pakistan': ['pakistani', 'islamabad'],
+    'Israel': ['israeli', 'tel aviv'],
+    'North Korea': ['pyongyang', 'dprk', 'kim jong'],
+    'Iran': ['iranian', 'tehran'],
+  };
+
+  if (aliases[state.name]) {
+    searchTerms.push(...aliases[state.name]);
   }
 
+  return searchTerms.some(t => text.includes(t));
+}
+
+class NuclearService {
   async getCombinedData() {
     const cached = await cacheService.get(CACHE_KEY);
     if (cached) return cached;
 
-    console.log('[Nuclear] Fetching nuclear threat data...');
+    console.log('[Nuclear] Fetching nuclear-related articles from GDELT...');
 
-    const [newsResult] = await Promise.allSettled([
-      this.fetchNuclearNews(),
+    const [articlesResult] = await Promise.allSettled([
+      this.fetchNuclearArticles(),
     ]);
 
-    const news = newsResult.status === 'fulfilled' ? newsResult.value : [];
+    const articles = articlesResult.status === 'fulfilled' ? articlesResult.value : [];
 
-    // Compute composite risk score
-    const riskScore = this.computeRiskScore(news);
-    const riskLabel = this.getRiskLabel(riskScore);
-
-    // Annotate nuclear states with mention counts
+    // Annotate nuclear states with mention counts from raw articles
     const nuclearStates = NUCLEAR_STATES.map(state => ({
       ...state,
-      mentionCount: news.filter(n => this.mentionsState(n, state)).length,
+      mentionCount: articles.filter(a => mentionsState(a, state)).length,
     }));
 
     const result = {
-      riskScore,
-      riskLabel,
-      news,
+      articles,
       nuclearStates,
+      summary: {
+        totalArticles: articles.length,
+        queriesUsed: NUCLEAR_QUERIES,
+      },
+      dataSource: 'GDELT Project API v2',
       lastUpdated: new Date().toISOString(),
     };
 
     await cacheService.set(CACHE_KEY, result, CACHE_TTL);
-    console.log(`[Nuclear] ${news.length} articles, risk score: ${riskScore}`);
+    console.log(`[Nuclear] ${articles.length} articles fetched from GDELT`);
 
     return result;
   }
 
-  async fetchNuclearNews() {
-    const allItems = [];
+  /**
+   * Fetch nuclear-related articles from GDELT.
+   * Returns raw articles with their GDELT tone data.
+   */
+  async fetchNuclearArticles() {
+    const allArticles = [];
 
     const results = await Promise.allSettled(
       NUCLEAR_QUERIES.map(async (query) => {
         try {
-          const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}+when:7d&hl=en-US&gl=US&ceid=US:en`;
-          const parsed = await this.rssParser.parseURL(url);
-          return (parsed.items || []).slice(0, 10).map(item => ({
-            id: this.hashString(item.link || item.guid || item.title),
-            title: item.title,
-            link: item.link,
-            summary: (item.contentSnippet || '').replace(/<[^>]*>/g, '').substring(0, 300),
-            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
-            source: this.extractSource(item.title),
-            type: 'news',
-            severity: this.classifySeverity(item.title, item.contentSnippet || ''),
+          const encoded = encodeURIComponent(query);
+          const url = `${GDELT_BASE}?query=${encoded}&mode=artlist&maxrecords=30&timespan=7d&format=json&sort=datedesc`;
+
+          const data = await fetchGDELTRaw(url, 'Nuclear');
+          if (!data || !data.articles) return [];
+
+          return data.articles.slice(0, 15).map(article => ({
+            id: hashString(article.url || article.title),
+            title: article.title || 'Untitled',
+            url: article.url || '',
+            source: article.domain || 'Unknown',
+            sourceCountry: article.sourcecountry || 'Unknown',
+            date: article.seendate || null,
+            language: article.language || 'English',
+            tone: parseTone(article.tone),
             query,
           }));
         } catch (err) {
-          console.error(`[Nuclear] News error (${query}):`, err.message);
+          console.error(`[Nuclear] GDELT error (${query}):`, err.message);
           return [];
         }
       })
     );
 
     results.forEach(r => {
-      if (r.status === 'fulfilled') allItems.push(...r.value);
+      if (r.status === 'fulfilled') allArticles.push(...r.value);
     });
 
-    // Deduplicate and sort
+    // Deduplicate by URL and sort by date
     const seen = new Set();
-    return allItems
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .filter(item => {
-        if (seen.has(item.link)) return false;
-        seen.add(item.link);
+    return allArticles
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .filter(article => {
+        if (seen.has(article.url)) return false;
+        seen.add(article.url);
         return true;
       })
       .slice(0, 30);
-  }
-
-  computeRiskScore(news) {
-    if (news.length === 0) return 15; // baseline low risk
-
-    // Base score from article volume
-    let score = Math.min(news.length * 2, 30);
-
-    // Keyword severity multiplier
-    const allText = news.map(n => `${n.title} ${n.summary}`).join(' ').toLowerCase();
-
-    const criticalTerms = [
-      'nuclear war', 'nuclear strike', 'first strike', 'launch detected',
-      'nuclear detonation', 'nuclear attack', 'defcon', 'nuclear exchange',
-    ];
-    const highTerms = [
-      'icbm test', 'missile launch', 'nuclear threat', 'nuclear escalation',
-      'warhead', 'tactical nuclear', 'nuclear alert', 'nuclear readiness',
-      'nuclear posture', 'hypersonic missile',
-    ];
-    const mediumTerms = [
-      'nuclear proliferation', 'uranium enrichment', 'plutonium', 'centrifuge',
-      'nuclear program', 'arms race', 'nuclear treaty', 'nuclear deal',
-      'missile test', 'ballistic missile',
-    ];
-
-    const criticalHits = criticalTerms.filter(t => allText.includes(t)).length;
-    const highHits = highTerms.filter(t => allText.includes(t)).length;
-    const mediumHits = mediumTerms.filter(t => allText.includes(t)).length;
-
-    score += criticalHits * 15;
-    score += highHits * 8;
-    score += mediumHits * 3;
-
-    return Math.min(Math.max(Math.round(score), 0), 100);
-  }
-
-  getRiskLabel(score) {
-    if (score >= 80) return 'CRITICAL';
-    if (score >= 60) return 'HIGH';
-    if (score >= 40) return 'ELEVATED';
-    if (score >= 20) return 'GUARDED';
-    return 'LOW';
-  }
-
-  classifySeverity(title, content) {
-    const text = `${title} ${content}`.toLowerCase();
-    const criticalTerms = ['nuclear war', 'nuclear strike', 'launch', 'detonation', 'nuclear attack'];
-    const highTerms = ['icbm', 'missile test', 'warhead', 'tactical nuclear', 'nuclear threat'];
-
-    if (criticalTerms.some(t => text.includes(t))) return 'critical';
-    if (highTerms.some(t => text.includes(t))) return 'high';
-    return 'medium';
-  }
-
-  mentionsState(article, state) {
-    const text = `${article.title} ${article.summary}`.toLowerCase();
-    const searchTerms = [state.name.toLowerCase(), state.code.toLowerCase()];
-
-    // Add common alternative names
-    const aliases = {
-      'United States': ['usa', 'u.s.', 'american', 'pentagon'],
-      'Russia': ['russian', 'moscow', 'kremlin', 'putin'],
-      'China': ['chinese', 'beijing', 'prc'],
-      'United Kingdom': ['uk', 'british', 'britain'],
-      'France': ['french', 'paris'],
-      'India': ['indian', 'delhi'],
-      'Pakistan': ['pakistani', 'islamabad'],
-      'Israel': ['israeli', 'tel aviv'],
-      'North Korea': ['pyongyang', 'dprk', 'kim jong'],
-      'Iran': ['iranian', 'tehran'],
-    };
-
-    if (aliases[state.name]) {
-      searchTerms.push(...aliases[state.name]);
-    }
-
-    return searchTerms.some(t => text.includes(t));
-  }
-
-  extractSource(title) {
-    const match = title?.match(/ - ([^-]+)$/);
-    return match ? match[1].trim() : 'Google News';
-  }
-
-  hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < (str || '').length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return `nuclear-${Math.abs(hash).toString(36)}`;
   }
 }
 

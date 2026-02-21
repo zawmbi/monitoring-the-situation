@@ -1,57 +1,29 @@
 /**
- * Regime Stability & Coup Risk Service
- * Computes dynamic regime stability scores and coup risk indicators by combining:
- * - Static regime metadata (type, leadership tenure, succession clarity, military role)
- * - GDELT real-time signals (coup/regime-change article volume)
- * - Stability data (protest intensity, military movements, instability alerts)
- * - World Bank economic stress indicators (inflation, unemployment, debt)
+ * Regime Stability Data Service
+ * Pure data passthrough — returns raw data from upstream APIs per country:
+ *   - GDELT articles about regime change/coups
+ *   - World Bank governance/economic indicators
+ *   - Static regime metadata (type, leadership tenure, succession, military role)
+ *
+ * No coup risk scores, no risk levels, no weighted formulas,
+ * no composite indices, no severity classifications.
  *
  * Sources:
  *   GDELT Project API v2  — https://api.gdeltproject.org (free, no key)
  *   World Bank Indicators  — via worldBankService
- *   Stability signals      — via stabilityService
  *
- * Cache: 30 minutes (regime dynamics shift slowly, but signals refresh)
+ * Cache: 30 minutes
  */
 
 import { cacheService } from './cache.service.js';
-import { stabilityService } from './stability.service.js';
 import { worldBankService } from './worldbank.service.js';
-import { fetchGDELT as gdeltFetchArticles, fetchGDELTRaw } from './gdelt.client.js';
+import { fetchGDELT as gdeltFetchArticles } from './gdelt.client.js';
 
 const CACHE_TTL = 1800; // 30 minutes
 const CACHE_KEY_COMBINED = 'regime:combined';
 const CACHE_KEY_PROFILES = 'regime:profiles';
-const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
 
-// ─── Risk level thresholds ───
-const RISK_THRESHOLDS = {
-  extreme: 80,
-  high: 60,
-  elevated: 40,
-  moderate: 20,
-};
-
-function classifyRisk(score) {
-  if (score >= RISK_THRESHOLDS.extreme) return 'extreme';
-  if (score >= RISK_THRESHOLDS.high) return 'high';
-  if (score >= RISK_THRESHOLDS.elevated) return 'elevated';
-  if (score >= RISK_THRESHOLDS.moderate) return 'moderate';
-  return 'low';
-}
-
-// ─── Base risk multipliers by regime type ───
-const REGIME_BASE_RISK = {
-  'democracy': 5,
-  'hybrid': 30,
-  'authoritarian': 55,
-  'military-junta': 70,
-  'one-party': 50,
-  'monarchy': 25,
-  'theocracy': 45,
-};
-
-// ─── Country name lookup by ISO alpha-2 ───
+// -- Country name lookup by ISO alpha-2 --
 const ISO_TO_NAME = {
   AF: 'Afghanistan', AL: 'Albania', DZ: 'Algeria', AO: 'Angola', AR: 'Argentina',
   AM: 'Armenia', AU: 'Australia', AT: 'Austria', AZ: 'Azerbaijan', BH: 'Bahrain',
@@ -86,894 +58,143 @@ const ISO_TO_NAME = {
   VE: 'Venezuela', VN: 'Vietnam', YE: 'Yemen', ZM: 'Zambia', ZW: 'Zimbabwe',
 };
 
-// ─── Static regime metadata for 55 countries ───
-// regimeType | transitionRisk (0-100) | leaderSince | succession | militaryRole | iso2
+// -- Static regime metadata for 55 countries --
 const REGIME_DATA = {
-  AF: {
-    country: 'Afghanistan',
-    iso2: 'AF',
-    regimeType: 'authoritarian',
-    transitionRisk: 80,
-    leaderSince: 2021,
-    succession: 'unclear',
-    militaryRole: 'ruler',
-  },
-  MM: {
-    country: 'Myanmar',
-    iso2: 'MM',
-    regimeType: 'military-junta',
-    transitionRisk: 85,
-    leaderSince: 2021,
-    succession: 'contested',
-    militaryRole: 'ruler',
-  },
-  SD: {
-    country: 'Sudan',
-    iso2: 'SD',
-    regimeType: 'military-junta',
-    transitionRisk: 90,
-    leaderSince: 2021,
-    succession: 'contested',
-    militaryRole: 'ruler',
-  },
-  SS: {
-    country: 'South Sudan',
-    iso2: 'SS',
-    regimeType: 'authoritarian',
-    transitionRisk: 85,
-    leaderSince: 2011,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  SY: {
-    country: 'Syria',
-    iso2: 'SY',
-    regimeType: 'authoritarian',
-    transitionRisk: 75,
-    leaderSince: 2000,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  YE: {
-    country: 'Yemen',
-    iso2: 'YE',
-    regimeType: 'authoritarian',
-    transitionRisk: 80,
-    leaderSince: 2012,
-    succession: 'contested',
-    militaryRole: 'praetorian',
-  },
-  LY: {
-    country: 'Libya',
-    iso2: 'LY',
-    regimeType: 'hybrid',
-    transitionRisk: 75,
-    leaderSince: 2021,
-    succession: 'contested',
-    militaryRole: 'praetorian',
-  },
-  SO: {
-    country: 'Somalia',
-    iso2: 'SO',
-    regimeType: 'hybrid',
-    transitionRisk: 80,
-    leaderSince: 2022,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  IQ: {
-    country: 'Iraq',
-    iso2: 'IQ',
-    regimeType: 'hybrid',
-    transitionRisk: 55,
-    leaderSince: 2022,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  CF: {
-    country: 'Central African Republic',
-    iso2: 'CF',
-    regimeType: 'authoritarian',
-    transitionRisk: 75,
-    leaderSince: 2016,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  CD: {
-    country: 'DR Congo',
-    iso2: 'CD',
-    regimeType: 'hybrid',
-    transitionRisk: 65,
-    leaderSince: 2019,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  TD: {
-    country: 'Chad',
-    iso2: 'TD',
-    regimeType: 'military-junta',
-    transitionRisk: 70,
-    leaderSince: 2021,
-    succession: 'unclear',
-    militaryRole: 'ruler',
-  },
-  ML: {
-    country: 'Mali',
-    iso2: 'ML',
-    regimeType: 'military-junta',
-    transitionRisk: 75,
-    leaderSince: 2021,
-    succession: 'contested',
-    militaryRole: 'ruler',
-  },
-  BF: {
-    country: 'Burkina Faso',
-    iso2: 'BF',
-    regimeType: 'military-junta',
-    transitionRisk: 80,
-    leaderSince: 2022,
-    succession: 'contested',
-    militaryRole: 'ruler',
-  },
-  NE: {
-    country: 'Niger',
-    iso2: 'NE',
-    regimeType: 'military-junta',
-    transitionRisk: 75,
-    leaderSince: 2023,
-    succession: 'contested',
-    militaryRole: 'ruler',
-  },
-  GN: {
-    country: 'Guinea',
-    iso2: 'GN',
-    regimeType: 'military-junta',
-    transitionRisk: 70,
-    leaderSince: 2021,
-    succession: 'unclear',
-    militaryRole: 'ruler',
-  },
-  GA: {
-    country: 'Gabon',
-    iso2: 'GA',
-    regimeType: 'military-junta',
-    transitionRisk: 55,
-    leaderSince: 2023,
-    succession: 'unclear',
-    militaryRole: 'ruler',
-  },
-  RU: {
-    country: 'Russia',
-    iso2: 'RU',
-    regimeType: 'authoritarian',
-    transitionRisk: 40,
-    leaderSince: 2000,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  BY: {
-    country: 'Belarus',
-    iso2: 'BY',
-    regimeType: 'authoritarian',
-    transitionRisk: 45,
-    leaderSince: 1994,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  CN: {
-    country: 'China',
-    iso2: 'CN',
-    regimeType: 'one-party',
-    transitionRisk: 15,
-    leaderSince: 2012,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  KP: {
-    country: 'North Korea',
-    iso2: 'KP',
-    regimeType: 'one-party',
-    transitionRisk: 20,
-    leaderSince: 2011,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  CU: {
-    country: 'Cuba',
-    iso2: 'CU',
-    regimeType: 'one-party',
-    transitionRisk: 30,
-    leaderSince: 2018,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  VN: {
-    country: 'Vietnam',
-    iso2: 'VN',
-    regimeType: 'one-party',
-    transitionRisk: 15,
-    leaderSince: 2021,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  LA: {
-    country: 'Laos',
-    iso2: 'LA',
-    regimeType: 'one-party',
-    transitionRisk: 15,
-    leaderSince: 2021,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  IR: {
-    country: 'Iran',
-    iso2: 'IR',
-    regimeType: 'theocracy',
-    transitionRisk: 50,
-    leaderSince: 1989,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  SA: {
-    country: 'Saudi Arabia',
-    iso2: 'SA',
-    regimeType: 'monarchy',
-    transitionRisk: 20,
-    leaderSince: 2015,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  AE: {
-    country: 'United Arab Emirates',
-    iso2: 'AE',
-    regimeType: 'monarchy',
-    transitionRisk: 10,
-    leaderSince: 2022,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  JO: {
-    country: 'Jordan',
-    iso2: 'JO',
-    regimeType: 'monarchy',
-    transitionRisk: 20,
-    leaderSince: 1999,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  MA: {
-    country: 'Morocco',
-    iso2: 'MA',
-    regimeType: 'monarchy',
-    transitionRisk: 15,
-    leaderSince: 1999,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  BH: {
-    country: 'Bahrain',
-    iso2: 'BH',
-    regimeType: 'monarchy',
-    transitionRisk: 30,
-    leaderSince: 2002,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  QA: {
-    country: 'Qatar',
-    iso2: 'QA',
-    regimeType: 'monarchy',
-    transitionRisk: 10,
-    leaderSince: 2013,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  KW: {
-    country: 'Kuwait',
-    iso2: 'KW',
-    regimeType: 'monarchy',
-    transitionRisk: 15,
-    leaderSince: 2023,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  OM: {
-    country: 'Oman',
-    iso2: 'OM',
-    regimeType: 'monarchy',
-    transitionRisk: 10,
-    leaderSince: 2020,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  SZ: {
-    country: 'Eswatini',
-    iso2: 'SZ',
-    regimeType: 'monarchy',
-    transitionRisk: 35,
-    leaderSince: 1986,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  EG: {
-    country: 'Egypt',
-    iso2: 'EG',
-    regimeType: 'authoritarian',
-    transitionRisk: 35,
-    leaderSince: 2014,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  TH: {
-    country: 'Thailand',
-    iso2: 'TH',
-    regimeType: 'hybrid',
-    transitionRisk: 40,
-    leaderSince: 2023,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  PK: {
-    country: 'Pakistan',
-    iso2: 'PK',
-    regimeType: 'hybrid',
-    transitionRisk: 50,
-    leaderSince: 2024,
-    succession: 'contested',
-    militaryRole: 'praetorian',
-  },
-  TR: {
-    country: 'Turkey',
-    iso2: 'TR',
-    regimeType: 'hybrid',
-    transitionRisk: 30,
-    leaderSince: 2014,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  VE: {
-    country: 'Venezuela',
-    iso2: 'VE',
-    regimeType: 'authoritarian',
-    transitionRisk: 55,
-    leaderSince: 2013,
-    succession: 'contested',
-    militaryRole: 'praetorian',
-  },
-  NI: {
-    country: 'Nicaragua',
-    iso2: 'NI',
-    regimeType: 'authoritarian',
-    transitionRisk: 40,
-    leaderSince: 2007,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  HT: {
-    country: 'Haiti',
-    iso2: 'HT',
-    regimeType: 'hybrid',
-    transitionRisk: 75,
-    leaderSince: 2024,
-    succession: 'contested',
-    militaryRole: 'moderate-influence',
-  },
-  UA: {
-    country: 'Ukraine',
-    iso2: 'UA',
-    regimeType: 'democracy',
-    transitionRisk: 20,
-    leaderSince: 2019,
-    succession: 'clear',
-    militaryRole: 'civilian-control',
-  },
-  GE: {
-    country: 'Georgia',
-    iso2: 'GE',
-    regimeType: 'hybrid',
-    transitionRisk: 35,
-    leaderSince: 2024,
-    succession: 'contested',
-    militaryRole: 'civilian-control',
-  },
-  TN: {
-    country: 'Tunisia',
-    iso2: 'TN',
-    regimeType: 'authoritarian',
-    transitionRisk: 40,
-    leaderSince: 2019,
-    succession: 'unclear',
-    militaryRole: 'civilian-control',
-  },
-  ET: {
-    country: 'Ethiopia',
-    iso2: 'ET',
-    regimeType: 'hybrid',
-    transitionRisk: 50,
-    leaderSince: 2018,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  ER: {
-    country: 'Eritrea',
-    iso2: 'ER',
-    regimeType: 'authoritarian',
-    transitionRisk: 45,
-    leaderSince: 1993,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  RW: {
-    country: 'Rwanda',
-    iso2: 'RW',
-    regimeType: 'authoritarian',
-    transitionRisk: 30,
-    leaderSince: 2000,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  UG: {
-    country: 'Uganda',
-    iso2: 'UG',
-    regimeType: 'authoritarian',
-    transitionRisk: 40,
-    leaderSince: 1986,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  BD: {
-    country: 'Bangladesh',
-    iso2: 'BD',
-    regimeType: 'hybrid',
-    transitionRisk: 45,
-    leaderSince: 2024,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  PH: {
-    country: 'Philippines',
-    iso2: 'PH',
-    regimeType: 'democracy',
-    transitionRisk: 20,
-    leaderSince: 2022,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  KH: {
-    country: 'Cambodia',
-    iso2: 'KH',
-    regimeType: 'authoritarian',
-    transitionRisk: 30,
-    leaderSince: 2023,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  MZ: {
-    country: 'Mozambique',
-    iso2: 'MZ',
-    regimeType: 'hybrid',
-    transitionRisk: 45,
-    leaderSince: 2024,
-    succession: 'contested',
-    militaryRole: 'moderate-influence',
-  },
-  NG: {
-    country: 'Nigeria',
-    iso2: 'NG',
-    regimeType: 'democracy',
-    transitionRisk: 30,
-    leaderSince: 2023,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  ZW: {
-    country: 'Zimbabwe',
-    iso2: 'ZW',
-    regimeType: 'authoritarian',
-    transitionRisk: 45,
-    leaderSince: 2017,
-    succession: 'unclear',
-    militaryRole: 'praetorian',
-  },
-  TJ: {
-    country: 'Tajikistan',
-    iso2: 'TJ',
-    regimeType: 'authoritarian',
-    transitionRisk: 35,
-    leaderSince: 1994,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  TM: {
-    country: 'Turkmenistan',
-    iso2: 'TM',
-    regimeType: 'authoritarian',
-    transitionRisk: 30,
-    leaderSince: 2022,
-    succession: 'clear',
-    militaryRole: 'moderate-influence',
-  },
-  UZ: {
-    country: 'Uzbekistan',
-    iso2: 'UZ',
-    regimeType: 'authoritarian',
-    transitionRisk: 25,
-    leaderSince: 2016,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
-  KZ: {
-    country: 'Kazakhstan',
-    iso2: 'KZ',
-    regimeType: 'authoritarian',
-    transitionRisk: 30,
-    leaderSince: 2019,
-    succession: 'unclear',
-    militaryRole: 'civilian-control',
-  },
-  AZ: {
-    country: 'Azerbaijan',
-    iso2: 'AZ',
-    regimeType: 'authoritarian',
-    transitionRisk: 25,
-    leaderSince: 2003,
-    succession: 'unclear',
-    militaryRole: 'moderate-influence',
-  },
+  AF: { country: 'Afghanistan', iso2: 'AF', regimeType: 'authoritarian', leaderSince: 2021, succession: 'unclear', militaryRole: 'ruler' },
+  MM: { country: 'Myanmar', iso2: 'MM', regimeType: 'military-junta', leaderSince: 2021, succession: 'contested', militaryRole: 'ruler' },
+  SD: { country: 'Sudan', iso2: 'SD', regimeType: 'military-junta', leaderSince: 2021, succession: 'contested', militaryRole: 'ruler' },
+  SS: { country: 'South Sudan', iso2: 'SS', regimeType: 'authoritarian', leaderSince: 2011, succession: 'unclear', militaryRole: 'praetorian' },
+  SY: { country: 'Syria', iso2: 'SY', regimeType: 'authoritarian', leaderSince: 2000, succession: 'unclear', militaryRole: 'praetorian' },
+  YE: { country: 'Yemen', iso2: 'YE', regimeType: 'authoritarian', leaderSince: 2012, succession: 'contested', militaryRole: 'praetorian' },
+  LY: { country: 'Libya', iso2: 'LY', regimeType: 'hybrid', leaderSince: 2021, succession: 'contested', militaryRole: 'praetorian' },
+  SO: { country: 'Somalia', iso2: 'SO', regimeType: 'hybrid', leaderSince: 2022, succession: 'unclear', militaryRole: 'moderate-influence' },
+  IQ: { country: 'Iraq', iso2: 'IQ', regimeType: 'hybrid', leaderSince: 2022, succession: 'unclear', militaryRole: 'moderate-influence' },
+  CF: { country: 'Central African Republic', iso2: 'CF', regimeType: 'authoritarian', leaderSince: 2016, succession: 'unclear', militaryRole: 'praetorian' },
+  CD: { country: 'DR Congo', iso2: 'CD', regimeType: 'hybrid', leaderSince: 2019, succession: 'unclear', militaryRole: 'moderate-influence' },
+  TD: { country: 'Chad', iso2: 'TD', regimeType: 'military-junta', leaderSince: 2021, succession: 'unclear', militaryRole: 'ruler' },
+  ML: { country: 'Mali', iso2: 'ML', regimeType: 'military-junta', leaderSince: 2021, succession: 'contested', militaryRole: 'ruler' },
+  BF: { country: 'Burkina Faso', iso2: 'BF', regimeType: 'military-junta', leaderSince: 2022, succession: 'contested', militaryRole: 'ruler' },
+  NE: { country: 'Niger', iso2: 'NE', regimeType: 'military-junta', leaderSince: 2023, succession: 'contested', militaryRole: 'ruler' },
+  GN: { country: 'Guinea', iso2: 'GN', regimeType: 'military-junta', leaderSince: 2021, succession: 'unclear', militaryRole: 'ruler' },
+  GA: { country: 'Gabon', iso2: 'GA', regimeType: 'military-junta', leaderSince: 2023, succession: 'unclear', militaryRole: 'ruler' },
+  RU: { country: 'Russia', iso2: 'RU', regimeType: 'authoritarian', leaderSince: 2000, succession: 'unclear', militaryRole: 'moderate-influence' },
+  BY: { country: 'Belarus', iso2: 'BY', regimeType: 'authoritarian', leaderSince: 1994, succession: 'unclear', militaryRole: 'moderate-influence' },
+  CN: { country: 'China', iso2: 'CN', regimeType: 'one-party', leaderSince: 2012, succession: 'unclear', militaryRole: 'moderate-influence' },
+  KP: { country: 'North Korea', iso2: 'KP', regimeType: 'one-party', leaderSince: 2011, succession: 'unclear', militaryRole: 'praetorian' },
+  CU: { country: 'Cuba', iso2: 'CU', regimeType: 'one-party', leaderSince: 2018, succession: 'clear', militaryRole: 'moderate-influence' },
+  VN: { country: 'Vietnam', iso2: 'VN', regimeType: 'one-party', leaderSince: 2021, succession: 'clear', militaryRole: 'civilian-control' },
+  LA: { country: 'Laos', iso2: 'LA', regimeType: 'one-party', leaderSince: 2021, succession: 'clear', militaryRole: 'moderate-influence' },
+  IR: { country: 'Iran', iso2: 'IR', regimeType: 'theocracy', leaderSince: 1989, succession: 'unclear', militaryRole: 'praetorian' },
+  SA: { country: 'Saudi Arabia', iso2: 'SA', regimeType: 'monarchy', leaderSince: 2015, succession: 'clear', militaryRole: 'civilian-control' },
+  AE: { country: 'United Arab Emirates', iso2: 'AE', regimeType: 'monarchy', leaderSince: 2022, succession: 'clear', militaryRole: 'civilian-control' },
+  JO: { country: 'Jordan', iso2: 'JO', regimeType: 'monarchy', leaderSince: 1999, succession: 'clear', militaryRole: 'civilian-control' },
+  MA: { country: 'Morocco', iso2: 'MA', regimeType: 'monarchy', leaderSince: 1999, succession: 'clear', militaryRole: 'civilian-control' },
+  BH: { country: 'Bahrain', iso2: 'BH', regimeType: 'monarchy', leaderSince: 2002, succession: 'clear', militaryRole: 'moderate-influence' },
+  QA: { country: 'Qatar', iso2: 'QA', regimeType: 'monarchy', leaderSince: 2013, succession: 'clear', militaryRole: 'civilian-control' },
+  KW: { country: 'Kuwait', iso2: 'KW', regimeType: 'monarchy', leaderSince: 2023, succession: 'clear', militaryRole: 'civilian-control' },
+  OM: { country: 'Oman', iso2: 'OM', regimeType: 'monarchy', leaderSince: 2020, succession: 'clear', militaryRole: 'civilian-control' },
+  SZ: { country: 'Eswatini', iso2: 'SZ', regimeType: 'monarchy', leaderSince: 1986, succession: 'unclear', militaryRole: 'moderate-influence' },
+  EG: { country: 'Egypt', iso2: 'EG', regimeType: 'authoritarian', leaderSince: 2014, succession: 'unclear', militaryRole: 'praetorian' },
+  TH: { country: 'Thailand', iso2: 'TH', regimeType: 'hybrid', leaderSince: 2023, succession: 'unclear', militaryRole: 'praetorian' },
+  PK: { country: 'Pakistan', iso2: 'PK', regimeType: 'hybrid', leaderSince: 2024, succession: 'contested', militaryRole: 'praetorian' },
+  TR: { country: 'Turkey', iso2: 'TR', regimeType: 'hybrid', leaderSince: 2014, succession: 'unclear', militaryRole: 'moderate-influence' },
+  VE: { country: 'Venezuela', iso2: 'VE', regimeType: 'authoritarian', leaderSince: 2013, succession: 'contested', militaryRole: 'praetorian' },
+  NI: { country: 'Nicaragua', iso2: 'NI', regimeType: 'authoritarian', leaderSince: 2007, succession: 'unclear', militaryRole: 'moderate-influence' },
+  HT: { country: 'Haiti', iso2: 'HT', regimeType: 'hybrid', leaderSince: 2024, succession: 'contested', militaryRole: 'moderate-influence' },
+  UA: { country: 'Ukraine', iso2: 'UA', regimeType: 'democracy', leaderSince: 2019, succession: 'clear', militaryRole: 'civilian-control' },
+  GE: { country: 'Georgia', iso2: 'GE', regimeType: 'hybrid', leaderSince: 2024, succession: 'contested', militaryRole: 'civilian-control' },
+  TN: { country: 'Tunisia', iso2: 'TN', regimeType: 'authoritarian', leaderSince: 2019, succession: 'unclear', militaryRole: 'civilian-control' },
+  ET: { country: 'Ethiopia', iso2: 'ET', regimeType: 'hybrid', leaderSince: 2018, succession: 'unclear', militaryRole: 'moderate-influence' },
+  ER: { country: 'Eritrea', iso2: 'ER', regimeType: 'authoritarian', leaderSince: 1993, succession: 'unclear', militaryRole: 'praetorian' },
+  RW: { country: 'Rwanda', iso2: 'RW', regimeType: 'authoritarian', leaderSince: 2000, succession: 'unclear', militaryRole: 'moderate-influence' },
+  UG: { country: 'Uganda', iso2: 'UG', regimeType: 'authoritarian', leaderSince: 1986, succession: 'unclear', militaryRole: 'praetorian' },
+  BD: { country: 'Bangladesh', iso2: 'BD', regimeType: 'hybrid', leaderSince: 2024, succession: 'unclear', militaryRole: 'moderate-influence' },
+  PH: { country: 'Philippines', iso2: 'PH', regimeType: 'democracy', leaderSince: 2022, succession: 'clear', militaryRole: 'moderate-influence' },
+  KH: { country: 'Cambodia', iso2: 'KH', regimeType: 'authoritarian', leaderSince: 2023, succession: 'clear', militaryRole: 'moderate-influence' },
+  MZ: { country: 'Mozambique', iso2: 'MZ', regimeType: 'hybrid', leaderSince: 2024, succession: 'contested', militaryRole: 'moderate-influence' },
+  NG: { country: 'Nigeria', iso2: 'NG', regimeType: 'democracy', leaderSince: 2023, succession: 'clear', militaryRole: 'moderate-influence' },
+  ZW: { country: 'Zimbabwe', iso2: 'ZW', regimeType: 'authoritarian', leaderSince: 2017, succession: 'unclear', militaryRole: 'praetorian' },
+  TJ: { country: 'Tajikistan', iso2: 'TJ', regimeType: 'authoritarian', leaderSince: 1994, succession: 'unclear', militaryRole: 'moderate-influence' },
+  TM: { country: 'Turkmenistan', iso2: 'TM', regimeType: 'authoritarian', leaderSince: 2022, succession: 'clear', militaryRole: 'moderate-influence' },
+  UZ: { country: 'Uzbekistan', iso2: 'UZ', regimeType: 'authoritarian', leaderSince: 2016, succession: 'unclear', militaryRole: 'moderate-influence' },
+  KZ: { country: 'Kazakhstan', iso2: 'KZ', regimeType: 'authoritarian', leaderSince: 2019, succession: 'unclear', militaryRole: 'civilian-control' },
+  AZ: { country: 'Azerbaijan', iso2: 'AZ', regimeType: 'authoritarian', leaderSince: 2003, succession: 'unclear', militaryRole: 'moderate-influence' },
 };
 
-// ─── GDELT fetch helper (via shared rate-limited client) ───
+// -- GDELT fetch helper (via shared rate-limited client) --
 async function fetchGDELT(query, maxRecords = 50, timespan = '7d') {
   return gdeltFetchArticles(query, { maxRecords, timespan, caller: 'Regime' });
 }
 
-// ─── GDELT article count helper ───
-async function fetchGDELTArticleCount(query, timespan = '7d') {
-  const articles = await gdeltFetchArticles(query, { maxRecords: 250, timespan, caller: 'Regime' });
-  return articles.length;
-}
-
-// ─── Main service class ───
+// -- Main service class --
 class RegimeService {
   /**
-   * Compute dynamic coup risk score for a single country.
-   * Combines base regime risk with live GDELT signals, stability data,
-   * and World Bank economic stress.
-   *
-   * @param {string} countryCode - ISO alpha-2 country code
-   * @returns {{ score: number, level: string, factors: Array, signals: Array }}
+   * Fetch raw GDELT articles about regime change/coups for a single country,
+   * plus raw World Bank governance indicators.
+   * No scoring, no risk levels.
    */
-  async computeCoupRisk(countryCode) {
-    const cacheKey = `regime:couprisk:${countryCode}`;
+  async getCountryRegimeData(countryCode) {
+    const cacheKey = `regime:data:${countryCode}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
     const regime = REGIME_DATA[countryCode];
     if (!regime) {
-      return { score: 0, level: 'low', factors: [], signals: [] };
+      return null;
     }
 
-    const factors = [];
-    const signals = [];
-    let score = 0;
+    const countryName = ISO_TO_NAME[countryCode] || regime.country;
 
-    // ── Factor 1: Base regime type risk ──
-    const baseRisk = REGIME_BASE_RISK[regime.regimeType] || 20;
-    score += baseRisk;
-    factors.push({
-      name: 'Regime type',
-      detail: regime.regimeType,
-      weight: baseRisk,
-      description: `Base risk for ${regime.regimeType} regime`,
-    });
+    // Fetch GDELT articles and World Bank data in parallel
+    let gdeltArticles = [];
+    let economicData = null;
 
-    // ── Factor 2: Years in power ──
-    const currentYear = new Date().getFullYear();
-    const yearsInPower = currentYear - regime.leaderSince;
-    let tenureFactor = 0;
+    const [gdeltResult, wbResult] = await Promise.allSettled([
+      (async () => {
+        const query = `"coup" OR "military takeover" OR "regime change" OR "political crisis" OR "power struggle" ${countryName}`;
+        return fetchGDELT(query, 50, '14d');
+      })(),
+      worldBankService.getEconomicData(countryCode),
+    ]);
 
-    if (regime.regimeType === 'democracy') {
-      // Democracies: longer tenure is stabilizing (within constitutional norms)
-      tenureFactor = Math.max(-5, -yearsInPower);
-    } else {
-      // Non-democracies: longer tenure increases stagnation and succession risk
-      if (yearsInPower > 20) {
-        tenureFactor = 15;
-      } else if (yearsInPower > 10) {
-        tenureFactor = 10;
-      } else if (yearsInPower > 5) {
-        tenureFactor = 5;
-      } else if (yearsInPower <= 2) {
-        // Very new regimes (e.g., post-coup) are unstable
-        tenureFactor = 12;
-      } else {
-        tenureFactor = 3;
-      }
-    }
-    score += tenureFactor;
-    factors.push({
-      name: 'Leadership tenure',
-      detail: `${yearsInPower} years (since ${regime.leaderSince})`,
-      weight: tenureFactor,
-      description: yearsInPower <= 2
-        ? 'Recent leadership change increases instability'
-        : yearsInPower > 20
-          ? 'Prolonged rule raises succession anxiety'
-          : 'Moderate tenure effect',
-    });
-
-    // ── Factor 3: Military role ──
-    let militaryFactor = 0;
-    switch (regime.militaryRole) {
-      case 'ruler':
-        militaryFactor = 20;
-        break;
-      case 'praetorian':
-        militaryFactor = 20;
-        break;
-      case 'moderate-influence':
-        militaryFactor = 8;
-        break;
-      case 'civilian-control':
-        militaryFactor = 0;
-        break;
-      default:
-        militaryFactor = 5;
-    }
-    score += militaryFactor;
-    factors.push({
-      name: 'Military role',
-      detail: regime.militaryRole,
-      weight: militaryFactor,
-      description: regime.militaryRole === 'ruler' || regime.militaryRole === 'praetorian'
-        ? 'Military directly involved in governance'
-        : 'Military has limited political role',
-    });
-
-    // ── Factor 4: Succession clarity ──
-    let successionFactor = 0;
-    switch (regime.succession) {
-      case 'contested':
-        successionFactor = 25;
-        break;
-      case 'unclear':
-        successionFactor = 15;
-        break;
-      case 'clear':
-        successionFactor = 0;
-        break;
-      default:
-        successionFactor = 10;
-    }
-    score += successionFactor;
-    factors.push({
-      name: 'Succession clarity',
-      detail: regime.succession,
-      weight: successionFactor,
-      description: regime.succession === 'contested'
-        ? 'Active power struggle or disputed succession'
-        : regime.succession === 'unclear'
-          ? 'No clear succession mechanism'
-          : 'Orderly succession plan in place',
-    });
-
-    // ── Factor 5: GDELT coup/regime change signals ──
-    let gdeltFactor = 0;
-    try {
-      const countryName = ISO_TO_NAME[countryCode] || regime.country;
-      const gdeltQuery = `"coup" OR "military takeover" OR "regime change" ${countryName}`;
-      const articles = await fetchGDELT(gdeltQuery, 50, '14d');
-      const articleCount = articles.length;
-
-      if (articleCount >= 30) {
-        gdeltFactor = 15;
-        signals.push({
-          type: 'gdelt_volume',
-          detail: `${articleCount} coup/regime-change articles in 14 days`,
-          severity: 'critical',
-        });
-      } else if (articleCount >= 15) {
-        gdeltFactor = 10;
-        signals.push({
-          type: 'gdelt_volume',
-          detail: `${articleCount} coup/regime-change articles in 14 days`,
-          severity: 'high',
-        });
-      } else if (articleCount >= 5) {
-        gdeltFactor = 5;
-        signals.push({
-          type: 'gdelt_volume',
-          detail: `${articleCount} coup/regime-change articles in 14 days`,
-          severity: 'moderate',
-        });
-      }
-
-      // Add recent article titles as signals
-      for (const article of articles.slice(0, 3)) {
-        signals.push({
-          type: 'gdelt_article',
-          title: article.title,
-          url: article.url,
-          source: article.source,
-          date: article.date,
-        });
-      }
-    } catch (err) {
-      console.warn(`[RegimeService] GDELT signal fetch failed for ${countryCode}:`, err.message);
-    }
-    score += gdeltFactor;
-    if (gdeltFactor > 0) {
-      factors.push({
-        name: 'GDELT coup signals',
-        detail: `Signal strength: ${gdeltFactor > 10 ? 'strong' : gdeltFactor > 5 ? 'moderate' : 'weak'}`,
-        weight: gdeltFactor,
-        description: 'Real-time media coverage of coup/regime-change activity',
-      });
+    if (gdeltResult.status === 'fulfilled') {
+      gdeltArticles = gdeltResult.value || [];
     }
 
-    // ── Factor 6: Stability data (protests & instability) ──
-    let stabilityFactor = 0;
-    try {
-      const stabilityData = await stabilityService.getCombinedData();
-      if (stabilityData) {
-        // Check protest intensity for this country
-        const protestPoints = (stabilityData.protests?.heatmapPoints || [])
-          .filter((p) => p.countryCode === countryCode);
-        const protestIntensity = protestPoints.reduce((sum, p) => sum + (p.intensity || 0), 0);
-
-        if (protestIntensity >= 8) {
-          stabilityFactor += 20;
-          signals.push({
-            type: 'protest_intensity',
-            detail: `High protest intensity: ${protestIntensity}/10`,
-            severity: 'critical',
-          });
-        } else if (protestIntensity >= 5) {
-          stabilityFactor += 15;
-          signals.push({
-            type: 'protest_intensity',
-            detail: `Elevated protest intensity: ${protestIntensity}/10`,
-            severity: 'high',
-          });
-        } else if (protestIntensity >= 3) {
-          stabilityFactor += 10;
-          signals.push({
-            type: 'protest_intensity',
-            detail: `Moderate protest activity: ${protestIntensity}/10`,
-            severity: 'moderate',
-          });
-        }
-
-        // Check military movement indicators
-        const militaryIndicators = (stabilityData.military?.indicators || [])
-          .filter((m) => m.countryCode === countryCode);
-        if (militaryIndicators.length > 0) {
-          const milCount = militaryIndicators.reduce((s, m) => s + (m.count || 1), 0);
-          if (milCount >= 5) {
-            stabilityFactor += 10;
-            signals.push({
-              type: 'military_movement',
-              detail: `${milCount} military movement reports detected`,
-              severity: 'high',
-            });
-          } else if (milCount >= 2) {
-            stabilityFactor += 5;
-            signals.push({
-              type: 'military_movement',
-              detail: `${milCount} military movement reports detected`,
-              severity: 'moderate',
-            });
-          }
-        }
-
-        // Check instability alerts
-        const instabilityAlerts = (stabilityData.instability?.alerts || [])
-          .filter((a) => a.countryCode === countryCode);
-        if (instabilityAlerts.length > 0) {
-          stabilityFactor += 5;
-          signals.push({
-            type: 'instability_alert',
-            detail: `${instabilityAlerts.length} instability alert(s) active`,
-            severity: instabilityAlerts.length >= 3 ? 'high' : 'moderate',
-          });
-        }
-      }
-    } catch (err) {
-      console.warn(`[RegimeService] Stability data fetch failed for ${countryCode}:`, err.message);
-    }
-    score += stabilityFactor;
-    if (stabilityFactor > 0) {
-      factors.push({
-        name: 'Stability signals',
-        detail: `Protest/military/instability indicators`,
-        weight: stabilityFactor,
-        description: 'Combined domestic unrest and military activity signals',
-      });
+    if (wbResult.status === 'fulfilled' && wbResult.value) {
+      economicData = wbResult.value;
     }
 
-    // ── Factor 7: Economic stress (World Bank) ──
-    let economicFactor = 0;
-    try {
-      const econ = await worldBankService.getEconomicData(countryCode);
-      if (econ) {
-        // High inflation stress
-        const inflation = econ.inflation?.value;
-        if (inflation !== null && inflation !== undefined) {
-          if (inflation > 25) {
-            economicFactor += 15;
-            signals.push({
-              type: 'economic_inflation',
-              detail: `Extreme inflation: ${inflation.toFixed(1)}%`,
-              severity: 'critical',
-            });
-          } else if (inflation > 15) {
-            economicFactor += 10;
-            signals.push({
-              type: 'economic_inflation',
-              detail: `High inflation: ${inflation.toFixed(1)}%`,
-              severity: 'high',
-            });
-          } else if (inflation > 8) {
-            economicFactor += 5;
-            signals.push({
-              type: 'economic_inflation',
-              detail: `Elevated inflation: ${inflation.toFixed(1)}%`,
-              severity: 'moderate',
-            });
-          }
-        }
+    const result = {
+      country: regime.country,
+      iso2: regime.iso2,
+      regimeType: regime.regimeType,
+      leaderSince: regime.leaderSince,
+      succession: regime.succession,
+      militaryRole: regime.militaryRole,
+      gdelt: {
+        articleCount: gdeltArticles.length,
+        articles: gdeltArticles.slice(0, 20).map(a => ({
+          title: a.title,
+          url: a.url,
+          source: a.source,
+          date: a.date,
+          tone: a.tone ?? null,
+        })),
+      },
+      worldBank: economicData ? {
+        inflation: economicData.inflation ?? null,
+        gdpGrowth: economicData.gdpGrowth ?? null,
+        unemployment: economicData.unemployment ?? null,
+        debtToGdp: economicData.debtToGdp ?? null,
+        population: economicData.population ?? null,
+      } : null,
+      dataSources: [
+        'GDELT Project — https://www.gdeltproject.org',
+        'World Bank Indicators API — https://api.worldbank.org/v2/',
+      ],
+    };
 
-        // Unemployment stress
-        const unemployment = econ.unemployment?.value;
-        if (unemployment !== null && unemployment !== undefined) {
-          if (unemployment > 20) {
-            economicFactor += 10;
-            signals.push({
-              type: 'economic_unemployment',
-              detail: `Very high unemployment: ${unemployment.toFixed(1)}%`,
-              severity: 'high',
-            });
-          } else if (unemployment > 12) {
-            economicFactor += 5;
-            signals.push({
-              type: 'economic_unemployment',
-              detail: `High unemployment: ${unemployment.toFixed(1)}%`,
-              severity: 'moderate',
-            });
-          }
-        }
-
-        // Negative GDP growth
-        const gdpGrowth = econ.gdpGrowth?.value;
-        if (gdpGrowth !== null && gdpGrowth !== undefined && gdpGrowth < -2) {
-          economicFactor += 5;
-          signals.push({
-            type: 'economic_contraction',
-            detail: `GDP contraction: ${gdpGrowth.toFixed(1)}%`,
-            severity: 'moderate',
-          });
-        }
-      }
-    } catch (err) {
-      console.warn(`[RegimeService] World Bank data fetch failed for ${countryCode}:`, err.message);
-    }
-    score += economicFactor;
-    if (economicFactor > 0) {
-      factors.push({
-        name: 'Economic stress',
-        detail: `Economic pressure indicators`,
-        weight: economicFactor,
-        description: 'Inflation, unemployment, and growth stress from World Bank data',
-      });
-    }
-
-    // ── Clamp final score to 0-100 ──
-    score = Math.max(0, Math.min(100, Math.round(score)));
-    const level = classifyRisk(score);
-
-    const result = { score, level, factors, signals };
-
-    // Cache the result
     try {
       await cacheService.set(cacheKey, result, CACHE_TTL);
     } catch (err) {
@@ -985,10 +206,7 @@ class RegimeService {
 
   /**
    * Fetch GDELT articles related to regime instability for a specific country.
-   *
-   * @param {string} countryCode - ISO alpha-2 code
-   * @param {number} maxRecords - Maximum articles to return
-   * @returns {Array} Recent regime-related news articles
+   * Returns raw article data, no scoring.
    */
   async getCountrySignals(countryCode, maxRecords = 10) {
     const cacheKey = `regime:signals:${countryCode}`;
@@ -1037,10 +255,9 @@ class RegimeService {
   }
 
   /**
-   * Get all regime profiles with computed coup risk scores.
-   * Each profile includes static metadata + dynamic risk assessment.
-   *
-   * @returns {Array} Array of regime profile objects
+   * Get all regime profiles with raw upstream data.
+   * Each profile includes static metadata + GDELT articles + World Bank data.
+   * No scoring.
    */
   async getRegimeProfiles() {
     const cached = await cacheService.get(CACHE_KEY_PROFILES);
@@ -1055,11 +272,13 @@ class RegimeService {
       const batch = countryCodes.slice(i, i + batchSize);
       const batchResults = await Promise.allSettled(
         batch.map(async (code) => {
-          const regime = REGIME_DATA[code];
-          const [coupRisk, recentEvents] = await Promise.allSettled([
-            this.computeCoupRisk(code),
+          const [regimeData, recentEvents] = await Promise.allSettled([
+            this.getCountryRegimeData(code),
             this.getCountrySignals(code, 5),
           ]);
+
+          const data = regimeData.status === 'fulfilled' ? regimeData.value : null;
+          const regime = REGIME_DATA[code];
 
           return {
             country: regime.country,
@@ -1068,12 +287,8 @@ class RegimeService {
             leaderSince: regime.leaderSince,
             succession: regime.succession,
             militaryRole: regime.militaryRole,
-            transitionRisk: regime.transitionRisk,
-            coupRisk: coupRisk.status === 'fulfilled'
-              ? coupRisk.value
-              : { score: regime.transitionRisk, level: classifyRisk(regime.transitionRisk), factors: [], signals: [] },
-            stabilitySignals: (coupRisk.status === 'fulfilled' ? coupRisk.value.signals : [])
-              .filter((s) => s.type === 'protest_intensity' || s.type === 'military_movement' || s.type === 'instability_alert'),
+            gdelt: data?.gdelt || { articleCount: 0, articles: [] },
+            worldBank: data?.worldBank || null,
             recentEvents: recentEvents.status === 'fulfilled' ? recentEvents.value : [],
           };
         })
@@ -1086,9 +301,6 @@ class RegimeService {
       }
     }
 
-    // Sort by coup risk score descending
-    profiles.sort((a, b) => (b.coupRisk?.score || 0) - (a.coupRisk?.score || 0));
-
     try {
       await cacheService.set(CACHE_KEY_PROFILES, profiles, CACHE_TTL);
     } catch (err) {
@@ -1100,9 +312,7 @@ class RegimeService {
 
   /**
    * Main data method: returns combined regime data for the frontend.
-   * Includes all profiles, high-risk subset, and summary statistics.
-   *
-   * @returns {{ profiles, highRisk, summary, updatedAt }}
+   * Includes all profiles and summary statistics. No scoring.
    */
   async getCombinedData() {
     const cached = await cacheService.get(CACHE_KEY_COMBINED);
@@ -1110,36 +320,26 @@ class RegimeService {
 
     const profiles = await this.getRegimeProfiles();
 
-    // Build summary statistics
+    // Build summary statistics (raw counts only)
+    const regimeTypeCounts = {};
+    for (const profile of profiles) {
+      regimeTypeCounts[profile.regimeType] = (regimeTypeCounts[profile.regimeType] || 0) + 1;
+    }
+
     const summary = {
       total: profiles.length,
-      extreme: 0,
-      high: 0,
-      elevated: 0,
-      moderate: 0,
-      low: 0,
-      avgScore: 0,
+      byRegimeType: regimeTypeCounts,
+      withGdeltArticles: profiles.filter(p => p.gdelt.articleCount > 0).length,
+      withWorldBankData: profiles.filter(p => p.worldBank !== null).length,
     };
-
-    let totalScore = 0;
-    for (const profile of profiles) {
-      const level = profile.coupRisk?.level || 'low';
-      summary[level] = (summary[level] || 0) + 1;
-      totalScore += profile.coupRisk?.score || 0;
-    }
-    summary.avgScore = profiles.length > 0
-      ? Math.round(totalScore / profiles.length)
-      : 0;
-
-    // High-risk countries (extreme or high)
-    const highRisk = profiles.filter(
-      (p) => p.coupRisk?.level === 'extreme' || p.coupRisk?.level === 'high'
-    );
 
     const result = {
       profiles,
-      highRisk,
       summary,
+      dataSources: [
+        'GDELT Project — https://www.gdeltproject.org',
+        'World Bank Indicators API — https://api.worldbank.org/v2/',
+      ],
       updatedAt: new Date().toISOString(),
     };
 
@@ -1154,43 +354,15 @@ class RegimeService {
 
   /**
    * Look up a single country's regime data by code.
-   *
-   * @param {string} countryCode - ISO alpha-2 code
-   * @returns {Object|null} Regime profile or null
    */
   async getCountryProfile(countryCode) {
     const code = (countryCode || '').toUpperCase();
-    const regime = REGIME_DATA[code];
-    if (!regime) return null;
-
-    const [coupRisk, recentEvents] = await Promise.allSettled([
-      this.computeCoupRisk(code),
-      this.getCountrySignals(code, 10),
-    ]);
-
-    return {
-      country: regime.country,
-      iso2: regime.iso2,
-      regimeType: regime.regimeType,
-      leaderSince: regime.leaderSince,
-      succession: regime.succession,
-      militaryRole: regime.militaryRole,
-      transitionRisk: regime.transitionRisk,
-      coupRisk: coupRisk.status === 'fulfilled'
-        ? coupRisk.value
-        : { score: regime.transitionRisk, level: classifyRisk(regime.transitionRisk), factors: [], signals: [] },
-      stabilitySignals: (coupRisk.status === 'fulfilled' ? coupRisk.value.signals : [])
-        .filter((s) => ['protest_intensity', 'military_movement', 'instability_alert'].includes(s.type)),
-      recentEvents: recentEvents.status === 'fulfilled' ? recentEvents.value : [],
-    };
+    return this.getCountryRegimeData(code);
   }
 
   /**
    * Get static regime metadata (no dynamic computation).
    * Useful for quick lookups without API calls.
-   *
-   * @param {string} countryCode - ISO alpha-2 code
-   * @returns {Object|null} Static regime data or null
    */
   getStaticData(countryCode) {
     return REGIME_DATA[(countryCode || '').toUpperCase()] || null;
@@ -1198,23 +370,20 @@ class RegimeService {
 
   /**
    * Get all tracked country codes.
-   *
-   * @returns {string[]} Array of ISO alpha-2 codes
    */
   getTrackedCountries() {
     return Object.keys(REGIME_DATA);
   }
 
   /**
-   * Invalidate all regime caches. Called when external data sources
-   * report significant updates.
+   * Invalidate all regime caches.
    */
   async invalidateCache() {
     try {
       const keys = [
         CACHE_KEY_COMBINED,
         CACHE_KEY_PROFILES,
-        ...Object.keys(REGIME_DATA).map((c) => `regime:couprisk:${c}`),
+        ...Object.keys(REGIME_DATA).map((c) => `regime:data:${c}`),
         ...Object.keys(REGIME_DATA).map((c) => `regime:signals:${c}`),
       ];
       await Promise.allSettled(keys.map((k) => cacheService.del(k)));
