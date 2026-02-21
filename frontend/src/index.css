@@ -3454,6 +3454,10 @@ body {
   top: 0;
   z-index: 1;
   padding-top: 2px;
+  background: inherit;
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .snap-zone-drawer .source-group-items {

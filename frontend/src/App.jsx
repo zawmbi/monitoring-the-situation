@@ -934,14 +934,17 @@ function App() {
       const d = dragInfoRef.current;
       if (!d) return;
       if (d.currentLeft != null) {
-        setDrawerStates(prev => ({
-          ...prev,
-          [d.drawerId]: {
-            x: d.currentLeft, y: d.currentTop,
-            w: d.currentW ?? d.startW,
-            h: d.currentH ?? null,
-          }
-        }));
+        setDrawerStates(prev => {
+          const existing = prev[d.drawerId] || {};
+          return {
+            ...prev,
+            [d.drawerId]: {
+              x: d.currentLeft, y: d.currentTop,
+              w: d.currentW ?? existing.w ?? d.startW,
+              h: d.action === 'move' ? (existing.h ?? null) : (d.currentH ?? null),
+            }
+          };
+        });
       }
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
