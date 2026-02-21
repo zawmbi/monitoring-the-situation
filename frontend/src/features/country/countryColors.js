@@ -356,6 +356,62 @@ const DUNE = {
   fallback:   ['#2c2820', '#2e2a22', '#302c24', '#2a261e', '#2d2922'],
 };
 
+// Ruby theme — deep crimson, burgundy, rose, and dark wine tones
+const RUBY = {
+  western:    ['#3a2028', '#3d2230', '#402434', '#38202a', '#3b2230'],
+  nordic:     ['#2e2838', '#30283a', '#322a3c', '#2c2636', '#2f2838'],
+  easternEU:  ['#3a2a30', '#3d2c34', '#402e38', '#38282e', '#3b2a32'],
+  russia:     ['#5a1828'],
+  postSoviet: ['#4a2030', '#4d2234', '#502438', '#48202e', '#4b2232'],
+  centralAsia:['#442830', '#462a34', '#482c38', '#42282e', '#452a32'],
+  china:      ['#5a1828'],
+  eastAsia:   ['#4a2030', '#4d2234', '#502438'],
+  seAsia:     ['#2a3038', '#2c323a', '#2e343c', '#282e36', '#2b3038'],
+  southAsia:  ['#503028', '#53322c', '#563430', '#4e2e26', '#51302a'],
+  middleEast: ['#4e3028', '#51322c', '#543430', '#4c2e26', '#4f302a'],
+  northAfrica:['#4e2828', '#51282c', '#542a30', '#4c2626', '#4f282a'],
+  westAfrica: ['#2a3428', '#2c362c', '#2e3830', '#283226', '#2b342a'],
+  eastAfrica: ['#343028', '#36322c', '#383430', '#322e26', '#35302a'],
+  centralAfr: ['#203028', '#22322c', '#243430', '#1e2e26', '#213028'],
+  southernAfr:['#363028', '#38322c', '#3a3430', '#342e26', '#37302a'],
+  latam:      ['#203038', '#22323a', '#24343c', '#1e2e36', '#213038'],
+  brazil:     ['#2a3828'],
+  caribbean:  ['#283038', '#2a323a', '#2c343c', '#262e36', '#293038'],
+  oceania:    ['#282838', '#2a2a3a', '#2c2c3c', '#262636', '#292838'],
+  turkey:     ['#3e2840'],
+  israel:     ['#2a2850'],
+  balkans:    ['#342838', '#362a3c', '#382c40', '#322636', '#35283a'],
+  fallback:   ['#2c2028', '#2e222a', '#30242c', '#2a1e26', '#2d2028'],
+};
+
+// Terra theme — deep forest, emerald, moss, and earthy green tones
+const TERRA = {
+  western:    ['#203a28', '#223d2c', '#244030', '#1e3826', '#213b2a'],
+  nordic:     ['#282e38', '#2a303a', '#2c323c', '#262c36', '#292e38'],
+  easternEU:  ['#2a3a30', '#2c3d34', '#2e4038', '#283830', '#2b3a32'],
+  russia:     ['#185a28'],
+  postSoviet: ['#204a30', '#224d34', '#245038', '#204830', '#224b32'],
+  centralAsia:['#284438', '#2a463a', '#2c483c', '#264236', '#294438'],
+  china:      ['#185a20'],
+  eastAsia:   ['#204a28', '#224d2c', '#245030'],
+  seAsia:     ['#1a4030', '#1c4234', '#1e4438', '#183e2e', '#1b4032'],
+  southAsia:  ['#304028', '#32422c', '#344430', '#2e3e26', '#31402a'],
+  middleEast: ['#384428', '#3a462c', '#3c4830', '#364226', '#39442a'],
+  northAfrica:['#383c28', '#3a3e2c', '#3c4030', '#363a26', '#393c2a'],
+  westAfrica: ['#1a4428', '#1c462c', '#1e4830', '#184226', '#1b442a'],
+  eastAfrica: ['#244428', '#26462c', '#284830', '#224226', '#25442a'],
+  centralAfr: ['#143814', '#163a18', '#183c1c', '#123612', '#153816'],
+  southernAfr:['#2a3820', '#2c3a24', '#2e3c28', '#28361e', '#2b3822'],
+  latam:      ['#144432', '#164636', '#184838', '#124230', '#154434'],
+  brazil:     ['#1a4428'],
+  caribbean:  ['#203c38', '#223e3a', '#24403c', '#1e3a36', '#213c38'],
+  oceania:    ['#203848', '#223a4a', '#243c4c', '#1e3646', '#213848'],
+  turkey:     ['#2e3840'],
+  israel:     ['#203850'],
+  balkans:    ['#283440', '#2a3644', '#2c3848', '#26323e', '#293442'],
+  fallback:   ['#202c20', '#222e22', '#243024', '#1e2a1e', '#212c22'],
+};
+
 // Simple hash for consistent variation within a palette
 function nameHash(name) {
   let h = 0;
@@ -377,6 +433,10 @@ export function getCountryFillColor(name, index, themeOrIsLight) {
     palettes = LIGHT;
   } else if (themeOrIsLight === 'dune') {
     palettes = DUNE;
+  } else if (themeOrIsLight === 'ruby') {
+    palettes = RUBY;
+  } else if (themeOrIsLight === 'terra') {
+    palettes = TERRA;
   } else {
     palettes = DARK;
   }

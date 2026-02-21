@@ -1387,6 +1387,28 @@ body {
     0 0 160px 55px rgba(140, 80, 0, 0.05);
 }
 
+/* Ruby theme — crimson atmosphere halo */
+[data-theme="ruby"] .globe-halo-ring {
+  box-shadow:
+    0 0 6px 1px  rgba(224, 48, 80, 0.70),
+    0 0 16px 4px rgba(210, 40, 70, 0.50),
+    0 0 35px 10px rgba(200, 30, 60, 0.35),
+    0 0 60px 18px rgba(180, 20, 50, 0.22),
+    0 0 100px 35px rgba(160, 10, 40, 0.12),
+    0 0 160px 55px rgba(140, 0, 30, 0.05);
+}
+
+/* Terra theme — emerald atmosphere halo */
+[data-theme="terra"] .globe-halo-ring {
+  box-shadow:
+    0 0 6px 1px  rgba(48, 192, 80, 0.70),
+    0 0 16px 4px rgba(40, 180, 70, 0.50),
+    0 0 35px 10px rgba(30, 160, 60, 0.35),
+    0 0 60px 18px rgba(20, 140, 50, 0.22),
+    0 0 100px 35px rgba(10, 120, 40, 0.12),
+    0 0 160px 55px rgba(0, 100, 30, 0.05);
+}
+
 /* Wrapper for all bottom-left map controls (draggable when collapsed) */
 .map-controls-group {
   position: absolute;

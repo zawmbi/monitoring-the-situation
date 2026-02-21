@@ -1243,6 +1243,12 @@ function App() {
 
   const isLightTheme = theme === 'light-analytic';
   const isDuneTheme = theme === 'dune';
+  const isRubyTheme = theme === 'ruby';
+  const isTerraTheme = theme === 'terra';
+  const isThemedDark = isDuneTheme || isRubyTheme || isTerraTheme; // non-default dark themes with custom earth styling
+  // Helper: pick color by themed-dark variant (dune/ruby/terra), returns default for other dark themes
+  const themedColor = (duneVal, rubyVal, terraVal, defaultVal) =>
+    isDuneTheme ? duneVal : isRubyTheme ? rubyVal : isTerraTheme ? terraVal : defaultVal;
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -1373,12 +1379,12 @@ function App() {
       // Update background color without triggering full style reload
       if (map.getLayer('background')) {
         const bg = isLightTheme ? '#3a7ab0'
-          : isDuneTheme ? '#0e0a04'
+          : isThemedDark ? themedColor('#0e0a04', '#0c0408', '#040c06', '#060e18')
           : (holoMode ? '#020810' : '#060e18');
         map.setPaintProperty('background', 'background-color', bg);
       }
     } catch {}
-  }, [useGlobe, isLightTheme, isDuneTheme, holoMode]);
+  }, [useGlobe, isLightTheme, isThemedDark, isDuneTheme, isRubyTheme, isTerraTheme, holoMode]);
 
   // Disable MapLibre's built-in atmosphere (it's directional/one-sided).
   // The uniform halo is rendered by EarthOverlay instead.
@@ -1715,8 +1721,8 @@ function App() {
     // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
       bgColor = '#488FACFB';
-    } else if (isDuneTheme) {
-      bgColor = '#0e0a04'; // Deep warm brown — Arrakis ocean bed
+    } else if (isThemedDark) {
+      bgColor = themedColor('#0e0a04', '#0c0408', '#040c06', '#060e18');
     } else {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
@@ -1730,13 +1736,13 @@ function App() {
     let basemapPaint;
     if (isLightTheme) {
       basemapPaint = { 'raster-opacity': 0.55, 'raster-saturation': -0.5 };
-    } else if (isDuneTheme) {
+    } else if (isThemedDark) {
       basemapPaint = {
         'raster-opacity': 0.22,
         'raster-brightness-max': 0.30,
         'raster-saturation': -0.8,
         'raster-contrast': 0.10,
-        'raster-hue-rotate': 30,
+        'raster-hue-rotate': themedColor(30, -10, 90, 0),
       };
     } else {
       basemapPaint = {
@@ -1748,12 +1754,12 @@ function App() {
     }
 
     let hillshadePaint;
-    if (isDuneTheme) {
+    if (isThemedDark) {
       hillshadePaint = {
         'hillshade-exaggeration': 0.35,
-        'hillshade-shadow-color': 'rgba(10,5,0,0.35)',
-        'hillshade-highlight-color': 'rgba(224,180,100,0.10)',
-        'hillshade-accent-color': 'rgba(20,12,4,0.15)',
+        'hillshade-shadow-color': themedColor('rgba(10,5,0,0.35)', 'rgba(10,0,2,0.35)', 'rgba(0,5,2,0.35)', 'rgba(0,0,10,0.3)'),
+        'hillshade-highlight-color': themedColor('rgba(224,180,100,0.10)', 'rgba(224,100,120,0.10)', 'rgba(100,224,120,0.10)', 'rgba(180,200,230,0.08)'),
+        'hillshade-accent-color': themedColor('rgba(20,12,4,0.15)', 'rgba(20,4,8,0.15)', 'rgba(4,20,8,0.15)', 'rgba(5,10,25,0.12)'),
         'hillshade-illumination-direction': 315,
       };
     } else {
@@ -1805,7 +1811,7 @@ function App() {
       ],
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     };
-  }, [isLightTheme, isDuneTheme, holoMode]);
+  }, [isLightTheme, isThemedDark, isDuneTheme, isRubyTheme, isTerraTheme, holoMode]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -4065,7 +4071,7 @@ function App() {
               type="line"
               layout={{ visibility: visualLayers.contours ? 'visible' : 'none' }}
               paint={{
-                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : isDuneTheme ? 'rgba(224, 160, 32, 0.14)' : 'rgba(73, 198, 255, 0.16)',
+                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.14)', 'rgba(224, 48, 80, 0.14)', 'rgba(48, 192, 80, 0.14)', 'rgba(73, 198, 255, 0.16)') : 'rgba(73, 198, 255, 0.16)',
                 'line-width': 0.7,
               }}
             />
@@ -4078,7 +4084,7 @@ function App() {
               id="compass-lines-glow"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : isDuneTheme ? 'rgba(224, 160, 32, 0.08)' : 'rgba(73, 198, 255, 0.10)',
+                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.08)', 'rgba(224, 48, 80, 0.08)', 'rgba(48, 192, 80, 0.08)', 'rgba(73, 198, 255, 0.10)') : 'rgba(73, 198, 255, 0.10)',
                 'line-width': useGlobe ? 4 : 2,
                 'line-blur': 4,
               }}
@@ -4088,7 +4094,7 @@ function App() {
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : isDuneTheme ? 'rgba(224, 160, 32, 0.22)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.22)', 'rgba(224, 48, 80, 0.22)', 'rgba(48, 192, 80, 0.22)', 'rgba(73, 198, 255, 0.25)') : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
@@ -4101,7 +4107,7 @@ function App() {
               id="equator-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : isDuneTheme ? 'rgba(224, 160, 32, 0.22)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.22)', 'rgba(224, 48, 80, 0.22)', 'rgba(48, 192, 80, 0.22)', 'rgba(73, 198, 255, 0.25)') : 'rgba(73, 198, 255, 0.25)',
                 'line-width': 1,
                 'line-dasharray': [6, 4],
               }}
@@ -4115,7 +4121,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : isDuneTheme ? 'rgba(224, 160, 32, 0.18)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.18)', 'rgba(224, 48, 80, 0.18)', 'rgba(48, 192, 80, 0.18)', 'rgba(73, 198, 255, 0.2)') : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -4125,7 +4131,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : isDuneTheme ? 'rgba(224, 160, 32, 0.18)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.18)', 'rgba(224, 48, 80, 0.18)', 'rgba(48, 192, 80, 0.18)', 'rgba(73, 198, 255, 0.2)') : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -4141,7 +4147,7 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : isDuneTheme ? '#2a2010' : '#1c3040',
+                      isLightTheme ? '#a8c090' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                       ['get', 'tariffColor'],
                     ]
                   : showEUCountries
@@ -4151,14 +4157,14 @@ function App() {
                         'rgba(0,0,0,0)',
                         ['case',
                           ['boolean', ['feature-state', 'hover'], false],
-                          isLightTheme ? '#a8c090' : isDuneTheme ? '#2a2010' : '#1c3040',
+                          isLightTheme ? '#a8c090' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                           ['get', 'fillColor'],
                         ],
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? '#FFFD7C' : isDuneTheme ? '#2a2010' : '#1c3040',
+                        isLightTheme ? '#FFFD7C' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                         ['get', 'fillColor'],
                       ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
@@ -4170,7 +4176,7 @@ function App() {
                 id="countries-glow-outer"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#3dc2d0' : isDuneTheme ? '#e0a020' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
                   'line-opacity': showEUCountries
@@ -4184,7 +4190,7 @@ function App() {
                 id="countries-glow-mid"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : isDuneTheme ? '#c89020' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#49c6ff') : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
                   'line-opacity': showEUCountries
@@ -4200,10 +4206,10 @@ function App() {
                 'line-color': showTariffHeatmap
                   ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : isDuneTheme ? 'rgba(224, 160, 32, 0.60)' : 'rgba(73, 198, 255, 0.65)')
+                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.60)', 'rgba(224, 48, 80, 0.60)', 'rgba(48, 192, 80, 0.60)', 'rgba(73, 198, 255, 0.65)') : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
                         ? 'rgba(30, 25, 50, 0.5)'
-                        : isDuneTheme ? 'rgba(20, 16, 8, 0.7)' : 'rgba(15, 20, 30, 0.7)'),
+                        : isThemedDark ? themedColor('rgba(20, 16, 8, 0.7)', 'rgba(20, 8, 12, 0.7)', 'rgba(8, 20, 10, 0.7)', 'rgba(15, 20, 30, 0.7)') : 'rgba(15, 20, 30, 0.7)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
@@ -4236,10 +4242,10 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : isDuneTheme ? 'rgba(224, 160, 32, 0.1)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.1)', 'rgba(224, 48, 80, 0.1)', 'rgba(48, 192, 80, 0.1)', 'rgba(73, 198, 255, 0.1)') : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
-                      : isDuneTheme ? 'rgba(224, 160, 32, 0.20)' : 'rgba(61, 194, 208, 0.25)'),
+                      : isThemedDark ? themedColor('rgba(224, 160, 32, 0.20)', 'rgba(224, 48, 80, 0.20)', 'rgba(48, 192, 80, 0.20)', 'rgba(61, 194, 208, 0.25)') : 'rgba(61, 194, 208, 0.25)'),
               }}
             />
             {holoMode && (
@@ -4248,7 +4254,7 @@ function App() {
                 type="line"
                 filter={selectedCountryFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : isDuneTheme ? '#e0a020' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': 5,
                   'line-blur': 6,
                   'line-opacity': 0.5,
@@ -4261,8 +4267,8 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? '#2a8a94' : isDuneTheme ? '#e0a020' : '#49c6ff')
-                  : (isLightTheme ? '#2a8a94' : isDuneTheme ? '#c89020' : '#3dc2d0'),
+                  ? (isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff')
+                  : (isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0'),
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
@@ -4274,7 +4280,7 @@ function App() {
               id="water-canals-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? '#488FACFB' : isDuneTheme ? '#0e0a04' : (holoMode ? '#0a1a30' : '#0a1525'),
+                'line-color': isLightTheme ? '#488FACFB' : isThemedDark ? themedColor('#0e0a04', '#0c0408', '#040c06', (holoMode ? '#0a1a30' : '#0a1525')) : (holoMode ? '#0a1a30' : '#0a1525'),
                 'line-width': [
                   'interpolate', ['linear'], ['zoom'],
                   2, 1,
@@ -4290,7 +4296,7 @@ function App() {
                 id="water-canals-glow"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#3dc2d0' : isDuneTheme ? '#e0a020' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     2, 2,
@@ -4315,7 +4321,7 @@ function App() {
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : isDuneTheme ? 'rgba(224, 160, 32, 0.3)' : 'rgba(200, 180, 255, 0.3)',
+                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.3)', 'rgba(224, 48, 80, 0.3)', 'rgba(48, 192, 80, 0.3)', 'rgba(200, 180, 255, 0.3)') : 'rgba(200, 180, 255, 0.3)',
                         ['get', 'electionColor'],
                       ]
                     : [
@@ -4323,7 +4329,7 @@ function App() {
                         ['boolean', ['feature-state', 'hover'], false],
                         isLightTheme
                           ? 'rgba(0, 18, 22, 0.15)'
-                          : isDuneTheme ? 'rgba(224, 160, 32, 0.12)' : 'rgba(61, 194, 208, 0.15)',
+                          : isThemedDark ? themedColor('rgba(224, 160, 32, 0.12)', 'rgba(224, 48, 80, 0.12)', 'rgba(48, 192, 80, 0.12)', 'rgba(61, 194, 208, 0.15)') : 'rgba(61, 194, 208, 0.15)',
                         'rgba(0, 0, 0, 0)',
                       ],
                   'fill-opacity': electionMode ? 0.7 : 1,
@@ -4335,7 +4341,7 @@ function App() {
                 paint={{
                   'line-color': isLightTheme
                     ? 'rgba(11, 84, 167, 0.35)'
-                    : isDuneTheme ? 'rgba(224, 160, 32, 0.30)' : 'rgba(35, 220, 245, 0.35)',
+                    : isThemedDark ? themedColor('rgba(224, 160, 32, 0.30)', 'rgba(224, 48, 80, 0.30)', 'rgba(48, 192, 80, 0.30)', 'rgba(35, 220, 245, 0.35)') : 'rgba(35, 220, 245, 0.35)',
                   'line-width': 2,
                 }}
               />
@@ -4346,7 +4352,7 @@ function App() {
                 paint={{
                   'fill-color': isLightTheme
                     ? 'rgba(0, 153, 255, 0.22)'
-                    : isDuneTheme ? 'rgba(224, 160, 32, 0.20)' : 'rgba(61, 194, 208, 0.25)',
+                    : isThemedDark ? themedColor('rgba(224, 160, 32, 0.20)', 'rgba(224, 48, 80, 0.20)', 'rgba(48, 192, 80, 0.20)', 'rgba(61, 194, 208, 0.25)') : 'rgba(61, 194, 208, 0.25)',
                 }}
               />
               <Layer
@@ -4354,7 +4360,7 @@ function App() {
                 type="line"
                 filter={selectedStateFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#3F3CD896' : isDuneTheme ? '#c89020' : '#3dc2d0',
+                  'line-color': isLightTheme ? '#3F3CD896' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0',
                   'line-width': 2.5,
                 }}
               />
@@ -4378,8 +4384,8 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : isDuneTheme ? 'rgba(224, 160, 32, 0.55)' : 'rgba(3, 165, 157, 0.6)',
-                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : isDuneTheme ? 'rgba(200, 144, 32, 0.5)' : 'rgb(0, 238, 226)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.55)', 'rgba(224, 48, 80, 0.55)', 'rgba(48, 192, 80, 0.55)', 'rgba(3, 165, 157, 0.6)') : 'rgba(3, 165, 157, 0.6)',
+                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : isThemedDark ? themedColor('rgba(200, 144, 32, 0.5)', 'rgba(200, 48, 80, 0.5)', 'rgba(48, 160, 64, 0.5)', 'rgb(0, 238, 226)') : 'rgb(0, 238, 226)',
                   ],
                   'line-width': [
                     'case',
@@ -4395,7 +4401,7 @@ function App() {
                 type="line"
                 filter={selectedProvinceFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : isDuneTheme ? '#c89020' : '#3dc2d0',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0',
                   'line-width': 2,
                 }}
               />
@@ -4746,10 +4752,10 @@ function App() {
                 'heatmap-color': [
                   'interpolate', ['linear'], ['heatmap-density'],
                   0, 'rgba(0,0,0,0)',
-                  0.15, isLightTheme ? 'rgba(100,160,220,0.4)' : isDuneTheme ? 'rgba(180,140,40,0.25)' : 'rgba(73,198,255,0.25)',
-                  0.4, isLightTheme ? 'rgba(60,190,170,0.55)' : isDuneTheme ? 'rgba(200,120,20,0.45)' : 'rgba(100,80,220,0.5)',
-                  0.65, isLightTheme ? 'rgba(240,170,50,0.65)' : isDuneTheme ? 'rgba(220,80,20,0.55)' : 'rgba(220,80,200,0.6)',
-                  1.0, isLightTheme ? 'rgba(220,60,40,0.75)' : isDuneTheme ? 'rgba(200,40,20,0.65)' : 'rgba(255,85,85,0.7)',
+                  0.15, isLightTheme ? 'rgba(100,160,220,0.4)' : isThemedDark ? themedColor('rgba(180,140,40,0.25)', 'rgba(180,48,60,0.25)', 'rgba(48,160,60,0.25)', 'rgba(73,198,255,0.25)') : 'rgba(73,198,255,0.25)',
+                  0.4, isLightTheme ? 'rgba(60,190,170,0.55)' : isThemedDark ? themedColor('rgba(200,120,20,0.45)', 'rgba(200,48,60,0.45)', 'rgba(48,160,50,0.45)', 'rgba(100,80,220,0.5)') : 'rgba(100,80,220,0.5)',
+                  0.65, isLightTheme ? 'rgba(240,170,50,0.65)' : isThemedDark ? themedColor('rgba(220,80,20,0.55)', 'rgba(220,48,40,0.55)', 'rgba(48,180,50,0.55)', 'rgba(220,80,200,0.6)') : 'rgba(220,80,200,0.6)',
+                  1.0, isLightTheme ? 'rgba(220,60,40,0.75)' : isThemedDark ? themedColor('rgba(200,40,20,0.65)', 'rgba(200,30,40,0.65)', 'rgba(40,160,40,0.65)', 'rgba(255,85,85,0.7)') : 'rgba(255,85,85,0.7)',
                 ],
               }}
             />
@@ -4764,7 +4770,7 @@ function App() {
                 paint={{
                   'line-color': isLightTheme
                     ? 'rgba(59, 141, 255, 0.7)'
-                    : isDuneTheme ? 'rgba(200, 144, 32, 0.6)' : 'rgba(73, 198, 255, 0.7)',
+                    : isThemedDark ? themedColor('rgba(200, 144, 32, 0.6)', 'rgba(200, 48, 80, 0.6)', 'rgba(48, 160, 64, 0.6)', 'rgba(73, 198, 255, 0.7)') : 'rgba(73, 198, 255, 0.7)',
                   'line-width': 2,
                   'line-dasharray': [6, 6],
                 }}
