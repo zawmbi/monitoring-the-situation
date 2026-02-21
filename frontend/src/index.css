@@ -41,6 +41,10 @@
   --neon-cyan: #00f0ff;
   --neon-blue: #0088ff;
   --neon-teal: #00c8b4;
+  --hs-color: #49c6ff;
+  --hs-color-high: #ff6b6b;
+  --hs-glow: rgba(73, 198, 255, 0.4);
+  --hs-glow-high: rgba(255, 107, 107, 0.5);
   --neon-cyan-rgb: 0, 240, 255;
   --neon-blue-rgb: 0, 136, 255;
   --nav-expanded-height: 64px;
@@ -132,6 +136,10 @@
   --neon-cyan: #60a0ff;
   --neon-blue: #8080ff;
   --neon-teal: #60e8a0;
+  --hs-color: #8090ff;
+  --hs-color-high: #ff8080;
+  --hs-glow: rgba(128, 144, 255, 0.4);
+  --hs-glow-high: rgba(255, 128, 128, 0.5);
   --neon-cyan-rgb: 96, 160, 255;
   --neon-blue-rgb: 128, 128, 255;
   --color-positive: #60e8a0;
@@ -212,6 +220,10 @@
   --neon-cyan: #3080e0;
   --neon-blue: #2060c0;
   --neon-teal: #2ba870;
+  --hs-color: #2878c0;
+  --hs-color-high: #d04040;
+  --hs-glow: rgba(40, 120, 192, 0.45);
+  --hs-glow-high: rgba(208, 64, 64, 0.5);
   --neon-cyan-rgb: 48, 128, 224;
   --neon-blue-rgb: 32, 96, 192;
   --color-positive: #2ba870;
@@ -302,6 +314,10 @@
   --neon-cyan: #f0c040;
   --neon-blue: #e0a020;
   --neon-teal: #b8c860;
+  --hs-color: #e0a020;
+  --hs-color-high: #ff6020;
+  --hs-glow: rgba(224, 160, 32, 0.45);
+  --hs-glow-high: rgba(255, 96, 32, 0.55);
   --neon-cyan-rgb: 240, 192, 64;
   --neon-blue-rgb: 224, 160, 32;
   --color-positive: #b8c860;
@@ -1398,34 +1414,31 @@ body {
 .hs-wrap:hover { z-index: 10; }
 .hs-wrap.hs-stale { opacity: 0.35; }
 
-/* The solid center dot */
+/* The solid center dot — size is set inline via style, CSS provides base defaults */
 .hs-dot {
   display: block;
-  width: 10px;
-  height: 10px;
   border-radius: 50%;
-  background: #6b8cff;
+  background: var(--hs-color, #6b8cff);
   border: 1.5px solid rgba(255,255,255,0.25);
   position: relative;
   z-index: 2;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 6px rgba(107,140,255,0.4);
+  box-shadow: 0 0 6px var(--hs-glow, rgba(107,140,255,0.4));
 }
 
 .hs-wrap:hover .hs-dot {
-  transform: scale(1.35);
-  box-shadow: 0 0 12px rgba(107,140,255,0.7);
+  transform: scale(1.25);
+  box-shadow: 0 0 14px var(--hs-glow, rgba(107,140,255,0.7));
 }
 
 .hs-wrap.hs-selected .hs-dot {
-  background: #93b4ff;
-  box-shadow: 0 0 14px rgba(147,180,255,0.8);
+  filter: brightness(1.3);
+  box-shadow: 0 0 16px var(--hs-glow, rgba(147,180,255,0.8));
 }
 
-/* Tier sizing — more items = bigger dot */
-.hs-mid .hs-dot  { width: 12px; height: 12px; }
-.hs-high .hs-dot { width: 14px; height: 14px; background: #ff8c6b; border-color: rgba(255,255,255,0.3); box-shadow: 0 0 8px rgba(255,140,107,0.5); }
-.hs-high:hover .hs-dot { box-shadow: 0 0 14px rgba(255,140,107,0.7); }
+/* High-tier hotspots use the "high" accent color */
+.hs-high .hs-dot { background: var(--hs-color-high, #ff8c6b); border-color: rgba(255,255,255,0.3); box-shadow: 0 0 10px var(--hs-glow-high, rgba(255,140,107,0.5)); }
+.hs-high:hover .hs-dot { box-shadow: 0 0 16px var(--hs-glow-high, rgba(255,140,107,0.7)); }
 
 /* Stale dot is dimmed */
 .hs-stale .hs-dot {
@@ -1439,18 +1452,15 @@ body {
   position: absolute;
   left: 0;
   top: 50%;
-  width: 10px;
-  height: 10px;
   transform: translateY(-50%);
   border-radius: 50%;
-  border: 1.5px solid rgba(107,140,255,0.6);
+  border: 1.5px solid var(--hs-glow, rgba(107,140,255,0.6));
   animation: hs-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
   pointer-events: none;
   z-index: 1;
 }
 
-.hs-mid .hs-ping  { width: 12px; height: 12px; }
-.hs-high .hs-ping { width: 14px; height: 14px; border-color: rgba(255,140,107,0.6); }
+.hs-high .hs-ping { border-color: var(--hs-glow-high, rgba(255,140,107,0.6)); }
 
 @keyframes hs-ping {
   0%   { transform: translateY(-50%) scale(1); opacity: 0.7; }

@@ -4880,15 +4880,15 @@ function App() {
             </Marker>
           )}
 
-          {/* Hotspots */}
+          {/* Hotspots — dot size scales with article count */}
           {hotspots.filter((h) => isMarkerVisible(h.lon, h.lat)).map((hotspot) => {
-            const maxCount = hotspots[0]?.count || 1;
-            const intensity = Math.min(1, hotspot.count / Math.max(maxCount, 1));
             const isActive = hotspot.id === selectedHotspotId;
             const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
             const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
             // Tier: high (10+), mid (5-9), low (2-4) items
             const tier = hotspot.count >= 10 ? 'high' : hotspot.count >= 5 ? 'mid' : 'low';
+            // Dynamic dot size: 10px at 2 items → 28px at 20+ items
+            const dotSize = Math.round(10 + Math.min(18, (hotspot.count / 20) * 18));
 
             return (
               <Marker
@@ -4904,8 +4904,8 @@ function App() {
                   onClick={(e) => handleHotspotClick(hotspot, e)}
                 >
                   {/* Ping ring for active hotspots */}
-                  {!isStale && tier !== 'low' && <span className="hs-ping" />}
-                  <span className="hs-dot" />
+                  {!isStale && tier !== 'low' && <span className="hs-ping" style={{ width: dotSize, height: dotSize }} />}
+                  <span className="hs-dot" style={{ width: dotSize, height: dotSize }} />
                   <div className="hs-label">
                     <span className="hs-name">{hotspot.name}</span>
                     <span className="hs-count">{hotspot.count}</span>
