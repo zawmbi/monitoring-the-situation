@@ -652,6 +652,7 @@ const THEMES = [
   { id: 'cyber-control-room', label: 'Cyber Control Room', swatch: '#00d4ff' },
   { id: 'dark-minimal', label: 'Dark Minimal', swatch: '#8080ff' },
   { id: 'light-analytic', label: 'Light Analytic', swatch: '#2060c0' },
+  { id: 'dune', label: 'Dune', swatch: '#e0a020' },
 ];
 
 // Chat Panel Component (sidebar inline)
@@ -3042,7 +3043,7 @@ function App() {
             {sidebarExpanded && sidebarTab === 'themes' && (
               <div className="themes-panel">
                 <div className="toggle-group-title">Theme</div>
-                <div className="themes-grid themes-grid-3">
+                <div className="themes-grid">
                   {THEMES.map(t => (
                     <button
                       key={t.id}

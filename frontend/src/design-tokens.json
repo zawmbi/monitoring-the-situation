@@ -199,6 +199,58 @@
           "card-border": { "$value": "rgba(60, 80, 120, 0.1)", "$type": "color" }
         }
       }
+    },
+    "dune": {
+      "color": {
+        "bg": {
+          "primary": { "$value": "#0c0a06", "$type": "color" },
+          "secondary": { "$value": "#141008", "$type": "color" },
+          "card": { "$value": "#1a1510", "$type": "color" },
+          "hover": { "$value": "#241e14", "$type": "color" }
+        },
+        "text": {
+          "primary": { "$value": "#ede0c8", "$type": "color" },
+          "secondary": { "$value": "#c4a878", "$type": "color" },
+          "muted": { "$value": "#8a7450", "$type": "color" }
+        },
+        "border": {
+          "default": { "$value": "rgba(210, 160, 60, 0.14)", "$type": "color" },
+          "light": { "$value": "rgba(230, 180, 80, 0.35)", "$type": "color" }
+        },
+        "accent": {
+          "primary": { "$value": "#e0a020", "$type": "color" },
+          "secondary": { "$value": "#f0c040", "$type": "color" }
+        },
+        "semantic": {
+          "positive": { "$value": "#b8c860", "$type": "color" },
+          "negative": { "$value": "#e05030", "$type": "color" }
+        },
+        "source": {
+          "twitter": { "$value": "#d4a44a", "$type": "color" },
+          "reddit": { "$value": "#c87040", "$type": "color" },
+          "rss": { "$value": "#e8b84a", "$type": "color" },
+          "news": { "$value": "#b8c860", "$type": "color" },
+          "rumors": { "$value": "#d88860", "$type": "color" },
+          "flights": { "$value": "#c8a860", "$type": "color" }
+        },
+        "glass": {
+          "bg": { "$value": "rgba(12, 10, 6, 0.84)", "$type": "color" },
+          "bg-dense": { "$value": "rgba(12, 10, 6, 0.93)", "$type": "color" },
+          "border": { "$value": "rgba(210, 160, 60, 0.14)", "$type": "color" },
+          "border-accent": { "$value": "rgba(240, 192, 64, 0.28)", "$type": "color" }
+        },
+        "neon": {
+          "cyan": { "$value": "#f0c040", "$type": "color" },
+          "blue": { "$value": "#e0a020", "$type": "color" },
+          "teal": { "$value": "#b8c860", "$type": "color" }
+        },
+        "panel": {
+          "neon": { "$value": "rgba(224, 160, 32, 0.35)", "$type": "color" },
+          "row-bg": { "$value": "rgba(14, 12, 6, 0.65)", "$type": "color" },
+          "card-bg": { "$value": "rgba(20, 16, 8, 0.5)", "$type": "color" },
+          "card-border": { "$value": "rgba(210, 160, 60, 0.12)", "$type": "color" }
+        }
+      }
     }
   }
 }
