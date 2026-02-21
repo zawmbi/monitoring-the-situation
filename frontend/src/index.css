@@ -3313,7 +3313,7 @@ body {
   .earth-scan-line { animation: none; display: none; }
   .breathe circle { animation: none; }
   .hotspot-marker { transition: none; }
-  .news-ticker-content { transform: none !important; }
+  .news-ticker-content { will-change: auto; }
 }
 
 /* ─── Refugee marker pulse animation ─── */

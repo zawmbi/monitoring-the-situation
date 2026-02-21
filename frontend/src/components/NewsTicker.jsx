@@ -16,6 +16,10 @@ function extractDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
 }
 
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export default function NewsTicker({ items = [], visible = true }) {
   const trackRef = useRef(null);
   const contentRef = useRef(null);
@@ -57,7 +61,7 @@ export default function NewsTicker({ items = [], visible = true }) {
       if (!active || !contentRef.current) return;
       const halfWidth = contentRef.current.scrollWidth / 2;
       if (halfWidth > 0) {
-        offsetRef.current -= 0.8; // ~48px/s at 60fps
+        offsetRef.current -= prefersReducedMotion ? 0.3 : 0.8;
         if (offsetRef.current <= -halfWidth) offsetRef.current += halfWidth;
         contentRef.current.style.transform = `translateX(${offsetRef.current}px)`;
       }
