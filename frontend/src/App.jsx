@@ -841,20 +841,29 @@ function App() {
   const [textSize, setTextSize] = useState('medium'); // 'small' | 'medium' | 'large'
   const [showNewsTicker, setShowNewsTicker] = useState(true);
   const [drawerStates, setDrawerStates] = useState({});
+  const [minimizedDrawers, setMinimizedDrawers] = useState(new Set());
   const dragInfoRef = useRef(null);
+
+  const toggleMinimize = useCallback((id) => {
+    setMinimizedDrawers(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
 
   // Each drawer gets a unique position so they don't overlap
   const DRAWER_POSITIONS = {
-    'live-data':    { top: 12, left: 12 },
-    'us-politics':  { top: 12, left: 348 },
-    'conflicts':    { top: 12, right: 12 },
-    'intel':        { top: 220, left: 12 },
-    'disasters':    { top: 220, left: 348 },
-    'env-tech':     { top: 220, right: 12 },
-    'trade':        { bottom: 60, left: 12 },
-    'migration':    { bottom: 60, left: 348 },
-    'geopolitical': { bottom: 60, right: 12 },
-    'lifestyle':    { bottom: 260, right: 12 },
+    'live-data':    { top: 42, left: 12 },
+    'us-politics':  { top: 42, left: 360 },
+    'conflicts':    { top: 42, right: 12 },
+    'intel':        { top: 260, left: 12 },
+    'disasters':    { top: 260, left: 360 },
+    'env-tech':     { top: 260, right: 12 },
+    'trade':        { bottom: 80, left: 12 },
+    'migration':    { bottom: 80, left: 360 },
+    'geopolitical': { bottom: 80, right: 12 },
+    'lifestyle':    { bottom: 300, right: 12 },
   };
 
   const toggleSection = (id) => {
@@ -1275,7 +1284,7 @@ function App() {
   }, [theme, isLightTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '46px' : '64px');
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '22px' : '64px');
   }, [navCollapsed]);
 
   useEffect(() => {
@@ -2909,143 +2918,8 @@ function App() {
 
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
-                <div className="toggle-group-title">News Sources</div>
-                <div className="settings-group">
-                  {[
-                    { id: 'news', label: 'Major News', tone: 'news' },
-                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
-                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
-                  ].map((layer) => (
-                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
-                      <span className="switch-label">{layer.label}</span>
-                      <input
-                        type="checkbox"
-                        checked={enabledLayers[layer.id]}
-                        onChange={() => toggleLayer(layer.id)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Overlays</div>
-                <div className="settings-group">
-                  <label className="switch switch-neutral switch-disabled">
-                    <span className="switch-label">Timezones (WIP)</span>
-                    <input
-                      type="checkbox"
-                      checked={false}
-                      disabled
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">US State Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showUSStates}
-                      onChange={() => setShowUSStates(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">CA Province Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showCAProvinces}
-                      onChange={() => setShowCAProvinces(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">IN State Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showINStates}
-                      onChange={() => setShowINStates(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">RU Oblast Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showRUOblasts}
-                      onChange={() => setShowRUOblasts(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">UK Nation Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showUKNations}
-                      onChange={() => setShowUKNations(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">EU Country Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showEUCountries}
-                      onChange={() => setShowEUCountries(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units</div>
-                <div className="settings-group">
-                  <div className="temp-unit-toggle">
-                    <span className="switch-label">Temperature</span>
-                    <div className="temp-unit-btns">
-                      <button
-                        className={`temp-unit-btn${tempUnit === 'F' ? ' active' : ''}`}
-                        onClick={() => setTempUnit('F')}
-                      >°F</button>
-                      <button
-                        className={`temp-unit-btn${tempUnit === 'C' ? ' active' : ''}`}
-                        onClick={() => setTempUnit('C')}
-                      >°C</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>{t('settings.language')}</div>
-                <div className="settings-group">
-                  <div className="lang-selector">
-                    {supportedLanguages.map(l => (
-                      <button
-                        key={l.code}
-                        className={`lang-btn${lang === l.code ? ' active' : ''}`}
-                        onClick={() => setLang(l.code)}
-                        title={l.label}
-                      >
-                        {l.nativeLabel}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Panel Appearance</div>
-                <div className="settings-group">
-                  <div className="opacity-slider-group">
-                    <span className="switch-label">Panel Transparency</span>
-                    <input
-                      type="range"
-                      className="opacity-slider"
-                      min="0.15"
-                      max="1"
-                      step="0.05"
-                      value={panelOpacity}
-                      onChange={(e) => setPanelOpacity(Number(e.target.value))}
-                    />
-                    <span className="opacity-value">{Math.round(panelOpacity * 100)}%</span>
-                  </div>
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Visual</div>
+                {/* ─── Display ─── */}
+                <div className="toggle-group-title">Display</div>
                 <div className="settings-group">
                   <div className="opacity-slider-group">
                     <span className="switch-label">Text Size</span>
@@ -3065,11 +2939,108 @@ function App() {
                       ))}
                     </div>
                   </div>
+                  <div className="opacity-slider-group">
+                    <span className="switch-label">Panel Opacity</span>
+                    <input
+                      type="range"
+                      className="opacity-slider"
+                      min="0.15"
+                      max="1"
+                      step="0.05"
+                      value={panelOpacity}
+                      onChange={(e) => setPanelOpacity(Number(e.target.value))}
+                    />
+                    <span className="opacity-value">{Math.round(panelOpacity * 100)}%</span>
+                  </div>
                   <label className="switch switch-neutral">
                     <span className="switch-label">News Ticker</span>
                     <input type="checkbox" checked={showNewsTicker} onChange={() => setShowNewsTicker(p => !p)} />
                     <span className="slider" />
                   </label>
+                </div>
+
+                {/* ─── Map Overlays ─── */}
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Overlays</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral switch-disabled">
+                    <span className="switch-label">Timezones (WIP)</span>
+                    <input type="checkbox" checked={false} disabled />
+                    <span className="slider" />
+                  </label>
+                  {[
+                    { id: 'us', label: 'US State Borders', state: showUSStates, set: setShowUSStates },
+                    { id: 'ca', label: 'CA Province Borders', state: showCAProvinces, set: setShowCAProvinces },
+                    { id: 'in', label: 'IN State Borders', state: showINStates, set: setShowINStates },
+                    { id: 'ru', label: 'RU Oblast Borders', state: showRUOblasts, set: setShowRUOblasts },
+                    { id: 'uk', label: 'UK Nation Borders', state: showUKNations, set: setShowUKNations },
+                    { id: 'eu', label: 'EU Country Borders', state: showEUCountries, set: setShowEUCountries },
+                  ].map(b => (
+                    <label key={b.id} className="switch switch-neutral">
+                      <span className="switch-label">{b.label}</span>
+                      <input type="checkbox" checked={b.state} onChange={() => b.set(prev => !prev)} />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+
+                {/* ─── Data Sources ─── */}
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Data Sources</div>
+                <div className="settings-group">
+                  {[
+                    { id: 'news', label: 'Major News', tone: 'news' },
+                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
+                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
+                  ].map((layer) => (
+                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
+                      <span className="switch-label">{layer.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={enabledLayers[layer.id]}
+                        onChange={() => toggleLayer(layer.id)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+
+                {/* ─── Units & Language ─── */}
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units & Language</div>
+                <div className="settings-group">
+                  <div className="temp-unit-toggle">
+                    <span className="switch-label">Temperature</span>
+                    <div className="temp-unit-btns">
+                      <button
+                        className={`temp-unit-btn${tempUnit === 'F' ? ' active' : ''}`}
+                        onClick={() => setTempUnit('F')}
+                      >°F</button>
+                      <button
+                        className={`temp-unit-btn${tempUnit === 'C' ? ' active' : ''}`}
+                        onClick={() => setTempUnit('C')}
+                      >°C</button>
+                    </div>
+                  </div>
+                  <div className="lang-selector">
+                    <span className="switch-label" style={{ marginBottom: 4, display: 'block' }}>Language</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      <button
+                        className={`lang-btn active`}
+                        title="English"
+                      >
+                        English
+                      </button>
+                      {supportedLanguages.filter(l => l.code !== 'en').map(l => (
+                        <button
+                          key={l.code}
+                          className="lang-btn"
+                          title={`${l.label} — coming soon`}
+                          disabled
+                          style={{ opacity: 0.35, cursor: 'not-allowed' }}
+                        >
+                          {l.nativeLabel}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -3228,30 +3199,33 @@ function App() {
         ].map(drawer => openSections.has(drawer.id) && (
           <div
             key={drawer.id}
-            className="snap-zone-drawer"
+            className={`snap-zone-drawer${minimizedDrawers.has(drawer.id) ? ' snap-zone-drawer--minimized' : ''}`}
             style={{
               ...(drawerStates[drawer.id]
                 ? { left: drawerStates[drawer.id].x, top: drawerStates[drawer.id].y, right: 'auto', bottom: 'auto',
                     width: drawerStates[drawer.id].w || 320,
-                    ...(drawerStates[drawer.id].h ? { height: drawerStates[drawer.id].h, maxHeight: 'none' } : {}) }
+                    ...(!minimizedDrawers.has(drawer.id) && drawerStates[drawer.id].h ? { height: drawerStates[drawer.id].h, maxHeight: 'none' } : {}) }
                 : DRAWER_POSITIONS[drawer.id]),
               background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})`,
             }}
           >
             <div className="folder-drawer-header" onMouseDown={e => startDrawerDrag(e, drawer.id, 'move')} style={{ cursor: 'grab' }}>
               <span className="folder-drawer-icon">{drawer.icon}</span> {drawer.label}
+              <span className="folder-drawer-minimize" onClick={() => toggleMinimize(drawer.id)} onMouseDown={e => e.stopPropagation()} title={minimizedDrawers.has(drawer.id) ? 'Expand' : 'Minimize'}>{minimizedDrawers.has(drawer.id) ? '▢' : '▁'}</span>
               <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)} onMouseDown={e => e.stopPropagation()}>✕</span>
             </div>
-            {drawer.content}
+            {!minimizedDrawers.has(drawer.id) && drawer.content}
             {/* Resize handles — all edges + corners */}
-            <div className="drawer-resize drawer-resize-n" onMouseDown={e => startDrawerDrag(e, drawer.id, 'n')} />
-            <div className="drawer-resize drawer-resize-s" onMouseDown={e => startDrawerDrag(e, drawer.id, 's')} />
-            <div className="drawer-resize drawer-resize-e" onMouseDown={e => startDrawerDrag(e, drawer.id, 'e')} />
-            <div className="drawer-resize drawer-resize-w" onMouseDown={e => startDrawerDrag(e, drawer.id, 'w')} />
-            <div className="drawer-resize drawer-resize-nw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'nw')} />
-            <div className="drawer-resize drawer-resize-ne" onMouseDown={e => startDrawerDrag(e, drawer.id, 'ne')} />
-            <div className="drawer-resize drawer-resize-sw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'sw')} />
-            <div className="drawer-resize drawer-resize-se" onMouseDown={e => startDrawerDrag(e, drawer.id, 'se')} />
+            {!minimizedDrawers.has(drawer.id) && <>
+              <div className="drawer-resize drawer-resize-n" onMouseDown={e => startDrawerDrag(e, drawer.id, 'n')} />
+              <div className="drawer-resize drawer-resize-s" onMouseDown={e => startDrawerDrag(e, drawer.id, 's')} />
+              <div className="drawer-resize drawer-resize-e" onMouseDown={e => startDrawerDrag(e, drawer.id, 'e')} />
+              <div className="drawer-resize drawer-resize-w" onMouseDown={e => startDrawerDrag(e, drawer.id, 'w')} />
+              <div className="drawer-resize drawer-resize-nw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'nw')} />
+              <div className="drawer-resize drawer-resize-ne" onMouseDown={e => startDrawerDrag(e, drawer.id, 'ne')} />
+              <div className="drawer-resize drawer-resize-sw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'sw')} />
+              <div className="drawer-resize drawer-resize-se" onMouseDown={e => startDrawerDrag(e, drawer.id, 'se')} />
+            </>}
           </div>
         ))}
 

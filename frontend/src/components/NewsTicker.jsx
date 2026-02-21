@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { timeAgoShort } from '../utils/time';
 
 /**
@@ -45,26 +45,31 @@ export default function NewsTicker({ items = [], visible = true }) {
     return deduped.slice(0, 50);
   }, [items]);
 
-  // Animate with rAF for continuous smooth scrolling
-  const animate = useCallback(() => {
-    if (!contentRef.current) return;
-    const halfWidth = contentRef.current.scrollWidth / 2;
-    if (halfWidth <= 0) { rafRef.current = requestAnimationFrame(animate); return; }
-
-    offsetRef.current -= 0.6; // px per frame (~36px/s at 60fps)
-    if (offsetRef.current <= -halfWidth) offsetRef.current += halfWidth;
-    contentRef.current.style.transform = `translateX(${offsetRef.current}px)`;
-    rafRef.current = requestAnimationFrame(animate);
-  }, []);
-
+  // Animate with rAF — self-contained effect to avoid stale closure issues
   useEffect(() => {
     if (!visible || headlines.length === 0 || paused) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
       return;
     }
-    rafRef.current = requestAnimationFrame(animate);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [visible, headlines.length, paused, animate]);
+    let active = true;
+    const tick = () => {
+      if (!active || !contentRef.current) return;
+      const halfWidth = contentRef.current.scrollWidth / 2;
+      if (halfWidth > 0) {
+        offsetRef.current -= 0.8; // ~48px/s at 60fps
+        if (offsetRef.current <= -halfWidth) offsetRef.current += halfWidth;
+        contentRef.current.style.transform = `translateX(${offsetRef.current}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      active = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [visible, headlines.length, paused]);
 
   if (!visible || headlines.length === 0) return null;
 
