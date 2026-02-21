@@ -837,11 +837,40 @@ function App() {
   const dragTabRef = useRef(null);
   // Collapsible sidebar sections — only 'live-data' open by default for a clean start
   const [openSections, setOpenSections] = useState(new Set(['live-data']));
-  const toggleSection = (id) => setOpenSections(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
+  const SNAP_ZONES = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+  const [snapAssignments, setSnapAssignments] = useState({}); // sectionId -> zone
+  const [panelOpacity, setPanelOpacity] = useState(0.75);
+
+  const toggleSection = (id) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        setSnapAssignments(sa => { const n = { ...sa }; delete n[id]; return n; });
+      } else {
+        next.add(id);
+        // Auto-assign to first available snap zone
+        setSnapAssignments(sa => {
+          const usedZones = new Set(Object.values(sa));
+          const freeZone = SNAP_ZONES.find(z => !usedZones.has(z)) || SNAP_ZONES[0];
+          return { ...sa, [id]: freeZone };
+        });
+      }
+      return next;
+    });
+  };
+
+  const cycleSnapZone = (sectionId) => {
+    setSnapAssignments(prev => {
+      const currentZone = prev[sectionId] || SNAP_ZONES[0];
+      const idx = SNAP_ZONES.indexOf(currentZone);
+      return { ...prev, [sectionId]: SNAP_ZONES[(idx + 1) % SNAP_ZONES.length] };
+    });
+  };
+
+  const setSnapZone = (sectionId, zone) => {
+    setSnapAssignments(prev => ({ ...prev, [sectionId]: zone }));
+  };
 
   // ─── Preset Profiles ───
   const PRESETS = [
@@ -2712,383 +2741,7 @@ function App() {
                   ))}
                 </div>
 
-                {/* ── Expanded Drawers (render below grid when open) ── */}
-
-                {openSections.has('live-data') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">◉</span> Live Data
-                      <span className="folder-drawer-close" onClick={() => toggleSection('live-data')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Stability Monitor</span>
-                        <input type="checkbox" checked={stabilityMode} onChange={() => { setStabilityMode(prev => { if (prev) setShowStabilityPanel(false); return !prev; }); }} />
-                        <span className="slider" />
-                      </label>
-                      {[
-                        { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false, kbd: '5' },
-                        { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
-                      ].map((layer) => (
-                        <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                          <span className="switch-label">{layer.label}{layer.kbd && <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>{layer.kbd}</kbd>}</span>
-                          <input type="checkbox" checked={enabledLayers[layer.id]} onChange={() => !layer.disabled && toggleLayer(layer.id)} disabled={layer.disabled} />
-                          <span className="slider" />
-                        </label>
-                      ))}
-                    </div>
-                    {stabilityMode && (
-                      <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                        <div className="stability-sidebar-stats">
-                          <div className="stability-sidebar-stat">
-                            <span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span>
-                            <span className="stability-sidebar-stat-label">Protests</span>
-                          </div>
-                          <div className="stability-sidebar-stat">
-                            <span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span>
-                            <span className="stability-sidebar-stat-label">Military</span>
-                          </div>
-                          <div className="stability-sidebar-stat">
-                            <span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span>
-                            <span className="stability-sidebar-stat-label">Alerts</span>
-                          </div>
-                        </div>
-                        <div className="conflict-sidebar-toggles">
-                          <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                            <span className="switch-label">Protest Heatmap</span>
-                            <input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} />
-                            <span className="slider" />
-                          </label>
-                          <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                            <span className="switch-label">Military Indicators</span>
-                            <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
-                            <span className="slider" />
-                          </label>
-                          <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                            <span className="switch-label">Refugee Flows</span>
-                            <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
-                            <span className="slider" />
-                          </label>
-                        </div>
-                        <button className="stability-sidebar-open-btn" onClick={() => setShowStabilityPanel(prev => !prev)}>
-                          {showStabilityPanel ? 'Close' : 'Open'} Stability Panel
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {openSections.has('us-politics') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">⚑</span> US Politics
-                      <span className="folder-drawer-close" onClick={() => toggleSection('us-politics')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-elections">
-                        <span className="switch-label">2026 Midterm Elections</span>
-                        <input type="checkbox" checked={electionMode} onChange={() => { setElectionMode(prev => { if (prev) { setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } }); } else { setShowUSStates(true); } return !prev; }); }} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Tariffs & Trade</span>
-                        <input type="checkbox" checked={showTariffHeatmap} onChange={() => setShowTariffHeatmap(prev => !prev)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">US Installations</span>
-                        <input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                    {showTariffHeatmap && (
-                      <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
-                        <div className="tariff-heatmap-active-badge">
-                          <span className="tariff-heatmap-active-dot" />
-                          Heatmap active
-                        </div>
-                        <div className="tariff-legend">
-                          <div className="tariff-legend-title">Tariff Rate Legend</div>
-                          <div className="tariff-legend-items">
-                            {TARIFF_LEGEND.map((item) => (
-                              <div key={item.label} className="tariff-legend-item">
-                                <span className="tariff-legend-swatch" style={{ background: isLightTheme ? item.colorLight : item.color }} />
-                                <span>{item.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="tariff-sidebar-info">
-                          <strong>US Import Tariffs</strong><br />
-                          Colors show the universal tariff rate the US applies to imports from each country.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {openSections.has('conflicts') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">⚔</span> Conflicts
-                      <span className="folder-drawer-close" onClick={() => toggleSection('conflicts')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-frontline">
-                        <span className="switch-label">Russia–Ukraine War</span>
-                        <input type="checkbox" checked={conflictMode} onChange={() => { setConflictMode(prev => { if (prev) setConflictPanelOpen(false); return !prev; }); }} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                    {conflictMode && (
-                      <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
-                        <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
-                        <strong>Russia–Ukraine War</strong>
-                        <p>Frontlines, troops, and occupied territory shown on map.</p>
-                        <div className="conflict-sidebar-toggles">
-                          <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                            <span className="switch-label">Show Troop Positions</span>
-                            <input type="checkbox" checked={conflictShowTroops} onChange={() => setConflictShowTroops(prev => !prev)} />
-                            <span className="slider" />
-                          </label>
-                        </div>
-                        <button className="conflict-sidebar-open-btn" style={{ marginTop:'8px',width:'100%',padding:'7px 10px',background:'rgba(255,50,50,0.12)',border:'1px solid rgba(255,50,50,0.25)',borderRadius:'6px',color:'#ff6b6b',fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanelOpen(prev => !prev)}>
-                          {conflictPanelOpen ? 'Close' : 'Open'} War Statistics
-                        </button>
-                      </div>
-                    )}
-                    {ADDITIONAL_CONFLICTS.map((conflict) => (
-                      <div key={conflict.id}>
-                        <div className="source-group-items" style={{ marginTop: 4 }}>
-                          <label className="switch switch-frontline">
-                            <span className="switch-label">{conflict.label}</span>
-                            <input type="checkbox" checked={!!activeConflicts[conflict.id]} onChange={() => { setActiveConflicts(prev => { const next = { ...prev }; if (next[conflict.id]) { delete next[conflict.id]; setConflictPanels(p => { const n = { ...p }; delete n[conflict.id]; return n; }); } else { next[conflict.id] = true; setConflictTroops(p => ({ ...p, [conflict.id]: true })); } return next; }); }} />
-                            <span className="slider" />
-                          </label>
-                        </div>
-                        {activeConflicts[conflict.id] && (
-                          <div className="conflict-sidebar-info" style={{ marginTop: '6px', marginBottom: '4px' }}>
-                            <span className="conflict-sidebar-day">Day {conflict.data.CONFLICT_SUMMARY.daysSince()}</span>
-                            <strong>{conflict.data.CONFLICT_SUMMARY.name}</strong>
-                            <p style={{ fontSize: '10px', margin: '4px 0', opacity: 0.8 }}>{conflict.data.CONFLICT_SUMMARY.phase}</p>
-                            <div className="conflict-sidebar-toggles">
-                              <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                                <span className="switch-label">Show Troop Positions</span>
-                                <input type="checkbox" checked={conflictTroops[conflict.id] !== false} onChange={() => setConflictTroops(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))} />
-                                <span className="slider" />
-                              </label>
-                            </div>
-                            <button className="conflict-sidebar-open-btn" style={{ marginTop:'6px',width:'100%',padding:'6px 10px',background:`${conflict.data.CONFLICT_SUMMARY.sideA.color}1f`,border:`1px solid ${conflict.data.CONFLICT_SUMMARY.sideA.color}40`,borderRadius:'6px',color:conflict.data.CONFLICT_SUMMARY.sideA.color,fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanels(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}>
-                              {conflictPanels[conflict.id] ? 'Close' : 'Open'} Statistics
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {openSections.has('intel') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">◎</span> Intelligence
-                      <span className="folder-drawer-close" onClick={() => toggleSection('intel')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Daily Briefing <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span>
-                        <input type="checkbox" checked={showBriefingPanel} onChange={() => setShowBriefingPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Tension Index <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>2</kbd></span>
-                        <input type="checkbox" checked={showTensionPanel} onChange={() => setShowTensionPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Country Risk <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>3</kbd></span>
-                        <input type="checkbox" checked={showCountryRiskMode} onChange={() => { setShowCountryRiskMode(p => !p); setShowCountryRiskPanel(p => !p); }} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Narrative Tracking</span>
-                        <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                    {showTensionPanel && tensionData && (
-                      <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                        <strong>Tension Index: <span style={{ color: tensionData.index >= 65 ? '#ff6b6b' : '#ffd700' }}>{tensionData.index}/100 ({tensionData.label})</span></strong>
-                        <p>{tensionData.summary?.totalConflicts || 0} active conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear flashpoints</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {openSections.has('disasters') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">⚠</span> Security
-                      <span className="folder-drawer-close" onClick={() => toggleSection('disasters')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Health & Pandemics</span>
-                        <input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
-                        <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Court Rulings</span>
-                        <input type="checkbox" checked={showCourtPanel} onChange={() => setShowCourtPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Sanctions</span>
-                        <input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Infrastructure</span>
-                        <input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Nuclear Threats</span>
-                        <input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {openSections.has('env-tech') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">❖</span> Env & Tech
-                      <span className="folder-drawer-close" onClick={() => toggleSection('env-tech')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Climate & Environment</span>
-                        <input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">AI & Technology</span>
-                        <input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {openSections.has('trade') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">⬙</span> Trade
-                      <span className="folder-drawer-close" onClick={() => toggleSection('trade')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Commodities <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span>
-                        <input type="checkbox" checked={showCommoditiesPanel} onChange={() => setShowCommoditiesPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Shipping <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>7</kbd></span>
-                        <input type="checkbox" checked={showShippingMode} onChange={() => { setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); }} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                    {showShippingMode && shippingData && (
-                      <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                        <strong>Maritime Chokepoints</strong>
-                        <p>{shippingData.summary?.disrupted || 0} disrupted, {shippingData.summary?.criticalRisk || 0} critical risk</p>
-                        <button className="stability-sidebar-open-btn" onClick={() => setShowShippingPanel(p => !p)}>
-                          {showShippingPanel ? 'Close' : 'Open'} Shipping Panel
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {openSections.has('migration') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">⬡</span> Migration
-                      <span className="folder-drawer-close" onClick={() => toggleSection('migration')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
-                        <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Demographic Risk</span>
-                        <input type="checkbox" checked={showDemographicPanel} onChange={() => setShowDemographicPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {openSections.has('geopolitical') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">◆</span> Geopolitics
-                      <span className="folder-drawer-close" onClick={() => toggleSection('geopolitical')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Regime Stability</span>
-                        <input type="checkbox" checked={showRegimePanel} onChange={() => setShowRegimePanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Alliance Networks</span>
-                        <input type="checkbox" checked={showAlliancePanel} onChange={() => setShowAlliancePanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Leadership Intel</span>
-                        <input type="checkbox" checked={showLeadershipPanel} onChange={() => setShowLeadershipPanel(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                      <label className="switch switch-neutral">
-                        <span className="switch-label">Timeline Navigator</span>
-                        <input type="checkbox" checked={showTimeline} onChange={() => setShowTimeline(p => !p)} />
-                        <span className="slider" />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {openSections.has('lifestyle') && (
-                  <div className="folder-drawer">
-                    <div className="folder-drawer-header">
-                      <span className="folder-drawer-icon">✦</span> Lifestyle
-                      <span className="folder-drawer-close" onClick={() => toggleSection('lifestyle')}>✕</span>
-                    </div>
-                    <div className="source-group-items">
-                      {[
-                        { id: 'sports', label: 'Major Sports', tone: 'neutral', disabled: true },
-                        { id: 'pizzaIndex', label: 'Pizza Index', tone: 'neutral', disabled: true },
-                      ].map((layer) => (
-                        <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
-                          <span className="switch-label">{layer.label} (WIP)</span>
-                          <input type="checkbox" checked={false} disabled />
-                          <span className="slider" />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Drawers render as snap-zone panels over the map */}
               </div>
             )}
 
@@ -3305,6 +2958,23 @@ function App() {
                     ))}
                   </div>
                 </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Panel Appearance</div>
+                <div className="settings-group">
+                  <div className="opacity-slider-group">
+                    <span className="switch-label">Panel Transparency</span>
+                    <input
+                      type="range"
+                      className="opacity-slider"
+                      min="0.15"
+                      max="1"
+                      step="0.05"
+                      value={panelOpacity}
+                      onChange={(e) => setPanelOpacity(Number(e.target.value))}
+                    />
+                    <span className="opacity-value">{Math.round(panelOpacity * 100)}%</span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -3327,6 +2997,158 @@ function App() {
         )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
+
+        {/* ═══ Snap-Zone Floating Drawers ═══ */}
+        {[
+          { id: 'live-data', icon: '◉', label: 'Live Data', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral">
+                  <span className="switch-label">Stability Monitor</span>
+                  <input type="checkbox" checked={stabilityMode} onChange={() => { setStabilityMode(prev => { if (prev) setShowStabilityPanel(false); return !prev; }); }} />
+                  <span className="slider" />
+                </label>
+                {[
+                  { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false, kbd: '5' },
+                  { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
+                ].map((layer) => (
+                  <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">{layer.label}{layer.kbd && <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>{layer.kbd}</kbd>}</span>
+                    <input type="checkbox" checked={enabledLayers[layer.id]} onChange={() => !layer.disabled && toggleLayer(layer.id)} disabled={layer.disabled} />
+                    <span className="slider" />
+                  </label>
+                ))}
+              </div>
+              {stabilityMode && (
+                <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                  <div className="stability-sidebar-stats">
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span><span className="stability-sidebar-stat-label">Protests</span></div>
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span><span className="stability-sidebar-stat-label">Military</span></div>
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span><span className="stability-sidebar-stat-label">Alerts</span></div>
+                  </div>
+                  <div className="conflict-sidebar-toggles">
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Protest Heatmap</span><input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} /><span className="slider" /></label>
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Military Indicators</span><input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} /><span className="slider" /></label>
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Refugee Flows</span><input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} /><span className="slider" /></label>
+                  </div>
+                  <button className="stability-sidebar-open-btn" onClick={() => setShowStabilityPanel(prev => !prev)}>{showStabilityPanel ? 'Close' : 'Open'} Stability Panel</button>
+                </div>
+              )}
+            </>
+          )},
+          { id: 'us-politics', icon: '⚑', label: 'US Politics', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-elections"><span className="switch-label">2026 Midterms</span><input type="checkbox" checked={electionMode} onChange={() => { setElectionMode(prev => { if (prev) { setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } }); } else { setShowUSStates(true); } return !prev; }); }} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Tariffs & Trade</span><input type="checkbox" checked={showTariffHeatmap} onChange={() => setShowTariffHeatmap(prev => !prev)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">US Installations</span><input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} /><span className="slider" /></label>
+              </div>
+              {showTariffHeatmap && (
+                <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
+                  <div className="tariff-heatmap-active-badge"><span className="tariff-heatmap-active-dot" />Heatmap active</div>
+                  <div className="tariff-legend"><div className="tariff-legend-title">Tariff Rate Legend</div><div className="tariff-legend-items">{TARIFF_LEGEND.map((item) => (<div key={item.label} className="tariff-legend-item"><span className="tariff-legend-swatch" style={{ background: isLightTheme ? item.colorLight : item.color }} /><span>{item.label}</span></div>))}</div></div>
+                </div>
+              )}
+            </>
+          )},
+          { id: 'conflicts', icon: '⚔', label: 'Conflicts', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-frontline"><span className="switch-label">Russia–Ukraine</span><input type="checkbox" checked={conflictMode} onChange={() => { setConflictMode(prev => { if (prev) setConflictPanelOpen(false); return !prev; }); }} /><span className="slider" /></label>
+              </div>
+              {conflictMode && (
+                <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
+                  <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
+                  <strong>Russia–Ukraine War</strong>
+                  <div className="conflict-sidebar-toggles"><label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Troop Positions</span><input type="checkbox" checked={conflictShowTroops} onChange={() => setConflictShowTroops(prev => !prev)} /><span className="slider" /></label></div>
+                  <button className="conflict-sidebar-open-btn" style={{ marginTop:'8px',width:'100%',padding:'7px 10px',background:'rgba(255,50,50,0.12)',border:'1px solid rgba(255,50,50,0.25)',borderRadius:'6px',color:'#ff6b6b',fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanelOpen(prev => !prev)}>{conflictPanelOpen ? 'Close' : 'Open'} Statistics</button>
+                </div>
+              )}
+              {ADDITIONAL_CONFLICTS.map((c) => (
+                <div key={c.id}>
+                  <div className="source-group-items" style={{ marginTop: 4 }}><label className="switch switch-frontline"><span className="switch-label">{c.label}</span><input type="checkbox" checked={!!activeConflicts[c.id]} onChange={() => { setActiveConflicts(prev => { const next = { ...prev }; if (next[c.id]) { delete next[c.id]; setConflictPanels(p => { const n = { ...p }; delete n[c.id]; return n; }); } else { next[c.id] = true; setConflictTroops(p => ({ ...p, [c.id]: true })); } return next; }); }} /><span className="slider" /></label></div>
+                  {activeConflicts[c.id] && (<div className="conflict-sidebar-info" style={{ marginTop:'6px',marginBottom:'4px' }}><span className="conflict-sidebar-day">Day {c.data.CONFLICT_SUMMARY.daysSince()}</span><strong>{c.data.CONFLICT_SUMMARY.name}</strong><p style={{ fontSize:'10px',margin:'4px 0',opacity:0.8 }}>{c.data.CONFLICT_SUMMARY.phase}</p><button className="conflict-sidebar-open-btn" style={{ marginTop:'6px',width:'100%',padding:'6px 10px',background:`${c.data.CONFLICT_SUMMARY.sideA.color}1f`,border:`1px solid ${c.data.CONFLICT_SUMMARY.sideA.color}40`,borderRadius:'6px',color:c.data.CONFLICT_SUMMARY.sideA.color,fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanels(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{conflictPanels[c.id] ? 'Close' : 'Open'} Statistics</button></div>)}
+                </div>
+              ))}
+            </>
+          )},
+          { id: 'intel', icon: '◎', label: 'Intelligence', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral"><span className="switch-label">Daily Briefing <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span><input type="checkbox" checked={showBriefingPanel} onChange={() => setShowBriefingPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Tension Index <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>2</kbd></span><input type="checkbox" checked={showTensionPanel} onChange={() => setShowTensionPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Country Risk <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>3</kbd></span><input type="checkbox" checked={showCountryRiskMode} onChange={() => { setShowCountryRiskMode(p => !p); setShowCountryRiskPanel(p => !p); }} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Narrative Tracking</span><input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} /><span className="slider" /></label>
+              </div>
+              {showTensionPanel && tensionData && (<div className="stability-sidebar-info" style={{ marginTop:'8px' }}><strong>Tension: <span style={{ color: tensionData.index >= 65 ? '#ff6b6b' : '#ffd700' }}>{tensionData.index}/100</span></strong><p>{tensionData.summary?.totalConflicts || 0} conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear</p></div>)}
+            </>
+          )},
+          { id: 'disasters', icon: '⚠', label: 'Security', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Health & Pandemics</span><input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Cyber Threats <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span><input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Court Rulings</span><input type="checkbox" checked={showCourtPanel} onChange={() => setShowCourtPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Sanctions</span><input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Infrastructure</span><input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Nuclear Threats</span><input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'env-tech', icon: '❖', label: 'Env & Tech', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Climate & Environment</span><input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">AI & Technology</span><input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'trade', icon: '⬙', label: 'Trade', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral"><span className="switch-label">Commodities <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span><input type="checkbox" checked={showCommoditiesPanel} onChange={() => setShowCommoditiesPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Shipping <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>7</kbd></span><input type="checkbox" checked={showShippingMode} onChange={() => { setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); }} /><span className="slider" /></label>
+              </div>
+              {showShippingMode && shippingData && (<div className="stability-sidebar-info" style={{ marginTop:'8px' }}><strong>Maritime Chokepoints</strong><p>{shippingData.summary?.disrupted || 0} disrupted</p><button className="stability-sidebar-open-btn" onClick={() => setShowShippingPanel(p => !p)}>{showShippingPanel ? 'Close' : 'Open'} Shipping</button></div>)}
+            </>
+          )},
+          { id: 'migration', icon: '⬡', label: 'Migration', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Watchlist <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span><input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Demographic Risk</span><input type="checkbox" checked={showDemographicPanel} onChange={() => setShowDemographicPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'geopolitical', icon: '◆', label: 'Geopolitics', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Regime Stability</span><input type="checkbox" checked={showRegimePanel} onChange={() => setShowRegimePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Alliance Networks</span><input type="checkbox" checked={showAlliancePanel} onChange={() => setShowAlliancePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Leadership Intel</span><input type="checkbox" checked={showLeadershipPanel} onChange={() => setShowLeadershipPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Timeline Navigator</span><input type="checkbox" checked={showTimeline} onChange={() => setShowTimeline(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'lifestyle', icon: '✦', label: 'Lifestyle', content: (
+            <div className="source-group-items">
+              {[{ id: 'sports', label: 'Major Sports' }, { id: 'pizzaIndex', label: 'Pizza Index' }].map((l) => (
+                <label key={l.id} className="switch switch-neutral switch-disabled"><span className="switch-label">{l.label} (WIP)</span><input type="checkbox" checked={false} disabled /><span className="slider" /></label>
+              ))}
+            </div>
+          )},
+        ].map(drawer => openSections.has(drawer.id) && (
+          <div
+            key={drawer.id}
+            className="snap-zone-drawer"
+            data-zone={snapAssignments[drawer.id] || 'top-left'}
+            style={{ background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})` }}
+          >
+            <div className="folder-drawer-header">
+              <span className="folder-drawer-icon">{drawer.icon}</span> {drawer.label}
+              <div className="snap-zone-selector">
+                {SNAP_ZONES.map(z => (
+                  <button key={z} className={`snap-zone-dot ${(snapAssignments[drawer.id] || 'top-left') === z ? 'snap-zone-dot--active' : ''}`} onClick={() => setSnapZone(drawer.id, z)} title={z} />
+                ))}
+              </div>
+              <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)}>✕</span>
+            </div>
+            {drawer.content}
+          </div>
+        ))}
+
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
