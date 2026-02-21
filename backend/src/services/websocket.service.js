@@ -42,7 +42,7 @@ class WebSocketHandler {
     this.sendToClient(clientId, {
       type: 'connected',
       clientId,
-      message: 'Connected to Monitored',
+      message: 'Connected to monitr',
     });
 
     ws.on('message', (data) => this.handleMessage(clientId, data));

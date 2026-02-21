@@ -28,7 +28,7 @@ class FeedService {
     this.parser = new Parser({
       timeout: 10000,
       headers: {
-        'User-Agent': 'NewsAggregator/1.0',
+        'User-Agent': 'monitr/1.0',
       },
     });
     

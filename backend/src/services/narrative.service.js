@@ -143,7 +143,7 @@ async function safeFetchJson(url, label = 'GDELT') {
       signal: AbortSignal.timeout(12000),
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Monitored/1.0 (narrative-tracker)',
+        'User-Agent': 'monitr/1.0 (narrative-tracker)',
       },
     });
     if (!res.ok) {

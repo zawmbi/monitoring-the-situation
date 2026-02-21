@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const TOUR_STEPS = [
   {
-    title: 'Welcome to Monitoring The Situation',
+    title: 'Welcome to monitr',
     description: 'A real-time global intelligence dashboard tracking conflicts, economics, health, and more across 50+ data sources.',
     position: 'center',
   },

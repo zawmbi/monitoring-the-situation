@@ -106,7 +106,7 @@ export const config = {
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID || '',
     clientSecret: process.env.REDDIT_CLIENT_SECRET || '',
-    userAgent: process.env.REDDIT_USER_AGENT || 'NewsAggregator/1.0',
+    userAgent: process.env.REDDIT_USER_AGENT || 'monitr/1.0',
     subreddits: (process.env.REDDIT_SUBREDDITS || 'news,worldnews,technology').split(','),
   },
 

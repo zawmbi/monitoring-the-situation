@@ -2361,7 +2361,7 @@ function App() {
     <div className={`app ${sidebarExpanded ? '' : 'sidebar-is-collapsed'}`}>
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
-        title="Monitoring The Situation"
+        title="monitr"
         logoSrc="/earth.png"
         activePage={activePage}
         onNavigate={handleNavigate}

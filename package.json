@@ -1,5 +1,5 @@
 {
-  "name": "monitored-monorepo",
+  "name": "monitr_monorepo",
   "private": true,
   "workspaces": [
     "backend",

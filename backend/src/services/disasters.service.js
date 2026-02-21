@@ -67,7 +67,7 @@ async function fetchEONET() {
 
 async function fetchReliefWeb() {
   try {
-    const url = `${RELIEFWEB_API}/disasters?appname=monitored&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=date&fields[include][]=status&fields[include][]=country&fields[include][]=type&fields[include][]=url&fields[include][]=glide`;
+    const url = `${RELIEFWEB_API}/disasters?appname=monitr&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=date&fields[include][]=status&fields[include][]=country&fields[include][]=type&fields[include][]=url&fields[include][]=glide`;
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) throw new Error(`ReliefWeb ${res.status}`);
     const data = await res.json();

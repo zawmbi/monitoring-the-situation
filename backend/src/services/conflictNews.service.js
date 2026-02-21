@@ -105,7 +105,7 @@ class ConflictNewsService {
   constructor() {
     this.rssParser = new Parser({
       timeout: 15000,
-      headers: { 'User-Agent': 'Monitored/1.0 (conflict-monitor)' },
+      headers: { 'User-Agent': 'monitr/1.0 (conflict-monitor)' },
     });
   }
 

@@ -73,7 +73,7 @@ cmd_ssl() {
 
     # Copy fake certs into the certbot volume
     docker run --rm \
-        -v "$(pwd)/monitoring-the-situation_certbot-etc:/etc/letsencrypt" \
+        -v "$(pwd)/monitr_certbot-etc:/etc/letsencrypt" \
         -v "/tmp/fake-cert:/tmp/fake-cert" \
         alpine sh -c "
             mkdir -p /etc/letsencrypt/live/${DOMAIN} &&

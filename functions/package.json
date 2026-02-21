@@ -1,6 +1,6 @@
 {
-  "name": "monitored-functions",
-  "description": "Cloud Functions for Monitored — auth, chat, configs, subscriptions",
+  "name": "monitr_functions",
+  "description": "Cloud Functions for monitr — auth, chat, configs, subscriptions",
   "type": "module",
   "main": "src/index.js",
   "engines": {

@@ -54,7 +54,7 @@ class TariffService {
   constructor() {
     this.rssParser = new Parser({
       timeout: 15000,
-      headers: { 'User-Agent': 'Monitored/1.0 (tariff-monitor)' },
+      headers: { 'User-Agent': 'monitr/1.0 (tariff-monitor)' },
     });
     this.rateOverrides = { ...RATE_OVERRIDES };
   }

@@ -1,5 +1,5 @@
 {
-  "name": "monitored-backend",
+  "name": "monitr_backend",
   "version": "1.0.0",
   "description": "Scalable news and social media aggregation API",
   "main": "src/index.js",
@@ -17,7 +17,7 @@
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "ioredis": "^5.3.2",
-    "news-aggregator-monorepo": "file:..",
+    "monitr_monorepo": "file:..",
     "rss-parser": "^3.13.0",
     "uuid": "^9.0.1",
     "ws": "^8.16.0"

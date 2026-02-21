@@ -1,5 +1,5 @@
 /**
- * Monitored — Cloud Functions Entry Point
+ * monitr — Cloud Functions Entry Point
  *
  * Exports all Cloud Functions for Firebase deployment.
  * Functions are organized by domain:

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const STORAGE_KEY = 'monitored:watchlist';
+const STORAGE_KEY = 'monitr:watchlist';
 
 function loadWatchlist() {
   try {

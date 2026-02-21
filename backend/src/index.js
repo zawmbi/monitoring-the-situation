@@ -1,5 +1,5 @@
 /**
- * Monitored Backend
+ * monitr backend
  * Main entry point
  */
 
@@ -168,7 +168,7 @@ app.use('/api', apiRoutes);
 
 app.get('/', (req, res) => {
   res.json({
-    name: 'Monitored API',
+    name: 'monitr api',
     version: '1.0.0',
     endpoints: {
       feed: '/api/feed',
@@ -388,7 +388,7 @@ async function startBackgroundRefreshWhenReady() {
 
 async function start() {
   console.log('===========================================');
-  console.log('  Monitored API - Starting...');
+  console.log('  monitr api - Starting...');
   console.log(`  Node ${process.version} | PID ${process.pid}`);
   console.log('===========================================');
 
