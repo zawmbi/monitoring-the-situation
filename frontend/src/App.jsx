@@ -653,6 +653,8 @@ const THEMES = [
   { id: 'dark-minimal', label: 'Dark Minimal', swatch: '#8080ff' },
   { id: 'light-analytic', label: 'Light Analytic', swatch: '#2060c0' },
   { id: 'dune', label: 'Dune', swatch: '#e0a020' },
+  { id: 'ruby', label: 'Ruby', swatch: '#e03050' },
+  { id: 'terra', label: 'Terra', swatch: '#30c050' },
 ];
 
 // Chat Panel Component (sidebar inline)

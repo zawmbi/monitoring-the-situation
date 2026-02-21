@@ -4,7 +4,8 @@
  * Defines theme tokens for the app. Each theme overrides CSS custom
  * properties via `data-theme` on <html>. The CSS in index.css supports
  * :root (cyber-control-room default), [data-theme="dark-minimal"],
- * [data-theme="light-analytic"], and [data-theme="dune"].
+ * [data-theme="light-analytic"], [data-theme="dune"],
+ * [data-theme="ruby"], and [data-theme="terra"].
  *
  * To add a theme:
  * 1. Add an entry to THEMES below
@@ -34,6 +35,16 @@ const THEMES = {
     id: 'dune',
     label: 'Dune',
     // CSS variables are defined in index.css [data-theme="dune"]
+  },
+  'ruby': {
+    id: 'ruby',
+    label: 'Ruby',
+    // CSS variables are defined in index.css [data-theme="ruby"]
+  },
+  'terra': {
+    id: 'terra',
+    label: 'Terra',
+    // CSS variables are defined in index.css [data-theme="terra"]
   },
 };
 
