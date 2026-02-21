@@ -42,7 +42,7 @@ export default function NewsTicker({ items = [], visible = true }) {
       if (bT1 !== aT1) return bT1 - aT1;
       return new Date(b.publishedAt) - new Date(a.publishedAt);
     });
-    return deduped.slice(0, 25);
+    return deduped.slice(0, 50);
   }, [items]);
 
   // Animate with rAF for continuous smooth scrolling
@@ -70,24 +70,34 @@ export default function NewsTicker({ items = [], visible = true }) {
 
   // Render two copies for seamless looping
   const renderItems = (suffix) =>
-    headlines.map((item, idx) => (
-      <span key={`${item.id || idx}-${suffix}-${idx}`} className="news-ticker-item">
-        <span className="news-ticker-dot" />
-        <a href={item.url || '#'} target="_blank" rel="noopener noreferrer" title={item.title}>
-          {item.sourceName && (
-            <span style={{ color: 'var(--color-accent)', fontWeight: 600, marginRight: 4 }}>
-              {item.sourceName}:
-            </span>
-          )}
-          {item.title}
-          {item.publishedAt && (
-            <span style={{ color: 'var(--color-text-muted)', marginLeft: 6, fontSize: '10px' }}>
-              {timeAgoShort(item.publishedAt)}
-            </span>
-          )}
-        </a>
-      </span>
-    ));
+    headlines.map((item, idx) => {
+      const isTier1 = TIER1_DOMAINS.has(extractDomain(item.url || ''));
+      return (
+        <span key={`${item.id || idx}-${suffix}-${idx}`} className="news-ticker-item">
+          <span className="news-ticker-dot" />
+          <a href={item.url || '#'} target="_blank" rel="noopener noreferrer" title={item.title}>
+            {item.sourceName && (
+              <span style={{
+                color: isTier1 ? '#ff4444' : 'var(--color-accent)',
+                fontWeight: 700,
+                marginRight: 5,
+                textTransform: 'uppercase',
+                fontSize: '0.85em',
+                letterSpacing: '0.05em',
+              }}>
+                {item.sourceName}
+              </span>
+            )}
+            {item.title}
+            {item.publishedAt && (
+              <span style={{ color: 'var(--color-text-muted)', marginLeft: 8, fontSize: '0.8em', opacity: 0.7 }}>
+                {timeAgoShort(item.publishedAt)}
+              </span>
+            )}
+          </a>
+        </span>
+      );
+    });
 
   return (
     <div

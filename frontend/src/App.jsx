@@ -838,6 +838,10 @@ function App() {
   // Collapsible sidebar sections — only 'live-data' open by default for a clean start
   const [openSections, setOpenSections] = useState(new Set(['live-data']));
   const [panelOpacity, setPanelOpacity] = useState(0.75);
+  const [textSize, setTextSize] = useState('medium'); // 'small' | 'medium' | 'large'
+  const [showNewsTicker, setShowNewsTicker] = useState(true);
+  const [drawerStates, setDrawerStates] = useState({});
+  const dragInfoRef = useRef(null);
 
   // Each drawer gets a unique position so they don't overlap
   const DRAWER_POSITIONS = {
@@ -860,6 +864,82 @@ function App() {
       return next;
     });
   };
+
+  // ─── Text Size ───
+  useEffect(() => {
+    document.documentElement.setAttribute('data-text-size', textSize);
+  }, [textSize]);
+
+  // ─── Drawer Drag & Resize ───
+  const startDrawerDrag = useCallback((e, drawerId, action) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target.closest('.snap-zone-drawer');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const containerRect = mapContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+    dragInfoRef.current = {
+      drawerId, action, el,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startLeft: rect.left - containerRect.left,
+      startTop: rect.top - containerRect.top,
+      startW: rect.width,
+      startH: rect.height,
+      currentLeft: null, currentTop: null, currentW: null, currentH: null,
+    };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor =
+      action === 'move' ? 'grabbing' :
+      action === 'nw' || action === 'se' ? (action === 'nw' ? 'nw-resize' : 'se-resize') :
+      action === 'ne' || action === 'sw' ? (action === 'ne' ? 'ne-resize' : 'sw-resize') :
+      action === 'n' || action === 's' ? 'ns-resize' : 'ew-resize';
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = dragInfoRef.current;
+      if (!d) return;
+      const dx = e.clientX - d.startMouseX;
+      const dy = e.clientY - d.startMouseY;
+      let l = d.startLeft, t = d.startTop, w = d.startW, h = d.startH;
+      if (d.action === 'move') { l += dx; t += dy; }
+      else {
+        if (d.action.includes('e')) w = Math.max(200, d.startW + dx);
+        if (d.action.includes('w')) { w = Math.max(200, d.startW - dx); l = d.startLeft + d.startW - w; }
+        if (d.action.includes('s')) h = Math.max(80, d.startH + dy);
+        if (d.action.includes('n')) { h = Math.max(80, d.startH - dy); t = d.startTop + d.startH - h; }
+      }
+      d.el.style.left = l + 'px';
+      d.el.style.top = t + 'px';
+      d.el.style.right = 'auto';
+      d.el.style.bottom = 'auto';
+      d.el.style.width = w + 'px';
+      if (d.action !== 'move') { d.el.style.height = h + 'px'; d.el.style.maxHeight = 'none'; }
+      d.currentLeft = l; d.currentTop = t; d.currentW = w;
+      d.currentH = d.action !== 'move' ? h : null;
+    };
+    const onUp = () => {
+      const d = dragInfoRef.current;
+      if (!d) return;
+      if (d.currentLeft != null) {
+        setDrawerStates(prev => ({
+          ...prev,
+          [d.drawerId]: {
+            x: d.currentLeft, y: d.currentTop,
+            w: d.currentW ?? d.startW,
+            h: d.currentH ?? null,
+          }
+        }));
+      }
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      dragInfoRef.current = null;
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, []);
 
   // ─── Preset Profiles ───
   const PRESETS = [
@@ -2964,6 +3044,33 @@ function App() {
                     <span className="opacity-value">{Math.round(panelOpacity * 100)}%</span>
                   </div>
                 </div>
+
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Visual</div>
+                <div className="settings-group">
+                  <div className="opacity-slider-group">
+                    <span className="switch-label">Text Size</span>
+                    <div className="text-size-selector">
+                      {[
+                        { id: 'small', label: 'S' },
+                        { id: 'medium', label: 'M' },
+                        { id: 'large', label: 'L' },
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          className={`text-size-btn${textSize === s.id ? ' active' : ''}`}
+                          onClick={() => setTextSize(s.id)}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="switch switch-neutral">
+                    <span className="switch-label">News Ticker</span>
+                    <input type="checkbox" checked={showNewsTicker} onChange={() => setShowNewsTicker(p => !p)} />
+                    <span className="slider" />
+                  </label>
+                </div>
               </div>
             )}
 
@@ -3122,13 +3229,29 @@ function App() {
           <div
             key={drawer.id}
             className="snap-zone-drawer"
-            style={{ ...DRAWER_POSITIONS[drawer.id], background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})` }}
+            style={{
+              ...(drawerStates[drawer.id]
+                ? { left: drawerStates[drawer.id].x, top: drawerStates[drawer.id].y, right: 'auto', bottom: 'auto',
+                    width: drawerStates[drawer.id].w || 320,
+                    ...(drawerStates[drawer.id].h ? { height: drawerStates[drawer.id].h, maxHeight: 'none' } : {}) }
+                : DRAWER_POSITIONS[drawer.id]),
+              background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})`,
+            }}
           >
-            <div className="folder-drawer-header">
+            <div className="folder-drawer-header" onMouseDown={e => startDrawerDrag(e, drawer.id, 'move')} style={{ cursor: 'grab' }}>
               <span className="folder-drawer-icon">{drawer.icon}</span> {drawer.label}
-              <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)}>✕</span>
+              <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)} onMouseDown={e => e.stopPropagation()}>✕</span>
             </div>
             {drawer.content}
+            {/* Resize handles — all edges + corners */}
+            <div className="drawer-resize drawer-resize-n" onMouseDown={e => startDrawerDrag(e, drawer.id, 'n')} />
+            <div className="drawer-resize drawer-resize-s" onMouseDown={e => startDrawerDrag(e, drawer.id, 's')} />
+            <div className="drawer-resize drawer-resize-e" onMouseDown={e => startDrawerDrag(e, drawer.id, 'e')} />
+            <div className="drawer-resize drawer-resize-w" onMouseDown={e => startDrawerDrag(e, drawer.id, 'w')} />
+            <div className="drawer-resize drawer-resize-nw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'nw')} />
+            <div className="drawer-resize drawer-resize-ne" onMouseDown={e => startDrawerDrag(e, drawer.id, 'ne')} />
+            <div className="drawer-resize drawer-resize-sw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'sw')} />
+            <div className="drawer-resize drawer-resize-se" onMouseDown={e => startDrawerDrag(e, drawer.id, 'se')} />
           </div>
         ))}
 
@@ -3794,7 +3917,7 @@ function App() {
         )}
 
         {/* News Ticker */}
-        <NewsTicker items={feed} visible={true} />
+        <NewsTicker items={feed} visible={showNewsTicker} />
 
         {/* Global Status Bar */}
         <GlobalStatusBar tensionData={tensionData} disasterData={disasterData} cyberData={cyberData} commoditiesData={commoditiesData} />

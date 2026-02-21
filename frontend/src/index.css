@@ -3175,19 +3175,21 @@ body {
   top: var(--nav-height);
   left: var(--sidebar-width, 400px);
   right: 0;
-  height: 26px;
-  background: linear-gradient(90deg, rgba(10,10,22,0.95) 0%, rgba(14,14,28,0.95) 100%);
-  border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+  height: 30px;
+  background: linear-gradient(90deg, rgba(8,8,18,0.97) 0%, rgba(12,12,24,0.97) 50%, rgba(8,8,18,0.97) 100%);
+  border-bottom: 2px solid rgba(var(--accent-rgb), 0.25);
+  border-top: 1px solid rgba(var(--accent-rgb), 0.08);
   display: flex;
   align-items: center;
   z-index: 1100;
   overflow: hidden;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   user-select: none;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: left 0.25s ease;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 /* When sidebar is collapsed, extend ticker to match */
 .sidebar-is-collapsed .news-ticker-bar {
@@ -3203,25 +3205,28 @@ body {
 }
 .news-ticker-label {
   flex-shrink: 0;
-  padding: 0 10px;
-  font-weight: 700;
-  color: var(--color-accent);
+  padding: 0 14px;
+  font-weight: 800;
+  color: #fff;
   text-transform: uppercase;
-  font-size: 9px;
-  letter-spacing: 1px;
-  border-right: 1px solid rgba(var(--accent-rgb), 0.2);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  border-right: 2px solid rgba(var(--accent-rgb), 0.3);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(220,40,40,0.85) 0%, rgba(180,30,30,0.9) 100%);
+  height: 100%;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 .news-ticker-live-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #ff4444;
-  box-shadow: 0 0 6px #ff4444;
-  animation: pulse-live 2s ease-in-out infinite;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255,255,255,0.8);
+  animation: pulse-live 1.5s ease-in-out infinite;
 }
 @keyframes pulse-live {
   0%, 100% { opacity: 1; }
@@ -3243,26 +3248,35 @@ body {
 }
 .news-ticker-item {
   flex-shrink: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .news-ticker-item a {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   text-decoration: none;
-  transition: color 0.15s;
+  transition: color 0.15s, text-shadow 0.15s;
 }
 .news-ticker-item a:hover {
   color: var(--color-accent);
+  text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
 }
 .news-ticker-dot {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: var(--color-accent);
-  opacity: 0.4;
+  opacity: 0.6;
   flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(var(--accent-rgb), 0.3);
+}
+.news-ticker-separator {
+  color: rgba(var(--accent-rgb), 0.4);
+  font-weight: 300;
+  margin: 0 4px;
 }
 
 /* ===========================================
@@ -3372,6 +3386,73 @@ body {
 .snap-zone-drawer .source-group-items {
   padding: 0 2px;
 }
+
+/* ─── Drawer Resize Handles ─── */
+.drawer-resize {
+  position: absolute;
+  z-index: 10;
+}
+.drawer-resize-n { top: -3px; left: 6px; right: 6px; height: 6px; cursor: ns-resize; }
+.drawer-resize-s { bottom: -3px; left: 6px; right: 6px; height: 6px; cursor: ns-resize; }
+.drawer-resize-e { top: 6px; bottom: 6px; right: -3px; width: 6px; cursor: ew-resize; }
+.drawer-resize-w { top: 6px; bottom: 6px; left: -3px; width: 6px; cursor: ew-resize; }
+.drawer-resize-nw { top: -4px; left: -4px; width: 10px; height: 10px; cursor: nw-resize; }
+.drawer-resize-ne { top: -4px; right: -4px; width: 10px; height: 10px; cursor: ne-resize; }
+.drawer-resize-sw { bottom: -4px; left: -4px; width: 10px; height: 10px; cursor: sw-resize; }
+.drawer-resize-se { bottom: -4px; right: -4px; width: 10px; height: 10px; cursor: se-resize; }
+
+/* ─── Text Size Selector ─── */
+.text-size-selector {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.text-size-btn {
+  width: 32px;
+  height: 26px;
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.text-size-btn:hover { border-color: rgba(var(--accent-rgb), 0.4); color: var(--color-text-primary); }
+.text-size-btn.active {
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.2);
+}
+
+/* ─── Text Size Scaling ─── */
+[data-text-size="small"] .switch-label { font-size: 0.78rem; }
+[data-text-size="small"] .folder-drawer-header { font-size: 0.72rem; }
+[data-text-size="small"] .folder-card-label { font-size: 0.48rem; }
+[data-text-size="small"] .toggle-group-title { font-size: 0.65rem; }
+[data-text-size="small"] .source-group-items { font-size: 0.72rem; }
+[data-text-size="small"] .preset-tab-label { font-size: 0.55rem; }
+[data-text-size="small"] .news-ticker-bar { font-size: 10px; }
+
+[data-text-size="medium"] .switch-label { font-size: max(0.95rem, 1.1vw); }
+[data-text-size="medium"] .folder-drawer-header { font-size: max(0.88rem, 1vw); }
+[data-text-size="medium"] .folder-card-label { font-size: max(0.6rem, 0.7vw); }
+[data-text-size="medium"] .toggle-group-title { font-size: max(0.8rem, 0.9vw); }
+[data-text-size="medium"] .source-group-items { font-size: max(0.85rem, 0.95vw); }
+[data-text-size="medium"] .preset-tab-label { font-size: max(0.65rem, 0.75vw); }
+[data-text-size="medium"] .news-ticker-bar { font-size: max(12px, 0.85vw); }
+
+[data-text-size="large"] .switch-label { font-size: max(1.15rem, 1.4vw); }
+[data-text-size="large"] .folder-drawer-header { font-size: max(1.05rem, 1.25vw); }
+[data-text-size="large"] .folder-card-label { font-size: max(0.75rem, 0.9vw); }
+[data-text-size="large"] .toggle-group-title { font-size: max(1rem, 1.15vw); }
+[data-text-size="large"] .source-group-items { font-size: max(1.05rem, 1.2vw); }
+[data-text-size="large"] .preset-tab-label { font-size: max(0.8rem, 0.95vw); }
+[data-text-size="large"] .news-ticker-bar { font-size: max(14px, 1.1vw); height: 32px; }
+[data-text-size="large"] .snap-zone-drawer { width: 380px; }
 
 /* Transparency slider in settings */
 .opacity-slider-group {
