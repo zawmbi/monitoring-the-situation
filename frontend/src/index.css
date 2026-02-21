@@ -748,6 +748,59 @@ body {
   color: var(--color-text-muted);
 }
 
+.source-group-title--clickable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+  transition: color 0.15s;
+}
+
+.source-group-title--clickable:hover {
+  color: var(--color-text-secondary);
+}
+
+.section-chevron {
+  font-size: 0.5rem;
+  transition: transform 0.2s ease;
+  opacity: 0.5;
+}
+
+.section-chevron--open {
+  transform: rotate(90deg);
+}
+
+/* ── Preset Profile Bar ── */
+.preset-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset-btn:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  color: var(--color-text-primary);
+}
+
 .source-group-items {
   display: grid;
   gap: 8px;

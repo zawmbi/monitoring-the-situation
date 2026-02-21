@@ -835,6 +835,78 @@ function App() {
     { id: 'settings', label: 'Settings' },
   ]);
   const dragTabRef = useRef(null);
+  // Collapsible sidebar sections — only 'live-data' open by default for a clean start
+  const [openSections, setOpenSections] = useState(new Set(['live-data']));
+  const toggleSection = (id) => setOpenSections(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  // ─── Preset Profiles ───
+  const PRESETS = [
+    {
+      id: 'clean',
+      label: 'Clean',
+      desc: 'News + protests only',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true);
+        setShowMilitaryOverlay(false); setShowRefugeePanel(false);
+        setConflictMode(false); setActiveConflicts({});
+        setElectionMode(false); setShowTariffHeatmap(false); setShowUSBases(false);
+        setShowBriefingPanel(false); setShowTensionPanel(false); setShowCountryRiskMode(false); setShowCountryRiskPanel(false); setShowNarrativePanel(false);
+        setShowHealthPanel(false); setShowCyberPanel(false); setShowCourtPanel(false); setShowSanctionsPanel(false); setShowInfrastructurePanel(false); setShowNuclearPanel(false);
+        setShowClimatePanel(false); setShowAiTechPanel(false);
+        setShowCommoditiesPanel(false); setShowShippingMode(false);
+        setShowWatchlistPanel(false); setShowDemographicPanel(false);
+        setShowRegimePanel(false); setShowAlliancePanel(false); setShowLeadershipPanel(false); setShowTimeline(false);
+        setOpenSections(new Set(['live-data']));
+      },
+    },
+    {
+      id: 'conflict',
+      label: 'Conflict',
+      desc: 'Wars, military, tensions',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true); setShowMilitaryOverlay(true); setShowRefugeePanel(true);
+        setConflictMode(true); setConflictShowTroops(true);
+        setShowTensionPanel(true); setShowCountryRiskMode(true); setShowCountryRiskPanel(true); setShowNuclearPanel(true);
+        setShowSanctionsPanel(true);
+        setOpenSections(new Set(['live-data', 'conflicts', 'intel']));
+      },
+    },
+    {
+      id: 'markets',
+      label: 'Markets',
+      desc: 'Trade, commodities, shipping',
+      apply: () => {
+        setShowTariffHeatmap(true); setShowCommoditiesPanel(true);
+        setShowShippingMode(true); setShowShippingPanel(true);
+        setShowSanctionsPanel(true);
+        setConflictMode(false); setActiveConflicts({});
+        setShowMilitaryOverlay(false);
+        setOpenSections(new Set(['live-data', 'us-politics', 'trade']));
+      },
+    },
+    {
+      id: 'everything',
+      label: 'Everything',
+      desc: 'All layers on',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true); setShowMilitaryOverlay(true); setShowRefugeePanel(true);
+        setConflictMode(true); setConflictShowTroops(true);
+        setElectionMode(true); setShowTariffHeatmap(true); setShowUSBases(true);
+        setShowBriefingPanel(true); setShowTensionPanel(true); setShowCountryRiskMode(true); setShowCountryRiskPanel(true); setShowNarrativePanel(true);
+        setShowHealthPanel(true); setShowCyberPanel(true); setShowCourtPanel(true); setShowSanctionsPanel(true); setShowInfrastructurePanel(true); setShowNuclearPanel(true);
+        setShowClimatePanel(true); setShowAiTechPanel(true);
+        setShowCommoditiesPanel(true); setShowShippingMode(true);
+        setShowWatchlistPanel(true); setShowDemographicPanel(true);
+        setShowRegimePanel(true); setShowAlliancePanel(true); setShowLeadershipPanel(true);
+        setOpenSections(new Set(['live-data', 'us-politics', 'conflicts', 'intel', 'disasters', 'env-tech', 'trade', 'migration', 'geopolitical', 'lifestyle']));
+      },
+    },
+  ];
+
   const [showTimezones, setShowTimezones] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(true);
@@ -851,7 +923,7 @@ function App() {
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
-  const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  const [conflictShowTroops, setConflictShowTroops] = useState(false);
   // ─── Additional conflict modes ───
   const [activeConflicts, setActiveConflicts] = useState({});
   const [conflictPanels, setConflictPanels] = useState({});
@@ -971,7 +1043,7 @@ function App() {
   // Stability state (protests, military, instability)
   const [stabilityMode, setStabilityMode] = useState(true);
   const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
-  const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
+  const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(false);
   const [showStabilityPanel, setShowStabilityPanel] = useState(false);
   const [showUSBases, setShowUSBases] = useState(false);
 
@@ -2605,10 +2677,23 @@ function App() {
             {/* Source Toggles */}
             {sidebarExpanded && sidebarTab === 'world' && (
               <div className="source-toggles">
+                {/* ─── Preset Profiles ─── */}
+                <div className="preset-bar">
+                  {PRESETS.map(p => (
+                    <button key={p.id} className="preset-btn" onClick={p.apply} title={p.desc}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="toggle-group-title">Layers & Sources</div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Live Data</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('live-data')}>
+                    <span>Live Data</span>
+                    <span className={`section-chevron ${openSections.has('live-data') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('live-data') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Stability Monitor</span>
@@ -2681,10 +2766,15 @@ function App() {
                       </button>
                     </div>
                   )}
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">US Politics & Economy</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('us-politics')}>
+                    <span>US Politics & Economy</span>
+                    <span className={`section-chevron ${openSections.has('us-politics') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('us-politics') && <>
                   <div className="source-group-items">
                     <label className="switch switch-elections">
                       <span className="switch-label">2026 Midterm Elections</span>
@@ -2748,10 +2838,15 @@ function App() {
                       </div>
                     </div>
                   )}
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Conflicts</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('conflicts')}>
+                    <span>Conflicts</span>
+                    <span className={`section-chevron ${openSections.has('conflicts') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('conflicts') && <>
                   <div className="source-group-items">
                     <label className="switch switch-frontline">
                       <span className="switch-label">Russia–Ukraine War</span>
@@ -2877,10 +2972,15 @@ function App() {
                       )}
                     </div>
                   ))}
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Intelligence & Forecasts</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('intel')}>
+                    <span>Intelligence & Forecasts</span>
+                    <span className={`section-chevron ${openSections.has('intel') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('intel') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Daily Briefing <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span>
@@ -2911,10 +3011,15 @@ function App() {
                       <p>{tensionData.summary?.totalConflicts || 0} active conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear flashpoints</p>
                     </div>
                   )}
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Disasters & Security</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('disasters')}>
+                    <span>Disasters & Security</span>
+                    <span className={`section-chevron ${openSections.has('disasters') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('disasters') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Health & Pandemics</span>
@@ -2947,11 +3052,15 @@ function App() {
                       <span className="slider" />
                     </label>
                   </div>
-
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Environment & Technology</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('env-tech')}>
+                    <span>Environment & Technology</span>
+                    <span className={`section-chevron ${openSections.has('env-tech') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('env-tech') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Climate & Environment</span>
@@ -2964,10 +3073,15 @@ function App() {
                       <span className="slider" />
                     </label>
                   </div>
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Trade & Commodities</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('trade')}>
+                    <span>Trade & Commodities</span>
+                    <span className={`section-chevron ${openSections.has('trade') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('trade') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Commodity Prices <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span>
@@ -2990,10 +3104,15 @@ function App() {
                       </button>
                     </div>
                   )}
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Migration & Humanitarian</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('migration')}>
+                    <span>Migration & Humanitarian</span>
+                    <span className={`section-chevron ${openSections.has('migration') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('migration') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
@@ -3006,10 +3125,15 @@ function App() {
                       <span className="slider" />
                     </label>
                   </div>
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Geopolitical Modeling</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('geopolitical')}>
+                    <span>Geopolitical Modeling</span>
+                    <span className={`section-chevron ${openSections.has('geopolitical') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('geopolitical') && <>
                   <div className="source-group-items">
                     <label className="switch switch-neutral">
                       <span className="switch-label">Regime Stability</span>
@@ -3032,10 +3156,15 @@ function App() {
                       <span className="slider" />
                     </label>
                   </div>
+                  </>}
                 </div>
 
                 <div className="source-group">
-                  <div className="source-group-title">Lifestyle & Indices</div>
+                  <div className="source-group-title source-group-title--clickable" onClick={() => toggleSection('lifestyle')}>
+                    <span>Lifestyle & Indices</span>
+                    <span className={`section-chevron ${openSections.has('lifestyle') ? 'section-chevron--open' : ''}`}>&#9654;</span>
+                  </div>
+                  {openSections.has('lifestyle') && <>
                   <div className="source-group-items">
                     {[
                       { id: 'sports', label: 'Major Sports', tone: 'neutral', disabled: true },
@@ -3048,6 +3177,7 @@ function App() {
                       </label>
                     ))}
                   </div>
+                  </>}
                 </div>
               </div>
             )}
