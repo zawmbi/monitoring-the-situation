@@ -836,7 +836,6 @@ function App() {
     { id: 'settings', label: 'Settings' },
   ]);
   const [chatOpen, setChatOpen] = useState(false);
-  const [sidebarFront, setSidebarFront] = useState(true);
   const dragTabRef = useRef(null);
   // Collapsible sidebar sections — only 'live-data' open by default for a clean start
   const [openSections, setOpenSections] = useState(new Set(['live-data']));
@@ -2608,7 +2607,7 @@ function App() {
 
       <div className="app-body">
         {/* Sidebar */}
-        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`} style={{ '--panel-opacity': panelOpacity, zIndex: sidebarFront ? 10 : 1 }}>
+        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`} style={{ '--panel-opacity': panelOpacity }}>
           <div className="sidebar-header">
             {viewMode !== 'world' && (
               <div className="sidebar-breadcrumb">
@@ -3085,14 +3084,14 @@ function App() {
               </div>
             )}
           </div>
-          {/* Eye toggle — bottom-left corner */}
+          {/* Eye indicator — bottom-left corner; shows expanded/collapsed state */}
           <button
-            className={`sidebar-eye-btn${sidebarFront ? ' sidebar-eye-front' : ''}`}
-            onClick={() => setSidebarFront(prev => !prev)}
-            title={sidebarFront ? 'Panel is in front — click to send behind' : 'Panel is behind — click to bring forward'}
-            aria-label={sidebarFront ? 'Send panel behind drawers' : 'Bring panel in front of drawers'}
+            className={`sidebar-eye-btn${sidebarExpanded ? ' sidebar-eye-front' : ''}`}
+            onClick={() => setSidebarExpanded(prev => !prev)}
+            title={sidebarExpanded ? 'Panel visible — click to collapse' : 'Panel hidden — click to expand'}
+            aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            {sidebarFront ? (
+            {sidebarExpanded ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
@@ -5027,10 +5026,7 @@ function App() {
               className={`map-autorotate-btn map-controls-collapse-btn${mapControlsCollapsed ? ' map-controls-draggable' : ''}`}
               onClick={() => {
                 if (!mapControlsDragRef.current?.dragged) {
-                  setMapControlsCollapsed(prev => {
-                    if (prev) setMapControlsPos(null); // reset position when expanding
-                    return !prev;
-                  });
+                  setMapControlsCollapsed(prev => !prev);
                 }
                 if (mapControlsDragRef.current) mapControlsDragRef.current.dragged = false;
               }}

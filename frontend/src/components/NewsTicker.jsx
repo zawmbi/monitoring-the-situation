@@ -61,7 +61,7 @@ export default function NewsTicker({ items = [], visible = true }) {
       if (!active || !contentRef.current) return;
       const halfWidth = contentRef.current.scrollWidth / 2;
       if (halfWidth > 0) {
-        offsetRef.current -= prefersReducedMotion ? 0.3 : 0.8;
+        offsetRef.current -= prefersReducedMotion ? 0.3 : 1.2;
         if (offsetRef.current <= -halfWidth) offsetRef.current += halfWidth;
         contentRef.current.style.transform = `translateX(${offsetRef.current}px)`;
       }

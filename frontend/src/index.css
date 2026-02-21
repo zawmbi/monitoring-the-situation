@@ -69,7 +69,7 @@
   --sidebar-bg: linear-gradient(180deg, rgba(3, 8, 20, var(--panel-opacity, 0.96)), rgba(4, 10, 24, var(--panel-opacity, 0.92)));
   --sidebar-border: rgba(0, 210, 255, 0.15);
   --sidebar-shadow: 4px 0 40px rgba(0, 0, 0, 0.6), 1px 0 0 rgba(0, 210, 255, 0.1);
-  --sidebar-header-bg: rgba(5, 12, 28, 0.6);
+  --sidebar-header-bg: rgba(5, 12, 28, var(--panel-opacity, 0.6));
   --toggle-bg: rgba(0, 210, 255, 0.06);
   --toggle-border: rgba(0, 210, 255, 0.2);
   --toggle-bg-hover: rgba(0, 240, 255, 0.1);
@@ -155,7 +155,7 @@
   --sidebar-bg: linear-gradient(180deg, rgba(10, 10, 14, var(--panel-opacity, 0.96)), rgba(10, 10, 16, var(--panel-opacity, 0.92)));
   --sidebar-border: rgba(140, 140, 180, 0.1);
   --sidebar-shadow: 4px 0 30px rgba(0, 0, 0, 0.4);
-  --sidebar-header-bg: rgba(16, 16, 22, 0.5);
+  --sidebar-header-bg: rgba(16, 16, 22, var(--panel-opacity, 0.5));
   --toggle-bg: rgba(128, 128, 255, 0.05);
   --toggle-border: rgba(128, 128, 255, 0.15);
   --toggle-bg-hover: rgba(96, 160, 255, 0.08);
@@ -241,7 +241,7 @@
   --sidebar-bg: linear-gradient(180deg, rgba(248, 250, 252, var(--panel-opacity, 0.97)), rgba(240, 244, 248, var(--panel-opacity, 0.94)));
   --sidebar-border: rgba(60, 80, 120, 0.12);
   --sidebar-shadow: 4px 0 30px rgba(0, 20, 60, 0.06);
-  --sidebar-header-bg: rgba(248, 250, 252, 0.8);
+  --sidebar-header-bg: rgba(248, 250, 252, var(--panel-opacity, 0.8));
   --toggle-bg: rgba(32, 96, 192, 0.05);
   --toggle-border: rgba(32, 96, 192, 0.15);
   --toggle-bg-hover: rgba(48, 128, 224, 0.08);
@@ -336,7 +336,7 @@
   --sidebar-bg: linear-gradient(180deg, rgba(14, 12, 6, var(--panel-opacity, 0.96)), rgba(18, 14, 8, var(--panel-opacity, 0.92)));
   --sidebar-border: rgba(210, 160, 60, 0.14);
   --sidebar-shadow: 4px 0 40px rgba(0, 0, 0, 0.6), 1px 0 0 rgba(210, 160, 60, 0.08);
-  --sidebar-header-bg: rgba(18, 14, 8, 0.6);
+  --sidebar-header-bg: rgba(18, 14, 8, var(--panel-opacity, 0.6));
   --toggle-bg: rgba(224, 160, 32, 0.06);
   --toggle-border: rgba(224, 160, 32, 0.18);
   --toggle-bg-hover: rgba(240, 192, 64, 0.10);
@@ -402,14 +402,11 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: row;
-  position: relative;
 }
 
 /* Sidebar Layout */
 .sidebar {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   height: 100%;
   max-height: 100%;
   background: var(--sidebar-bg);
@@ -419,7 +416,7 @@ body {
   box-shadow: var(--sidebar-shadow);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   z-index: 10;
   min-height: 0;
@@ -1066,7 +1063,6 @@ body {
   overflow: hidden;
   background: var(--map-bg);
   isolation: isolate;
-  z-index: 5;
 }
 
 /* Globe mode: force black space behind the globe regardless of theme */
@@ -1208,7 +1204,7 @@ body {
 /* Wrapper for all bottom-left map controls (draggable when collapsed) */
 .map-controls-group {
   position: absolute;
-  bottom: 52px;
+  bottom: 150px;
   left: 17px;
   z-index: 10;
   display: flex;
