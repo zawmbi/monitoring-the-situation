@@ -71,9 +71,18 @@ const MAX_JSON_BODY = '1mb';
  *   intervalMs – refresh interval in milliseconds
  *   delayMs    – staggered startup delay (0 = immediate)
  *
- * The registry replaces 30+ individual interval variables and makes
- * shutdown, health reporting, and future changes trivial.
+ * In dev mode, intervals are multiplied by DEV_INTERVAL_MULT to reduce
+ * request volume. Set WORKER_INTERVAL_MULT in .env to override (e.g. "1"
+ * for production parity, "4" for extra-quiet dev).
  */
+const DEV_INTERVAL_MULT = config.isDev
+  ? parseFloat(process.env.WORKER_INTERVAL_MULT || '3')
+  : parseFloat(process.env.WORKER_INTERVAL_MULT || '1');
+
+if (DEV_INTERVAL_MULT !== 1) {
+  console.log(`[Workers] Interval multiplier: ${DEV_INTERVAL_MULT}x (${config.isDev ? 'dev' : 'prod'})`);
+}
+
 const WORKERS = [
   // ── Tier 0: Core content (immediate startup) ──
   { name: 'content',          fn: () => aggregationService.getCombinedFeed({ refresh: true }), intervalMs: config.polling.news,    delayMs: 0 },
@@ -308,21 +317,24 @@ function startBackgroundRefresh() {
     const state = { intervalId: null, timeoutId: null, lastRun: null, lastError: null, running: false };
     workerState.set(worker.name, state);
 
+    const effectiveInterval = Math.round(worker.intervalMs * DEV_INTERVAL_MULT);
+    const effectiveDelay = Math.round(worker.delayMs * DEV_INTERVAL_MULT);
+
     if (worker.delayMs === 0) {
       // Immediate start
-      console.log(`[Worker] Starting ${worker.name} (every ${worker.intervalMs / 1000}s)`);
+      console.log(`[Worker] Starting ${worker.name} (every ${effectiveInterval / 1000}s)`);
       runWorker(worker);
     } else {
       // Delayed start
       state.timeoutId = setTimeout(() => {
-        console.log(`[Worker] Starting ${worker.name} (every ${worker.intervalMs / 1000}s)`);
+        console.log(`[Worker] Starting ${worker.name} (every ${effectiveInterval / 1000}s)`);
         runWorker(worker);
         state.timeoutId = null;
-      }, worker.delayMs);
+      }, effectiveDelay);
     }
 
     // Periodic refresh
-    state.intervalId = setInterval(() => runWorker(worker), worker.intervalMs);
+    state.intervalId = setInterval(() => runWorker(worker), effectiveInterval);
   }
 
   // Timeseries snapshots — piggyback on tension index refresh

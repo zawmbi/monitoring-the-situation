@@ -5,25 +5,33 @@
  * coordination, causing HTTP 429 (Too Many Requests) errors.
  *
  * Solution: A single request queue with:
- *   - Max 3 concurrent requests
- *   - 250ms minimum gap between request starts
+ *   - Max concurrent requests (1 in dev, 3 in prod)
+ *   - Minimum gap between request starts
  *   - Automatic retry with exponential backoff on 429
  *   - Request deduplication (same URL within TTL returns cached result)
  *   - Circuit breaker: stops sending after repeated 429s, auto-recovers
  *   - Queue drain on circuit trip (resolves waiting items with empty data)
+ *
+ * Tuning: Set GDELT_DEV_MODE=true in .env for conservative dev-friendly
+ * limits (1 concurrent, 800ms gap). For production, leave it unset or
+ * use the individual GDELT_MAX_CONCURRENT / GDELT_MIN_GAP_MS overrides.
  */
 
 const GDELT_DOC_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc';
-const FETCH_TIMEOUT = 12000;
 
-// ── Rate limiter config ───────────────────────────────────────────────────
-const MAX_CONCURRENT = 3;          // Max in-flight GDELT requests
-const MIN_GAP_MS = 250;            // Minimum ms between request starts
-const RETRY_MAX = 3;               // Max retries on 429
-const RETRY_BASE_MS = 1500;        // First retry delay
-const CIRCUIT_THRESHOLD = 15;      // Trip circuit after N consecutive 429s
-const CIRCUIT_RESET_MS = 30000;    // Re-open circuit after 30s
-const DEDUP_TTL_MS = 30000;        // Deduplicate identical URLs within 30s
+// ── Environment-aware config ─────────────────────────────────────────────
+const IS_DEV_MODE = (process.env.GDELT_DEV_MODE || process.env.NODE_ENV || 'development') !== 'production';
+
+const FETCH_TIMEOUT  = parseInt(process.env.GDELT_FETCH_TIMEOUT  || (IS_DEV_MODE ? '15000' : '12000'), 10);
+const MAX_CONCURRENT = parseInt(process.env.GDELT_MAX_CONCURRENT || (IS_DEV_MODE ? '1'     : '3'),     10);
+const MIN_GAP_MS     = parseInt(process.env.GDELT_MIN_GAP_MS     || (IS_DEV_MODE ? '800'   : '250'),   10);
+const RETRY_MAX      = parseInt(process.env.GDELT_RETRY_MAX      || '2',                                10);
+const RETRY_BASE_MS  = parseInt(process.env.GDELT_RETRY_BASE_MS  || (IS_DEV_MODE ? '3000'  : '1500'),  10);
+const CIRCUIT_THRESHOLD = parseInt(process.env.GDELT_CIRCUIT_THRESHOLD || (IS_DEV_MODE ? '5' : '15'),   10);
+const CIRCUIT_RESET_MS  = parseInt(process.env.GDELT_CIRCUIT_RESET_MS  || (IS_DEV_MODE ? '60000' : '30000'), 10);
+const DEDUP_TTL_MS      = parseInt(process.env.GDELT_DEDUP_TTL_MS      || (IS_DEV_MODE ? '60000' : '30000'), 10);
+
+console.log(`[GDELT] Mode: ${IS_DEV_MODE ? 'DEV' : 'PROD'} | concurrent=${MAX_CONCURRENT} gap=${MIN_GAP_MS}ms timeout=${FETCH_TIMEOUT}ms circuit=${CIRCUIT_THRESHOLD}/${CIRCUIT_RESET_MS}ms`);
 
 // ── State ─────────────────────────────────────────────────────────────────
 let inFlight = 0;
