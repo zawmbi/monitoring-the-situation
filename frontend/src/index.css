@@ -616,6 +616,37 @@ body {
   outline-offset: 2px;
 }
 
+.sidebar-layer-btn {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.sidebar-layer-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  opacity: 1;
+}
+
+.sidebar-layer-btn.sidebar-layer-front {
+  color: var(--color-accent);
+  opacity: 0.8;
+}
+
+.sidebar-layer-btn.sidebar-layer-front:hover {
+  opacity: 1;
+}
+
 .sidebar-logo {
   display: flex;
   align-items: center;
