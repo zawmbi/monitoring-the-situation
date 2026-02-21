@@ -1225,9 +1225,6 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               )}
             </div>
 
-            {/* Market-derived probability (live) */}
-            <MarketProbBar race={activeRace} />
-
             {/* Incumbent info */}
             <div className="el-incumbent-row">
               <span className="el-incumbent-label">
@@ -1253,6 +1250,9 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             {/* Market data display */}
             {electionView === 'general' && (
               <>
+                {/* Market-derived probability (live) */}
+                <MarketProbBar race={activeRace} />
+
                 {/* Market candidate odds */}
                 {activeRace.marketOutcomes && activeRace.marketOutcomes.length > 0 && (
                   <MarketOutcomes

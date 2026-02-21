@@ -333,13 +333,12 @@ class ElectionLiveService {
     if (isPrimary) {
       if (!/\bprimary\b/.test(text)) return 0;
       const hasParty = primaryParty === 'r'
-        ? /\brepublican\b|\bgop\b|\brep\b/.test(text)
-        : /\bdemocrat\b|\bdem\b|\bdfl\b/.test(text);
+        ? /\brepublican|\bgop\b|\brep\b/.test(text)
+        : /\bdemocrat|\bdem\b|\bdfl\b/.test(text);
       if (!hasParty) return 0;
     } else {
-      // General election markets should NOT be primary-specific
-      // (skip markets that are clearly about a primary for general race matching)
-      if (/\bprimary\b/.test(text) && (/\brepublican\b|\bdemocrat\b|\bgop\b/.test(text))) return 0;
+      // General election markets should NOT mention "primary" at all
+      if (/\bprimary\b/.test(text)) return 0;
     }
 
     if (baseType === 'house' && districtNum != null) {
@@ -386,7 +385,7 @@ class ElectionLiveService {
 
     for (const o of outcomes) {
       const name = normalizeText(o.name || '');
-      if (/republican|rep\b|gop|red/.test(name) && o.price != null) return 1 - o.price;
+      if (/\brepublican|\brep\b|\bgop\b|\bred\b/.test(name) && o.price != null) return 1 - o.price;
     }
 
     return null;
