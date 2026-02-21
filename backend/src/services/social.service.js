@@ -1,6 +1,6 @@
 /**
  * Social Media Service
- * Handles Twitter/X and Reddit integrations
+ * Handles Twitter/X, Reddit, BlueSky, TruthSocial, and Instagram integrations
  */
 
 import config from '../config/index.js';
@@ -14,12 +14,19 @@ const CACHE_KEYS = {
   tweetsByUser: (user) => `social:tweets:${user}`,
   reddit: 'social:reddit',
   redditBySub: (sub) => `social:reddit:${sub}`,
+  bluesky: 'social:bluesky',
+  blueskyByUser: (user) => `social:bluesky:${user}`,
+  truthsocial: 'social:truthsocial',
+  instagram: 'social:instagram',
 };
 
 class SocialService {
   constructor() {
     this.hasTwitter = Boolean(config.twitter.enabled && config.twitter.bearerToken);
     this.hasReddit = Boolean(config.reddit.clientId && config.reddit.clientSecret);
+    this.hasBluesky = Boolean(config.bluesky?.enabled);
+    this.hasTruthSocial = Boolean(config.truthSocial?.enabled);
+    this.hasInstagram = Boolean(config.instagram?.accessToken);
   }
 
   // ==========================================
@@ -191,6 +198,287 @@ class SocialService {
       repliesCount: post.num_comments || 0,
       fetchedAt: new Date().toISOString(),
     };
+  }
+
+  // ==========================================
+  // BLUESKY (AT Protocol — public, no auth required)
+  // ==========================================
+
+  /**
+   * Fetch posts from a BlueSky account via public AT Protocol API
+   * Free tier: no auth needed for public reads; rate limit ~3000 req/5min
+   */
+  async fetchBlueskyPosts(handle) {
+    try {
+      // Resolve handle to DID
+      const resolveRes = await fetch(
+        `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
+      );
+      if (!resolveRes.ok) {
+        console.warn(`[BlueSky] Could not resolve handle ${handle}: ${resolveRes.status}`);
+        return [];
+      }
+      const { did } = await resolveRes.json();
+
+      // Fetch author feed
+      const feedRes = await fetch(
+        `https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(did)}&limit=15&filter=posts_no_replies`
+      );
+      if (!feedRes.ok) {
+        console.warn(`[BlueSky] Feed fetch failed for ${handle}: ${feedRes.status}`);
+        return [];
+      }
+      const feedData = await feedRes.json();
+      return (feedData.feed || []).map(item => this.normalizeBlueskyPost(item, handle));
+    } catch (err) {
+      console.error(`[BlueSky] Error fetching ${handle}:`, err.message);
+      return [];
+    }
+  }
+
+  normalizeBlueskyPost(item, fallbackHandle) {
+    const post = item.post;
+    const record = post?.record || {};
+    const author = post?.author || {};
+    const uri = post?.uri || '';
+    // Convert at:// URI to web URL
+    const rkey = uri.split('/').pop();
+    const webUrl = `https://bsky.app/profile/${author.handle || fallbackHandle}/post/${rkey}`;
+
+    return {
+      id: `bsky-${post?.cid || rkey}`,
+      contentType: 'bluesky_post',
+      source: 'bluesky',
+      sourceName: 'BlueSky',
+      title: null,
+      content: record.text || '',
+      summary: (record.text || '').substring(0, 200),
+      url: webUrl,
+      imageUrl: post?.embed?.images?.[0]?.thumb || null,
+      author: author.displayName || author.handle || fallbackHandle,
+      authorHandle: `@${author.handle || fallbackHandle}`,
+      authorAvatarUrl: author.avatar || null,
+      publishedAt: record.createdAt || post?.indexedAt || new Date().toISOString(),
+      likesCount: post?.likeCount || 0,
+      retweetsCount: post?.repostCount || 0,
+      repliesCount: post?.replyCount || 0,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  async getBlueskyPosts() {
+    if (!this.hasBluesky) return [];
+
+    const cacheKey = CACHE_KEYS.bluesky;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const accounts = config.bluesky?.accounts || [];
+    const allPosts = [];
+    for (const handle of accounts) {
+      const posts = await this.fetchBlueskyPosts(handle);
+      allPosts.push(...posts);
+    }
+    allPosts.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    await cacheService.set(cacheKey, allPosts, config.cache.tweets);
+    return allPosts;
+  }
+
+  // ==========================================
+  // TRUTH SOCIAL (public RSS feeds)
+  // ==========================================
+
+  /**
+   * Fetch TruthSocial posts via public RSS proxy
+   * Uses a public RSS bridge since TruthSocial has no official API
+   * Rate limits depend on the bridge service used
+   */
+  async fetchTruthSocialPosts(username) {
+    // TruthSocial doesn't have an official API — use their public pages
+    // which serve JSON-LD or fall back to RSS bridge
+    try {
+      const feedUrl = config.truthSocial?.rssBridgeUrl
+        ? `${config.truthSocial.rssBridgeUrl}?action=display&bridge=TruthSocialBridge&context=By+username&username=${encodeURIComponent(username)}&format=Json`
+        : `https://truthsocial.com/api/v1/accounts/lookup?acct=${encodeURIComponent(username)}`;
+
+      const res = await fetch(feedUrl, {
+        headers: { 'User-Agent': 'monitr/1.0' },
+      });
+      if (!res.ok) {
+        console.warn(`[TruthSocial] Fetch failed for ${username}: ${res.status}`);
+        return [];
+      }
+
+      // If using Mastodon-compatible API (TruthSocial is a Mastodon fork)
+      if (!config.truthSocial?.rssBridgeUrl) {
+        const account = await res.json();
+        if (!account?.id) return [];
+
+        const statusesRes = await fetch(
+          `https://truthsocial.com/api/v1/accounts/${account.id}/statuses?limit=15&exclude_replies=true`,
+          { headers: { 'User-Agent': 'monitr/1.0' } }
+        );
+        if (!statusesRes.ok) return [];
+        const statuses = await statusesRes.json();
+        return (Array.isArray(statuses) ? statuses : []).map(s => this.normalizeTruthSocialPost(s, username));
+      }
+
+      // RSS bridge JSON format
+      const data = await res.json();
+      return (data.items || []).map(item => ({
+        id: `truth-${item.id || Date.now()}`,
+        contentType: 'truthsocial_post',
+        source: 'truthsocial',
+        sourceName: 'Truth Social',
+        title: null,
+        content: item.content_text || item.title || '',
+        summary: (item.content_text || item.title || '').substring(0, 200),
+        url: item.url || `https://truthsocial.com/@${username}`,
+        imageUrl: item.image || null,
+        author: username,
+        authorHandle: `@${username}`,
+        authorAvatarUrl: null,
+        publishedAt: item.date_published || new Date().toISOString(),
+        likesCount: 0,
+        retweetsCount: 0,
+        repliesCount: 0,
+        fetchedAt: new Date().toISOString(),
+      }));
+    } catch (err) {
+      console.error(`[TruthSocial] Error fetching ${username}:`, err.message);
+      return [];
+    }
+  }
+
+  normalizeTruthSocialPost(status, fallbackUsername) {
+    // Strip HTML tags from content
+    const text = (status.content || '').replace(/<[^>]+>/g, '');
+    return {
+      id: `truth-${status.id}`,
+      contentType: 'truthsocial_post',
+      source: 'truthsocial',
+      sourceName: 'Truth Social',
+      title: null,
+      content: text,
+      summary: text.substring(0, 200),
+      url: status.url || `https://truthsocial.com/@${fallbackUsername}/${status.id}`,
+      imageUrl: status.media_attachments?.[0]?.preview_url || null,
+      author: status.account?.display_name || fallbackUsername,
+      authorHandle: `@${status.account?.username || fallbackUsername}`,
+      authorAvatarUrl: status.account?.avatar || null,
+      publishedAt: status.created_at || new Date().toISOString(),
+      likesCount: status.favourites_count || 0,
+      retweetsCount: status.reblogs_count || 0,
+      repliesCount: status.replies_count || 0,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  async getTruthSocialPosts() {
+    if (!this.hasTruthSocial) return [];
+
+    const cacheKey = CACHE_KEYS.truthsocial;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const accounts = config.truthSocial?.accounts || [];
+    const allPosts = [];
+    for (const username of accounts) {
+      const posts = await this.fetchTruthSocialPosts(username);
+      allPosts.push(...posts);
+    }
+    allPosts.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    await cacheService.set(cacheKey, allPosts, config.cache.tweets);
+    return allPosts;
+  }
+
+  // ==========================================
+  // INSTAGRAM (Meta Graph API)
+  // ==========================================
+
+  /**
+   * Fetch Instagram posts via Meta Graph API
+   * Requires Instagram Basic Display API or Instagram Graph API token
+   * Free tier: 200 calls/user/hour (Basic Display), 200 calls/hour (Graph API)
+   */
+  async fetchInstagramPosts() {
+    if (!this.hasInstagram) return [];
+
+    try {
+      const token = config.instagram.accessToken;
+      // Instagram Basic Display API — fetch user's own media
+      const res = await fetch(
+        `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=15&access_token=${encodeURIComponent(token)}`
+      );
+      if (!res.ok) {
+        console.warn(`[Instagram] API error: ${res.status}`);
+        return [];
+      }
+      const data = await res.json();
+      return (data.data || []).map(post => this.normalizeInstagramPost(post));
+    } catch (err) {
+      console.error('[Instagram] Error:', err.message);
+      return [];
+    }
+  }
+
+  normalizeInstagramPost(post) {
+    return {
+      id: `ig-${post.id}`,
+      contentType: 'instagram_post',
+      source: 'instagram',
+      sourceName: 'Instagram',
+      title: null,
+      content: post.caption || '',
+      summary: (post.caption || '').substring(0, 200),
+      url: post.permalink,
+      imageUrl: post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url,
+      author: null,
+      authorHandle: null,
+      authorAvatarUrl: null,
+      publishedAt: post.timestamp || new Date().toISOString(),
+      likesCount: post.like_count || 0,
+      repliesCount: post.comments_count || 0,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  async getInstagramPosts() {
+    if (!this.hasInstagram) return [];
+
+    const cacheKey = CACHE_KEYS.instagram;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const posts = await this.fetchInstagramPosts();
+    await cacheService.set(cacheKey, posts, config.cache.tweets);
+    return posts;
+  }
+
+  // ==========================================
+  // COMBINED SOCIAL FEED
+  // ==========================================
+
+  /**
+   * Get all social posts from all enabled platforms
+   */
+  async getAllSocialPosts() {
+    const results = await Promise.allSettled([
+      this.getTweets(),
+      this.getRedditPosts(),
+      this.getBlueskyPosts(),
+      this.getTruthSocialPosts(),
+      this.getInstagramPosts(),
+    ]);
+
+    const all = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        all.push(...r.value);
+      }
+    }
+    all.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    return all;
   }
 
   // ==========================================

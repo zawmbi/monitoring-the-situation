@@ -1898,6 +1898,11 @@ function App() {
       const name = feat.properties?.name || 'Unknown';
       const originalId = feat.properties?.originalId;
 
+      // Auto-pause globe rotation when user clicks into a region
+      if (sourceId && autoRotateRef.current) {
+        setAutoRotate(false);
+      }
+
       if (sourceId === 'countries') {
         setSelectedRegion({ type: 'country', id: originalId, name });
         setViewMode('region');
@@ -2171,10 +2176,15 @@ function App() {
     // Stop any in-progress animation so flyTo takes effect immediately
     map.stop();
 
-    // Zoom to click location at a country-detail level
+    // Auto-pause globe rotation on double-click zoom
+    if (autoRotateRef.current) {
+      setAutoRotate(false);
+    }
+
+    // Zoom to click location — country-overview level (not too close)
     map.flyTo({
       center: [event.lngLat.lng, event.lngLat.lat],
-      zoom: 6,
+      zoom: 4,
       duration: 1000,
       essential: true,
     });

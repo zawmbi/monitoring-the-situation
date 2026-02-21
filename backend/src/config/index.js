@@ -110,6 +110,30 @@ export const config = {
     subreddits: (process.env.REDDIT_SUBREDDITS || 'news,worldnews,technology').split(','),
   },
 
+  // BlueSky (AT Protocol)
+  bluesky: {
+    enabled: (process.env.BLUESKY_ENABLED || 'true').toLowerCase() === 'true',
+    accounts: (process.env.BLUESKY_ACCOUNTS || 'ap.bsky.social,reuters.bsky.social,bbc.bsky.social,nytimes.bsky.social,washingtonpost.bsky.social')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
+  },
+
+  // Truth Social (Mastodon-compatible API)
+  truthSocial: {
+    enabled: (process.env.TRUTHSOCIAL_ENABLED || 'false').toLowerCase() === 'true',
+    accounts: (process.env.TRUTHSOCIAL_ACCOUNTS || 'realDonaldTrump')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
+    rssBridgeUrl: process.env.TRUTHSOCIAL_RSS_BRIDGE_URL || '',
+  },
+
+  // Instagram (Meta Graph API)
+  instagram: {
+    accessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
+  },
+
   // RSS Feeds
   rssFeeds: (process.env.RSS_FEEDS || '').split(',').filter(Boolean),
 
