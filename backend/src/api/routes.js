@@ -1032,10 +1032,10 @@ router.get('/congress/votes', async (req, res) => {
 router.get('/stability', async (req, res) => {
   try {
     const data = await stabilityService.getCombinedData();
-    res.json({ success: true, data, timestamp: new Date().toISOString() });
+    if (!res.headersSent) res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[API] Stability error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
+    if (!res.headersSent) res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
   }
 });
 

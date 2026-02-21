@@ -249,6 +249,7 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error('[Error]', err);
+  if (res.headersSent) return next(err);
   res.status(500).json({
     error: 'Internal server error',
     message: config.isDev ? err.message : undefined,
