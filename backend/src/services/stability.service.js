@@ -1,14 +1,11 @@
 /**
  * Stability Service
  * Aggregates global protest/unrest, military movement, and political instability data
- * Sources: GDELT Project (free, no API key), Google News RSS
+ * Sources: GDELT Project (free, no API key)
  */
 
 import { cacheService } from './cache.service.js';
 import { fetchGDELT as gdeltFetch } from './gdelt.client.js';
-import Parser from 'rss-parser';
-
-const parser = new Parser({ timeout: 10000, maxRedirects: 3 });
 
 const CACHE_TTL = 600; // 10 minutes
 
@@ -49,23 +46,6 @@ const COUNTRY_COORDS = {
   ZW: [-19.02, 29.15],
 };
 
-// ─── Google News RSS search ───
-async function fetchGoogleNewsRSS(query, maxItems = 30) {
-  try {
-    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`;
-    const feed = await parser.parseURL(url);
-    return (feed.items || []).slice(0, maxItems).map((item) => ({
-      title: item.title || '',
-      link: item.link || '',
-      pubDate: item.pubDate || item.isoDate || '',
-      source: (item.title || '').split(' - ').pop()?.trim() || 'Google News',
-    }));
-  } catch (err) {
-    console.warn(`[Stability] RSS fetch failed for "${query}":`, err.message);
-    return [];
-  }
-}
-
 // ─── GDELT Doc API fetch (via shared rate-limited client) ───
 async function fetchGDELT(query, maxRecords = 75, timespan = '7d') {
   return gdeltFetch(query, { maxRecords, timespan, caller: 'Stability' });
@@ -94,13 +74,7 @@ function resolveCountryCode(sourcecountry) {
 
 // ─── Build protest / unrest data ───
 async function fetchProtestData() {
-  const [gdeltArticles, rssArticles] = await Promise.allSettled([
-    fetchGDELT('protest OR unrest OR demonstration OR riot OR strike action', 100, '14d'),
-    fetchGoogleNewsRSS('protest unrest demonstration worldwide', 40),
-  ]);
-
-  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
-  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+  const articles = await fetchGDELT('protest OR unrest OR demonstration OR riot OR strike action', 100, '14d');
 
   // Aggregate by country from GDELT
   const countryHeat = {};
@@ -121,7 +95,7 @@ async function fetchProtestData() {
     }
   }
 
-  // Convert to heatmap points
+  // Convert to heatmap points with raw counts (no intensity scoring)
   const heatmapPoints = Object.entries(countryHeat).map(([code, data]) => {
     const [lat, lon] = COUNTRY_COORDS[code];
     return {
@@ -129,8 +103,6 @@ async function fetchProtestData() {
       countryCode: code,
       lat,
       lon,
-      // Logarithmic scaling: 1 article→1, 3→3, 10→5, 30→7, 80+→10
-      intensity: Math.min(10, Math.max(1, Math.round(2.0 * Math.log2(data.count + 1)))),
       count: data.count,
       articles: data.articles,
     };
@@ -139,20 +111,14 @@ async function fetchProtestData() {
   return {
     heatmapPoints,
     totalArticles: articles.length,
-    newsHeadlines: rss.slice(0, 20),
+    dataSource: 'GDELT Doc API',
     lastUpdated: new Date().toISOString(),
   };
 }
 
 // ─── Build military movement data ───
 async function fetchMilitaryData() {
-  const [gdeltArticles, rssArticles] = await Promise.allSettled([
-    fetchGDELT('military deployment OR troop movement OR naval exercise OR military buildup OR military drill', 100, '14d'),
-    fetchGoogleNewsRSS('military movement deployment exercise buildup', 40),
-  ]);
-
-  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
-  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+  const articles = await fetchGDELT('military deployment OR troop movement OR naval exercise OR military buildup OR military drill', 100, '14d');
 
   const countryMil = {};
   for (const article of articles) {
@@ -174,14 +140,12 @@ async function fetchMilitaryData() {
 
   const indicators = Object.entries(countryMil).map(([code, data]) => {
     const [lat, lon] = COUNTRY_COORDS[code];
-    const severity = data.count > 15 ? 'critical' : data.count > 8 ? 'high' : data.count > 3 ? 'elevated' : 'low';
     return {
       id: `mil-${code}`,
       countryCode: code,
       lat,
       lon,
       count: data.count,
-      severity,
       articles: data.articles,
     };
   });
@@ -189,20 +153,14 @@ async function fetchMilitaryData() {
   return {
     indicators,
     totalArticles: articles.length,
-    newsHeadlines: rss.slice(0, 20),
+    dataSource: 'GDELT Doc API',
     lastUpdated: new Date().toISOString(),
   };
 }
 
 // ─── Build instability alerts ───
 async function fetchInstabilityData() {
-  const [gdeltArticles, rssArticles] = await Promise.allSettled([
-    fetchGDELT('assassination OR coup OR regime change OR political crisis OR martial law OR political instability', 100, '14d'),
-    fetchGoogleNewsRSS('assassination coup regime change political crisis', 40),
-  ]);
-
-  const articles = gdeltArticles.status === 'fulfilled' ? gdeltArticles.value : [];
-  const rss = rssArticles.status === 'fulfilled' ? rssArticles.value : [];
+  const articles = await fetchGDELT('assassination OR coup OR regime change OR political crisis OR martial law OR political instability', 100, '14d');
 
   const countryAlerts = {};
   for (const article of articles) {
@@ -222,26 +180,13 @@ async function fetchInstabilityData() {
     }
   }
 
-  // Classify alert type based on article text
-  function classifyAlert(articles) {
-    const text = articles.map((a) => a.title).join(' ').toLowerCase();
-    if (text.includes('assassinat')) return 'assassination';
-    if (text.includes('coup')) return 'coup';
-    if (text.includes('martial law')) return 'martial_law';
-    if (text.includes('regime')) return 'regime_change';
-    return 'political_crisis';
-  }
-
   const alerts = Object.entries(countryAlerts).map(([code, data]) => {
     const [lat, lon] = COUNTRY_COORDS[code];
-    const severity = data.count > 12 ? 'critical' : data.count > 6 ? 'high' : data.count > 2 ? 'elevated' : 'moderate';
     return {
       id: `alert-${code}`,
       countryCode: code,
       lat,
       lon,
-      type: classifyAlert(data.articles),
-      severity,
       count: data.count,
       articles: data.articles,
     };
@@ -253,7 +198,7 @@ async function fetchInstabilityData() {
   return {
     alerts,
     totalArticles: articles.length,
-    newsHeadlines: rss.slice(0, 20),
+    dataSource: 'GDELT Doc API',
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -366,6 +311,7 @@ async function fetchFleetPositions() {
 
   return {
     positions,
+    dataSource: 'GDELT Doc API',
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -426,10 +372,11 @@ export const stabilityService = {
     ]);
 
     const data = {
-      protests: protests.status === 'fulfilled' ? protests.value : { heatmapPoints: [], newsHeadlines: [], totalArticles: 0 },
-      military: military.status === 'fulfilled' ? military.value : { indicators: [], newsHeadlines: [], totalArticles: 0 },
-      instability: instability.status === 'fulfilled' ? instability.value : { alerts: [], newsHeadlines: [], totalArticles: 0 },
+      protests: protests.status === 'fulfilled' ? protests.value : { heatmapPoints: [], totalArticles: 0 },
+      military: military.status === 'fulfilled' ? military.value : { indicators: [], totalArticles: 0 },
+      instability: instability.status === 'fulfilled' ? instability.value : { alerts: [], totalArticles: 0 },
       fleet: fleet.status === 'fulfilled' ? fleet.value : { positions: {} },
+      dataSource: 'GDELT Doc API',
       lastUpdated: new Date().toISOString(),
     };
 

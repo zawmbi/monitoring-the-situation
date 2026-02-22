@@ -31,9 +31,12 @@ function getGlobeScreenRadius(map) {
 
 /**
  * EarthOverlay — renders:
- *  • Starfield canvas   (white dots masked to only show in "space")
- *  • Atmosphere halo     (uniform blue box-shadow ring around the globe edge)
+ *  • Atmosphere halo     (themed glow ring around the globe edge)
  *  • Scan-line animation
+ *
+ * The halo div is always mounted when the globe is active so the radius-
+ * tracking effect keeps the ref stable. Visibility is toggled via the
+ * `earthGlow` prop to avoid losing state on unmount/remount.
  */
 export default function EarthOverlay({ useGlobe = false, earthGlow = true, map = null }) {
   const haloRef = useRef(null);
@@ -65,12 +68,12 @@ export default function EarthOverlay({ useGlobe = false, earthGlow = true, map =
 
   return (
     <>
-      {/* Atmosphere halo — uniform blue glow ring via box-shadow */}
-      {useGlobe && earthGlow && (
+      {/* Atmosphere halo — always mounted when globe active, visibility via earthGlow */}
+      {useGlobe && (
         <div
           ref={haloRef}
           className="globe-halo-ring"
-          style={{ display: 'none' }}
+          style={{ display: earthGlow ? undefined : 'none' }}
           aria-hidden="true"
         />
       )}

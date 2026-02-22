@@ -40,7 +40,7 @@ export const NAV_PAGES = [
       {
         title: 'Send feedback to',
         items: [
-          'feedback@monitored.local',
+          'feedback@monitr.xyz',
           'Use a short subject line for faster routing',
         ],
       },
@@ -54,14 +54,14 @@ export const NAV_PAGES = [
       {
         title: 'General',
         items: [
-          'hello@monitored.local',
+          'hello@monitr.xyz',
           'Expected response: 1-2 business days',
         ],
       },
       {
         title: 'Enterprise',
         items: [
-          'enterprise@monitored.local',
+          'enterprise@monitr.xyz',
           'Private feeds, alerting, and custom SLAs',
         ],
       },
@@ -70,7 +70,7 @@ export const NAV_PAGES = [
   {
     id: 'about',
     label: 'About',
-    summary: 'Monitoring The Situation is a live intelligence map.',
+    summary: 'monitr is a live intelligence map.',
     sections: [
       {
         title: 'Mission',

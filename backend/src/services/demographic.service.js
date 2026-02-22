@@ -1,7 +1,7 @@
 /**
- * Demographic Risk Analysis Service
- * Fetches population, age structure, urbanization, and migration data from
- * the World Bank Indicators API (v2) and computes demographic risk scores.
+ * Demographic Data Service
+ * Fetches raw population, age structure, urbanization, and migration data from
+ * the World Bank Indicators API (v2). Pure data passthrough — no derived risk scores.
  *
  * API: https://api.worldbank.org/v2/  (no key required)
  * License: CC BY 4.0 — free for commercial use with attribution.
@@ -22,7 +22,6 @@
  */
 
 import { cacheService } from './cache.service.js';
-import { worldBankService } from './worldbank.service.js';
 
 const WB_BASE = 'https://api.worldbank.org/v2/country';
 
@@ -190,17 +189,6 @@ async function fetchSingleIndicator(iso2, indicatorCode) {
 }
 
 /**
- * Classify risk level from a numeric 0-100 score.
- */
-function classifyRiskLevel(score) {
-  if (score >= 75) return 'critical';
-  if (score >= 55) return 'high';
-  if (score >= 35) return 'elevated';
-  if (score >= 20) return 'moderate';
-  return 'low';
-}
-
-/**
  * Round to one decimal place.
  */
 function round1(n) {
@@ -212,7 +200,7 @@ function round1(n) {
 class DemographicService {
   /**
    * Fetch all demographic indicators for a single country.
-   * Returns a structured profile object.
+   * Returns a structured profile object with raw World Bank data.
    */
   async fetchDemographicProfile(iso2) {
     const cacheKey = `${CACHE_PREFIX}:profile:${iso2}`;
@@ -246,9 +234,9 @@ class DemographicService {
       }
     });
 
-    // If we got zero indicators from the API, fall back entirely
+    // If we got fewer than 3 indicators from the API, fall back
     const fallback = FALLBACK_PROFILES[iso2] || {};
-    const useFallback = fetchedCount < 3; // Use fallback if less than 3 indicators succeeded
+    const useFallback = fetchedCount < 3;
 
     const profile = {
       country: countryName,
@@ -264,12 +252,9 @@ class DemographicService {
       youthUnemployment: round1(rawValues.youthUnemployment ?? fallback.youthUnemployment) ?? null,
       density:           round1(rawValues.density ?? fallback.density) ?? null,
       netMigration:      rawValues.netMigration ?? fallback.netMigration ?? null,
-      dataSource:        useFallback ? 'fallback' : 'api',
+      dataSource:        useFallback ? 'fallback (World Bank approximate figures)' : 'World Bank Indicators API v2',
       fetchedIndicators: fetchedCount,
     };
-
-    // Compute risk
-    profile.risk = this.computeDemographicRisk(profile);
 
     // Cache the result
     try {
@@ -282,134 +267,8 @@ class DemographicService {
   }
 
   /**
-   * Compute a demographic risk score (0-100) from a country profile.
-   * Returns { score, level, factors }.
-   *
-   * Risk factors:
-   *   - Youth bulge (high 0-14% → instability risk)
-   *   - Aging crisis (high 65+% with low fertility → economic pressure)
-   *   - Youth unemployment (>25% → high unrest risk)
-   *   - Rapid urbanization (high urban% with high growth → infrastructure pressure)
-   *   - Negative net migration (brain drain risk)
-   *   - Very high population density (resource pressure)
-   *   - High population growth (>2.5% → sustainability risk)
-   */
-  computeDemographicRisk(profile) {
-    let score = 0;
-    const factors = [];
-
-    // 1. Youth bulge factor: high 0-14 population % = instability risk
-    if (profile.youthPct != null && profile.youthPct > 35) {
-      const contribution = Math.min(15, Math.round(((profile.youthPct - 35) / 15) * 15));
-      score += contribution;
-      factors.push({
-        name: 'Youth bulge',
-        contribution,
-        value: `${profile.youthPct}% under 14`,
-        description: 'Large youth population increases social instability pressure',
-      });
-    }
-
-    // 2. Aging crisis: high 65+ with low fertility = economic pressure
-    if (profile.elderlyPct != null && profile.elderlyPct > 15 &&
-        profile.fertilityRate != null && profile.fertilityRate < 1.8) {
-      const agingSeverity = (profile.elderlyPct - 15) / 15; // 0-1 scale
-      const fertilitySeverity = (1.8 - profile.fertilityRate) / 1.0; // 0-1 scale
-      const contribution = Math.min(10, Math.round((agingSeverity + fertilitySeverity) * 5));
-      score += contribution;
-      factors.push({
-        name: 'Aging crisis',
-        contribution,
-        value: `${profile.elderlyPct}% over 65, fertility ${profile.fertilityRate}`,
-        description: 'Aging population with low fertility creates economic pressure',
-      });
-    }
-
-    // 3. Youth unemployment: >25% = high unrest risk
-    if (profile.youthUnemployment != null && profile.youthUnemployment > 15) {
-      const severity = (profile.youthUnemployment - 15) / 45; // normalize 15-60 range
-      const contribution = Math.min(20, Math.round(severity * 20));
-      score += contribution;
-      factors.push({
-        name: 'Youth unemployment',
-        contribution,
-        value: `${profile.youthUnemployment}%`,
-        description: profile.youthUnemployment > 25
-          ? 'Critical youth unemployment levels increase unrest risk'
-          : 'Elevated youth unemployment is a destabilizing factor',
-      });
-    }
-
-    // 4. Rapid urbanization: high urban growth = infrastructure pressure
-    if (profile.urbanPct != null && profile.popGrowth != null) {
-      const urbanGrowthProxy = profile.popGrowth * (profile.urbanPct / 100);
-      if (urbanGrowthProxy > 1.5) {
-        const contribution = Math.min(10, Math.round(((urbanGrowthProxy - 1.5) / 2) * 10));
-        score += contribution;
-        factors.push({
-          name: 'Rapid urbanization',
-          contribution,
-          value: `${profile.urbanPct}% urban, ${profile.popGrowth}% growth`,
-          description: 'Rapid urban growth strains infrastructure and services',
-        });
-      }
-    }
-
-    // 5. Negative net migration: brain drain risk
-    if (profile.netMigration != null && profile.netMigration < -100000) {
-      const severity = Math.min(1, Math.abs(profile.netMigration) / 2000000);
-      const contribution = Math.min(10, Math.round(severity * 10));
-      score += contribution;
-      factors.push({
-        name: 'Brain drain',
-        contribution,
-        value: `Net migration: ${(profile.netMigration / 1000).toFixed(0)}K`,
-        description: 'Significant outward migration indicates brain drain',
-      });
-    }
-
-    // 6. Very high population density: resource pressure
-    if (profile.density != null && profile.density > 400) {
-      const severity = Math.min(1, (profile.density - 400) / 1000);
-      const contribution = Math.min(10, Math.round(severity * 10));
-      score += contribution;
-      factors.push({
-        name: 'Population density',
-        contribution,
-        value: `${profile.density} per km²`,
-        description: 'Very high population density increases resource competition',
-      });
-    }
-
-    // 7. High population growth (>2.5%): sustainability risk
-    if (profile.popGrowth != null && profile.popGrowth > 2.5) {
-      const severity = Math.min(1, (profile.popGrowth - 2.5) / 2);
-      const contribution = Math.min(10, Math.round(severity * 10));
-      score += contribution;
-      factors.push({
-        name: 'Rapid population growth',
-        contribution,
-        value: `${profile.popGrowth}% annual`,
-        description: 'High growth rate strains resources and sustainability',
-      });
-    }
-
-    // Clamp score to 0-100
-    score = Math.max(0, Math.min(100, score));
-
-    // Sort factors by contribution (descending)
-    factors.sort((a, b) => b.contribution - a.contribution);
-
-    return {
-      score,
-      level: classifyRiskLevel(score),
-      factors,
-    };
-  }
-
-  /**
    * Fetch demographic profiles for all monitored countries.
-   * Returns array of profiles sorted by risk score (descending).
+   * Returns array of profiles sorted alphabetically by country name.
    */
   async getGlobalDemographics() {
     const cacheKey = `${CACHE_PREFIX}:global`;
@@ -446,10 +305,9 @@ class DemographicService {
               iso2: country.iso2,
               region: country.region,
               ...fallback,
-              dataSource: 'fallback',
+              dataSource: 'fallback (World Bank approximate figures)',
               fetchedIndicators: 0,
             };
-            profile.risk = this.computeDemographicRisk(profile);
             profiles.push(profile);
           } else {
             console.warn(`[Demographic] No data available for ${country.name} (${country.iso2})`);
@@ -463,8 +321,8 @@ class DemographicService {
       }
     }
 
-    // Sort by risk score descending
-    profiles.sort((a, b) => (b.risk?.score ?? 0) - (a.risk?.score ?? 0));
+    // Sort alphabetically by country name
+    profiles.sort((a, b) => a.country.localeCompare(b.country));
 
     // Cache the global result
     try {
@@ -478,7 +336,7 @@ class DemographicService {
   }
 
   /**
-   * Get combined demographic data: profiles, high-risk list, and summary.
+   * Get combined demographic data: all profiles and a summary.
    * This is the main method called by the API route.
    */
   async getCombinedData() {
@@ -491,19 +349,6 @@ class DemographicService {
     }
 
     const profiles = await this.getGlobalDemographics();
-
-    // Identify high-risk countries (elevated and above)
-    const highRisk = profiles.filter(
-      (p) => p.risk && (p.risk.level === 'critical' || p.risk.level === 'high')
-    );
-
-    // Count by risk level
-    const criticalCount = profiles.filter((p) => p.risk?.level === 'critical').length;
-    const highCount = profiles.filter((p) => p.risk?.level === 'high').length;
-
-    // Average risk score
-    const totalRisk = profiles.reduce((sum, p) => sum + (p.risk?.score ?? 0), 0);
-    const avgRisk = profiles.length > 0 ? Math.round(totalRisk / profiles.length) : 0;
 
     // Find youngest population (highest youthPct)
     const youngestPopulation = profiles.reduce((best, p) => {
@@ -523,12 +368,8 @@ class DemographicService {
 
     const combined = {
       profiles,
-      highRisk,
       summary: {
-        total: profiles.length,
-        critical: criticalCount,
-        high: highCount,
-        avgRisk,
+        totalCountries: profiles.length,
         youngestPopulation: youngestPopulation
           ? { country: youngestPopulation.country, iso2: youngestPopulation.iso2, youthPct: youngestPopulation.youthPct }
           : null,
@@ -536,6 +377,7 @@ class DemographicService {
           ? { country: oldestPopulation.country, iso2: oldestPopulation.iso2, elderlyPct: oldestPopulation.elderlyPct }
           : null,
       },
+      dataSource: 'World Bank Indicators API v2 (CC BY 4.0)',
       updatedAt: new Date().toISOString(),
     };
 
@@ -569,24 +411,7 @@ class DemographicService {
   }
 
   /**
-   * Get risk distribution summary (counts per level).
-   */
-  async getRiskDistribution() {
-    const profiles = await this.getGlobalDemographics();
-    const distribution = { critical: 0, high: 0, elevated: 0, moderate: 0, low: 0 };
-
-    for (const p of profiles) {
-      const level = p.risk?.level || 'low';
-      if (distribution[level] !== undefined) {
-        distribution[level]++;
-      }
-    }
-
-    return distribution;
-  }
-
-  /**
-   * Get countries grouped by region with average risk per region.
+   * Get countries grouped by region.
    */
   async getRegionalSummary() {
     const profiles = await this.getGlobalDemographics();
@@ -595,25 +420,25 @@ class DemographicService {
     for (const p of profiles) {
       const region = p.region || 'Unknown';
       if (!regionMap[region]) {
-        regionMap[region] = { region, countries: [], totalRisk: 0 };
+        regionMap[region] = { region, countries: [] };
       }
       regionMap[region].countries.push({
         country: p.country,
         iso2: p.iso2,
-        riskScore: p.risk?.score ?? 0,
-        riskLevel: p.risk?.level ?? 'low',
+        population: p.population,
+        popGrowth: p.popGrowth,
+        fertilityRate: p.fertilityRate,
+        urbanPct: p.urbanPct,
       });
-      regionMap[region].totalRisk += p.risk?.score ?? 0;
     }
 
     const regions = Object.values(regionMap).map((r) => ({
       region: r.region,
-      countries: r.countries.sort((a, b) => b.riskScore - a.riskScore),
-      avgRisk: r.countries.length > 0 ? Math.round(r.totalRisk / r.countries.length) : 0,
+      countries: r.countries.sort((a, b) => (b.population || 0) - (a.population || 0)),
       count: r.countries.length,
     }));
 
-    return regions.sort((a, b) => b.avgRisk - a.avgRisk);
+    return regions.sort((a, b) => b.count - a.count);
   }
 }
 

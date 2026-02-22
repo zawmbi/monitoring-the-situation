@@ -1,66 +1,56 @@
 /**
  * Markets Service
  * Fetches stock market indices, top stocks, commodities, and forex data per country
- * Uses Yahoo Finance chart API directly (no library, no API key)
+ * Uses Financial Modeling Prep (FMP) API for quotes (requires API key)
  * Uses Frankfurter API (no API key required) for forex pairs
+ *
+ * dataSource: "Financial Modeling Prep (FMP)" for all quote data
+ *             "Frankfurter" for forex rates
  */
 
 import { cacheService } from './cache.service.js';
+import config from '../config/index.js';
 
 const CACHE_TTL = 30; // 30 seconds — live ticking
 const FOREX_CACHE_TTL = 120; // 2 minutes (forex moves slower)
 
-// ── Fetch a quote directly from Yahoo Finance's chart API ──
+const DATA_SOURCE_FMP = 'Financial Modeling Prep (FMP)';
+const DATA_SOURCE_FRANKFURTER = 'Frankfurter';
+
+// ── Get the FMP API key ──
+function getFmpKey() {
+  return config.fmp?.key || process.env.VITE_FMP_API_KEY || '';
+}
+
+// ── Fetch a quote from FMP API ──
+// FMP batch quote: https://financialmodelingprep.com/api/v3/quote/{SYMBOL}?apikey={KEY}
 async function fetchQuote(symbol) {
+  const apiKey = getFmpKey();
+  if (!apiKey) return null;
+
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-    });
+    const url = `https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(symbol)}?apikey=${apiKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
     const json = await res.json();
-    const result = json.chart?.result?.[0];
-    if (!result) return null;
+    const q = Array.isArray(json) ? json[0] : json;
+    if (!q || q.price == null) return null;
 
-    const meta = result.meta;
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose ?? meta.previousClose;
-    if (price == null) return null;
-
-    const change = prevClose != null ? price - prevClose : null;
-    const changePct = prevClose ? ((price - prevClose) / prevClose) * 100 : null;
-
-    // Try to get day high/low from the indicators
-    const indicators = result.indicators?.quote?.[0];
-    let dayHigh = meta.regularMarketDayHigh ?? null;
-    let dayLow = meta.regularMarketDayLow ?? null;
-    let volume = meta.regularMarketVolume ?? null;
-
-    if (dayHigh == null && indicators?.high) {
-      const highs = indicators.high.filter(v => v != null);
-      if (highs.length) dayHigh = Math.max(...highs);
-    }
-    if (dayLow == null && indicators?.low) {
-      const lows = indicators.low.filter(v => v != null);
-      if (lows.length) dayLow = Math.min(...lows);
-    }
-    if (volume == null && indicators?.volume) {
-      const vols = indicators.volume.filter(v => v != null);
-      if (vols.length) volume = vols.reduce((a, b) => a + b, 0);
-    }
+    const change = q.change ?? (q.previousClose != null ? q.price - q.previousClose : null);
+    const changePercent = q.changesPercentage ?? (q.previousClose ? ((q.price - q.previousClose) / q.previousClose) * 100 : null);
 
     return {
-      price,
+      price: q.price,
       change,
-      changePercent: changePct,
-      previousClose: prevClose ?? null,
-      dayHigh,
-      dayLow,
-      volume,
-      marketState: meta.marketState ?? null,
-      currency: meta.currency ?? null,
-      exchange: meta.exchangeName ?? null,
-      marketCap: null, // chart API doesn't include market cap
+      changePercent,
+      previousClose: q.previousClose ?? null,
+      dayHigh: q.dayHigh ?? null,
+      dayLow: q.dayLow ?? null,
+      volume: q.volume ?? null,
+      marketCap: q.marketCap ?? null,
+      currency: q.currency ?? null,
+      exchange: q.exchange ?? null,
+      open: q.open ?? null,
     };
   } catch (err) {
     console.warn(`[Markets] fetchQuote failed for ${symbol}: ${err.message}`);
@@ -68,7 +58,46 @@ async function fetchQuote(symbol) {
   }
 }
 
-// ── Country code → major stock index symbols ──
+// ── Batch fetch quotes from FMP (up to ~50 symbols per call) ──
+async function fetchQuotesBatch(symbols) {
+  const apiKey = getFmpKey();
+  if (!apiKey || symbols.length === 0) return {};
+
+  try {
+    const joined = symbols.map(s => encodeURIComponent(s)).join(',');
+    const url = `https://financialmodelingprep.com/api/v3/quote/${joined}?apikey=${apiKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return {};
+    const json = await res.json();
+    if (!Array.isArray(json)) return {};
+
+    const map = {};
+    for (const q of json) {
+      if (!q || !q.symbol || q.price == null) continue;
+      const change = q.change ?? (q.previousClose != null ? q.price - q.previousClose : null);
+      const changePercent = q.changesPercentage ?? (q.previousClose ? ((q.price - q.previousClose) / q.previousClose) * 100 : null);
+      map[q.symbol] = {
+        price: q.price,
+        change,
+        changePercent,
+        previousClose: q.previousClose ?? null,
+        dayHigh: q.dayHigh ?? null,
+        dayLow: q.dayLow ?? null,
+        volume: q.volume ?? null,
+        marketCap: q.marketCap ?? null,
+        currency: q.currency ?? null,
+        exchange: q.exchange ?? null,
+        open: q.open ?? null,
+      };
+    }
+    return map;
+  } catch (err) {
+    console.warn(`[Markets] fetchQuotesBatch failed: ${err.message}`);
+    return {};
+  }
+}
+
+// ── Country code -> major stock index symbols ──
 const COUNTRY_INDICES = {
   US: [
     { symbol: '^GSPC', name: 'S&P 500', exchange: 'NYSE' },
@@ -254,7 +283,7 @@ const COUNTRY_INDICES = {
   ],
 };
 
-// ── Country code → top blue-chip stocks ──
+// ── Country code -> top blue-chip stocks ──
 const COUNTRY_TOP_STOCKS = {
   US: [
     { symbol: 'AAPL', name: 'Apple' },
@@ -452,16 +481,16 @@ const COUNTRY_TOP_STOCKS = {
 
 // ── Global commodities & crypto (extended) ──
 const COMMODITIES = [
-  { symbol: 'GC=F', name: 'Gold', unit: '/oz', category: 'precious' },
-  { symbol: 'SI=F', name: 'Silver', unit: '/oz', category: 'precious' },
-  { symbol: 'CL=F', name: 'Crude Oil (WTI)', unit: '/bbl', category: 'energy' },
-  { symbol: 'BZ=F', name: 'Brent Crude', unit: '/bbl', category: 'energy' },
-  { symbol: 'NG=F', name: 'Natural Gas', unit: '/MMBtu', category: 'energy' },
-  { symbol: 'HG=F', name: 'Copper', unit: '/lb', category: 'industrial' },
-  { symbol: 'ZW=F', name: 'Wheat', unit: '/bu', category: 'agriculture' },
-  { symbol: 'ZC=F', name: 'Corn', unit: '/bu', category: 'agriculture' },
-  { symbol: 'BTC-USD', name: 'Bitcoin', unit: '', category: 'crypto' },
-  { symbol: 'ETH-USD', name: 'Ethereum', unit: '', category: 'crypto' },
+  { symbol: 'GCUSD', name: 'Gold', unit: '/oz', category: 'precious' },
+  { symbol: 'SIUSD', name: 'Silver', unit: '/oz', category: 'precious' },
+  { symbol: 'CLUSD', name: 'Crude Oil (WTI)', unit: '/bbl', category: 'energy' },
+  { symbol: 'BZUSD', name: 'Brent Crude', unit: '/bbl', category: 'energy' },
+  { symbol: 'NGUSD', name: 'Natural Gas', unit: '/MMBtu', category: 'energy' },
+  { symbol: 'HGUSD', name: 'Copper', unit: '/lb', category: 'industrial' },
+  { symbol: 'ZWUSD', name: 'Wheat', unit: '/bu', category: 'agriculture' },
+  { symbol: 'ZCUSD', name: 'Corn', unit: '/bu', category: 'agriculture' },
+  { symbol: 'BTCUSD', name: 'Bitcoin', unit: '', category: 'crypto' },
+  { symbol: 'ETHUSD', name: 'Ethereum', unit: '', category: 'crypto' },
 ];
 
 // ── Country-specific 10Y sovereign bond yield symbols ──
@@ -494,7 +523,6 @@ const COUNTRY_BOND_YIELDS = {
   NO: [{ symbol: '^TMBMKNO-10Y', name: 'Norway 10Y', maturity: '10Y' }],
   CH: [{ symbol: '^TMBMKCH-10Y', name: 'Swiss 10Y', maturity: '10Y' }],
   RU: [{ symbol: '^TMBMKRU-10Y', name: 'Russia 10Y', maturity: '10Y' }],
-  // Share Eurozone bonds with members
   AT: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
   BE: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
   FI: [{ symbol: '^TMBMKDE-10Y', name: 'Bund 10Y (ref)', maturity: '10Y' }],
@@ -548,7 +576,6 @@ const COUNTRY_CREDIT_ETFS = {
   FR: [
     { symbol: 'IEAC.AS', name: 'EUR Corp Bond', description: 'iShares EUR Corp Bond' },
   ],
-  // Emerging markets — all share EMB
   BR: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
   MX: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
   ZA: [{ symbol: 'EMB', name: 'EM Bonds', description: 'iShares EM Sovereign' }],
@@ -563,7 +590,7 @@ const COUNTRY_CREDIT_ETFS = {
 // ── DXY / Dollar index symbol ──
 const DXY_SYMBOL = { symbol: 'DX-Y.NYB', name: 'US Dollar Index', description: 'DXY' };
 
-// Country code → primary currency code
+// Country code -> primary currency code
 const COUNTRY_CURRENCIES = {
   US: 'USD', GB: 'GBP', JP: 'JPY', DE: 'EUR', FR: 'EUR', CN: 'CNY',
   HK: 'HKD', IN: 'INR', AU: 'AUD', CA: 'CAD', BR: 'BRL', KR: 'KRW',
@@ -587,6 +614,8 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
+    if (!getFmpKey()) return null;
+
     const indexDefs = COUNTRY_INDICES[code];
     if (!indexDefs || indexDefs.length === 0) return null;
 
@@ -605,8 +634,8 @@ class MarketsService {
           dayHigh: q.dayHigh,
           dayLow: q.dayLow,
           volume: q.volume,
-          marketState: q.marketState,
           currency: q.currency,
+          dataSource: DATA_SOURCE_FMP,
         };
       })
     );
@@ -625,29 +654,33 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
+    if (!getFmpKey()) return null;
+
     const stockDefs = COUNTRY_TOP_STOCKS[code];
     if (!stockDefs || stockDefs.length === 0) return null;
 
-    const results = await Promise.all(
-      stockDefs.map(async (def) => {
-        const q = await fetchQuote(def.symbol);
-        if (!q) return null;
-        return {
-          symbol: def.symbol,
-          name: def.name,
-          price: q.price,
-          change: q.change,
-          changePercent: q.changePercent,
-          currency: q.currency,
-        };
-      })
-    );
+    // Use batch fetching for efficiency
+    const symbols = stockDefs.map(d => d.symbol);
+    const quotesMap = await fetchQuotesBatch(symbols);
 
-    const data = results.filter(Boolean);
-    if (data.length > 0) {
-      await cacheService.set(cacheKey, data, CACHE_TTL);
+    const results = stockDefs.map((def) => {
+      const q = quotesMap[def.symbol];
+      if (!q) return null;
+      return {
+        symbol: def.symbol,
+        name: def.name,
+        price: q.price,
+        change: q.change,
+        changePercent: q.changePercent,
+        currency: q.currency,
+        dataSource: DATA_SOURCE_FMP,
+      };
+    }).filter(Boolean);
+
+    if (results.length > 0) {
+      await cacheService.set(cacheKey, results, CACHE_TTL);
     }
-    return data.length > 0 ? data : null;
+    return results.length > 0 ? results : null;
   }
 
   async getCommodities() {
@@ -655,6 +688,8 @@ class MarketsService {
 
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
+
+    if (!getFmpKey()) return null;
 
     const results = await Promise.all(
       COMMODITIES.map(async (def) => {
@@ -668,6 +703,7 @@ class MarketsService {
           change: q.change,
           changePercent: q.changePercent,
           currency: q.currency ?? 'USD',
+          dataSource: DATA_SOURCE_FMP,
         };
       })
     );
@@ -709,7 +745,12 @@ class MarketsService {
 
       if (pairs.length === 0) return null;
 
-      const data = { base: localCurrency, date: json.date, pairs };
+      const data = {
+        base: localCurrency,
+        date: json.date,
+        pairs,
+        dataSource: DATA_SOURCE_FRANKFURTER,
+      };
       await cacheService.set(cacheKey, data, FOREX_CACHE_TTL);
       return data;
     } catch (err) {
@@ -727,6 +768,8 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
+    if (!getFmpKey()) return null;
+
     const results = await Promise.all(
       bondDefs.map(async (def) => {
         const q = await fetchQuote(def.symbol);
@@ -735,9 +778,10 @@ class MarketsService {
           symbol: def.symbol,
           name: def.name,
           maturity: def.maturity,
-          yield: q.price, // Yahoo represents yields as "price"
+          yield: q.price, // FMP represents yields as "price"
           change: q.change,
           changePercent: q.changePercent,
+          dataSource: DATA_SOURCE_FMP,
         };
       })
     );
@@ -758,6 +802,8 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
+    if (!getFmpKey()) return null;
+
     const results = await Promise.all(
       volDefs.map(async (def) => {
         const q = await fetchQuote(def.symbol);
@@ -774,6 +820,7 @@ class MarketsService {
             : (def.symbol === '^MOVE'
               ? (q.price > 120 ? 'elevated' : q.price > 80 ? 'moderate' : 'calm')
               : null),
+          dataSource: DATA_SOURCE_FMP,
         };
       })
     );
@@ -794,32 +841,38 @@ class MarketsService {
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    const results = await Promise.all(
-      creditDefs.map(async (def) => {
-        const q = await fetchQuote(def.symbol);
-        if (!q) return null;
-        return {
-          symbol: def.symbol,
-          name: def.name,
-          description: def.description,
-          price: q.price,
-          change: q.change,
-          changePercent: q.changePercent,
-        };
-      })
-    );
+    if (!getFmpKey()) return null;
 
-    const data = results.filter(Boolean);
-    if (data.length > 0) {
-      await cacheService.set(cacheKey, data, CACHE_TTL);
+    // Use batch fetching for efficiency
+    const symbols = creditDefs.map(d => d.symbol);
+    const quotesMap = await fetchQuotesBatch(symbols);
+
+    const results = creditDefs.map((def) => {
+      const q = quotesMap[def.symbol];
+      if (!q) return null;
+      return {
+        symbol: def.symbol,
+        name: def.name,
+        description: def.description,
+        price: q.price,
+        change: q.change,
+        changePercent: q.changePercent,
+        dataSource: DATA_SOURCE_FMP,
+      };
+    }).filter(Boolean);
+
+    if (results.length > 0) {
+      await cacheService.set(cacheKey, results, CACHE_TTL);
     }
-    return data.length > 0 ? data : null;
+    return results.length > 0 ? results : null;
   }
 
   async getDollarIndex() {
     const cacheKey = 'markets:dxy';
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
+
+    if (!getFmpKey()) return null;
 
     const q = await fetchQuote(DXY_SYMBOL.symbol);
     if (!q) return null;
@@ -832,6 +885,7 @@ class MarketsService {
       changePercent: q.changePercent,
       dayHigh: q.dayHigh,
       dayLow: q.dayLow,
+      dataSource: DATA_SOURCE_FMP,
     };
 
     await cacheService.set(cacheKey, data, CACHE_TTL);
@@ -882,6 +936,7 @@ class MarketsService {
       credit: credit || [],
       dxy: dxy || null,
       yieldSpreads,
+      dataSource: DATA_SOURCE_FMP,
       lastUpdated: new Date().toISOString(),
     };
 

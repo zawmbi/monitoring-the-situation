@@ -652,6 +652,9 @@ const THEMES = [
   { id: 'cyber-control-room', label: 'Cyber Control Room', swatch: '#00d4ff' },
   { id: 'dark-minimal', label: 'Dark Minimal', swatch: '#8080ff' },
   { id: 'light-analytic', label: 'Light Analytic', swatch: '#2060c0' },
+  { id: 'dune', label: 'Dune', swatch: '#e0a020' },
+  { id: 'ruby', label: 'Ruby', swatch: '#e03050' },
+  { id: 'terra', label: 'Terra', swatch: '#30c050' },
 ];
 
 // Chat Panel Component (sidebar inline)
@@ -829,11 +832,195 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState('world');
   const [sidebarTabOrder, setSidebarTabOrder] = useState([
     { id: 'world', label: 'World' },
-    { id: 'chat', label: 'Chat' },
+    { id: 'overlays', label: 'Overlays' },
+    { id: 'sources', label: 'Sources' },
     { id: 'themes', label: 'Themes' },
     { id: 'settings', label: 'Settings' },
   ]);
+  const [chatOpen, setChatOpen] = useState(false);
   const dragTabRef = useRef(null);
+  // Collapsible sidebar sections — only 'live-data' open by default for a clean start
+  const [openSections, setOpenSections] = useState(new Set(['live-data']));
+  const [panelOpacity, setPanelOpacity] = useState(0.75);
+  const [textSize, setTextSize] = useState('medium'); // 'small' | 'medium' | 'large'
+  const [showNewsTicker, setShowNewsTicker] = useState(true);
+  const [drawerStates, setDrawerStates] = useState({});
+  const [minimizedDrawers, setMinimizedDrawers] = useState(new Set());
+  const dragInfoRef = useRef(null);
+
+  const toggleMinimize = useCallback((id) => {
+    setMinimizedDrawers(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Each drawer gets a unique position so they don't overlap
+  const DRAWER_POSITIONS = {
+    'live-data':    { top: 42, left: 12 },
+    'us-politics':  { top: 42, left: 360 },
+    'conflicts':    { top: 42, right: 12 },
+    'intel':        { top: 260, left: 12 },
+    'disasters':    { top: 260, left: 360 },
+    'env-tech':     { top: 260, right: 12 },
+    'trade':        { bottom: 80, left: 12 },
+    'migration':    { bottom: 80, left: 360 },
+    'geopolitical': { bottom: 80, right: 12 },
+    'lifestyle':    { bottom: 300, right: 12 },
+  };
+
+  const toggleSection = (id) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ─── Text Size ───
+  useEffect(() => {
+    document.documentElement.setAttribute('data-text-size', textSize);
+  }, [textSize]);
+
+  // ─── Drawer Drag & Resize ───
+  const startDrawerDrag = useCallback((e, drawerId, action) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target.closest('.snap-zone-drawer');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const containerRect = mapContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+    dragInfoRef.current = {
+      drawerId, action, el,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startLeft: rect.left - containerRect.left,
+      startTop: rect.top - containerRect.top,
+      startW: rect.width,
+      startH: rect.height,
+      currentLeft: null, currentTop: null, currentW: null, currentH: null,
+    };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor =
+      action === 'move' ? 'grabbing' :
+      action === 'nw' || action === 'se' ? (action === 'nw' ? 'nw-resize' : 'se-resize') :
+      action === 'ne' || action === 'sw' ? (action === 'ne' ? 'ne-resize' : 'sw-resize') :
+      action === 'n' || action === 's' ? 'ns-resize' : 'ew-resize';
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = dragInfoRef.current;
+      if (!d) return;
+      const dx = e.clientX - d.startMouseX;
+      const dy = e.clientY - d.startMouseY;
+      let l = d.startLeft, t = d.startTop, w = d.startW, h = d.startH;
+      if (d.action === 'move') { l += dx; t += dy; }
+      else {
+        if (d.action.includes('e')) w = Math.max(200, d.startW + dx);
+        if (d.action.includes('w')) { w = Math.max(200, d.startW - dx); l = d.startLeft + d.startW - w; }
+        if (d.action.includes('s')) h = Math.max(80, d.startH + dy);
+        if (d.action.includes('n')) { h = Math.max(80, d.startH - dy); t = d.startTop + d.startH - h; }
+      }
+      d.el.style.left = l + 'px';
+      d.el.style.top = t + 'px';
+      d.el.style.right = 'auto';
+      d.el.style.bottom = 'auto';
+      d.el.style.width = w + 'px';
+      if (d.action !== 'move') { d.el.style.height = h + 'px'; d.el.style.maxHeight = 'none'; }
+      d.currentLeft = l; d.currentTop = t; d.currentW = w;
+      d.currentH = d.action !== 'move' ? h : null;
+    };
+    const onUp = () => {
+      const d = dragInfoRef.current;
+      if (!d) return;
+      if (d.currentLeft != null) {
+        setDrawerStates(prev => {
+          const existing = prev[d.drawerId] || {};
+          return {
+            ...prev,
+            [d.drawerId]: {
+              x: d.currentLeft, y: d.currentTop,
+              w: d.currentW ?? existing.w ?? d.startW,
+              h: d.action === 'move' ? (existing.h ?? null) : (d.currentH ?? null),
+            }
+          };
+        });
+      }
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      dragInfoRef.current = null;
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, []);
+
+  // ─── Preset Profiles ───
+  const PRESETS = [
+    {
+      id: 'clean',
+      label: 'Clean',
+      desc: 'News + protests only',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true);
+        setShowMilitaryOverlay(false); setShowRefugeePanel(false);
+        setConflictMode(false); setActiveConflicts({});
+        setElectionMode(false); setShowTariffHeatmap(false); setShowUSBases(false);
+        setShowBriefingPanel(false); setShowTensionPanel(false); setShowCountryRiskMode(false); setShowCountryRiskPanel(false); setShowNarrativePanel(false);
+        setShowHealthPanel(false); setShowCyberPanel(false); setShowCourtPanel(false); setShowSanctionsPanel(false); setShowInfrastructurePanel(false); setShowNuclearPanel(false);
+        setShowClimatePanel(false); setShowAiTechPanel(false);
+        setShowCommoditiesPanel(false); setShowShippingMode(false);
+        setShowWatchlistPanel(false); setShowDemographicPanel(false);
+        setShowRegimePanel(false); setShowAlliancePanel(false); setShowLeadershipPanel(false); setShowTimeline(false);
+        setOpenSections(new Set(['live-data']));
+      },
+    },
+    {
+      id: 'conflict',
+      label: 'Conflict',
+      desc: 'Wars, military, tensions',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true); setShowMilitaryOverlay(true); setShowRefugeePanel(true);
+        setConflictMode(true); setConflictShowTroops(true);
+        setShowTensionPanel(true); setShowCountryRiskMode(true); setShowCountryRiskPanel(true); setShowNuclearPanel(true);
+        setShowSanctionsPanel(true);
+        setOpenSections(new Set(['live-data', 'conflicts', 'intel']));
+      },
+    },
+    {
+      id: 'markets',
+      label: 'Markets',
+      desc: 'Trade, commodities, shipping',
+      apply: () => {
+        setShowTariffHeatmap(true); setShowCommoditiesPanel(true);
+        setShowShippingMode(true); setShowShippingPanel(true);
+        setShowSanctionsPanel(true);
+        setConflictMode(false); setActiveConflicts({});
+        setShowMilitaryOverlay(false);
+        setOpenSections(new Set(['live-data', 'us-politics', 'trade']));
+      },
+    },
+    {
+      id: 'everything',
+      label: 'Everything',
+      desc: 'All layers on',
+      apply: () => {
+        setStabilityMode(true); setShowProtestHeatmap(true); setShowMilitaryOverlay(true); setShowRefugeePanel(true);
+        setConflictMode(true); setConflictShowTroops(true);
+        setElectionMode(true); setShowTariffHeatmap(true); setShowUSBases(true);
+        setShowBriefingPanel(true); setShowTensionPanel(true); setShowCountryRiskMode(true); setShowCountryRiskPanel(true); setShowNarrativePanel(true);
+        setShowHealthPanel(true); setShowCyberPanel(true); setShowCourtPanel(true); setShowSanctionsPanel(true); setShowInfrastructurePanel(true); setShowNuclearPanel(true);
+        setShowClimatePanel(true); setShowAiTechPanel(true);
+        setShowCommoditiesPanel(true); setShowShippingMode(true);
+        setShowWatchlistPanel(true); setShowDemographicPanel(true);
+        setShowRegimePanel(true); setShowAlliancePanel(true); setShowLeadershipPanel(true);
+        setOpenSections(new Set(['live-data', 'us-politics', 'conflicts', 'intel', 'disasters', 'env-tech', 'trade', 'migration', 'geopolitical', 'lifestyle']));
+      },
+    },
+  ];
+
   const [showTimezones, setShowTimezones] = useState(false);
   const [selectedCapital, setSelectedCapital] = useState(null);
   const [useGlobe, setUseGlobe] = useState(true);
@@ -842,6 +1029,8 @@ function App() {
   const [rotateSpeed, setRotateSpeed] = useState(0.06);
   const [rotateCCW, setRotateCCW] = useState(false);
   const [mapControlsCollapsed, setMapControlsCollapsed] = useState(false);
+  const [mapControlsPos, setMapControlsPos] = useState(null); // null = default CSS position
+  const mapControlsDragRef = useRef(null);
   const [holoMode, setHoloMode] = useState(true);
   const [transparentGlobe, setTransparentGlobe] = useState(false);
   const mapCenterRef = useRef({ lng: 0, lat: 20 });
@@ -850,7 +1039,7 @@ function App() {
   const [visualLayers, setVisualLayers] = useState(getInitialVisualLayers);
   const [conflictMode, setConflictMode] = useState(false);
   const [conflictPanelOpen, setConflictPanelOpen] = useState(false);
-  const [conflictShowTroops, setConflictShowTroops] = useState(true);
+  const [conflictShowTroops, setConflictShowTroops] = useState(false);
   // ─── Additional conflict modes ───
   const [activeConflicts, setActiveConflicts] = useState({});
   const [conflictPanels, setConflictPanels] = useState({});
@@ -970,7 +1159,7 @@ function App() {
   // Stability state (protests, military, instability)
   const [stabilityMode, setStabilityMode] = useState(true);
   const [showProtestHeatmap, setShowProtestHeatmap] = useState(true);
-  const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(true);
+  const [showMilitaryOverlay, setShowMilitaryOverlay] = useState(false);
   const [showStabilityPanel, setShowStabilityPanel] = useState(false);
   const [showUSBases, setShowUSBases] = useState(false);
 
@@ -1053,6 +1242,13 @@ function App() {
   const notifications = useNotifications();
 
   const isLightTheme = theme === 'light-analytic';
+  const isDuneTheme = theme === 'dune';
+  const isRubyTheme = theme === 'ruby';
+  const isTerraTheme = theme === 'terra';
+  const isThemedDark = isDuneTheme || isRubyTheme || isTerraTheme; // non-default dark themes with custom earth styling
+  // Helper: pick color by themed-dark variant (dune/ruby/terra), returns default for other dark themes
+  const themedColor = (duneVal, rubyVal, terraVal, defaultVal) =>
+    isDuneTheme ? duneVal : isRubyTheme ? rubyVal : isTerraTheme ? terraVal : defaultVal;
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -1103,7 +1299,7 @@ function App() {
   }, [theme, isLightTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '46px' : '64px');
+    document.documentElement.style.setProperty('--nav-height', navCollapsed ? '22px' : '64px');
   }, [navCollapsed]);
 
   useEffect(() => {
@@ -1182,11 +1378,13 @@ function App() {
       }
       // Update background color without triggering full style reload
       if (map.getLayer('background')) {
-        const bg = isLightTheme ? '#3a7ab0' : (holoMode ? '#020810' : '#060e18');
+        const bg = isLightTheme ? '#3a7ab0'
+          : isThemedDark ? themedColor('#0e0a04', '#0c0408', '#040c06', '#060e18')
+          : (holoMode ? '#020810' : '#060e18');
         map.setPaintProperty('background', 'background-color', bg);
       }
     } catch {}
-  }, [useGlobe, isLightTheme, holoMode]);
+  }, [useGlobe, isLightTheme, isThemedDark, isDuneTheme, isRubyTheme, isTerraTheme, holoMode]);
 
   // Disable MapLibre's built-in atmosphere (it's directional/one-sided).
   // The uniform halo is rendered by EarthOverlay instead.
@@ -1363,13 +1561,13 @@ function App() {
             name,
             originalId: String(f.id),
             isEU: EU_MEMBER_NAMES.has(name),
-            fillColor: getCountryFillColor(name, i, isLightTheme),
+            fillColor: getCountryFillColor(name, i, theme),
             tariffColor: isLightTheme ? getTariffColorLight(tariffRate) : getTariffColor(tariffRate),
             tariffRate,
           },
         };
       }),
-  }), [isLightTheme]);
+  }), [theme]);
 
   const usStatesGeoJSON = useMemo(() => ({
     type: 'FeatureCollection',
@@ -1536,6 +1734,8 @@ function App() {
     // TNO-inspired: midnight blue ocean, cool and muted
     if (isLightTheme) {
       bgColor = '#488FACFB';
+    } else if (isThemedDark) {
+      bgColor = themedColor('#0e0a04', '#0c0408', '#040c06', '#060e18');
     } else {
       bgColor = holoMode ? '#020810' : '#060e18';
     }
@@ -1545,6 +1745,45 @@ function App() {
     const basemapUrl = isLightTheme
       ? 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
       : 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
+    let basemapPaint;
+    if (isLightTheme) {
+      basemapPaint = { 'raster-opacity': 0.55, 'raster-saturation': -0.5 };
+    } else if (isThemedDark) {
+      basemapPaint = {
+        'raster-opacity': 0.22,
+        'raster-brightness-max': 0.30,
+        'raster-saturation': -0.8,
+        'raster-contrast': 0.10,
+        'raster-hue-rotate': themedColor(30, -10, 90, 0),
+      };
+    } else {
+      basemapPaint = {
+        'raster-opacity': 0.18,
+        'raster-brightness-max': 0.35,
+        'raster-saturation': -1,
+        'raster-contrast': 0.15,
+      };
+    }
+
+    let hillshadePaint;
+    if (isThemedDark) {
+      hillshadePaint = {
+        'hillshade-exaggeration': 0.35,
+        'hillshade-shadow-color': themedColor('rgba(10,5,0,0.35)', 'rgba(10,0,2,0.35)', 'rgba(0,5,2,0.35)', 'rgba(0,0,10,0.3)'),
+        'hillshade-highlight-color': themedColor('rgba(224,180,100,0.10)', 'rgba(224,100,120,0.10)', 'rgba(100,224,120,0.10)', 'rgba(180,200,230,0.08)'),
+        'hillshade-accent-color': themedColor('rgba(20,12,4,0.15)', 'rgba(20,4,8,0.15)', 'rgba(4,20,8,0.15)', 'rgba(5,10,25,0.12)'),
+        'hillshade-illumination-direction': 315,
+      };
+    } else {
+      hillshadePaint = {
+        'hillshade-exaggeration': 0.3,
+        'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.3)',
+        'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(180,200,230,0.08)',
+        'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.12)',
+        'hillshade-illumination-direction': 315,
+      };
+    }
 
     return {
       version: 8,
@@ -1574,34 +1813,18 @@ function App() {
           id: 'basemap-raster',
           type: 'raster',
           source: 'basemap-tiles',
-          paint: isLightTheme
-            ? {
-                'raster-opacity': 0.55,
-                'raster-saturation': -0.5,
-              }
-            : {
-                'raster-opacity': 0.18,
-                'raster-brightness-max': 0.35,
-                'raster-saturation': -1,
-                'raster-contrast': 0.15,
-              },
+          paint: basemapPaint,
         },
         {
           id: 'hillshade-layer',
           type: 'hillshade',
           source: 'terrain-dem',
-          paint: {
-            'hillshade-exaggeration': 0.3,
-            'hillshade-shadow-color': isLightTheme ? 'rgba(30,30,50,0.4)' : 'rgba(0,0,10,0.3)',
-            'hillshade-highlight-color': isLightTheme ? 'rgba(255,255,255,0.3)' : 'rgba(180,200,230,0.08)',
-            'hillshade-accent-color': isLightTheme ? 'rgba(50,50,70,0.15)' : 'rgba(5,10,25,0.12)',
-            'hillshade-illumination-direction': 315,
-          },
+          paint: hillshadePaint,
         },
       ],
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     };
-  }, [isLightTheme, holoMode]);
+  }, [isLightTheme, isThemedDark, isDuneTheme, isRubyTheme, isTerraTheme, holoMode]);
 
   // Selected region filters for MapLibre layers
   const selectedCountryFilter = useMemo(() => {
@@ -1911,6 +2134,11 @@ function App() {
       const name = feat.properties?.name || 'Unknown';
       const originalId = feat.properties?.originalId;
 
+      // Auto-pause globe rotation when user clicks into a region
+      if (sourceId && autoRotateRef.current) {
+        setAutoRotate(false);
+      }
+
       if (sourceId === 'countries') {
         setSelectedRegion({ type: 'country', id: originalId, name });
         setViewMode('region');
@@ -2184,10 +2412,15 @@ function App() {
     // Stop any in-progress animation so flyTo takes effect immediately
     map.stop();
 
-    // Zoom to click location at a country-detail level
+    // Auto-pause globe rotation on double-click zoom
+    if (autoRotateRef.current) {
+      setAutoRotate(false);
+    }
+
+    // Zoom to click location — country-overview level (not too close)
     map.flyTo({
       center: [event.lngLat.lng, event.lngLat.lat],
-      zoom: 6,
+      zoom: 4,
       duration: 1000,
       essential: true,
     });
@@ -2374,7 +2607,7 @@ function App() {
     <div className={`app ${sidebarExpanded ? '' : 'sidebar-is-collapsed'}`}>
       <audio ref={audioRef} src="/suspense_music.mp3" loop preload="auto" />
       <Navbar
-        title="Monitoring The Situation"
+        title="monitr"
         logoSrc="/earth.png"
         activePage={activePage}
         onNavigate={handleNavigate}
@@ -2395,7 +2628,7 @@ function App() {
 
       <div className="app-body">
         {/* Sidebar */}
-        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`} style={{ '--panel-opacity': panelOpacity }}>
           <div className="sidebar-header">
             {viewMode !== 'world' && (
               <div className="sidebar-breadcrumb">
@@ -2576,453 +2809,45 @@ function App() {
               </div>
             )}
 
-            {/* Source Toggles */}
+            {/* ═══ Folder-Card Layer Grid ═══ */}
             {sidebarExpanded && sidebarTab === 'world' && (
               <div className="source-toggles">
-                <div className="toggle-group-title">Layers & Sources</div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Live Data</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Stability Monitor</span>
-                      <input
-                        type="checkbox"
-                        checked={stabilityMode}
-                        onChange={() => {
-                          setStabilityMode(prev => {
-                            if (prev) setShowStabilityPanel(false);
-                            return !prev;
-                          });
-                        }}
-                      />
-                      <span className="slider" />
-                    </label>
-                    {[
-                      { id: 'severeWeather', label: 'Severe Weather & Disasters', tone: 'flights', disabled: false, kbd: '5' },
-                      { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
-                        <span className="switch-label">{layer.label}{layer.kbd && <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>{layer.kbd}</kbd>}</span>
-                        <input
-                          type="checkbox"
-                          checked={enabledLayers[layer.id]}
-                          onChange={() => !layer.disabled && toggleLayer(layer.id)}
-                          disabled={layer.disabled}
-                        />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                  {stabilityMode && (
-                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                      <div className="stability-sidebar-stats">
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Protests</span>
-                        </div>
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Military</span>
-                        </div>
-                        <div className="stability-sidebar-stat">
-                          <span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span>
-                          <span className="stability-sidebar-stat-label">Alerts</span>
-                        </div>
-                      </div>
-                      <div className="conflict-sidebar-toggles">
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Protest Heatmap</span>
-                          <input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Military Indicators</span>
-                          <input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Refugee Flows</span>
-                          <input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} />
-                          <span className="slider" />
-                        </label>
-                      </div>
-                      <button
-                        className="stability-sidebar-open-btn"
-                        onClick={() => setShowStabilityPanel(prev => !prev)}
-                      >
-                        {showStabilityPanel ? 'Close' : 'Open'} Stability Panel
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">US Politics & Economy</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-elections">
-                      <span className="switch-label">2026 Midterm Elections</span>
-                      <input
-                        type="checkbox"
-                        checked={electionMode}
-                        onChange={() => {
-                          setElectionMode(prev => {
-                            if (prev) {
-                              setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
-                            } else {
-                              setShowUSStates(true);
-                            }
-                            return !prev;
-                          });
-                        }}
-                      />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Tariffs & Trade</span>
-                      <input
-                        type="checkbox"
-                        checked={showTariffHeatmap}
-                        onChange={() => setShowTariffHeatmap(prev => !prev)}
-                      />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">US Installations (OSINT)</span>
-                      <input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  {showTariffHeatmap && (
-                    <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
-                      <div className="tariff-heatmap-active-badge">
-                        <span className="tariff-heatmap-active-dot" />
-                        Heatmap active
-                      </div>
-
-                      <div className="tariff-legend">
-                        <div className="tariff-legend-title">Tariff Rate Legend</div>
-                        <div className="tariff-legend-items">
-                          {TARIFF_LEGEND.map((item) => (
-                            <div key={item.label} className="tariff-legend-item">
-                              <span
-                                className="tariff-legend-swatch"
-                                style={{ background: isLightTheme ? item.colorLight : item.color }}
-                              />
-                              <span>{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="tariff-sidebar-info">
-                        <strong>US Import Tariffs</strong><br />
-                        Colors show the universal tariff rate the US applies to imports from each country. Click any country to see detailed sector-specific tariff rates.
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Conflicts</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-frontline">
-                      <span className="switch-label">Russia–Ukraine War</span>
-                      <input
-                        type="checkbox"
-                        checked={conflictMode}
-                        onChange={() => {
-                          setConflictMode(prev => {
-                            if (prev) {
-                              setConflictPanelOpen(false);
-                            }
-                            return !prev;
-                          });
-                        }}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  {conflictMode && (
-                    <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
-                      <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
-                      <strong>Russia–Ukraine War</strong>
-                      <p>
-                        Frontlines, estimated troop positions, and occupied territory are shown on the map. Click for detailed statistics.
-                      </p>
-                      <div className="conflict-sidebar-toggles">
-                        <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                          <span className="switch-label">Show Troop Positions</span>
-                          <input
-                            type="checkbox"
-                            checked={conflictShowTroops}
-                            onChange={() => setConflictShowTroops(prev => !prev)}
-                          />
-                          <span className="slider" />
-                        </label>
-                      </div>
-                      <button
-                        className="conflict-sidebar-open-btn"
-                        style={{
-                          marginTop: '8px',
-                          width: '100%',
-                          padding: '7px 10px',
-                          background: 'rgba(255, 50, 50, 0.12)',
-                          border: '1px solid rgba(255, 50, 50, 0.25)',
-                          borderRadius: '6px',
-                          color: '#ff6b6b',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => setConflictPanelOpen(prev => !prev)}
-                      >
-                        {conflictPanelOpen ? 'Close' : 'Open'} War Statistics Panel
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ─── Additional Conflict Modes ─── */}
-                  {ADDITIONAL_CONFLICTS.map((conflict) => (
-                    <div key={conflict.id}>
-                      <div className="source-group-items" style={{ marginTop: 4 }}>
-                        <label className="switch switch-frontline">
-                          <span className="switch-label">{conflict.label}</span>
-                          <input
-                            type="checkbox"
-                            checked={!!activeConflicts[conflict.id]}
-                            onChange={() => {
-                              setActiveConflicts(prev => {
-                                const next = { ...prev };
-                                if (next[conflict.id]) {
-                                  delete next[conflict.id];
-                                  setConflictPanels(p => { const n = { ...p }; delete n[conflict.id]; return n; });
-                                } else {
-                                  next[conflict.id] = true;
-                                  setConflictTroops(p => ({ ...p, [conflict.id]: true }));
-                                }
-                                return next;
-                              });
-                            }}
-                          />
-                          <span className="slider" />
-                        </label>
-                      </div>
-
-                      {activeConflicts[conflict.id] && (
-                        <div className="conflict-sidebar-info" style={{ marginTop: '6px', marginBottom: '4px' }}>
-                          <span className="conflict-sidebar-day">Day {conflict.data.CONFLICT_SUMMARY.daysSince()}</span>
-                          <strong>{conflict.data.CONFLICT_SUMMARY.name}</strong>
-                          <p style={{ fontSize: '10px', margin: '4px 0', opacity: 0.8 }}>
-                            {conflict.data.CONFLICT_SUMMARY.phase}
-                          </p>
-                          <div className="conflict-sidebar-toggles">
-                            <label className="switch switch-neutral" style={{ fontSize: '11px' }}>
-                              <span className="switch-label">Show Troop Positions</span>
-                              <input
-                                type="checkbox"
-                                checked={conflictTroops[conflict.id] !== false}
-                                onChange={() => setConflictTroops(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
-                              />
-                              <span className="slider" />
-                            </label>
-                          </div>
-                          <button
-                            className="conflict-sidebar-open-btn"
-                            style={{
-                              marginTop: '6px',
-                              width: '100%',
-                              padding: '6px 10px',
-                              background: `${conflict.data.CONFLICT_SUMMARY.sideA.color}1f`,
-                              border: `1px solid ${conflict.data.CONFLICT_SUMMARY.sideA.color}40`,
-                              borderRadius: '6px',
-                              color: conflict.data.CONFLICT_SUMMARY.sideA.color,
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                            onClick={() => setConflictPanels(prev => ({ ...prev, [conflict.id]: !prev[conflict.id] }))}
-                          >
-                            {conflictPanels[conflict.id] ? 'Close' : 'Open'} Statistics Panel
-                          </button>
-                        </div>
-                      )}
+                {/* ── Preset Tabs ── */}
+                <div className="preset-tabs">
+                  {PRESETS.map(p => (
+                    <div key={p.id} className="preset-tab" onClick={p.apply} title={p.desc}>
+                      <span className="preset-tab-icon">{p.id === 'clean' ? '◇' : p.id === 'conflict' ? '⬡' : p.id === 'markets' ? '◈' : '⬢'}</span>
+                      <span className="preset-tab-label">{p.label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="source-group">
-                  <div className="source-group-title">Intelligence & Forecasts</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Daily Briefing <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span>
-                      <input type="checkbox" checked={showBriefingPanel} onChange={() => setShowBriefingPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Global Tension Index <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>2</kbd></span>
-                      <input type="checkbox" checked={showTensionPanel} onChange={() => setShowTensionPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Country Risk Scores <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>3</kbd></span>
-                      <input type="checkbox" checked={showCountryRiskMode} onChange={() => { setShowCountryRiskMode(p => !p); setShowCountryRiskPanel(p => !p); }} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Narrative Tracking</span>
-                      <input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    {/* Source Credibility toggle removed — lean indicators shown inline on news articles */}
-                  </div>
-
-                  {showTensionPanel && tensionData && (
-                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                      <strong>Tension Index: <span style={{ color: tensionData.index >= 65 ? '#ff6b6b' : '#ffd700' }}>{tensionData.index}/100 ({tensionData.label})</span></strong>
-                      <p>{tensionData.summary?.totalConflicts || 0} active conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear flashpoints</p>
+                {/* ── Folder Card Grid ── */}
+                <div className="folder-grid">
+                  {[
+                    { id: 'live-data', icon: '◉', label: 'Live Data' },
+                    { id: 'us-politics', icon: '⚑', label: 'US Politics' },
+                    { id: 'conflicts', icon: '⚔', label: 'Conflicts' },
+                    { id: 'intel', icon: '◎', label: 'Intel' },
+                    { id: 'disasters', icon: '⚠', label: 'Security' },
+                    { id: 'env-tech', icon: '❖', label: 'Env & Tech' },
+                    { id: 'trade', icon: '⬙', label: 'Trade' },
+                    { id: 'migration', icon: '⬡', label: 'Migration' },
+                    { id: 'geopolitical', icon: '◆', label: 'Geopolitics' },
+                    { id: 'lifestyle', icon: '✦', label: 'Lifestyle' },
+                  ].map(f => (
+                    <div
+                      key={f.id}
+                      className={`folder-card ${openSections.has(f.id) ? 'folder-card--open' : ''}`}
+                      onClick={() => toggleSection(f.id)}
+                    >
+                      <span className="folder-card-icon">{f.icon}</span>
+                      <span className="folder-card-label">{f.label}</span>
                     </div>
-                  )}
+                  ))}
                 </div>
 
-                <div className="source-group">
-                  <div className="source-group-title">Disasters & Security</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Health & Pandemics</span>
-                      <input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Cyber Threats <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span>
-                      <input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Court Rulings</span>
-                      <input type="checkbox" checked={showCourtPanel} onChange={() => setShowCourtPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Sanctions Monitor</span>
-                      <input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Infrastructure Threats</span>
-                      <input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Nuclear Threats</span>
-                      <input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Environment & Technology</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Climate & Environment</span>
-                      <input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">AI & Technology</span>
-                      <input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Trade & Commodities</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Commodity Prices <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span>
-                      <input type="checkbox" checked={showCommoditiesPanel} onChange={() => setShowCommoditiesPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Shipping & Chokepoints <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>7</kbd></span>
-                      <input type="checkbox" checked={showShippingMode} onChange={() => { setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); }} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  {showShippingMode && shippingData && (
-                    <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
-                      <strong>Maritime Chokepoints</strong>
-                      <p>{shippingData.summary?.disrupted || 0} disrupted, {shippingData.summary?.criticalRisk || 0} critical risk</p>
-                      <button className="stability-sidebar-open-btn" onClick={() => setShowShippingPanel(p => !p)}>
-                        {showShippingPanel ? 'Close' : 'Open'} Shipping Panel
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Migration & Humanitarian</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Watchlist <kbd style={{fontSize:'9px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span>
-                      <input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Demographic Risk</span>
-                      <input type="checkbox" checked={showDemographicPanel} onChange={() => setShowDemographicPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Geopolitical Modeling</div>
-                  <div className="source-group-items">
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Regime Stability</span>
-                      <input type="checkbox" checked={showRegimePanel} onChange={() => setShowRegimePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Alliance Networks</span>
-                      <input type="checkbox" checked={showAlliancePanel} onChange={() => setShowAlliancePanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Leadership Intel</span>
-                      <input type="checkbox" checked={showLeadershipPanel} onChange={() => setShowLeadershipPanel(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                    <label className="switch switch-neutral">
-                      <span className="switch-label">Timeline Navigator</span>
-                      <input type="checkbox" checked={showTimeline} onChange={() => setShowTimeline(p => !p)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="source-group">
-                  <div className="source-group-title">Lifestyle & Indices</div>
-                  <div className="source-group-items">
-                    {[
-                      { id: 'sports', label: 'Major Sports', tone: 'neutral', disabled: true },
-                      { id: 'pizzaIndex', label: 'Pizza Index', tone: 'neutral', disabled: true },
-                    ].map((layer) => (
-                      <label key={layer.id} className={`switch switch-${layer.tone} switch-disabled`}>
-                        <span className="switch-label">{layer.label} (WIP)</span>
-                        <input type="checkbox" checked={false} disabled />
-                        <span className="slider" />
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                {/* Drawers render as snap-zone panels over the map */}
               </div>
             )}
 
@@ -3036,16 +2861,63 @@ function App() {
               />
             )}
 
-            {/* Chat Tab */}
-            {sidebarExpanded && sidebarTab === 'chat' && (
-              <ChatPanel chatId="global" />
+            {/* Overlays Tab */}
+            {sidebarExpanded && sidebarTab === 'overlays' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Map Overlays</div>
+                <div className="settings-group">
+                  <label className="switch switch-neutral switch-disabled">
+                    <span className="switch-label">Timezones (WIP)</span>
+                    <input type="checkbox" checked={false} disabled />
+                    <span className="slider" />
+                  </label>
+                  {[
+                    { id: 'us', label: 'US State Borders', state: showUSStates, set: setShowUSStates },
+                    { id: 'ca', label: 'CA Province Borders', state: showCAProvinces, set: setShowCAProvinces },
+                    { id: 'in', label: 'IN State Borders', state: showINStates, set: setShowINStates },
+                    { id: 'ru', label: 'RU Oblast Borders', state: showRUOblasts, set: setShowRUOblasts },
+                    { id: 'uk', label: 'UK Nation Borders', state: showUKNations, set: setShowUKNations },
+                    { id: 'eu', label: 'EU Country Borders', state: showEUCountries, set: setShowEUCountries },
+                  ].map(b => (
+                    <label key={b.id} className="switch switch-neutral">
+                      <span className="switch-label">{b.label}</span>
+                      <input type="checkbox" checked={b.state} onChange={() => b.set(prev => !prev)} />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sources Tab */}
+            {sidebarExpanded && sidebarTab === 'sources' && (
+              <div className="settings-panel">
+                <div className="toggle-group-title">Data Sources</div>
+                <div className="settings-group">
+                  {[
+                    { id: 'news', label: 'Major News', tone: 'news' },
+                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
+                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
+                  ].map((layer) => (
+                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
+                      <span className="switch-label">{layer.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={enabledLayers[layer.id]}
+                        onChange={() => toggleLayer(layer.id)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Themes Tab */}
             {sidebarExpanded && sidebarTab === 'themes' && (
               <div className="themes-panel">
                 <div className="toggle-group-title">Theme</div>
-                <div className="themes-grid themes-grid-3">
+                <div className="themes-grid">
                   {THEMES.map(t => (
                     <button
                       key={t.id}
@@ -3121,93 +2993,49 @@ function App() {
 
             {sidebarExpanded && sidebarTab === 'settings' && (
               <div className="settings-panel">
-                <div className="toggle-group-title">News Sources</div>
+                {/* ─── Display ─── */}
+                <div className="toggle-group-title">Display</div>
                 <div className="settings-group">
-                  {[
-                    { id: 'news', label: 'Major News', tone: 'news' },
-                    { id: 'reddit', label: 'Reddit', tone: 'reddit' },
-                    { id: 'twitter', label: 'Twitter', tone: 'twitter' },
-                  ].map((layer) => (
-                    <label key={layer.id} className={`switch switch-${layer.tone}`}>
-                      <span className="switch-label">{layer.label}</span>
-                      <input
-                        type="checkbox"
-                        checked={enabledLayers[layer.id]}
-                        onChange={() => toggleLayer(layer.id)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  ))}
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Map Overlays</div>
-                <div className="settings-group">
-                  <label className="switch switch-neutral switch-disabled">
-                    <span className="switch-label">Timezones (WIP)</span>
+                  <div className="opacity-slider-group">
+                    <span className="switch-label">Text Size</span>
+                    <div className="text-size-selector">
+                      {[
+                        { id: 'small', label: 'S' },
+                        { id: 'medium', label: 'M' },
+                        { id: 'large', label: 'L' },
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          className={`text-size-btn${textSize === s.id ? ' active' : ''}`}
+                          onClick={() => setTextSize(s.id)}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="opacity-slider-group">
+                    <span className="switch-label">Panel Opacity</span>
                     <input
-                      type="checkbox"
-                      checked={false}
-                      disabled
+                      type="range"
+                      className="opacity-slider"
+                      min="0.15"
+                      max="1"
+                      step="0.05"
+                      value={panelOpacity}
+                      onChange={(e) => setPanelOpacity(Number(e.target.value))}
                     />
-                    <span className="slider" />
-                  </label>
+                    <span className="opacity-value">{Math.round(panelOpacity * 100)}%</span>
+                  </div>
                   <label className="switch switch-neutral">
-                    <span className="switch-label">US State Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showUSStates}
-                      onChange={() => setShowUSStates(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">CA Province Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showCAProvinces}
-                      onChange={() => setShowCAProvinces(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">IN State Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showINStates}
-                      onChange={() => setShowINStates(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">RU Oblast Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showRUOblasts}
-                      onChange={() => setShowRUOblasts(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">UK Nation Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showUKNations}
-                      onChange={() => setShowUKNations(prev => !prev)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <label className="switch switch-neutral">
-                    <span className="switch-label">EU Country Borders</span>
-                    <input
-                      type="checkbox"
-                      checked={showEUCountries}
-                      onChange={() => setShowEUCountries(prev => !prev)}
-                    />
+                    <span className="switch-label">News Ticker</span>
+                    <input type="checkbox" checked={showNewsTicker} onChange={() => setShowNewsTicker(p => !p)} />
                     <span className="slider" />
                   </label>
                 </div>
 
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units</div>
+                {/* ─── Units & Language ─── */}
+                <div className="toggle-group-title" style={{ marginTop: '16px' }}>Units & Language</div>
                 <div className="settings-group">
                   <div className="temp-unit-toggle">
                     <span className="switch-label">Temperature</span>
@@ -3222,26 +3050,52 @@ function App() {
                       >°C</button>
                     </div>
                   </div>
-                </div>
-
-                <div className="toggle-group-title" style={{ marginTop: '16px' }}>{t('settings.language')}</div>
-                <div className="settings-group">
                   <div className="lang-selector">
-                    {supportedLanguages.map(l => (
+                    <span className="switch-label" style={{ marginBottom: 4, display: 'block' }}>Language</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       <button
-                        key={l.code}
-                        className={`lang-btn${lang === l.code ? ' active' : ''}`}
-                        onClick={() => setLang(l.code)}
-                        title={l.label}
+                        className={`lang-btn active`}
+                        title="English"
                       >
-                        {l.nativeLabel}
+                        English
                       </button>
-                    ))}
+                      {supportedLanguages.filter(l => l.code !== 'en').map(l => (
+                        <button
+                          key={l.code}
+                          className="lang-btn"
+                          title={`${l.label} — coming soon`}
+                          disabled
+                          style={{ opacity: 0.35, cursor: 'not-allowed' }}
+                        >
+                          {l.nativeLabel}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+
+            {/* Collapsible Chat */}
+            {sidebarExpanded && (
+              <div className={`sidebar-chat-wrapper${chatOpen ? ' sidebar-chat-open' : ''}`}>
+                <button
+                  className="sidebar-chat-toggle"
+                  onClick={() => setChatOpen(prev => !prev)}
+                  aria-expanded={chatOpen}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Chat
+                  <svg className={`sidebar-chat-chevron${chatOpen ? ' open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                </button>
+                {chatOpen && <ChatPanel chatId="global" />}
+              </div>
+            )}
 
             {!sidebarExpanded && (
               <div className="sidebar-expand-area" onClick={() => setSidebarExpanded(true)} title="Expand sidebar">
@@ -3251,6 +3105,26 @@ function App() {
               </div>
             )}
           </div>
+          {/* Eye indicator — bottom-left corner; shows expanded/collapsed state */}
+          <button
+            className={`sidebar-eye-btn${sidebarExpanded ? ' sidebar-eye-front' : ''}`}
+            onClick={() => setSidebarExpanded(prev => !prev)}
+            title={sidebarExpanded ? 'Panel visible — click to collapse' : 'Panel hidden — click to expand'}
+            aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {sidebarExpanded ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Map */}
@@ -3261,6 +3135,171 @@ function App() {
         )}
         {/* Earth Overlay - scan line, atmospheric glow */}
         <EarthOverlay useGlobe={useGlobe} earthGlow={visualLayers.earthGlow} map={mapRef.current} />
+
+        {/* ═══ Snap-Zone Floating Drawers ═══ */}
+        {[
+          { id: 'live-data', icon: '◉', label: 'Live Data', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral">
+                  <span className="switch-label">Stability Monitor</span>
+                  <input type="checkbox" checked={stabilityMode} onChange={() => { setStabilityMode(prev => { if (prev) setShowStabilityPanel(false); return !prev; }); }} />
+                  <span className="slider" />
+                </label>
+                {[
+                  { id: 'severeWeather', label: 'Severe Weather', tone: 'flights', disabled: false, kbd: '5' },
+                  { id: 'flights', label: 'Flights (WIP)', tone: 'flights', disabled: true },
+                ].map((layer) => (
+                  <label key={layer.id} className={`switch switch-${layer.tone} ${layer.disabled ? 'switch-disabled' : ''}`}>
+                    <span className="switch-label">{layer.label}{layer.kbd && <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>{layer.kbd}</kbd>}</span>
+                    <input type="checkbox" checked={enabledLayers[layer.id]} onChange={() => !layer.disabled && toggleLayer(layer.id)} disabled={layer.disabled} />
+                    <span className="slider" />
+                  </label>
+                ))}
+              </div>
+              {stabilityMode && (
+                <div className="stability-sidebar-info" style={{ marginTop: '8px' }}>
+                  <div className="stability-sidebar-stats">
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.protests?.length || '—'}</span><span className="stability-sidebar-stat-label">Protests</span></div>
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.military?.length || '—'}</span><span className="stability-sidebar-stat-label">Military</span></div>
+                    <div className="stability-sidebar-stat"><span className="stability-sidebar-stat-value">{stabilityData?.instability?.length || '—'}</span><span className="stability-sidebar-stat-label">Alerts</span></div>
+                  </div>
+                  <div className="conflict-sidebar-toggles">
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Protest Heatmap</span><input type="checkbox" checked={showProtestHeatmap} onChange={() => setShowProtestHeatmap(p => !p)} /><span className="slider" /></label>
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Military Indicators</span><input type="checkbox" checked={showMilitaryOverlay} onChange={() => setShowMilitaryOverlay(p => !p)} /><span className="slider" /></label>
+                    <label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Refugee Flows</span><input type="checkbox" checked={showRefugeePanel} onChange={() => setShowRefugeePanel(p => !p)} /><span className="slider" /></label>
+                  </div>
+                  <button className="stability-sidebar-open-btn" onClick={() => setShowStabilityPanel(prev => !prev)}>{showStabilityPanel ? 'Close' : 'Open'} Stability Panel</button>
+                </div>
+              )}
+            </>
+          )},
+          { id: 'us-politics', icon: '⚑', label: 'US Politics', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-elections"><span className="switch-label">2026 Midterms</span><input type="checkbox" checked={electionMode} onChange={() => { setElectionMode(prev => { if (prev) { setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } }); } else { setShowUSStates(true); } return !prev; }); }} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Tariffs & Trade</span><input type="checkbox" checked={showTariffHeatmap} onChange={() => setShowTariffHeatmap(prev => !prev)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">US Installations</span><input type="checkbox" checked={showUSBases} onChange={() => setShowUSBases(p => !p)} /><span className="slider" /></label>
+              </div>
+              {showTariffHeatmap && (
+                <div className="tariff-sidebar" style={{ marginTop: '8px' }}>
+                  <div className="tariff-heatmap-active-badge"><span className="tariff-heatmap-active-dot" />Heatmap active</div>
+                  <div className="tariff-legend"><div className="tariff-legend-title">Tariff Rate Legend</div><div className="tariff-legend-items">{TARIFF_LEGEND.map((item) => (<div key={item.label} className="tariff-legend-item"><span className="tariff-legend-swatch" style={{ background: isLightTheme ? item.colorLight : item.color }} /><span>{item.label}</span></div>))}</div></div>
+                </div>
+              )}
+            </>
+          )},
+          { id: 'conflicts', icon: '⚔', label: 'Conflicts', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-frontline"><span className="switch-label">Russia–Ukraine</span><input type="checkbox" checked={conflictMode} onChange={() => { setConflictMode(prev => { if (prev) setConflictPanelOpen(false); return !prev; }); }} /><span className="slider" /></label>
+              </div>
+              {conflictMode && (
+                <div className="conflict-sidebar-info" style={{ marginTop: '8px' }}>
+                  <span className="conflict-sidebar-day">Day {CONFLICT_SUMMARY.daysSince()}</span>
+                  <strong>Russia–Ukraine War</strong>
+                  <div className="conflict-sidebar-toggles"><label className="switch switch-neutral" style={{ fontSize: '11px' }}><span className="switch-label">Troop Positions</span><input type="checkbox" checked={conflictShowTroops} onChange={() => setConflictShowTroops(prev => !prev)} /><span className="slider" /></label></div>
+                  <button className="conflict-sidebar-open-btn" style={{ marginTop:'8px',width:'100%',padding:'7px 10px',background:'rgba(255,50,50,0.12)',border:'1px solid rgba(255,50,50,0.25)',borderRadius:'6px',color:'#ff6b6b',fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanelOpen(prev => !prev)}>{conflictPanelOpen ? 'Close' : 'Open'} Statistics</button>
+                </div>
+              )}
+              {ADDITIONAL_CONFLICTS.map((c) => (
+                <div key={c.id}>
+                  <div className="source-group-items" style={{ marginTop: 4 }}><label className="switch switch-frontline"><span className="switch-label">{c.label}</span><input type="checkbox" checked={!!activeConflicts[c.id]} onChange={() => { setActiveConflicts(prev => { const next = { ...prev }; if (next[c.id]) { delete next[c.id]; setConflictPanels(p => { const n = { ...p }; delete n[c.id]; return n; }); } else { next[c.id] = true; setConflictTroops(p => ({ ...p, [c.id]: true })); } return next; }); }} /><span className="slider" /></label></div>
+                  {activeConflicts[c.id] && (<div className="conflict-sidebar-info" style={{ marginTop:'6px',marginBottom:'4px' }}><span className="conflict-sidebar-day">Day {c.data.CONFLICT_SUMMARY.daysSince()}</span><strong>{c.data.CONFLICT_SUMMARY.name}</strong><p style={{ fontSize:'10px',margin:'4px 0',opacity:0.8 }}>{c.data.CONFLICT_SUMMARY.phase}</p><button className="conflict-sidebar-open-btn" style={{ marginTop:'6px',width:'100%',padding:'6px 10px',background:`${c.data.CONFLICT_SUMMARY.sideA.color}1f`,border:`1px solid ${c.data.CONFLICT_SUMMARY.sideA.color}40`,borderRadius:'6px',color:c.data.CONFLICT_SUMMARY.sideA.color,fontSize:'11px',fontWeight:600,cursor:'pointer' }} onClick={() => setConflictPanels(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{conflictPanels[c.id] ? 'Close' : 'Open'} Statistics</button></div>)}
+                </div>
+              ))}
+            </>
+          )},
+          { id: 'intel', icon: '◎', label: 'Intelligence', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral"><span className="switch-label">Daily Briefing <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>1</kbd></span><input type="checkbox" checked={showBriefingPanel} onChange={() => setShowBriefingPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Tension Index <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>2</kbd></span><input type="checkbox" checked={showTensionPanel} onChange={() => setShowTensionPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Country Risk <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>3</kbd></span><input type="checkbox" checked={showCountryRiskMode} onChange={() => { setShowCountryRiskMode(p => !p); setShowCountryRiskPanel(p => !p); }} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Narrative Tracking</span><input type="checkbox" checked={showNarrativePanel} onChange={() => setShowNarrativePanel(p => !p)} /><span className="slider" /></label>
+              </div>
+              {showTensionPanel && tensionData && (<div className="stability-sidebar-info" style={{ marginTop:'8px' }}><strong>Tension: <span style={{ color: tensionData.index >= 65 ? '#ff6b6b' : '#ffd700' }}>{tensionData.index}/100</span></strong><p>{tensionData.summary?.totalConflicts || 0} conflicts, {tensionData.summary?.nuclearFlashpoints || 0} nuclear</p></div>)}
+            </>
+          )},
+          { id: 'disasters', icon: '⚠', label: 'Security', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Health & Pandemics</span><input type="checkbox" checked={showHealthPanel} onChange={() => setShowHealthPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Cyber Threats <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>6</kbd></span><input type="checkbox" checked={showCyberPanel} onChange={() => setShowCyberPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Court Rulings</span><input type="checkbox" checked={showCourtPanel} onChange={() => setShowCourtPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Sanctions</span><input type="checkbox" checked={showSanctionsPanel} onChange={() => setShowSanctionsPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Infrastructure</span><input type="checkbox" checked={showInfrastructurePanel} onChange={() => setShowInfrastructurePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Nuclear Threats</span><input type="checkbox" checked={showNuclearPanel} onChange={() => setShowNuclearPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'env-tech', icon: '❖', label: 'Env & Tech', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Climate & Environment</span><input type="checkbox" checked={showClimatePanel} onChange={() => setShowClimatePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">AI & Technology</span><input type="checkbox" checked={showAiTechPanel} onChange={() => setShowAiTechPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'trade', icon: '⬙', label: 'Trade', content: (
+            <>
+              <div className="source-group-items">
+                <label className="switch switch-neutral"><span className="switch-label">Commodities <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>4</kbd></span><input type="checkbox" checked={showCommoditiesPanel} onChange={() => setShowCommoditiesPanel(p => !p)} /><span className="slider" /></label>
+                <label className="switch switch-neutral"><span className="switch-label">Shipping <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>7</kbd></span><input type="checkbox" checked={showShippingMode} onChange={() => { setShowShippingMode(p => { if (!p) setShowShippingPanel(true); return !p; }); }} /><span className="slider" /></label>
+              </div>
+              {showShippingMode && shippingData && (<div className="stability-sidebar-info" style={{ marginTop:'8px' }}><strong>Maritime Chokepoints</strong><p>{shippingData.summary?.disrupted || 0} disrupted</p><button className="stability-sidebar-open-btn" onClick={() => setShowShippingPanel(p => !p)}>{showShippingPanel ? 'Close' : 'Open'} Shipping</button></div>)}
+            </>
+          )},
+          { id: 'migration', icon: '⬡', label: 'Migration', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Watchlist <kbd style={{fontSize:'10px',padding:'0 3px',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'2px',marginLeft:'4px'}}>0</kbd></span><input type="checkbox" checked={showWatchlistPanel} onChange={() => setShowWatchlistPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Demographic Risk</span><input type="checkbox" checked={showDemographicPanel} onChange={() => setShowDemographicPanel(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'geopolitical', icon: '◆', label: 'Geopolitics', content: (
+            <div className="source-group-items">
+              <label className="switch switch-neutral"><span className="switch-label">Regime Stability</span><input type="checkbox" checked={showRegimePanel} onChange={() => setShowRegimePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Alliance Networks</span><input type="checkbox" checked={showAlliancePanel} onChange={() => setShowAlliancePanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Leadership Intel</span><input type="checkbox" checked={showLeadershipPanel} onChange={() => setShowLeadershipPanel(p => !p)} /><span className="slider" /></label>
+              <label className="switch switch-neutral"><span className="switch-label">Timeline Navigator</span><input type="checkbox" checked={showTimeline} onChange={() => setShowTimeline(p => !p)} /><span className="slider" /></label>
+            </div>
+          )},
+          { id: 'lifestyle', icon: '✦', label: 'Lifestyle', content: (
+            <div className="source-group-items">
+              {[{ id: 'sports', label: 'Major Sports' }, { id: 'pizzaIndex', label: 'Pizza Index' }].map((l) => (
+                <label key={l.id} className="switch switch-neutral switch-disabled"><span className="switch-label">{l.label} (WIP)</span><input type="checkbox" checked={false} disabled /><span className="slider" /></label>
+              ))}
+            </div>
+          )},
+        ].map(drawer => openSections.has(drawer.id) && (
+          <div
+            key={drawer.id}
+            className={`snap-zone-drawer${minimizedDrawers.has(drawer.id) ? ' snap-zone-drawer--minimized' : ''}`}
+            style={{
+              ...(drawerStates[drawer.id]
+                ? { left: drawerStates[drawer.id].x, top: drawerStates[drawer.id].y, right: 'auto', bottom: 'auto',
+                    width: drawerStates[drawer.id].w || 320,
+                    ...(!minimizedDrawers.has(drawer.id) && drawerStates[drawer.id].h ? { height: drawerStates[drawer.id].h, maxHeight: 'none' } : {}) }
+                : DRAWER_POSITIONS[drawer.id]),
+              background: `rgba(var(--snap-bg-rgb, 8,12,20), ${panelOpacity})`,
+            }}
+          >
+            <div className="folder-drawer-header" onMouseDown={e => startDrawerDrag(e, drawer.id, 'move')} style={{ cursor: 'grab' }}>
+              <span className="folder-drawer-icon">{drawer.icon}</span> {drawer.label}
+              <span className="folder-drawer-minimize" onClick={() => toggleMinimize(drawer.id)} onMouseDown={e => e.stopPropagation()} title={minimizedDrawers.has(drawer.id) ? 'Expand' : 'Minimize'}>{minimizedDrawers.has(drawer.id) ? '▢' : '▁'}</span>
+              <span className="folder-drawer-close" onClick={() => toggleSection(drawer.id)} onMouseDown={e => e.stopPropagation()}>✕</span>
+            </div>
+            {!minimizedDrawers.has(drawer.id) && drawer.content}
+            {/* Resize handles — all edges + corners */}
+            {!minimizedDrawers.has(drawer.id) && <>
+              <div className="drawer-resize drawer-resize-n" onMouseDown={e => startDrawerDrag(e, drawer.id, 'n')} />
+              <div className="drawer-resize drawer-resize-s" onMouseDown={e => startDrawerDrag(e, drawer.id, 's')} />
+              <div className="drawer-resize drawer-resize-e" onMouseDown={e => startDrawerDrag(e, drawer.id, 'e')} />
+              <div className="drawer-resize drawer-resize-w" onMouseDown={e => startDrawerDrag(e, drawer.id, 'w')} />
+              <div className="drawer-resize drawer-resize-nw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'nw')} />
+              <div className="drawer-resize drawer-resize-ne" onMouseDown={e => startDrawerDrag(e, drawer.id, 'ne')} />
+              <div className="drawer-resize drawer-resize-sw" onMouseDown={e => startDrawerDrag(e, drawer.id, 'sw')} />
+              <div className="drawer-resize drawer-resize-se" onMouseDown={e => startDrawerDrag(e, drawer.id, 'se')} />
+            </>}
+          </div>
+        ))}
+
         {/* Timezone Labels Top */}
         {showTimezones && (
           <div className="timezone-labels timezone-labels-top">
@@ -3923,7 +3962,7 @@ function App() {
         )}
 
         {/* News Ticker */}
-        <NewsTicker items={feed} visible={true} />
+        <NewsTicker items={feed} visible={showNewsTicker} />
 
         {/* Global Status Bar */}
         <GlobalStatusBar tensionData={tensionData} disasterData={disasterData} cyberData={cyberData} commoditiesData={commoditiesData} />
@@ -4045,7 +4084,7 @@ function App() {
               type="line"
               layout={{ visibility: visualLayers.contours ? 'visible' : 'none' }}
               paint={{
-                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : 'rgba(73, 198, 255, 0.16)',
+                'line-color': isLightTheme ? 'rgba(100, 120, 160, 0.18)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.14)', 'rgba(224, 48, 80, 0.14)', 'rgba(48, 192, 80, 0.14)', 'rgba(73, 198, 255, 0.16)') : 'rgba(73, 198, 255, 0.16)',
                 'line-width': 0.7,
               }}
             />
@@ -4058,7 +4097,7 @@ function App() {
               id="compass-lines-glow"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : 'rgba(73, 198, 255, 0.10)',
+                'line-color': isLightTheme ? 'rgba(194, 120, 62, 0.08)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.08)', 'rgba(224, 48, 80, 0.08)', 'rgba(48, 192, 80, 0.08)', 'rgba(73, 198, 255, 0.10)') : 'rgba(73, 198, 255, 0.10)',
                 'line-width': useGlobe ? 4 : 2,
                 'line-blur': 4,
               }}
@@ -4068,7 +4107,7 @@ function App() {
               id="compass-lines-layer"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(0, 4, 255, 0.28)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.22)', 'rgba(224, 48, 80, 0.22)', 'rgba(48, 192, 80, 0.22)', 'rgba(73, 198, 255, 0.25)') : 'rgba(73, 198, 255, 0.25)',
                 'line-width': useGlobe ? 1.2 : 0.8,
                 'line-dasharray': [8, 6],
               }}
@@ -4081,7 +4120,7 @@ function App() {
               id="equator-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : 'rgba(73, 198, 255, 0.25)',
+                'line-color': isLightTheme ? 'rgba(50, 8, 167, 0)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.22)', 'rgba(224, 48, 80, 0.22)', 'rgba(48, 192, 80, 0.22)', 'rgba(73, 198, 255, 0.25)') : 'rgba(73, 198, 255, 0.25)',
                 'line-width': 1,
                 'line-dasharray': [6, 4],
               }}
@@ -4095,7 +4134,7 @@ function App() {
               type="line"
               filter={['!=', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(80, 93, 166, 0.2)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.18)', 'rgba(224, 48, 80, 0.18)', 'rgba(48, 192, 80, 0.18)', 'rgba(73, 198, 255, 0.2)') : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 0.8,
                 'line-dasharray': [3, 3],
               }}
@@ -4105,7 +4144,7 @@ function App() {
               type="line"
               filter={['==', ['get', 'isPrimeMeridian'], true]}
               paint={{
-                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : 'rgba(73, 198, 255, 0.2)',
+                'line-color': isLightTheme ? 'rgba(86, 80, 166, 0.2)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.18)', 'rgba(224, 48, 80, 0.18)', 'rgba(48, 192, 80, 0.18)', 'rgba(73, 198, 255, 0.2)') : 'rgba(73, 198, 255, 0.2)',
                 'line-width': 1.5,
               }}
             />
@@ -4121,7 +4160,7 @@ function App() {
                   ? [
                       'case',
                       ['boolean', ['feature-state', 'hover'], false],
-                      isLightTheme ? '#a8c090' : '#1c3040',
+                      isLightTheme ? '#a8c090' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                       ['get', 'tariffColor'],
                     ]
                   : showEUCountries
@@ -4131,14 +4170,14 @@ function App() {
                         'rgba(0,0,0,0)',
                         ['case',
                           ['boolean', ['feature-state', 'hover'], false],
-                          isLightTheme ? '#a8c090' : '#1c3040',
+                          isLightTheme ? '#a8c090' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                           ['get', 'fillColor'],
                         ],
                       ]
                     : [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? '#FFFD7C' : '#1c3040',
+                        isLightTheme ? '#FFFD7C' : isThemedDark ? themedColor('#2a2010', '#2a1018', '#102a14', '#1c3040') : '#1c3040',
                         ['get', 'fillColor'],
                       ],
                 'fill-opacity': showTariffHeatmap ? 0.85 : (visualLayers.countryFill ? 0.75 : 0),
@@ -4150,7 +4189,7 @@ function App() {
                 id="countries-glow-outer"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': 4,
                   'line-blur': 6,
                   'line-opacity': showEUCountries
@@ -4164,7 +4203,7 @@ function App() {
                 id="countries-glow-mid"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#49c6ff') : '#49c6ff',
                   'line-width': 2,
                   'line-blur': 3,
                   'line-opacity': showEUCountries
@@ -4180,10 +4219,10 @@ function App() {
                 'line-color': showTariffHeatmap
                   ? (isLightTheme ? 'rgba(30, 20, 50, 0.75)' : 'rgba(200, 210, 235, 0.6)')
                   : holoMode
-                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : 'rgba(73, 198, 255, 0.65)')
+                    ? (isLightTheme ? 'rgba(39, 35, 12, 0.82)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.60)', 'rgba(224, 48, 80, 0.60)', 'rgba(48, 192, 80, 0.60)', 'rgba(73, 198, 255, 0.65)') : 'rgba(73, 198, 255, 0.65)')
                     : (isLightTheme
                         ? 'rgba(30, 25, 50, 0.5)'
-                        : 'rgba(15, 20, 30, 0.7)'),
+                        : isThemedDark ? themedColor('rgba(20, 16, 8, 0.7)', 'rgba(20, 8, 12, 0.7)', 'rgba(8, 20, 10, 0.7)', 'rgba(15, 20, 30, 0.7)') : 'rgba(15, 20, 30, 0.7)'),
                 'line-width': showTariffHeatmap
                   ? [
                       'case',
@@ -4216,10 +4255,10 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'fill-color': holoMode
-                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : 'rgba(73, 198, 255, 0.1)')
+                  ? (isLightTheme ? 'rgba(100, 189, 169, 0.47)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.1)', 'rgba(224, 48, 80, 0.1)', 'rgba(48, 192, 80, 0.1)', 'rgba(73, 198, 255, 0.1)') : 'rgba(73, 198, 255, 0.1)')
                   : (isLightTheme
                       ? 'rgba(194, 120, 62, 0.25)'
-                      : 'rgba(61, 194, 208, 0.25)'),
+                      : isThemedDark ? themedColor('rgba(224, 160, 32, 0.20)', 'rgba(224, 48, 80, 0.20)', 'rgba(48, 192, 80, 0.20)', 'rgba(61, 194, 208, 0.25)') : 'rgba(61, 194, 208, 0.25)'),
               }}
             />
             {holoMode && (
@@ -4228,7 +4267,7 @@ function App() {
                 type="line"
                 filter={selectedCountryFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : '#49c6ff',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': 5,
                   'line-blur': 6,
                   'line-opacity': 0.5,
@@ -4241,8 +4280,8 @@ function App() {
               filter={selectedCountryFilter}
               paint={{
                 'line-color': holoMode
-                  ? (isLightTheme ? '#2a8a94' : '#49c6ff')
-                  : (isLightTheme ? '#2a8a94' : '#3dc2d0'),
+                  ? (isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff')
+                  : (isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0'),
                 'line-width': holoMode ? 1.2 : 1.6,
               }}
             />
@@ -4254,7 +4293,7 @@ function App() {
               id="water-canals-line"
               type="line"
               paint={{
-                'line-color': isLightTheme ? '#488FACFB' : (holoMode ? '#0a1a30' : '#0a1525'),
+                'line-color': isLightTheme ? '#488FACFB' : isThemedDark ? themedColor('#0e0a04', '#0c0408', '#040c06', (holoMode ? '#0a1a30' : '#0a1525')) : (holoMode ? '#0a1a30' : '#0a1525'),
                 'line-width': [
                   'interpolate', ['linear'], ['zoom'],
                   2, 1,
@@ -4270,7 +4309,7 @@ function App() {
                 id="water-canals-glow"
                 type="line"
                 paint={{
-                  'line-color': isLightTheme ? '#3dc2d0' : '#49c6ff',
+                  'line-color': isLightTheme ? '#3dc2d0' : isThemedDark ? themedColor('#e0a020', '#e03050', '#30c050', '#49c6ff') : '#49c6ff',
                   'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     2, 2,
@@ -4295,7 +4334,7 @@ function App() {
                     ? [
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
-                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : 'rgba(200, 180, 255, 0.3)',
+                        isLightTheme ? 'rgba(153, 0, 0, 0.8)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.3)', 'rgba(224, 48, 80, 0.3)', 'rgba(48, 192, 80, 0.3)', 'rgba(200, 180, 255, 0.3)') : 'rgba(200, 180, 255, 0.3)',
                         ['get', 'electionColor'],
                       ]
                     : [
@@ -4303,7 +4342,7 @@ function App() {
                         ['boolean', ['feature-state', 'hover'], false],
                         isLightTheme
                           ? 'rgba(0, 18, 22, 0.15)'
-                          : 'rgba(61, 194, 208, 0.15)',
+                          : isThemedDark ? themedColor('rgba(224, 160, 32, 0.12)', 'rgba(224, 48, 80, 0.12)', 'rgba(48, 192, 80, 0.12)', 'rgba(61, 194, 208, 0.15)') : 'rgba(61, 194, 208, 0.15)',
                         'rgba(0, 0, 0, 0)',
                       ],
                   'fill-opacity': electionMode ? 0.7 : 1,
@@ -4315,7 +4354,7 @@ function App() {
                 paint={{
                   'line-color': isLightTheme
                     ? 'rgba(11, 84, 167, 0.35)'
-                    : 'rgba(35, 220, 245, 0.35)',
+                    : isThemedDark ? themedColor('rgba(224, 160, 32, 0.30)', 'rgba(224, 48, 80, 0.30)', 'rgba(48, 192, 80, 0.30)', 'rgba(35, 220, 245, 0.35)') : 'rgba(35, 220, 245, 0.35)',
                   'line-width': 2,
                 }}
               />
@@ -4326,7 +4365,7 @@ function App() {
                 paint={{
                   'fill-color': isLightTheme
                     ? 'rgba(0, 153, 255, 0.22)'
-                    : 'rgba(61, 194, 208, 0.25)',
+                    : isThemedDark ? themedColor('rgba(224, 160, 32, 0.20)', 'rgba(224, 48, 80, 0.20)', 'rgba(48, 192, 80, 0.20)', 'rgba(61, 194, 208, 0.25)') : 'rgba(61, 194, 208, 0.25)',
                 }}
               />
               <Layer
@@ -4334,7 +4373,7 @@ function App() {
                 type="line"
                 filter={selectedStateFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#3F3CD896' : '#3dc2d0',
+                  'line-color': isLightTheme ? '#3F3CD896' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0',
                   'line-width': 2.5,
                 }}
               />
@@ -4358,8 +4397,8 @@ function App() {
                   'line-color': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : 'rgba(3, 165, 157, 0.6)',
-                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : 'rgb(0, 238, 226)',
+                    isLightTheme ? 'rgba(20, 51, 136, 0.7)' : isThemedDark ? themedColor('rgba(224, 160, 32, 0.55)', 'rgba(224, 48, 80, 0.55)', 'rgba(48, 192, 80, 0.55)', 'rgba(3, 165, 157, 0.6)') : 'rgba(3, 165, 157, 0.6)',
+                    isLightTheme ? 'rgba(27, 84, 189, 0.3)' : isThemedDark ? themedColor('rgba(200, 144, 32, 0.5)', 'rgba(200, 48, 80, 0.5)', 'rgba(48, 160, 64, 0.5)', 'rgb(0, 238, 226)') : 'rgb(0, 238, 226)',
                   ],
                   'line-width': [
                     'case',
@@ -4375,7 +4414,7 @@ function App() {
                 type="line"
                 filter={selectedProvinceFilter}
                 paint={{
-                  'line-color': isLightTheme ? '#2a8a94' : '#3dc2d0',
+                  'line-color': isLightTheme ? '#2a8a94' : isThemedDark ? themedColor('#c89020', '#c83040', '#28a040', '#3dc2d0') : '#3dc2d0',
                   'line-width': 2,
                 }}
               />
@@ -4726,10 +4765,10 @@ function App() {
                 'heatmap-color': [
                   'interpolate', ['linear'], ['heatmap-density'],
                   0, 'rgba(0,0,0,0)',
-                  0.15, isLightTheme ? 'rgba(100,160,220,0.4)' : 'rgba(73,198,255,0.25)',
-                  0.4, isLightTheme ? 'rgba(60,190,170,0.55)' : 'rgba(100,80,220,0.5)',
-                  0.65, isLightTheme ? 'rgba(240,170,50,0.65)' : 'rgba(220,80,200,0.6)',
-                  1.0, isLightTheme ? 'rgba(220,60,40,0.75)' : 'rgba(255,85,85,0.7)',
+                  0.15, isLightTheme ? 'rgba(100,160,220,0.4)' : isThemedDark ? themedColor('rgba(180,140,40,0.25)', 'rgba(180,48,60,0.25)', 'rgba(48,160,60,0.25)', 'rgba(73,198,255,0.25)') : 'rgba(73,198,255,0.25)',
+                  0.4, isLightTheme ? 'rgba(60,190,170,0.55)' : isThemedDark ? themedColor('rgba(200,120,20,0.45)', 'rgba(200,48,60,0.45)', 'rgba(48,160,50,0.45)', 'rgba(100,80,220,0.5)') : 'rgba(100,80,220,0.5)',
+                  0.65, isLightTheme ? 'rgba(240,170,50,0.65)' : isThemedDark ? themedColor('rgba(220,80,20,0.55)', 'rgba(220,48,40,0.55)', 'rgba(48,180,50,0.55)', 'rgba(220,80,200,0.6)') : 'rgba(220,80,200,0.6)',
+                  1.0, isLightTheme ? 'rgba(220,60,40,0.75)' : isThemedDark ? themedColor('rgba(200,40,20,0.65)', 'rgba(200,30,40,0.65)', 'rgba(40,160,40,0.65)', 'rgba(255,85,85,0.7)') : 'rgba(255,85,85,0.7)',
                 ],
               }}
             />
@@ -4744,7 +4783,7 @@ function App() {
                 paint={{
                   'line-color': isLightTheme
                     ? 'rgba(59, 141, 255, 0.7)'
-                    : 'rgba(73, 198, 255, 0.7)',
+                    : isThemedDark ? themedColor('rgba(200, 144, 32, 0.6)', 'rgba(200, 48, 80, 0.6)', 'rgba(48, 160, 64, 0.6)', 'rgba(73, 198, 255, 0.7)') : 'rgba(73, 198, 255, 0.7)',
                   'line-width': 2,
                   'line-dasharray': [6, 6],
                 }}
@@ -4854,15 +4893,15 @@ function App() {
             </Marker>
           )}
 
-          {/* Hotspots */}
+          {/* Hotspots — dot size scales with article count */}
           {hotspots.filter((h) => isMarkerVisible(h.lon, h.lat)).map((hotspot) => {
-            const maxCount = hotspots[0]?.count || 1;
-            const intensity = Math.min(1, hotspot.count / Math.max(maxCount, 1));
             const isActive = hotspot.id === selectedHotspotId;
             const isRecent = isRecentlyUpdated(hotspot.lastUpdated);
             const isStale = !isRecent && new Date() - new Date(hotspot.lastUpdated) > 86400000;
             // Tier: high (10+), mid (5-9), low (2-4) items
             const tier = hotspot.count >= 10 ? 'high' : hotspot.count >= 5 ? 'mid' : 'low';
+            // Dynamic dot size: 10px at 2 items → 28px at 20+ items
+            const dotSize = Math.round(10 + Math.min(18, (hotspot.count / 20) * 18));
 
             return (
               <Marker
@@ -4878,8 +4917,8 @@ function App() {
                   onClick={(e) => handleHotspotClick(hotspot, e)}
                 >
                   {/* Ping ring for active hotspots */}
-                  {!isStale && tier !== 'low' && <span className="hs-ping" />}
-                  <span className="hs-dot" />
+                  {!isStale && tier !== 'low' && <span className="hs-ping" style={{ width: dotSize, height: dotSize }} />}
+                  <span className="hs-dot" style={{ width: dotSize, height: dotSize }} />
                   <div className="hs-label">
                     <span className="hs-name">{hotspot.name}</span>
                     <span className="hs-count">{hotspot.count}</span>
@@ -4921,100 +4960,161 @@ function App() {
         )}
 
         {/* Map controls - bottom left, grouped with zoom */}
-        <div className="map-controls-bl">
-          {/* Rotation controls (collapsible) */}
-          {useGlobe && !mapControlsCollapsed && (
-            <div className="map-rotation-controls">
-              {autoRotate && (
-                <input
-                  type="range"
-                  className="rotate-speed-slider"
-                  min="0.005"
-                  max="0.2"
-                  step="0.005"
-                  value={rotateSpeed}
-                  onChange={(e) => setRotateSpeed(Number(e.target.value))}
-                  title={`Rotation speed: ${Math.round(rotateSpeed * 60)}°/s`}
-                  aria-label="Rotation speed"
-                />
-              )}
-              {/* Play / Pause rotation */}
+        {(() => {
+          // Determine if arrow is in top or bottom half of map — controls expand away from the edge
+          const containerH = mapContainerRef.current?.getBoundingClientRect().height || 600;
+          const bottomPx = mapControlsPos ? mapControlsPos.y : 150;
+          const arrowInBottomHalf = bottomPx < containerH / 2;
+          // When arrow is in bottom half → controls above arrow (column, arrow last)
+          // When arrow is in top half → controls below arrow (column-reverse, arrow first)
+
+          const collapseBtn = (
+            <div className="map-collapse-toggle-bl">
               <button
-                className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
-                onClick={() => setAutoRotate(prev => !prev)}
-                title={autoRotate ? 'Stop rotation' : 'Start rotation'}
-                aria-label="Toggle auto-rotation"
+                className={`map-autorotate-btn map-controls-collapse-btn${mapControlsCollapsed ? ' map-controls-draggable' : ''}`}
+                onClick={() => {
+                  if (!mapControlsDragRef.current?.dragged) {
+                    setMapControlsCollapsed(prev => !prev);
+                  }
+                  if (mapControlsDragRef.current) mapControlsDragRef.current.dragged = false;
+                }}
+                onMouseDown={mapControlsCollapsed ? (e) => {
+                  const startX = e.clientX;
+                  const startY = e.clientY;
+                  const container = mapContainerRef.current;
+                  if (!container) return;
+                  const rect = container.getBoundingClientRect();
+                  const group = e.currentTarget.closest('.map-controls-group');
+                  const groupRect = group.getBoundingClientRect();
+                  const startLeft = groupRect.left - rect.left;
+                  const startBottom = rect.bottom - groupRect.bottom;
+                  mapControlsDragRef.current = { dragged: false };
+
+                  const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    if (!mapControlsDragRef.current.dragged && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+                      mapControlsDragRef.current.dragged = true;
+                    }
+                    if (mapControlsDragRef.current.dragged) {
+                      const newLeft = Math.max(0, Math.min(rect.width - 40, startLeft + dx));
+                      const newBottom = Math.max(0, Math.min(rect.height - 40, startBottom - dy));
+                      setMapControlsPos({ x: newLeft, y: newBottom });
+                    }
+                  };
+                  const onUp = () => {
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onUp);
+                  };
+                  window.addEventListener('mousemove', onMove);
+                  window.addEventListener('mouseup', onUp);
+                } : undefined}
+                title={mapControlsCollapsed ? 'Show controls (drag to reposition)' : 'Hide controls'}
+                aria-label="Toggle map controls"
               >
-                {autoRotate ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <rect x="5" y="4" width="5" height="16" rx="1" />
-                    <rect x="14" y="4" width="5" height="16" rx="1" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <polygon points="6,3 20,12 6,21" />
-                  </svg>
-                )}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {/* Arrow points toward the controls: down when controls below, up when controls above */}
+                  {mapControlsCollapsed
+                    ? (arrowInBottomHalf
+                        ? <polyline points="6 15 12 9 18 15" />
+                        : <polyline points="6 9 12 15 18 9" />)
+                    : (arrowInBottomHalf
+                        ? <polyline points="6 9 12 15 18 9" />
+                        : <polyline points="6 15 12 9 18 15" />)
+                  }
+                </svg>
               </button>
-              {/* Direction toggle — left/right arrows */}
-              {autoRotate && (
-                <button
-                  className="map-autorotate-btn map-rotate-dir-btn active"
-                  onClick={() => setRotateCCW(prev => !prev)}
-                  title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
-                  aria-label="Toggle rotation direction"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    {rotateCCW ? (
-                      <>
-                        <line x1="19" y1="12" x2="5" y2="12" />
-                        <polyline points="12 19 5 12 12 5" />
-                      </>
+            </div>
+          );
+
+          const controls = (
+            <div className="map-controls-bl">
+              {useGlobe && !mapControlsCollapsed && (
+                <div className="map-rotation-controls">
+                  {autoRotate && (
+                    <input
+                      type="range"
+                      className="rotate-speed-slider"
+                      min="0.005"
+                      max="0.2"
+                      step="0.005"
+                      value={rotateSpeed}
+                      onChange={(e) => setRotateSpeed(Number(e.target.value))}
+                      title={`Rotation speed: ${Math.round(rotateSpeed * 60)}°/s`}
+                      aria-label="Rotation speed"
+                    />
+                  )}
+                  <button
+                    className={`map-autorotate-btn ${autoRotate ? 'active' : ''}`}
+                    onClick={() => setAutoRotate(prev => !prev)}
+                    title={autoRotate ? 'Stop rotation' : 'Start rotation'}
+                    aria-label="Toggle auto-rotation"
+                  >
+                    {autoRotate ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <rect x="5" y="4" width="5" height="16" rx="1" />
+                        <rect x="14" y="4" width="5" height="16" rx="1" />
+                      </svg>
                     ) : (
-                      <>
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <polygon points="6,3 20,12 6,21" />
+                      </svg>
                     )}
+                  </button>
+                  {autoRotate && (
+                    <button
+                      className="map-autorotate-btn map-rotate-dir-btn active"
+                      onClick={() => setRotateCCW(prev => !prev)}
+                      title={rotateCCW ? 'Switch to clockwise' : 'Switch to counterclockwise'}
+                      aria-label="Toggle rotation direction"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {rotateCCW ? (
+                          <>
+                            <line x1="19" y1="12" x2="5" y2="12" />
+                            <polyline points="12 19 5 12 12 5" />
+                          </>
+                        ) : (
+                          <>
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+              {!mapControlsCollapsed && (
+                <button
+                  className="map-recenter-btn"
+                  onClick={handleRecenter}
+                  title="Recenter map"
+                  aria-label="Recenter map to default view"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <ellipse cx="12" cy="12" rx="4" ry="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
                   </svg>
                 </button>
               )}
             </div>
-          )}
-          {/* Recenter / globe button */}
-          {!mapControlsCollapsed && (
-            <button
-              className="map-recenter-btn"
-              onClick={handleRecenter}
-              title="Recenter map"
-              aria-label="Recenter map to default view"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <ellipse cx="12" cy="12" rx="4" ry="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-              </svg>
-            </button>
-          )}
-        </div>
+          );
 
-        {/* Collapse / expand toggle - below all controls */}
-        <div className="map-collapse-toggle-bl">
-          <button
-            className="map-autorotate-btn map-controls-collapse-btn"
-            onClick={() => setMapControlsCollapsed(prev => !prev)}
-            title={mapControlsCollapsed ? 'Show controls' : 'Hide controls'}
-            aria-label="Toggle map controls"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              {mapControlsCollapsed ? (
-                <polyline points="6 15 12 9 18 15" />
+          return (
+            <div
+              className="map-controls-group"
+              style={mapControlsPos ? { left: mapControlsPos.x, bottom: mapControlsPos.y } : undefined}
+            >
+              {arrowInBottomHalf ? (
+                <>{controls}{collapseBtn}</>
               ) : (
-                <polyline points="6 9 12 15 18 9" />
+                <>{collapseBtn}{controls}</>
               )}
-            </svg>
-          </button>
-        </div>
+            </div>
+          );
+        })()}
 
         {/* Tooltip — ref-based, updated imperatively to avoid re-renders */}
         <div

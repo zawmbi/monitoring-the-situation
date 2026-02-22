@@ -51,6 +51,12 @@ export default defineConfig(({ mode }) => {
       viteEnv[key] = val;
     }
   }
+  // Also pick up VITE_* from process.env (command-line / CI overrides)
+  for (const [key, val] of Object.entries(process.env)) {
+    if (key.startsWith('VITE_')) {
+      viteEnv[key] = val;
+    }
+  }
 
   // Log to terminal for debugging
   const envKeys = Object.keys(viteEnv);
@@ -60,6 +66,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       __ROOT_ENV__: JSON.stringify(viteEnv),
+      // Expose each VITE_* var as import.meta.env.VITE_* for production builds
+      ...Object.fromEntries(
+        Object.entries(viteEnv).map(([key, val]) => [`import.meta.env.${key}`, JSON.stringify(val)])
+      ),
     },
     resolve: {
       dedupe: ['react', 'react-dom'],

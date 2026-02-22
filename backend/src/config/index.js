@@ -106,8 +106,38 @@ export const config = {
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID || '',
     clientSecret: process.env.REDDIT_CLIENT_SECRET || '',
-    userAgent: process.env.REDDIT_USER_AGENT || 'NewsAggregator/1.0',
+    userAgent: process.env.REDDIT_USER_AGENT || 'monitr/1.0',
     subreddits: (process.env.REDDIT_SUBREDDITS || 'news,worldnews,technology').split(','),
+  },
+
+  // BlueSky (AT Protocol)
+  bluesky: {
+    enabled: (process.env.BLUESKY_ENABLED || 'true').toLowerCase() === 'true',
+    accounts: (process.env.BLUESKY_ACCOUNTS || 'ap.bsky.social,reuters.bsky.social,bbc.bsky.social,nytimes.bsky.social,washingtonpost.bsky.social')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
+  },
+
+  // Truth Social (Mastodon-compatible API)
+  truthSocial: {
+    enabled: (process.env.TRUTHSOCIAL_ENABLED || 'false').toLowerCase() === 'true',
+    accounts: (process.env.TRUTHSOCIAL_ACCOUNTS || 'realDonaldTrump')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
+    rssBridgeUrl: process.env.TRUTHSOCIAL_RSS_BRIDGE_URL || '',
+  },
+
+  // Instagram (Meta Graph API)
+  instagram: {
+    accessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
+  },
+
+  // Financial Modeling Prep (FMP) — replaces Yahoo Finance for market data
+  fmp: {
+    key: process.env.FMP_API_KEY || process.env.VITE_FMP_API_KEY || '',
+    baseUrl: 'https://financialmodelingprep.com/api/v3',
   },
 
   // RSS Feeds
@@ -143,6 +173,57 @@ export const config = {
       markets: parseInt(process.env.STOCKS_MARKET_REFRESH_SECONDS || '600', 10), // 10 minutes
       listings: parseInt(process.env.STOCKS_LISTING_REFRESH_SECONDS || '21600', 10), // 6 hours
     },
+  },
+
+  /**
+   * Validate critical configuration on startup.
+   * Warns about missing optional keys; throws on broken values.
+   */
+  validate() {
+    const warnings = [];
+    const errors = [];
+
+    // Port must be a valid number
+    if (isNaN(this.port) || this.port < 1 || this.port > 65535) {
+      errors.push(`PORT "${process.env.PORT}" is not a valid port number`);
+    }
+
+    // Polling intervals must be positive
+    for (const [key, val] of Object.entries(this.polling)) {
+      if (isNaN(val) || val < 1000) {
+        errors.push(`Polling interval "${key}" resolved to ${val}ms — must be >= 1000ms`);
+      }
+    }
+
+    // Cache TTLs must be positive
+    for (const [key, val] of Object.entries(this.cache)) {
+      if (isNaN(val) || val < 1) {
+        errors.push(`Cache TTL "${key}" resolved to ${val} — must be >= 1`);
+      }
+    }
+
+    // Warn about missing API keys (non-fatal — services degrade gracefully)
+    if (!this.newsApi.key) warnings.push('NEWS_API_KEY not set — NewsAPI source disabled');
+    if (!this.gnewsApi.key) warnings.push('GNEWS_API_KEY not set — GNews source disabled');
+    if (!this.alphaVantage.key) warnings.push('ALPHA_VANTAGE_API_KEY not set — stock data disabled');
+    if (this.cors.origin === '*' && !this.isDev) {
+      warnings.push('CORS_ORIGIN is wildcard (*) in production — consider restricting');
+    }
+
+    // Print warnings
+    for (const w of warnings) {
+      console.warn(`[Config] WARN: ${w}`);
+    }
+
+    // Throw on errors
+    if (errors.length > 0) {
+      for (const e of errors) {
+        console.error(`[Config] ERROR: ${e}`);
+      }
+      throw new Error(`Configuration validation failed:\n  ${errors.join('\n  ')}`);
+    }
+
+    console.log(`[Config] Validation passed (${warnings.length} warning${warnings.length !== 1 ? 's' : ''})`);
   },
 };
 

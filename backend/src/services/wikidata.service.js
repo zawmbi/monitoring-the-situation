@@ -259,7 +259,7 @@ class WikidataService {
     const res = await fetch(url, {
       headers: {
         Accept: 'application/sparql-results+json',
-        'User-Agent': 'Monitored/1.0 (conflict-monitor; contact: dev@monitored.app)',
+        'User-Agent': 'monitr/1.0 (conflict-monitor; contact: dev@monitr.xyz)',
       },
       signal: AbortSignal.timeout(30000),
     });

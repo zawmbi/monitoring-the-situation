@@ -99,7 +99,7 @@ class FiveThirtyEightService {
     try {
       const resp = await fetch(url, {
         headers: {
-          'User-Agent': 'MonitoringTheSituation/1.0 (election dashboard, CC BY 4.0 attribution)',
+          'User-Agent': 'monitr/1.0 (election dashboard, CC BY 4.0 attribution)',
           'Accept': 'text/csv, text/plain, */*',
         },
         signal: controller.signal,

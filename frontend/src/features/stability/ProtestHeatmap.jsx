@@ -142,13 +142,23 @@ function ProtestMarker({ protest, showLabel, isSelected, onClick }) {
   const intensity = protest.intensity || protest.count || 3;
   const color = intensityColor(intensity);
   const isHigh = intensity >= 6;
+  // Scale dot size with intensity: 14px at 1 → 28px at 10
+  const dotSize = Math.round(14 + (intensity / 10) * 14);
 
   return (
     <div
       className={`protest-marker ${isHigh ? 'protest-marker--high' : ''}`}
       onClick={(e) => { e.stopPropagation(); onClick(protest); }}
     >
-      <div className="protest-marker-dot" style={{ background: color, boxShadow: `0 0 8px ${color}88` }}>
+      <div
+        className="protest-marker-dot"
+        style={{
+          width: dotSize,
+          height: dotSize,
+          background: color,
+          boxShadow: `0 0 ${Math.round(dotSize * 0.5)}px ${color}88`,
+        }}
+      >
         <span className="protest-marker-icon">{intensity >= 8 ? '!' : '•'}</span>
       </div>
       {showLabel && (

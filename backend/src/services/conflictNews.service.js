@@ -14,6 +14,16 @@ const CACHE_TTL = 900; // 15 minutes
  * to maximise coverage and relevance.
  */
 const CONFLICT_FEEDS = {
+  'russia-ukraine': {
+    label: 'Russia–Ukraine War',
+    queries: [
+      'Ukraine Russia frontline offensive 2026',
+      'Ukraine Starlink Telegram electronic warfare',
+      'Ukraine counteroffensive Russia retreat',
+      'Ukraine communications disruption military advance',
+      'Russia Ukraine drone warfare satellite',
+    ],
+  },
   'israel-gaza': {
     label: 'Israel–Gaza Post-War',
     queries: [
@@ -63,11 +73,14 @@ const CONFLICT_FEEDS = {
     ],
   },
   'iran-israel': {
-    label: 'Twelve Day War',
+    label: 'Twelve Day War & Iran Escalation',
     queries: [
       'Iran Israel war nuclear strikes aftermath',
       'Iran protests uprising regime crisis 2026',
       'Iran Israel ceasefire nuclear program',
+      'US military buildup Iran Persian Gulf',
+      'US Navy carrier group Iran strait Hormuz',
+      'Iran military escalation US forces Middle East',
     ],
   },
   'india-pakistan': {
@@ -92,7 +105,7 @@ class ConflictNewsService {
   constructor() {
     this.rssParser = new Parser({
       timeout: 15000,
-      headers: { 'User-Agent': 'Monitored/1.0 (conflict-monitor)' },
+      headers: { 'User-Agent': 'monitr/1.0 (conflict-monitor)' },
     });
   }
 

@@ -1,15 +1,16 @@
 /**
  * Tariff Service
- * Fetches live US tariff news and updates from external sources:
- *   1. Google News RSS — tariff-related headlines
- *   2. USTR RSS / trade policy news
+ * Fetches live US tariff news and updates via GDELT Doc API.
  *
- * Provides a live feed of tariff changes that the frontend can merge
+ * Sources:
+ *   - GDELT Doc API (tariff/trade keywords)
+ *
+ * Provides a live feed of tariff-related articles that the frontend can merge
  * with its static baseline tariff data.
  */
 
-import Parser from 'rss-parser';
 import { cacheService } from './cache.service.js';
+import { fetchGDELT } from './gdelt.client.js';
 
 const CACHE_KEYS = {
   tariffNews: 'tariff:news',
@@ -21,22 +22,10 @@ const CACHE_TTL = {
   tariffUpdates: 1800,  // 30 min — rate overrides change less often
 };
 
-const RSS_FEEDS = [
-  {
-    name: 'Google News (US Tariffs)',
-    url: 'https://news.google.com/rss/search?q=US+tariffs+trade+when:3d&hl=en-US&gl=US&ceid=US:en',
-    icon: 'google',
-  },
-  {
-    name: 'Google News (Trump Tariffs)',
-    url: 'https://news.google.com/rss/search?q=trump+tariffs+when:3d&hl=en-US&gl=US&ceid=US:en',
-    icon: 'google',
-  },
-  {
-    name: 'Reuters Trade',
-    url: 'https://news.google.com/rss/search?q=site:reuters.com+tariffs+when:7d&hl=en-US&gl=US&ceid=US:en',
-    icon: 'reuters',
-  },
+const TARIFF_QUERIES = [
+  'US tariffs trade',
+  'trump tariffs',
+  'tariffs site:reuters.com OR site:apnews.com',
 ];
 
 /**
@@ -52,70 +41,51 @@ const RATE_OVERRIDES = {
 
 class TariffService {
   constructor() {
-    this.rssParser = new Parser({
-      timeout: 15000,
-      headers: { 'User-Agent': 'Monitored/1.0 (tariff-monitor)' },
-    });
     this.rateOverrides = { ...RATE_OVERRIDES };
   }
 
-  // ─── Tariff News (RSS Feeds) ───
+  // ─── Tariff News (GDELT) ───
 
   /**
-   * Fetch latest tariff-related news from multiple RSS sources
+   * Fetch latest tariff-related articles from GDELT
    */
   async getTariffNews(limit = 30) {
     const cached = await cacheService.get(CACHE_KEYS.tariffNews);
-    if (cached) return { ...cached, items: cached.items.slice(0, limit) };
+    if (cached) return { ...cached, articles: cached.articles.slice(0, limit) };
 
-    console.log('[Tariff] Fetching tariff news from RSS feeds...');
+    console.log('[Tariff] Fetching tariff news from GDELT...');
 
-    const allItems = [];
+    const allArticles = [];
 
     const results = await Promise.allSettled(
-      RSS_FEEDS.map(async (feed) => {
-        try {
-          const parsed = await this.rssParser.parseURL(feed.url);
-          return (parsed.items || []).slice(0, 20).map((item) => ({
-            id: this.hashString(item.link || item.guid || item.title),
-            title: item.title,
-            link: item.link,
-            summary: this.stripHtml(item.contentSnippet || item.content || item.summary || '').substring(0, 300),
-            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
-            source: feed.name,
-            sourceIcon: feed.icon,
-          }));
-        } catch (err) {
-          console.error(`[Tariff] RSS error (${feed.name}):`, err.message);
-          return [];
-        }
-      })
+      TARIFF_QUERIES.map(query =>
+        fetchGDELT(query, { maxRecords: 25, timespan: '7d', caller: 'Tariff' })
+      )
     );
 
-    results.forEach((r) => {
-      if (r.status === 'fulfilled') allItems.push(...r.value);
+    results.forEach(r => {
+      if (r.status === 'fulfilled') allArticles.push(...r.value);
     });
 
-    // Sort by date (newest first) and deduplicate
+    // Deduplicate by URL
     const seen = new Set();
-    const unique = allItems
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .filter((item) => {
-        if (seen.has(item.link)) return false;
-        seen.add(item.link);
-        return true;
-      });
+    const unique = allArticles.filter(article => {
+      if (seen.has(article.url)) return false;
+      seen.add(article.url);
+      return true;
+    });
 
     const result = {
-      items: unique,
-      totalSources: RSS_FEEDS.length,
+      articles: unique,
+      totalQueries: TARIFF_QUERIES.length,
       fetchedAt: new Date().toISOString(),
+      dataSource: 'GDELT Doc API',
     };
 
     await cacheService.set(CACHE_KEYS.tariffNews, result, CACHE_TTL.tariffNews);
     console.log(`[Tariff] Tariff news fetched: ${unique.length} articles`);
 
-    return { ...result, items: result.items.slice(0, limit) };
+    return { ...result, articles: result.articles.slice(0, limit) };
   }
 
   // ─── Rate Overrides ───
@@ -169,27 +139,13 @@ class TariffService {
     ]);
 
     return {
-      news: news?.items || [],
+      articles: news?.articles || [],
       newsFetchedAt: news?.fetchedAt || null,
       overrides: overrides?.overrides || {},
       lastChecked: overrides?.lastChecked || null,
+      dataSource: 'GDELT Doc API',
       fetchedAt: new Date().toISOString(),
     };
-  }
-
-  // ─── Utilities ───
-
-  stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-  }
-
-  hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return `trf-${Math.abs(hash).toString(36)}`;
   }
 }
 

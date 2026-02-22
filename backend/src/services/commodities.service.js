@@ -1,62 +1,68 @@
 /**
  * Commodities & Supply Shocks Service
- * Sources: Yahoo Finance for commodity prices (free, no auth)
+ * Sources: Financial Modeling Prep (FMP) for commodity prices (requires API key)
  *          Google News RSS for supply disruption news
+ *
+ * dataSource: "Financial Modeling Prep (FMP)" for all commodity price data
  */
 
 import { cacheService } from './cache.service.js';
+import config from '../config/index.js';
 import Parser from 'rss-parser';
 
 const parser = new Parser({ timeout: 10000 });
 const CACHE_KEY = 'commodities:combined';
 const CACHE_TTL = 300; // 5 minutes
 
-// Yahoo Finance commodity tickers
+const DATA_SOURCE = 'Financial Modeling Prep (FMP)';
+
+// ── Get the FMP API key ──
+function getFmpKey() {
+  return config.fmp?.key || process.env.VITE_FMP_API_KEY || '';
+}
+
+// FMP commodity symbols (FMP uses its own symbol format for commodities)
 const COMMODITY_TICKERS = [
-  { symbol: 'CL=F', name: 'Crude Oil (WTI)', category: 'energy', unit: '$/bbl' },
-  { symbol: 'BZ=F', name: 'Brent Crude', category: 'energy', unit: '$/bbl' },
-  { symbol: 'NG=F', name: 'Natural Gas', category: 'energy', unit: '$/MMBtu' },
-  { symbol: 'GC=F', name: 'Gold', category: 'metals', unit: '$/oz' },
-  { symbol: 'SI=F', name: 'Silver', category: 'metals', unit: '$/oz' },
-  { symbol: 'HG=F', name: 'Copper', category: 'metals', unit: '$/lb' },
-  { symbol: 'PL=F', name: 'Platinum', category: 'metals', unit: '$/oz' },
-  { symbol: 'ZW=F', name: 'Wheat', category: 'agriculture', unit: '¢/bu' },
-  { symbol: 'ZC=F', name: 'Corn', category: 'agriculture', unit: '¢/bu' },
-  { symbol: 'ZS=F', name: 'Soybeans', category: 'agriculture', unit: '¢/bu' },
-  { symbol: 'KC=F', name: 'Coffee', category: 'agriculture', unit: '¢/lb' },
-  { symbol: 'CT=F', name: 'Cotton', category: 'agriculture', unit: '¢/lb' },
-  { symbol: 'SB=F', name: 'Sugar', category: 'agriculture', unit: '¢/lb' },
-  { symbol: 'UX1!=F', name: 'Uranium', category: 'energy', unit: '$/lb' },
-  { symbol: 'LBS=F', name: 'Lumber', category: 'materials', unit: '$/mbf' },
+  { symbol: 'CLUSD', name: 'Crude Oil (WTI)', category: 'energy', unit: '$/bbl' },
+  { symbol: 'BZUSD', name: 'Brent Crude', category: 'energy', unit: '$/bbl' },
+  { symbol: 'NGUSD', name: 'Natural Gas', category: 'energy', unit: '$/MMBtu' },
+  { symbol: 'GCUSD', name: 'Gold', category: 'metals', unit: '$/oz' },
+  { symbol: 'SIUSD', name: 'Silver', category: 'metals', unit: '$/oz' },
+  { symbol: 'HGUSD', name: 'Copper', category: 'metals', unit: '$/lb' },
+  { symbol: 'PLUSD', name: 'Platinum', category: 'metals', unit: '$/oz' },
+  { symbol: 'ZWUSD', name: 'Wheat', category: 'agriculture', unit: '$/bu' },
+  { symbol: 'ZCUSD', name: 'Corn', category: 'agriculture', unit: '$/bu' },
+  { symbol: 'ZSUSD', name: 'Soybeans', category: 'agriculture', unit: '$/bu' },
+  { symbol: 'KCUSD', name: 'Coffee', category: 'agriculture', unit: '$/lb' },
+  { symbol: 'CTUSD', name: 'Cotton', category: 'agriculture', unit: '$/lb' },
+  { symbol: 'SBUSD', name: 'Sugar', category: 'agriculture', unit: '$/lb' },
+  { symbol: 'LBSUSD', name: 'Lumber', category: 'materials', unit: '$/mbf' },
 ];
 
-async function fetchYahooCommodity(symbol) {
+async function fetchFmpCommodity(symbol) {
+  const apiKey = getFmpKey();
+  if (!apiKey) return null;
+
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-    });
+    const url = `https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(symbol)}?apikey=${apiKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
-    const data = await res.json();
-    const meta = data.chart?.result?.[0]?.meta;
-    if (!meta) return null;
+    const json = await res.json();
+    const q = Array.isArray(json) ? json[0] : json;
+    if (!q || q.price == null) return null;
 
-    const closes = data.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-    const prevClose = meta.chartPreviousClose || meta.previousClose;
-    const price = meta.regularMarketPrice;
-    const change = price && prevClose ? ((price - prevClose) / prevClose) * 100 : null;
-
-    // Get 5-day trend
-    const validCloses = closes.filter(c => c != null);
+    const prevClose = q.previousClose ?? null;
+    const change = q.changesPercentage ?? (q.price && prevClose ? ((q.price - prevClose) / prevClose) * 100 : null);
 
     return {
-      price,
+      price: q.price,
       prevClose,
-      change: change ? parseFloat(change.toFixed(2)) : null,
-      currency: meta.currency || 'USD',
-      marketState: meta.marketState,
-      trend: validCloses,
+      change: change != null ? parseFloat(change.toFixed(2)) : null,
+      currency: q.currency || 'USD',
+      dayHigh: q.dayHigh ?? null,
+      dayLow: q.dayLow ?? null,
+      open: q.open ?? null,
+      volume: q.volume ?? null,
     };
   } catch (err) {
     return null;
@@ -64,14 +70,17 @@ async function fetchYahooCommodity(symbol) {
 }
 
 async function fetchCommodityPrices() {
+  const apiKey = getFmpKey();
+  if (!apiKey) return [];
+
   const results = [];
   // Fetch in batches to avoid rate limiting
   for (let i = 0; i < COMMODITY_TICKERS.length; i += 5) {
     const batch = COMMODITY_TICKERS.slice(i, i + 5);
     const batchResults = await Promise.allSettled(
       batch.map(async (ticker) => {
-        const data = await fetchYahooCommodity(ticker.symbol);
-        return { ...ticker, ...data };
+        const data = await fetchFmpCommodity(ticker.symbol);
+        return { ...ticker, ...data, dataSource: DATA_SOURCE };
       })
     );
     batchResults.forEach(r => {
@@ -120,6 +129,7 @@ export const commoditiesService = {
         losers: commodities.filter(c => c.change < 0).length,
         bigMovers: commodities.filter(c => Math.abs(c.change) > 3).length,
       },
+      dataSource: DATA_SOURCE,
     };
 
     await cacheService.set(CACHE_KEY, result, CACHE_TTL);

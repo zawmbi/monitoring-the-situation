@@ -1,4 +1,4 @@
-# Monitored - Architecture Documentation
+# monitr - Architecture Documentation
 
 ## Overview
 

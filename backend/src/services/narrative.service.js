@@ -1,13 +1,16 @@
 /**
- * Narrative & Sentiment Tracking Service
+ * Narrative & Tone Tracking Service
  *
- * Tracks global narratives and sentiment using the GDELT Tone API and article feeds.
- * Monitors key geopolitical topics, computes average tone/sentiment per narrative,
- * detects divergence across source countries, and builds a country-level sentiment map.
+ * Tracks global narratives using the GDELT API and returns raw tone data.
+ * Pure data passthrough — returns GDELT average tone, article count, and
+ * tone distribution per topic. No custom sentiment labels, momentum scoring,
+ * or divergence flags.
  *
  * Data source: GDELT Project (Global Database of Events, Language, and Tone)
- *   - ToneChart mode: tone over time for a given query
- *   - ArtList mode:   article listings with tone metadata
+ *   - ToneChart mode: tone histogram for a given query
+ *   - TimelineTone mode: tone over time
+ *   - TimelineVol mode: volume over time
+ *   - ArtList mode: article listings
  */
 
 import { cacheService } from './cache.service.js';
@@ -32,9 +35,9 @@ const TRACKED_TOPICS = [
   { query: 'Sudan conflict',            label: 'Sudan Conflict' },
 ];
 
-// ─── Countries for sentiment mapping ───────────────────────────────────────────
+// ─── Countries for tone mapping ───────────────────────────────────────────────
 
-const SENTIMENT_COUNTRIES = [
+const TONE_COUNTRIES = [
   // North America
   { code: 'US', name: 'United States' },
   { code: 'CA', name: 'Canada' },
@@ -81,39 +84,10 @@ const SENTIMENT_COUNTRIES = [
   { code: 'NZ', name: 'New Zealand' },
 ];
 
-// Countries used for divergence comparison
-const DIVERGENCE_SOURCES = ['US', 'GB', 'RU', 'CN', 'IN'];
+// Countries used for cross-country tone comparison
+const COMPARISON_SOURCES = ['US', 'GB', 'RU', 'CN', 'IN'];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Classify tone value into a sentiment label.
- * GDELT tone ranges roughly from -10 to +10.
- */
-function classifySentiment(tone) {
-  if (tone == null || isNaN(tone)) return 'neutral';
-  if (tone > 1) return 'positive';
-  if (tone < -1) return 'negative';
-  return 'neutral';
-}
-
-/**
- * Determine momentum from volume time-series data.
- * Compares recent (last 2 entries) vs prior (entries 3-7 from end) daily average.
- * Data comes sorted chronologically (oldest first), so we read from the end.
- */
-function determineMomentum(entries) {
-  if (!entries || entries.length < 3) return 'stable';
-  const recent = entries.slice(-2);
-  const prior = entries.slice(-7, -2);
-  if (prior.length === 0) return 'stable';
-  const recentAvg = recent.reduce((sum, a) => sum + (a.volume || a.value || 1), 0) / recent.length;
-  const priorAvg = prior.reduce((sum, a) => sum + (a.volume || a.value || 1), 0) / prior.length;
-  const ratio = recentAvg / (priorAvg || 1);
-  if (ratio > 1.25) return 'increasing';
-  if (ratio < 0.75) return 'decreasing';
-  return 'stable';
-}
 
 /**
  * Build a GDELT API URL with the given parameters.
@@ -143,7 +117,7 @@ async function safeFetchJson(url, label = 'GDELT') {
       signal: AbortSignal.timeout(12000),
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Monitored/1.0 (narrative-tracker)',
+        'User-Agent': 'monitr/1.0 (narrative-tracker)',
       },
     });
     if (!res.ok) {
@@ -165,12 +139,11 @@ async function safeFetchJson(url, label = 'GDELT') {
 
 /**
  * Extract average tone from a GDELT ToneChart response.
- * ToneChart returns a HISTOGRAM of { bin, count } entries — NOT a time series.
- * bin = integer tone score (-21 to +10), count = number of articles in that bin.
+ * ToneChart returns a histogram of { bin, count } entries.
  * We compute a weighted average: sum(bin * count) / sum(count).
  */
 function extractAvgToneFromChart(chartData) {
-  if (!chartData) return { avgTone: 0, totalArticles: 0 };
+  if (!chartData) return { avgTone: 0, totalArticles: 0, toneDistribution: [] };
 
   let entries = [];
   if (chartData.tonechart && Array.isArray(chartData.tonechart)) {
@@ -180,11 +153,12 @@ function extractAvgToneFromChart(chartData) {
   }
 
   if (entries.length === 0) {
-    return { avgTone: 0, totalArticles: 0 };
+    return { avgTone: 0, totalArticles: 0, toneDistribution: [] };
   }
 
   let weightedSum = 0;
   let totalCount = 0;
+  const toneDistribution = [];
 
   for (const e of entries) {
     const bin = parseFloat(e.bin ?? 0);
@@ -192,16 +166,15 @@ function extractAvgToneFromChart(chartData) {
     if (isNaN(bin) || isNaN(count) || count === 0) continue;
     weightedSum += bin * count;
     totalCount += count;
+    toneDistribution.push({ bin, count });
   }
 
   const avgTone = totalCount > 0 ? Math.round((weightedSum / totalCount) * 100) / 100 : 0;
-  return { avgTone, totalArticles: totalCount };
+  return { avgTone, totalArticles: totalCount, toneDistribution };
 }
 
 /**
  * Extract tone time-series from a GDELT TimelineTone response.
- * TimelineTone returns { timeline: [{ series, data: [{ date, value }] }] }
- * value = average tone for that day.
  */
 function extractToneTimeline(timelineData) {
   if (!timelineData) return [];
@@ -223,8 +196,6 @@ function extractToneTimeline(timelineData) {
 
 /**
  * Extract volume time-series from a GDELT TimelineVol response.
- * TimelineVol returns { timeline: [{ series, data: [{ date, value }] }] }
- * value = relative volume for that day.
  */
 function extractVolumeTimeline(volData) {
   if (!volData) return [];
@@ -246,8 +217,6 @@ function extractVolumeTimeline(volData) {
 
 /**
  * Extract articles from a GDELT ArtList response.
- * Note: GDELT ArtList does NOT return per-article tone scores.
- * Fields available: url, url_mobile, title, seendate, socialimage, domain, language, sourcecountry
  */
 function extractArticles(artListData) {
   if (!artListData) return [];
@@ -295,9 +264,8 @@ class NarrativeService {
   // ─── 1. Fetch Narrative Tone ─────────────────────────────────────────────────
 
   /**
-   * Fetch tone data for a given topic using GDELT ToneChart (histogram) +
-   * TimelineTone (time-series).
-   * Returns { avgTone, totalArticles, toneHistory: [{ date, tone }] }
+   * Fetch raw tone data for a given topic using GDELT ToneChart + TimelineTone.
+   * Returns { avgTone, totalArticles, toneDistribution, toneHistory }
    */
   async fetchNarrativeTone(topic) {
     const cacheKey = `narrative:tone:${topic.replace(/\s+/g, '_').toLowerCase()}`;
@@ -315,10 +283,10 @@ class NarrativeService {
       }), `TimelineTone(${topic})`),
     ]);
 
-    const { avgTone, totalArticles } = extractAvgToneFromChart(chartData);
+    const { avgTone, totalArticles, toneDistribution } = extractAvgToneFromChart(chartData);
     const toneHistory = extractToneTimeline(timelineData);
 
-    const result = { avgTone, totalArticles, toneHistory };
+    const result = { avgTone, totalArticles, toneDistribution, toneHistory };
     await cacheService.set(cacheKey, result, CACHE_TTL);
     return result;
   }
@@ -326,9 +294,10 @@ class NarrativeService {
   // ─── 2. Fetch Top Narratives ─────────────────────────────────────────────────
 
   /**
-   * Query GDELT for trending geopolitical narratives across tracked topics.
-   * For each topic, fetches article volume, average tone, sentiment, and momentum.
-   * Returns an array of narrative objects.
+   * Query GDELT for tone data across all tracked topics.
+   * For each topic: average tone, article count, tone distribution,
+   * tone history, volume history, and top articles.
+   * No custom sentiment labels or momentum scores.
    */
   async fetchTopNarratives() {
     const cacheKey = 'narrative:top_narratives';
@@ -339,7 +308,6 @@ class NarrativeService {
 
     const narrativePromises = TRACKED_TOPICS.map(async (topicDef) => {
       try {
-        // Fetch articles for this topic from the last 7 days
         const artUrl = buildGdeltUrl({
           query: topicDef.query,
           mode: 'ArtList',
@@ -349,7 +317,6 @@ class NarrativeService {
           sort: 'DateDesc',
         });
 
-        // Fetch tone histogram (for weighted average tone)
         const toneChartUrl = buildGdeltUrl({
           query: topicDef.query,
           mode: 'ToneChart',
@@ -357,7 +324,6 @@ class NarrativeService {
           format: 'json',
         });
 
-        // Fetch tone time-series (for tone history chart)
         const toneTimelineUrl = buildGdeltUrl({
           query: topicDef.query,
           mode: 'TimelineTone',
@@ -365,7 +331,6 @@ class NarrativeService {
           format: 'json',
         });
 
-        // Fetch volume time-series (for momentum detection)
         const volTimelineUrl = buildGdeltUrl({
           query: topicDef.query,
           mode: 'TimelineVol',
@@ -381,17 +346,12 @@ class NarrativeService {
         ]);
 
         const articles = extractArticles(artData);
-        const { avgTone, totalArticles } = extractAvgToneFromChart(toneChartData);
+        const { avgTone, totalArticles, toneDistribution } = extractAvgToneFromChart(toneChartData);
         const toneHistory = extractToneTimeline(toneTimelineData);
         const volumeHistory = extractVolumeTimeline(volTimelineData);
 
-        // Use article count from ToneChart histogram (more accurate than ArtList cap)
         const articleCount = totalArticles > 0 ? totalArticles : articles.length;
 
-        const sentiment = classifySentiment(avgTone);
-        const momentum = determineMomentum(volumeHistory);
-
-        // Select top articles (most recent, since individual tone isn't available)
         const topArticles = articles
           .slice(0, 5)
           .map((a) => ({
@@ -407,8 +367,7 @@ class NarrativeService {
           label: topicDef.label,
           articleCount,
           avgTone,
-          sentiment,
-          momentum,
+          toneDistribution,
           toneHistory,
           volumeHistory,
           topArticles,
@@ -421,8 +380,7 @@ class NarrativeService {
           label: topicDef.label,
           articleCount: 0,
           avgTone: 0,
-          sentiment: 'neutral',
-          momentum: 'stable',
+          toneDistribution: [],
           toneHistory: [],
           volumeHistory: [],
           topArticles: [],
@@ -442,30 +400,28 @@ class NarrativeService {
     return narratives;
   }
 
-  // ─── 3. Fetch Sentiment by Country ──────────────────────────────────────────
+  // ─── 3. Fetch Tone by Country ──────────────────────────────────────────
 
   /**
-   * Fetch articles about major countries and compute average tone per country.
-   * Uses GDELT sourcecountry field to correlate media tone by origin.
-   * Returns a map: { countryCode: { name, avgTone, sentiment, articleCount } }
+   * Fetch GDELT tone data per source country.
+   * Returns raw average tone, article count, and tone history per country.
+   * No custom sentiment labels.
    */
-  async fetchSentimentByCountry() {
-    const cacheKey = 'narrative:sentiment_by_country';
+  async fetchToneByCountry() {
+    const cacheKey = 'narrative:tone_by_country';
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    console.log('[Narrative] Fetching sentiment by country...');
+    console.log('[Narrative] Fetching tone by country...');
 
-    // Batch countries to avoid overwhelming the API
     const batchSize = 6;
-    const sentimentMap = {};
+    const toneMap = {};
 
-    for (let i = 0; i < SENTIMENT_COUNTRIES.length; i += batchSize) {
-      const batch = SENTIMENT_COUNTRIES.slice(i, i + batchSize);
+    for (let i = 0; i < TONE_COUNTRIES.length; i += batchSize) {
+      const batch = TONE_COUNTRIES.slice(i, i + batchSize);
 
       const batchPromises = batch.map(async (country) => {
         try {
-          // Fetch tone histogram + tone time-series per country
           const [chartData, timelineData] = await Promise.all([
             safeFetchJson(buildGdeltUrl({
               query: `sourcecountry:${country.code}`,
@@ -484,17 +440,15 @@ class NarrativeService {
             code: country.code,
             name: country.name,
             avgTone,
-            sentiment: classifySentiment(avgTone),
             articleCount: totalArticles || toneHistory.length || 0,
             toneHistory: toneHistory.slice(-7),
           };
         } catch (err) {
-          console.warn(`[Narrative] Error fetching sentiment for ${country.code}:`, err.message);
+          console.warn(`[Narrative] Error fetching tone for ${country.code}:`, err.message);
           return {
             code: country.code,
             name: country.name,
             avgTone: 0,
-            sentiment: 'neutral',
             articleCount: 0,
             toneHistory: [],
             error: err.message,
@@ -505,70 +459,57 @@ class NarrativeService {
       const batchResults = await Promise.allSettled(batchPromises);
       batchResults.forEach((r) => {
         if (r.status === 'fulfilled' && r.value) {
-          sentimentMap[r.value.code] = r.value;
+          toneMap[r.value.code] = r.value;
         }
       });
 
       // Small delay between batches to respect rate limits
-      if (i + batchSize < SENTIMENT_COUNTRIES.length) {
+      if (i + batchSize < TONE_COUNTRIES.length) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
-    console.log(`[Narrative] Sentiment map built for ${Object.keys(sentimentMap).length} countries`);
-    await cacheService.set(cacheKey, sentimentMap, CACHE_TTL);
-    return sentimentMap;
+    console.log(`[Narrative] Tone map built for ${Object.keys(toneMap).length} countries`);
+    await cacheService.set(cacheKey, toneMap, CACHE_TTL);
+    return toneMap;
   }
 
-  // ─── 4. Detect Narrative Divergence ──────────────────────────────────────────
+  // ─── 4. Cross-Country Tone Comparison ──────────────────────────────────
 
   /**
-   * Compare how the same story is covered in different source countries.
-   * Picks top 5 active topics and compares tone from US, UK, Russia, China, India.
-   * Flags divergences where tone difference exceeds 3 points.
-   * Returns an array of divergence objects.
+   * Compare raw tone for the same topic across different source countries.
+   * Returns tone per country per topic. No divergence flags or thresholds.
    */
-  async detectNarrativeDivergence() {
-    const cacheKey = 'narrative:divergence';
+  async fetchCrossCountryTone() {
+    const cacheKey = 'narrative:cross_country_tone';
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    console.log('[Narrative] Detecting narrative divergence across source countries...');
+    console.log('[Narrative] Fetching cross-country tone comparison...');
 
-    // Use top 5 topics by default
     const topTopics = TRACKED_TOPICS.slice(0, 5);
-    const divergences = [];
+    const comparisons = [];
 
     for (const topicDef of topTopics) {
       const countryTones = {};
-      let hasData = false;
 
-      const sourcePromises = DIVERGENCE_SOURCES.map(async (countryCode) => {
+      const sourcePromises = COMPARISON_SOURCES.map(async (countryCode) => {
         try {
-          // Fetch tone histogram + tone time-series per topic×country
-          const [chartData, timelineData] = await Promise.all([
-            safeFetchJson(buildGdeltUrl({
-              query: `${topicDef.query} sourcecountry:${countryCode}`,
-              mode: 'ToneChart', timespan: '14d', format: 'json',
-            }), `DivChart(${topicDef.query}/${countryCode})`),
-            safeFetchJson(buildGdeltUrl({
-              query: `${topicDef.query} sourcecountry:${countryCode}`,
-              mode: 'TimelineTone', timespan: '14d', format: 'json',
-            }), `DivTimeline(${topicDef.query}/${countryCode})`),
-          ]);
+          const chartData = await safeFetchJson(buildGdeltUrl({
+            query: `${topicDef.query} sourcecountry:${countryCode}`,
+            mode: 'ToneChart', timespan: '14d', format: 'json',
+          }), `CrossTone(${topicDef.query}/${countryCode})`);
 
           const { avgTone, totalArticles } = extractAvgToneFromChart(chartData);
-          const toneHistory = extractToneTimeline(timelineData);
 
           return {
             countryCode,
             avgTone,
-            articleCount: totalArticles || toneHistory.length || 0,
-            toneHistory: toneHistory.slice(-7),
+            articleCount: totalArticles,
           };
         } catch (err) {
-          console.warn(`[Narrative] Divergence error for ${topicDef.query}/${countryCode}:`, err.message);
-          return { countryCode, avgTone: 0, articleCount: 0, toneHistory: [] };
+          console.warn(`[Narrative] Cross-country error for ${topicDef.query}/${countryCode}:`, err.message);
+          return { countryCode, avgTone: 0, articleCount: 0 };
         }
       });
 
@@ -576,129 +517,72 @@ class NarrativeService {
       sourceResults.forEach((r) => {
         if (r.status === 'fulfilled' && r.value) {
           countryTones[r.value.countryCode] = r.value;
-          if (r.value.articleCount > 0) hasData = true;
         }
       });
 
-      if (!hasData) continue;
-
-      // Detect divergences: find pairs where tone differs by >3 points
-      const countryCodes = Object.keys(countryTones);
-      const flaggedPairs = [];
-      let maxDivergence = 0;
-
-      for (let i = 0; i < countryCodes.length; i++) {
-        for (let j = i + 1; j < countryCodes.length; j++) {
-          const a = countryTones[countryCodes[i]];
-          const b = countryTones[countryCodes[j]];
-          if (a.articleCount === 0 || b.articleCount === 0) continue;
-
-          const diff = Math.abs(a.avgTone - b.avgTone);
-          if (diff > maxDivergence) maxDivergence = diff;
-
-          if (diff > 3) {
-            flaggedPairs.push({
-              countries: [countryCodes[i], countryCodes[j]],
-              tones: [
-                Math.round(a.avgTone * 100) / 100,
-                Math.round(b.avgTone * 100) / 100,
-              ],
-              difference: Math.round(diff * 100) / 100,
-            });
-          }
-        }
-      }
-
-      divergences.push({
-        id: hashString(`div-${topicDef.query}`),
+      comparisons.push({
+        id: hashString(`cross-${topicDef.query}`),
         topic: topicDef.query,
         label: topicDef.label,
-        sources: countryTones,
-        maxDivergence: Math.round(maxDivergence * 100) / 100,
-        flaggedPairs,
-        isDiverging: flaggedPairs.length > 0,
+        toneByCountry: countryTones,
       });
     }
 
-    // Sort by divergence magnitude
-    divergences.sort((a, b) => b.maxDivergence - a.maxDivergence);
+    console.log(`[Narrative] Cross-country tone comparison complete for ${comparisons.length} topics`);
 
-    console.log(
-      `[Narrative] Divergence analysis complete: ${divergences.length} topics, ` +
-      `${divergences.filter((d) => d.isDiverging).length} with significant divergence`
-    );
-
-    await cacheService.set(cacheKey, divergences, CACHE_TTL);
-    return divergences;
+    await cacheService.set(cacheKey, comparisons, CACHE_TTL);
+    return comparisons;
   }
 
   // ─── 5. Get Combined Data ────────────────────────────────────────────────────
 
   /**
    * Main method: calls all sub-methods and returns a combined result.
-   * Designed to be the single entry point for the API route.
+   * Returns raw GDELT tone data throughout. No custom sentiment labels
+   * or divergence flags.
    */
   async getCombinedData() {
     const cacheKey = 'narrative:combined';
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 
-    console.log('[Narrative] Building combined narrative & sentiment data...');
+    console.log('[Narrative] Building combined narrative tone data...');
     this.lastFetchTime = Date.now();
 
     try {
-      // Run all three methods in parallel for faster loading
-      const [narratives, divergences, sentimentMap] = await Promise.all([
+      const [narratives, crossCountryTone, toneMap] = await Promise.all([
         this.fetchTopNarratives().catch((err) => {
           console.error('[Narrative] fetchTopNarratives failed:', err.message);
           return [];
         }),
-        this.detectNarrativeDivergence().catch((err) => {
-          console.error('[Narrative] detectNarrativeDivergence failed:', err.message);
+        this.fetchCrossCountryTone().catch((err) => {
+          console.error('[Narrative] fetchCrossCountryTone failed:', err.message);
           return [];
         }),
-        this.fetchSentimentByCountry().catch((err) => {
-          console.error('[Narrative] fetchSentimentByCountry failed:', err.message);
+        this.fetchToneByCountry().catch((err) => {
+          console.error('[Narrative] fetchToneByCountry failed:', err.message);
           return {};
         }),
       ]);
 
-      // Compute global summary statistics
+      // Compute global average tone from raw GDELT data
       const totalArticles = narratives.reduce((sum, n) => sum + n.articleCount, 0);
       const allTones = narratives.filter((n) => n.articleCount > 0).map((n) => n.avgTone);
       const avgGlobalTone = allTones.length > 0
         ? Math.round((allTones.reduce((s, t) => s + t, 0) / allTones.length) * 100) / 100
         : 0;
-      const divergenceCount = divergences.filter((d) => d.isDiverging).length;
-
-      // Identify trending narratives (increasing momentum + high article count)
-      const trending = narratives
-        .filter((n) => n.momentum === 'increasing' || n.articleCount > 20)
-        .sort((a, b) => b.articleCount - a.articleCount)
-        .slice(0, 5)
-        .map((n) => ({
-          topic: n.topic,
-          label: n.label,
-          articleCount: n.articleCount,
-          avgTone: n.avgTone,
-          sentiment: n.sentiment,
-          momentum: n.momentum,
-        }));
 
       const result = {
         narratives,
-        sentimentMap,
-        divergences,
-        trending,
+        toneByCountry: toneMap,
+        crossCountryTone,
         summary: {
           totalNarratives: narratives.length,
           totalArticles,
           avgGlobalTone,
-          globalSentiment: classifySentiment(avgGlobalTone),
-          divergenceCount,
-          countriesTracked: Object.keys(sentimentMap).length,
-          trendingCount: trending.length,
+          countriesTracked: Object.keys(toneMap).length,
         },
+        dataSource: 'GDELT Project API v2 (ToneChart, TimelineTone, TimelineVol, ArtList)',
         updatedAt: new Date().toISOString(),
       };
 
@@ -707,16 +591,13 @@ class NarrativeService {
 
       console.log(
         `[Narrative] Combined data ready: ${narratives.length} narratives, ` +
-        `${Object.keys(sentimentMap).length} countries, ` +
-        `${divergenceCount} divergences, ${totalArticles} articles`
+        `${Object.keys(toneMap).length} countries, ${totalArticles} articles`
       );
 
       return result;
     } catch (err) {
       console.error('[Narrative] getCombinedData failed:', err.message);
       this.lastError = err.message;
-
-      // Return fallback structure so the frontend always gets a valid shape
       return this.getFallbackData(err.message);
     }
   }
@@ -734,27 +615,24 @@ class NarrativeService {
       label: topicDef.label,
       articleCount: 0,
       avgTone: 0,
-      sentiment: 'neutral',
-      momentum: 'stable',
+      toneDistribution: [],
       toneHistory: [],
+      volumeHistory: [],
       topArticles: [],
       error: errorMessage || 'Data unavailable',
     }));
 
     return {
       narratives: fallbackNarratives,
-      sentimentMap: {},
-      divergences: [],
-      trending: [],
+      toneByCountry: {},
+      crossCountryTone: [],
       summary: {
         totalNarratives: fallbackNarratives.length,
         totalArticles: 0,
         avgGlobalTone: 0,
-        globalSentiment: 'neutral',
-        divergenceCount: 0,
         countriesTracked: 0,
-        trendingCount: 0,
       },
+      dataSource: 'GDELT Project API v2 (ToneChart, TimelineTone, TimelineVol, ArtList)',
       updatedAt: new Date().toISOString(),
       error: errorMessage || 'Data temporarily unavailable',
     };
@@ -769,8 +647,8 @@ class NarrativeService {
       lastFetch: this.lastFetchTime ? new Date(this.lastFetchTime).toISOString() : null,
       lastError: this.lastError,
       trackedTopics: TRACKED_TOPICS.length,
-      trackedCountries: SENTIMENT_COUNTRIES.length,
-      divergenceSources: DIVERGENCE_SOURCES.length,
+      trackedCountries: TONE_COUNTRIES.length,
+      comparisonSources: COMPARISON_SOURCES.length,
       cacheTtl: CACHE_TTL,
     };
   }

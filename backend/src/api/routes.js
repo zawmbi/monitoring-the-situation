@@ -45,6 +45,7 @@ import { timeseriesService } from '../services/timeseries.service.js';
 import { climateService } from '../services/climate.service.js';
 import { nuclearService } from '../services/nuclear.service.js';
 import { aitechService } from '../services/aitech.service.js';
+import { emergingNewsService } from '../services/emergingNews.service.js';
 
 const router = Router();
 
@@ -458,6 +459,63 @@ router.get('/conflict-news/:conflictId', async (req, res) => {
   } catch (error) {
     console.error(`[API] Conflict news error (${req.params.conflictId}):`, error);
     res.status(500).json({ success: false, error: 'Failed to fetch conflict news' });
+  }
+});
+
+// ===========================================
+// EMERGING NEWS (Cross-cutting development capture)
+// ===========================================
+
+/**
+ * GET /api/emerging
+ * Get all emerging development watches and their captured news
+ */
+router.get('/emerging', async (req, res) => {
+  try {
+    const data = await emergingNewsService.getCombinedData();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('[API] Emerging news error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch emerging news' });
+  }
+});
+
+/**
+ * GET /api/emerging/watches
+ * List all configured emerging watches
+ */
+router.get('/emerging/watches', (req, res) => {
+  const watches = emergingNewsService.getAvailableWatches();
+  res.json({ success: true, data: watches });
+});
+
+/**
+ * GET /api/emerging/conflict/:conflictId
+ * Get emerging news for a specific conflict
+ */
+router.get('/emerging/conflict/:conflictId', async (req, res) => {
+  try {
+    const { conflictId } = req.params;
+    const data = await emergingNewsService.getByConflict(conflictId);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error(`[API] Emerging news error (${req.params.conflictId}):`, error);
+    res.status(500).json({ success: false, error: 'Failed to fetch emerging news' });
+  }
+});
+
+/**
+ * GET /api/emerging/category/:category
+ * Get emerging news by category (military-deployment, tech-warfare, etc.)
+ */
+router.get('/emerging/category/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const data = await emergingNewsService.getByCategory(category);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error(`[API] Emerging news error (${req.params.category}):`, error);
+    res.status(500).json({ success: false, error: 'Failed to fetch emerging news' });
   }
 });
 
@@ -974,10 +1032,10 @@ router.get('/congress/votes', async (req, res) => {
 router.get('/stability', async (req, res) => {
   try {
     const data = await stabilityService.getCombinedData();
-    res.json({ success: true, data, timestamp: new Date().toISOString() });
+    if (!res.headersSent) res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[API] Stability error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
+    if (!res.headersSent) res.status(500).json({ success: false, error: 'Failed to fetch stability data' });
   }
 });
 
