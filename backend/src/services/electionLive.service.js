@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v11'; // v11: comprehensive candidate-party mapping for all competitive races
+const CACHE_KEY = 'elections:live:v12'; // v12: skip jungle/top-two primary party-combo markets (California)
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -672,6 +672,12 @@ class ElectionLiveService {
           .map(o => ({ name: o.name, pct: Math.round(o.price * 100) }));
 
         if (outcomes.length === 0) continue;
+
+        // Skip party-combination markets (e.g., "Dem-Rep", "Dem-Dem", "Rep-Rep")
+        // These are jungle/top-two primary format markets (like California), not candidate-level primaries
+        const partyComboPattern = /^(dem|rep|democrat|republican|other|ind|independent)\s*[-–—]\s*(dem|rep|democrat|republican|other|ind|independent)$/i;
+        const partyCombos = outcomes.filter(o => partyComboPattern.test((o.name || '').trim()));
+        if (partyCombos.length >= Math.ceil(outcomes.length / 2)) continue;
 
         const party = race.type.endsWith('-r') ? 'R' : 'D';
         const baseType = race.type.replace(/-primary-[rd]$/, '');
