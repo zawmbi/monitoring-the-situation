@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v15'; // v15: fix primary matching to check title only, filter party-label outcomes
+const CACHE_KEY = 'elections:live:v16'; // v16: fix primary matching, add PA/MD/GA/TX candidates, senate primary slug variants
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -216,11 +216,18 @@ const CANDIDATE_PARTIES = {
   'daniella levine cava': 'D', 'jason pizzo': 'D',
   // Georgia Senate
   'jon ossoff': 'D', 'buddy carter': 'R', 'mike collins': 'R', 'derek dooley': 'R',
+  // Pennsylvania Governor (R primary on Polymarket — Stacy Garrity leads at 91.5%)
+  'stacy garrity': 'R', 'john ventre': 'R', 'doug mastriano': 'R',
+  'josh shapiro': 'D',
+  // Maryland Governor (R primary on Polymarket)
+  'wes moore': 'D', 'ed hale': 'R', 'carl brunner': 'R',
+  'christopher bouchat': 'R', 'john myrick': 'R', 'kurt wedekind': 'R',
   // Georgia Governor (primaries — large Polymarket markets)
   'burt jones': 'R', 'chris carr': 'R', 'brad raffensperger': 'R',
   'rick jackson': 'R', 'keisha lance bottoms': 'D', 'michael thurmond': 'D',
   'mike thurmond': 'D', 'leland olinger ii': 'R', 'clark dean': 'R',
   'geoff duncan': 'D', 'derrick jackson': 'D', 'jason esteves': 'D', 'olujimi brown': 'D',
+  'ruwa romman': 'D', 'ken yasger': 'R',
   // Iowa Senate
   'ashley hinson': 'R', 'jim carlin': 'R', 'john berman': 'R', 'joshua smith': 'R',
   'zach wahls': 'D', 'jackie norris': 'D', 'josh turek': 'D',
@@ -284,9 +291,10 @@ const CANDIDATE_PARTIES = {
   'alan wilson': 'R', 'mark hammond': 'R',
   // Tennessee Governor
   'andy ogles': 'R', 'cameron sexton': 'R',
-  // Texas Senate
+  // Texas Senate (D primary on Polymarket — Colin Allred leads)
   'ken paxton': 'R', 'john cornyn': 'R', 'wesley hunt': 'R',
   'jasmine crockett': 'D', 'james talarico': 'D',
+  'colin allred': 'D', 'roland gutierrez': 'D', 'steven keough': 'D',
   // Vermont Governor
   'phil scott': 'R',
   // Virginia Senate
@@ -336,6 +344,8 @@ class ElectionLiveService {
       const s = toSlug(state);
       slugs.push(`${s}-republican-senate-primary-winner`);
       slugs.push(`${s}-democratic-senate-primary-winner`);
+      slugs.push(`${s}-republican-senate-primary`);
+      slugs.push(`${s}-democratic-senate-primary`);
       slugs.push(`republican-nominee-for-${s}-senate`);
       slugs.push(`democratic-nominee-for-${s}-senate`);
     }
