@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v10'; // v10: candidate-party mapping, sports filter, independent candidates, wider sub-market coverage
+const CACHE_KEY = 'elections:live:v11'; // v11: comprehensive candidate-party mapping for all competitive races
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -177,86 +177,124 @@ const AMBIGUOUS_STATE_CODES = new Set([
 
 // Known 2026 candidate-to-party mappings for races with candidate-name outcomes
 // Used to extract D-win probability from markets that list individual candidates
+// Comprehensive mapping: covers all competitive races + any market using candidate names
 const CANDIDATE_PARTIES = {
   // Alaska Senate
   'dan sullivan': 'R', 'mary peltola': 'D', 'ann diener': 'I', 'dustin darden': 'I',
   'richard grayson': 'I',
-  // Alaska Governor
+  // Alaska Governor (40 sub-markets on Polymarket — all candidate names, no party labels)
   'nancy dahlstrom': 'R', 'bernadette wilson': 'D', 'tom begich': 'D',
   'click bishop': 'R', 'david bronson': 'R', 'lisa murkowski': 'R',
   'treg taylor': 'R', 'shelley hughes': 'R', 'adam crum': 'R',
   'edna devries': 'D', 'james parkin': 'R', 'matt heilala': 'I',
-  // California Governor
+  // Alabama Senate (open seat — primary candidates)
+  'barry moore': 'R', 'steve marshall': 'R', 'jared hudson': 'R',
+  // Alabama Governor
+  'tommy tuberville': 'R', 'tim james': 'R', 'wes allen': 'R',
+  // Arizona Governor (primaries)
+  'katie hobbs': 'D', 'karrin taylor robson': 'R', 'andy biggs': 'R',
+  'david schweikert': 'R',
+  // California Governor (45 sub-markets on Polymarket — all candidate names, no party labels)
   'eric swalwell': 'D', 'katie porter': 'D', 'steve hilton': 'R',
   'chad bianco': 'R', 'alex padilla': 'D', 'antonio villaraigosa': 'D',
   'xavier becerra': 'D', 'rick caruso': 'R', 'kyle langford': 'R',
   'stephen cloobeck': 'D', 'betty yee': 'D', 'eleni kounalakis': 'D',
   'tom steyer': 'D', 'rob bonta': 'D', 'toni atkins': 'D',
-  // Oregon Senate
-  'jeff merkley': 'D',
-  // Oregon Governor
-  'tina kotek': 'D',
+  'tony thurmond': 'D', 'leo zacky': 'R', 'kamala harris': 'D',
+  // Colorado Senate
+  'john hickenlooper': 'D',
+  // Colorado Governor
+  'phil weiser': 'D', 'jena griswold': 'D', 'heidi ganahl': 'R',
+  // Florida Senate
+  'ashley moody': 'R', 'alexander vindman': 'D',
+  // Florida Governor (R primary $231K volume on Polymarket)
+  'byron donalds': 'R', 'jay collins': 'R', 'paul renner': 'R', 'james fishback': 'R',
+  'matt gaetz': 'R', 'jimmy patronis': 'R',
+  'nikki fried': 'D', 'debbie mucarsel powell': 'D', 'anna eskamani': 'D',
+  'gwen graham': 'D', 'fentrice driskell': 'D', 'shevrin jones': 'D',
+  // Georgia Senate
+  'jon ossoff': 'D', 'buddy carter': 'R', 'mike collins': 'R', 'derek dooley': 'R',
+  // Georgia Governor (primaries — large Polymarket markets)
+  'burt jones': 'R', 'chris carr': 'R', 'brad raffensperger': 'R',
+  'rick jackson': 'R', 'keisha lance bottoms': 'D', 'michael thurmond': 'D',
+  'mike thurmond': 'D', 'leland olinger ii': 'R', 'clark dean': 'R',
+  'geoff duncan': 'D', 'derrick jackson': 'D', 'jason esteves': 'D', 'olujimi brown': 'D',
   // Iowa Senate
   'ashley hinson': 'R', 'jim carlin': 'R', 'john berman': 'R', 'joshua smith': 'R',
   'zach wahls': 'D', 'jackie norris': 'D', 'josh turek': 'D',
-  // Michigan Senate
-  'mallory mcmorrow': 'D', 'haley stevens': 'D', 'abdul el sayed': 'D',
-  'joe tate': 'D', 'mike rogers': 'R', 'dana nessel': 'D',
-  'rashida tlaib': 'D', 'fred heurtebise': 'R', 'kent benham': 'R',
-  'bernadette smith': 'R', 'genevieve scott': 'R', 'andrew kamal': 'R',
-  // Minnesota Senate
-  'peggy flanagan': 'D', 'angie craig': 'D', 'keith ellison': 'D',
-  'melisa hortman': 'D', 'michele tafoya': 'R', 'royce white': 'R',
-  // Minnesota Governor
-  'amy klobuchar': 'D', 'lisa demuth': 'R', 'mike lindell': 'R', 'scott jensen': 'R',
-  // Nebraska Senate
-  'pete ricketts': 'R', 'dan osborn': 'I', 'dan osborne': 'I',
-  // Nebraska Governor
-  'jim pillen': 'R',
-  // Nevada Governor
-  'joe lombardo': 'R',
-  // Arizona Governor
-  'katie hobbs': 'D',
-  // Georgia Senate
-  'jon ossoff': 'D', 'buddy carter': 'R', 'mike collins': 'R', 'derek dooley': 'R',
-  // Georgia Governor
-  'burt jones': 'R', 'chris carr': 'R', 'brad raffensperger': 'R',
-  'rick jackson': 'R', 'keisha lance bottoms': 'D', 'michael thurmond': 'D',
-  // North Carolina Senate
-  'roy cooper': 'D', 'michael whatley': 'R', 'don brown': 'R', 'michele morrow': 'R',
-  // Texas Senate
-  'ken paxton': 'R', 'john cornyn': 'R', 'wesley hunt': 'R',
-  'jasmine crockett': 'D', 'james talarico': 'D',
-  // Ohio Senate
-  'jon husted': 'R', 'sherrod brown': 'D',
-  // Maine Senate
-  'susan collins': 'R', 'janet mills': 'D', 'david costello': 'D',
-  'graham platner': 'D', 'jordan wood': 'D', 'dan smeriglio': 'R',
-  // Colorado Senate
-  'john hickenlooper': 'D',
-  // Florida Senate
-  'ashley moody': 'R', 'alexander vindman': 'D',
-  // Florida Governor
-  'byron donalds': 'R', 'jay collins': 'R', 'paul renner': 'R', 'james fishback': 'R',
-  'nikki fried': 'D', 'debbie mucarsel powell': 'D', 'anna eskamani': 'D',
-  // Michigan Governor
-  'jocelyn benson': 'D', 'chris swanson': 'D', 'john james': 'R',
-  'aric nesbitt': 'R', 'mike cox': 'R', 'mike duggan': 'I',
-  // New Hampshire Senate
-  'maggie goodlander': 'D', 'colin van ostern': 'D', 'chuck morse': 'R', 'don bolduc': 'R',
+  // Iowa Governor (primaries found on Polymarket)
+  'kim reynolds': 'R', 'randy feenstra': 'R', 'rob sand': 'D',
+  // Kansas Governor
+  'derek schmidt': 'R', 'kris kobach': 'R', 'sharice davids': 'D',
   // Kentucky Senate
   'andy barr': 'R', 'daniel cameron': 'R', 'nate morris': 'R',
   'charles booker': 'D', 'amy mcgrath': 'D',
   // Illinois Senate
   'raja krishnamoorthi': 'D', 'juliana stratton': 'D', 'robin kelly': 'D',
-  // Wisconsin Senate
-  'tammy baldwin': 'D',
-  // Virginia Senate
-  'tim kaine': 'D', 'hung cao': 'R',
-  // Kansas Governor
-  'derek schmidt': 'R', 'kris kobach': 'R', 'sharice davids': 'D',
+  // Maine Senate
+  'susan collins': 'R', 'janet mills': 'D', 'david costello': 'D',
+  'graham platner': 'D', 'jordan wood': 'D', 'dan smeriglio': 'R',
+  // Maine Governor
+  'aaron frey': 'D', 'mike tipping': 'D', 'paul lepage': 'R', 'shawn moody': 'R',
+  // Michigan Senate
+  'mallory mcmorrow': 'D', 'haley stevens': 'D', 'abdul el sayed': 'D',
+  'joe tate': 'D', 'mike rogers': 'R', 'dana nessel': 'D',
+  'rashida tlaib': 'D', 'fred heurtebise': 'R', 'kent benham': 'R',
+  'bernadette smith': 'R', 'genevieve scott': 'R', 'andrew kamal': 'R',
+  // Michigan Governor (primaries — Polymarket has R + D primary markets)
+  'jocelyn benson': 'D', 'chris swanson': 'D', 'john james': 'R',
+  'aric nesbitt': 'R', 'mike cox': 'R', 'mike duggan': 'I',
+  'william null': 'R', 'tom leonard': 'R', 'ralph rebandt': 'R', 'karla wagner': 'R',
+  'marni sawicki': 'D', 'garlin gilchrist': 'D',
+  // Minnesota Senate
+  'peggy flanagan': 'D', 'angie craig': 'D', 'keith ellison': 'D',
+  'melisa hortman': 'D', 'michele tafoya': 'R', 'royce white': 'R',
+  // Minnesota Governor (primaries — large Polymarket markets $176K R, $19K D)
+  'amy klobuchar': 'D', 'lisa demuth': 'R', 'mike lindell': 'R', 'scott jensen': 'R',
+  'phil parrish': 'R', 'kristin robbins': 'R', 'jeff johnson': 'R',
+  'patrick knight': 'R', 'brad kohler': 'R',
+  'steve simon': 'D', 'tim walz': 'D', 'bill gates jr': 'D',
+  // Nebraska Senate
+  'pete ricketts': 'R', 'dan osborn': 'I', 'dan osborne': 'I',
+  // Nebraska Governor
+  'jim pillen': 'R',
+  // Nevada Governor (primaries)
+  'joe lombardo': 'R', 'aaron ford': 'D', 'alexis hill': 'D',
+  // New Hampshire Senate
+  'maggie goodlander': 'D', 'colin van ostern': 'D', 'chuck morse': 'R', 'don bolduc': 'R',
+  // New Hampshire Governor
+  'kelly ayotte': 'R',
+  // New Mexico Governor
+  'raul torrez': 'D', 'melanie stansbury': 'D', 'mark ronchetti': 'R',
+  // North Carolina Senate
+  'roy cooper': 'D', 'michael whatley': 'R', 'don brown': 'R', 'michele morrow': 'R',
+  // Ohio Senate
+  'jon husted': 'R', 'sherrod brown': 'D',
   // Ohio Governor
   'vivek ramaswamy': 'R',
+  // Oklahoma Governor
+  'ryan walters': 'R', 'matt pinnell': 'R',
+  // Oregon Senate
+  'jeff merkley': 'D',
+  // Oregon Governor
+  'tina kotek': 'D',
+  // South Carolina Governor
+  'alan wilson': 'R', 'mark hammond': 'R',
+  // Tennessee Governor
+  'andy ogles': 'R', 'cameron sexton': 'R',
+  // Texas Senate
+  'ken paxton': 'R', 'john cornyn': 'R', 'wesley hunt': 'R',
+  'jasmine crockett': 'D', 'james talarico': 'D',
+  // Vermont Governor
+  'phil scott': 'R',
+  // Virginia Senate
+  'mark warner': 'D',
+  // Wisconsin Governor
+  'tony evers': 'D',
+  // Wisconsin Senate
+  'tammy baldwin': 'D',
+  // Wyoming Senate
+  'harriet hageman': 'R', 'tim salazar': 'R',
 };
 
 // Negative keywords — markets containing these are NOT election markets

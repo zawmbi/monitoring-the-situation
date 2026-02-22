@@ -91,13 +91,18 @@ class KalshiService {
         return null;
       }
 
-      let outcomes = markets
-        .filter(m => m.status === 'open' || m.status === 'active')
-        .slice(0, 6)
-        .map(m => ({
-          name: m.title || m.subtitle || m.ticker || 'Yes',
-          price: extractPrice(m),
-        }));
+      // Sort by open interest/volume so the most active candidates come first, then take top 20
+      const activeMarkets = markets.filter(m => m.status === 'open' || m.status === 'active');
+      const sorted = [...activeMarkets].sort((a, b) => {
+        const aOI = a.open_interest || 0;
+        const bOI = b.open_interest || 0;
+        if (bOI !== aOI) return bOI - aOI;
+        return (b.volume || 0) - (a.volume || 0);
+      });
+      let outcomes = sorted.slice(0, 20).map(m => ({
+        name: m.title || m.subtitle || m.ticker || 'Yes',
+        price: extractPrice(m),
+      }));
 
       // For simple yes/no with single sub-market
       if (markets.length === 1 && outcomes.length === 1) {
