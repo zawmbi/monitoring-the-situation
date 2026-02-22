@@ -928,6 +928,11 @@
   transition: width 0.8s ease;
 }
 
+.el-market-prob-fill-i {
+  background: #8c6ec9;
+  transition: width 0.8s ease;
+}
+
 .el-market-prob-fill-r {
   background: #d44040;
   border-radius: 0 3px 3px 0;
@@ -1784,6 +1789,15 @@
   font-size: 11px;
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+.el-market-loading {
+  padding: 12px 0;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  opacity: 0.7;
 }
 
 .el-news-tone-bar {

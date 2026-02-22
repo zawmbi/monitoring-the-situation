@@ -16,7 +16,8 @@ const MAX_RETRIES = 2;
 
 export function useElectionLive(stateName) {
   const [liveData, setLiveData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const isMounted = useRef(true);
   const fetchedGlobal = useRef(false);
@@ -55,6 +56,7 @@ export function useElectionLive(stateName) {
         globalCache.current = result.data;
         fetchedGlobal.current = true;
         setLiveData(result.data);
+        setHasLoaded(true);
         setLastUpdated(new Date());
       }
     } catch (err) {
@@ -66,6 +68,7 @@ export function useElectionLive(stateName) {
         return;
       }
       console.warn('[useElectionLive] Fetch failed after retries:', err.message);
+      if (isMounted.current) setHasLoaded(true);
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -102,6 +105,9 @@ export function useElectionLive(stateName) {
         liveRating: liveRace.derivedRating,
         dWinProb: liveRace.dWinProb,
         rWinProb: liveRace.rWinProb,
+        iWinProb: liveRace.iWinProb || null,
+        independentCandidate: liveRace.independentCandidate || null,
+        candidateOutcomes: liveRace.candidateOutcomes || null,
         marketUrl: liveRace.marketUrl,
         marketSource: liveRace.marketSource,
         marketVolume: liveRace.marketVolume,
@@ -202,6 +208,7 @@ export function useElectionLive(stateName) {
   return {
     liveData,
     loading,
+    hasLoaded,
     lastUpdated,
     refresh: fetchLiveData,
     getStateData,

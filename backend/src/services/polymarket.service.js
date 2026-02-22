@@ -230,7 +230,7 @@ class PolymarketService {
     return results;
   }
 
-  normalizeMarkets(rawEvents) {
+  normalizeMarkets(rawEvents, { minVolume = MIN_VOLUME } = {}) {
     return rawEvents
       .map((event, idx) => {
         const tagLabels = Array.isArray(event.tags) ? event.tags.map(t => t?.label || t?.slug).filter(Boolean) : [];
@@ -258,7 +258,14 @@ class PolymarketService {
           }
         } else if (subMarkets.length > 1) {
           // Multi-market event — each sub-market is one outcome
-          outcomes = subMarkets.slice(0, 6).map(m => {
+          // Sort by liquidity/volume so active markets come first, then take top 20
+          const sorted = [...subMarkets].sort((a, b) => {
+            const aLiq = parseFloat(a.liquidity || 0);
+            const bLiq = parseFloat(b.liquidity || 0);
+            if (bLiq !== aLiq) return bLiq - aLiq;
+            return parseFloat(b.volume || 0) - parseFloat(a.volume || 0);
+          });
+          outcomes = sorted.slice(0, 20).map(m => {
             const prices = tryParseJSON(m.outcomePrices);
             const yesPrice = prices ? parseFloat(prices[0]) : null;
             return {
@@ -294,7 +301,7 @@ class PolymarketService {
           rawSearchText: searchParts.join(' '),
         };
       })
-      .filter(m => m.volume >= MIN_VOLUME && m.active && !m.closed && !isBracketMarket(m.outcomes))
+      .filter(m => m.volume >= minVolume && m.active && !m.closed && !isBracketMarket(m.outcomes))
       .sort((a, b) => b.volume - a.volume);
   }
 
