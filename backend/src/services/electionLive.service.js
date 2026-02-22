@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v13'; // v13: match nominee/nomination markets, faster slug fetching
+const CACHE_KEY = 'elections:live:v14'; // v14: synthesize primaries from general election, fix nominee exclusion
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -207,11 +207,13 @@ const CANDIDATE_PARTIES = {
   'phil weiser': 'D', 'jena griswold': 'D', 'heidi ganahl': 'R',
   // Florida Senate
   'ashley moody': 'R', 'alexander vindman': 'D',
-  // Florida Governor (R primary $231K volume on Polymarket)
+  // Florida Governor (R + D primary nominee markets on Polymarket)
   'byron donalds': 'R', 'jay collins': 'R', 'paul renner': 'R', 'james fishback': 'R',
-  'matt gaetz': 'R', 'jimmy patronis': 'R',
+  'matt gaetz': 'R', 'jimmy patronis': 'R', 'casey desantis': 'R',
   'nikki fried': 'D', 'debbie mucarsel powell': 'D', 'anna eskamani': 'D',
   'gwen graham': 'D', 'fentrice driskell': 'D', 'shevrin jones': 'D',
+  'david jolly': 'D', 'jerry demings': 'D', 'angie nixon': 'D',
+  'daniella levine cava': 'D', 'jason pizzo': 'D',
   // Georgia Senate
   'jon ossoff': 'D', 'buddy carter': 'R', 'mike collins': 'R', 'derek dooley': 'R',
   // Georgia Governor (primaries — large Polymarket markets)
@@ -515,6 +517,7 @@ class ElectionLiveService {
     if (!hasOffice) return 0;
 
     // Primary matching: must mention "primary" or "nominee"/"nomination" and the correct party
+    const titleText = normalizeText(market.question || '');
     if (isPrimary) {
       if (!/\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) return 0;
       const hasParty = primaryParty === 'r'
@@ -522,8 +525,9 @@ class ElectionLiveService {
         : /\bdemocrat|\bdem\b|\bdfl\b/.test(text);
       if (!hasParty) return 0;
     } else {
-      // General election markets should NOT mention "primary" or "nominee" at all
-      if (/\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) return 0;
+      // General election: reject if the market TITLE indicates it's a primary/nominee market
+      // Only check title (not full text) to avoid false exclusions from descriptions mentioning "nominee"
+      if (/\bprimary\b|\bnominee\b|\bnomination\b/.test(titleText)) return 0;
     }
 
     if (baseType === 'house' && districtNum != null) {
@@ -754,6 +758,41 @@ class ElectionLiveService {
         }
 
         results[key] = raceResult;
+      }
+    }
+
+    // Synthesize primary data from general election markets when no dedicated primary market exists
+    // For races like Alaska Governor where Polymarket only has one market with all candidates
+    for (const raceType of ['senate', 'governor']) {
+      const states = raceType === 'senate' ? SENATE_STATES : GOVERNOR_STATES;
+      for (const state of states) {
+        const generalKey = `${state}:${raceType}`;
+        const general = results[generalKey];
+        if (!general || !general.candidateOutcomes || general.candidateOutcomes.length === 0) continue;
+
+        for (const party of ['R', 'D']) {
+          const primaryKey = `${state}:${raceType}:primary:${party}`;
+          if (results[primaryKey]) continue; // Already have a dedicated primary market
+
+          const partyCandidates = general.candidateOutcomes
+            .filter(c => c.party === party && c.pct > 0)
+            .slice(0, 8)
+            .map(c => ({ name: c.name, pct: c.pct }));
+
+          if (partyCandidates.length >= 2) {
+            results[primaryKey] = {
+              state,
+              raceType: `${raceType}-primary-${party.toLowerCase()}`,
+              party,
+              candidates: partyCandidates,
+              marketQuestion: general.marketQuestion,
+              marketUrl: general.marketUrl,
+              marketSource: general.marketSource,
+              marketVolume: general.marketVolume,
+              derivedFromGeneral: true,
+            };
+          }
+        }
       }
     }
 
