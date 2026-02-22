@@ -23,6 +23,28 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Detect bracket/margin-of-victory style outcomes that produce cluttered
+ * cards instead of clean head-to-head displays.
+ */
+function isBracketMarket(outcomes) {
+  if (!outcomes || outcomes.length === 0) return false;
+  const bracketPatterns = [
+    /[≥≤><]\s*\d/,
+    /\d+\.?\d*\s*%?\s*[-–—]\s*\d+\.?\d*\s*%/,
+    /\d+\.?\d*\s*[-–—]\s*\d+\.?\d*\s*%/,
+    /\bor more\b/i,
+    /\bor fewer\b/i,
+    /\bor less\b/i,
+    /\bmargin\b/i,
+  ];
+  const bracketCount = outcomes.filter(o => {
+    const name = (o.name || o || '').toString();
+    return bracketPatterns.some(p => p.test(name));
+  }).length;
+  return bracketCount >= Math.max(1, Math.ceil(outcomes.length / 3));
+}
+
 class KalshiService {
   constructor() {
     this.baseUrl = KALSHI_API_BASE;
@@ -69,13 +91,18 @@ class KalshiService {
         return null;
       }
 
-      let outcomes = markets
-        .filter(m => m.status === 'open' || m.status === 'active')
-        .slice(0, 6)
-        .map(m => ({
-          name: m.title || m.subtitle || m.ticker || 'Yes',
-          price: extractPrice(m),
-        }));
+      // Sort by open interest/volume so the most active candidates come first, then take top 20
+      const activeMarkets = markets.filter(m => m.status === 'open' || m.status === 'active');
+      const sorted = [...activeMarkets].sort((a, b) => {
+        const aOI = a.open_interest || 0;
+        const bOI = b.open_interest || 0;
+        if (bOI !== aOI) return bOI - aOI;
+        return (b.volume || 0) - (a.volume || 0);
+      });
+      let outcomes = sorted.slice(0, 20).map(m => ({
+        name: m.title || m.subtitle || m.ticker || 'Yes',
+        price: extractPrice(m),
+      }));
 
       // For simple yes/no with single sub-market
       if (markets.length === 1 && outcomes.length === 1) {
@@ -85,6 +112,9 @@ class KalshiService {
           { name: 'No', price: 1 - yesPrice },
         ];
       }
+
+      // Skip bracket/margin-of-victory style markets
+      if (isBracketMarket(outcomes)) continue;
 
       const searchParts = [
         event.title, event.sub_title, event.category, event.series_ticker,
