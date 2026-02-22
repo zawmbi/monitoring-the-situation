@@ -1244,9 +1244,22 @@ function App() {
     }
   }, [showTariffHeatmap]);
 
-  // Close election panel when election mode is turned off
+  // When election mode changes: zoom to US + stop spinning on enable, cleanup on disable
   useEffect(() => {
-    if (!electionMode) {
+    if (electionMode) {
+      // Stop globe rotation and zoom into the US
+      setAutoRotate(false);
+      const map = mapRef.current;
+      if (map) {
+        map.stop();
+        map.flyTo({
+          center: [-98, 39],
+          zoom: useGlobe ? 3.5 : 4,
+          duration: 1800,
+          essential: true,
+        });
+      }
+    } else {
       setElectionPanel({ open: false, state: null, pos: { x: 160, y: 120 } });
     }
   }, [electionMode]);

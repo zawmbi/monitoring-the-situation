@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v12'; // v12: skip jungle/top-two primary party-combo markets (California)
+const CACHE_KEY = 'elections:live:v13'; // v13: match nominee/nomination markets, faster slug fetching
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -329,13 +329,13 @@ class ElectionLiveService {
       slugs.push(`${s}-senate-race-2026`);
       slugs.push(`${s}-senate-election-2026`);
     }
-    // Senate primaries (both parties)
+    // Senate primaries (both parties) — primary + nominee slug variants
     for (const state of SENATE_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-republican-senate-primary-winner`);
       slugs.push(`${s}-democratic-senate-primary-winner`);
-      slugs.push(`${s}-senate-republican-primary-winner`);
-      slugs.push(`${s}-senate-democratic-primary-winner`);
+      slugs.push(`republican-nominee-for-${s}-senate`);
+      slugs.push(`democratic-nominee-for-${s}-senate`);
     }
     // Michigan Republican Senate Primary has special suffix
     slugs.push('michigan-republican-senate-primary-winner-954');
@@ -353,17 +353,14 @@ class ElectionLiveService {
     // California uses a different slug pattern
     slugs.push('california-governor-election-2026');
 
-    // Governor primaries — multiple slug variants for party primary ordering
+    // Governor primaries — primary + nominee slug variants
     for (const state of GOVERNOR_STATES) {
       const s = toSlug(state);
       slugs.push(`${s}-governor-republican-primary-winner`);
       slugs.push(`${s}-governor-democratic-primary-winner`);
-      slugs.push(`${s}-republican-governor-primary-winner`);
-      slugs.push(`${s}-democratic-governor-primary-winner`);
+      slugs.push(`republican-nominee-for-${s}-governor`);
+      slugs.push(`democratic-nominee-for-${s}-governor`);
     }
-    // Florida uses alternate governor primary slugs
-    slugs.push('republican-nominee-for-florida-governor');
-    slugs.push('democratic-nominee-for-florida-governor');
     // California jungle primary
     slugs.push('parties-advancing-from-the-california-governor-primary');
 
@@ -416,6 +413,7 @@ class ElectionLiveService {
       polymarketService.getMarketsByTopic(['gubernatorial'], ['2026', 'election', 'winner', 'primary'], false),
       polymarketService.getMarketsByTopic(['midterm'], ['2026', 'senate', 'governor', 'house'], false),
       polymarketService.getMarketsByTopic(['primary'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
+      polymarketService.getMarketsByTopic(['nominee'], ['2026', 'senate', 'governor', 'republican', 'democrat'], false),
       polymarketService.getMarketsByTopic(['congress'], ['2026', 'house', 'district', 'election', 'winner'], false),
       polymarketService.getMarketsByTopic(['house'], ['2026', 'election', 'district', 'winner', 'representative'], false),
     ];
@@ -444,7 +442,7 @@ class ElectionLiveService {
     // Direct slug-based Polymarket fetching for guaranteed coverage
     // Use lower volume threshold ($500) for targeted slug fetches since these are known election markets
     const slugs = this._generatePolymarketSlugs();
-    const slugFetch = polymarketService.fetchEventsBySlugs(slugs, 10)
+    const slugFetch = polymarketService.fetchEventsBySlugs(slugs, 50)
       .then(events => polymarketService.normalizeMarkets(events, { minVolume: 500 }))
       .catch(() => []);
 
@@ -516,16 +514,16 @@ class ElectionLiveService {
         : /\bhouse\b|\bcongress|\bdistrict\b|\bcd\b/.test(text);
     if (!hasOffice) return 0;
 
-    // Primary matching: must mention "primary" and the correct party
+    // Primary matching: must mention "primary" or "nominee"/"nomination" and the correct party
     if (isPrimary) {
-      if (!/\bprimary\b/.test(text)) return 0;
+      if (!/\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) return 0;
       const hasParty = primaryParty === 'r'
         ? /\brepublican|\bgop\b|\brep\b/.test(text)
         : /\bdemocrat|\bdem\b|\bdfl\b/.test(text);
       if (!hasParty) return 0;
     } else {
-      // General election markets should NOT mention "primary" at all
-      if (/\bprimary\b/.test(text)) return 0;
+      // General election markets should NOT mention "primary" or "nominee" at all
+      if (/\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) return 0;
     }
 
     if (baseType === 'house' && districtNum != null) {
@@ -542,7 +540,7 @@ class ElectionLiveService {
     let score = 1;
     if (/2026/.test(text)) score += 2;
     if (text.includes(stateNameLower)) score += 1;
-    if (isPrimary && /\bprimary\b/.test(text)) score += 2;
+    if (isPrimary && /\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) score += 2;
     if (districtNum != null && text.includes(`district ${String(districtNum)}`)) score += 1;
     score += Math.log10(Math.max(market.volume || 1, 1));
     return score;
