@@ -251,7 +251,7 @@ function HouseMapMini({ house }) {
   );
 }
 
-function HouseDistrictRace({ district, electionView }) {
+function HouseDistrictRace({ district, electionView, hasLoaded }) {
   if (!district) return null;
   const race = district;
   return (
@@ -289,41 +289,29 @@ function HouseDistrictRace({ district, electionView }) {
               marketUrl={race.marketUrl}
             />
           )}
-          {!race.marketOutcomes?.length && (
-            <>
-              <div className="el-section-title el-static-label">
-                General Election (Estimated)
-                {race.dWinProb == null && (
-                  <span className="el-static-badge">NO LIVE DATA</span>
-                )}
-              </div>
-              <PollBar candidates={race.candidates.general} partyColors={PARTY_COLORS} />
-            </>
+          {!race.marketOutcomes?.length && !race.marketSource && !hasLoaded && (
+            <div className="el-market-loading">Loading market data...</div>
           )}
         </>
       )}
       {electionView === 'primary' && (
         <>
-          {['R', 'D'].map(party => {
+          {!hasLoaded && (
+            <div className="el-market-loading">Loading market data...</div>
+          )}
+          {hasLoaded && ['R', 'D'].map(party => {
             const liveKey = party === 'R' ? 'livePrimaryR' : 'livePrimaryD';
             const livePrimary = race[liveKey];
-            const staticCands = race.candidates?.primary?.[party];
             const hasLive = livePrimary && livePrimary.candidates?.length > 0;
-            const hasStatic = staticCands && staticCands.length > 0;
-            if (!hasLive && !hasStatic) return null;
+            if (!hasLive) return null;
             return (
               <div key={party} className="el-primary-section">
                 <div className="el-section-title">
                   <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
                   {party === 'D' ? 'Democratic' : 'Republican'} Primary
-                  {hasLive && <span className="el-live-micro">LIVE</span>}
-                  {!hasLive && <span className="el-static-badge">EST</span>}
+                  <span className="el-live-micro">LIVE</span>
                 </div>
-                {hasLive ? (
-                  <LivePrimaryCandidates primary={livePrimary} party={party} />
-                ) : (
-                  <PrimaryView party={party} candidates={staticCands} />
-                )}
+                <LivePrimaryCandidates primary={livePrimary} party={party} />
               </div>
             );
           })}
@@ -648,22 +636,19 @@ function SignalBreakdown({ breakdown, signalCount }) {
 }
 
 function MarketProbBar({ race }) {
-  if (!race?.dWinProb && !race?.rWinProb) return null;
+  // Only show when we have live market data — no static/estimated fallback
+  const isLive = !race?._fundamentalsOnly && race?.marketSource;
+  if (!isLive) return null;
   const dProb = race.dWinProb || 0;
   const rProb = race.rWinProb || 0;
   const iProb = race.iWinProb || 0;
   const hasIndep = iProb > 0 && race.independentCandidate;
-  const isLive = !race._fundamentalsOnly && race.marketSource;
   return (
     <div className="el-market-prob">
       <div className="el-market-prob-header">
-        <span className="el-market-prob-label">
-          {isLive ? 'Market Odds' : 'Estimated Odds'}
-        </span>
+        <span className="el-market-prob-label">Market Odds</span>
         <span className="el-market-prob-meta">
-          {isLive && (
-            <span className="el-live-micro">LIVE</span>
-          )}
+          <span className="el-live-micro">LIVE</span>
           {race.marketSource && (
             <a
               className="el-market-prob-source"
@@ -703,7 +688,6 @@ function MarketProbBar({ race }) {
         {hasIndep && (
           <span style={{ color: PARTY_COLORS.I }}>I {iProb}%</span>
         )}
-        {!isLive && <span className="el-static-badge">EST</span>}
         <span style={{ color: PARTY_COLORS.R }}>R {rProb}%</span>
       </div>
     </div>
@@ -1087,7 +1071,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
   const [electionView, setElectionView] = useState('general'); // 'primary' | 'general'
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  const { getStateData, isLive, lastUpdated: liveUpdated, fetchStateNews } = useElectionLive(stateName);
+  const { getStateData, isLive, hasLoaded, lastUpdated: liveUpdated, fetchStateNews } = useElectionLive(stateName);
   const data = getStateData(stateName);
   const [stateNews, setStateNews] = useState(null);
   const [newsLoading, setNewsLoading] = useState(false);
@@ -1277,7 +1261,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
             {/* Market data display */}
             {electionView === 'general' && (
               <>
-                {/* Market-derived probability (live) */}
+                {/* Market-derived probability (live only) */}
                 <MarketProbBar race={activeRace} />
 
                 {/* Market candidate odds */}
@@ -1289,41 +1273,31 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                   />
                 )}
 
-                {/* Static poll bar: shown only when no market data at all */}
-                {!activeRace.marketOutcomes?.length && activeRace.dWinProb == null && (
-                  <>
-                    <div className="el-section-title el-static-label">
-                      General Election (Estimated)
-                      <span className="el-static-badge">NO LIVE DATA</span>
-                    </div>
-                    <PollBar candidates={activeRace.candidates.general} partyColors={PARTY_COLORS} />
-                  </>
+                {/* Loading state: shown before markets have loaded */}
+                {!activeRace.marketOutcomes?.length && !activeRace.marketSource && !hasLoaded && (
+                  <div className="el-market-loading">Loading market data...</div>
                 )}
               </>
             )}
 
             {electionView === 'primary' && (
               <>
-                {['R', 'D'].map(party => {
+                {!hasLoaded && (
+                  <div className="el-market-loading">Loading market data...</div>
+                )}
+                {hasLoaded && ['R', 'D'].map(party => {
                   const liveKey = party === 'R' ? 'livePrimaryR' : 'livePrimaryD';
                   const livePrimary = activeRace[liveKey];
-                  const staticCands = activeRace.candidates?.primary?.[party];
                   const hasLive = livePrimary && livePrimary.candidates?.length > 0;
-                  const hasStatic = staticCands && staticCands.length > 0;
-                  if (!hasLive && !hasStatic) return null;
+                  if (!hasLive) return null;
                   return (
                     <div key={party} className="el-primary-section">
                       <div className="el-section-title">
                         <span className="el-party-dot" style={{ background: PARTY_COLORS[party] }} />
                         {party === 'D' ? 'Democratic' : 'Republican'} Primary
-                        {hasLive && <span className="el-live-micro">LIVE</span>}
-                        {!hasLive && <span className="el-static-badge">EST</span>}
+                        <span className="el-live-micro">LIVE</span>
                       </div>
-                      {hasLive ? (
-                        <LivePrimaryCandidates primary={livePrimary} party={party} />
-                      ) : (
-                        <PrimaryView party={party} candidates={staticCands} />
-                      )}
+                      <LivePrimaryCandidates primary={livePrimary} party={party} />
                     </div>
                   );
                 })}
@@ -1377,7 +1351,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
                     </svg>
                   </button>
                 </div>
-                <HouseDistrictRace district={activeDistrict} electionView={electionView} />
+                <HouseDistrictRace district={activeDistrict} electionView={electionView} hasLoaded={hasLoaded} />
               </div>
             )}
 
@@ -1458,7 +1432,7 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
               <div className="el-info-api-status">
                 <span className="el-info-api-item">
                   <span className={`el-info-api-dot ${isLive ? 'el-info-api-on' : ''}`} />
-                  Markets: {isLive ? 'Connected' : 'Offline'}
+                  Markets: {isLive ? 'Connected' : hasLoaded ? 'No data' : 'Loading...'}
                 </span>
               </div>
             </div>
@@ -1581,10 +1555,10 @@ export function ElectionPanel({ stateName, position, onClose, onPositionChange, 
           <span className="el-data-updated">
             {isLive && liveUpdated
               ? `Live ${Math.round((Date.now() - liveUpdated.getTime()) / 60000)}m ago`
-              : `Data as of ${DATA_LAST_UPDATED}`}
+              : hasLoaded ? 'No market data' : 'Loading markets...'}
           </span>
           <span className="el-data-sources">
-            {isLive ? 'Polymarket + Kalshi + PredictIt' : 'Cook/Sabato (static)'}
+            {isLive ? 'Polymarket + Kalshi + PredictIt' : hasLoaded ? '' : 'Loading...'}
           </span>
         </div>
       </div>
