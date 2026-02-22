@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v14'; // v14: synthesize primaries from general election, fix nominee exclusion
+const CACHE_KEY = 'elections:live:v15'; // v15: fix primary matching to check title only, filter party-label outcomes
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -516,17 +516,17 @@ class ElectionLiveService {
         : /\bhouse\b|\bcongress|\bdistrict\b|\bcd\b/.test(text);
     if (!hasOffice) return 0;
 
-    // Primary matching: must mention "primary" or "nominee"/"nomination" and the correct party
+    // Primary/general matching: check the market TITLE (not full text) for primary/nominee keywords
+    // to avoid false matches from descriptions that mention "nominee" in passing
     const titleText = normalizeText(market.question || '');
     if (isPrimary) {
-      if (!/\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) return 0;
+      if (!/\bprimary\b|\bnominee\b|\bnomination\b/.test(titleText)) return 0;
       const hasParty = primaryParty === 'r'
         ? /\brepublican|\bgop\b|\brep\b/.test(text)
         : /\bdemocrat|\bdem\b|\bdfl\b/.test(text);
       if (!hasParty) return 0;
     } else {
       // General election: reject if the market TITLE indicates it's a primary/nominee market
-      // Only check title (not full text) to avoid false exclusions from descriptions mentioning "nominee"
       if (/\bprimary\b|\bnominee\b|\bnomination\b/.test(titleText)) return 0;
     }
 
@@ -544,7 +544,7 @@ class ElectionLiveService {
     let score = 1;
     if (/2026/.test(text)) score += 2;
     if (text.includes(stateNameLower)) score += 1;
-    if (isPrimary && /\bprimary\b|\bnominee\b|\bnomination\b/.test(text)) score += 2;
+    if (isPrimary && /\bprimary\b|\bnominee\b|\bnomination\b/.test(titleText)) score += 2;
     if (districtNum != null && text.includes(`district ${String(districtNum)}`)) score += 1;
     score += Math.log10(Math.max(market.volume || 1, 1));
     return score;
@@ -662,12 +662,13 @@ class ElectionLiveService {
 
       if (isPrimary) {
         // Primary markets: pass through all candidate outcomes with prices
-        // Filter out placeholder outcomes (Person X, Option X, Candidate X)
+        // Filter out placeholder outcomes (Person X, Option X, Candidate X) and party labels
+        const PARTY_LABELS = /^(democrat|republican|democratic|gop|independent|libertarian|green|other|dem|rep|ind|lib)$/i;
         const outcomes = (bestMatch.outcomes || [])
           .filter(o => {
             if (!o.name || o.price == null) return false;
             const n = normalizeText(o.name);
-            return n && n !== 'other' && !/^person\b|^option\b|^candidate\b/.test(n);
+            return n && n !== 'other' && !/^person\b|^option\b|^candidate\b/.test(n) && !PARTY_LABELS.test(n.trim());
           })
           .sort((a, b) => b.price - a.price)
           .slice(0, 10)
