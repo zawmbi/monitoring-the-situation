@@ -13,7 +13,7 @@ import { polymarketService } from './polymarket.service.js';
 import { kalshiService } from './kalshi.service.js';
 import { predictitService } from './predictit.service.js';
 
-const CACHE_KEY = 'elections:live:v9'; // v9: fix ambiguous state code matching + expanded slugs
+const CACHE_KEY = 'elections:live:v10'; // v10: candidate-party mapping, sports filter, independent candidates, wider sub-market coverage
 const CACHE_TTL = 120; // 2 minutes
 
 // States with Senate races in 2026 (Class 2 + specials)
@@ -175,6 +175,99 @@ const AMBIGUOUS_STATE_CODES = new Set([
   'la', 'ma', 'me', 'mo', 'mt', 'ne', 'oh', 'ok', 'or', 'pa',
 ]);
 
+// Known 2026 candidate-to-party mappings for races with candidate-name outcomes
+// Used to extract D-win probability from markets that list individual candidates
+const CANDIDATE_PARTIES = {
+  // Alaska Senate
+  'dan sullivan': 'R', 'mary peltola': 'D', 'ann diener': 'I', 'dustin darden': 'I',
+  'richard grayson': 'I',
+  // Alaska Governor
+  'nancy dahlstrom': 'R', 'bernadette wilson': 'D', 'tom begich': 'D',
+  'click bishop': 'R', 'david bronson': 'R', 'lisa murkowski': 'R',
+  'treg taylor': 'R', 'shelley hughes': 'R', 'adam crum': 'R',
+  'edna devries': 'D', 'james parkin': 'R', 'matt heilala': 'I',
+  // California Governor
+  'eric swalwell': 'D', 'katie porter': 'D', 'steve hilton': 'R',
+  'chad bianco': 'R', 'alex padilla': 'D', 'antonio villaraigosa': 'D',
+  'xavier becerra': 'D', 'rick caruso': 'R', 'kyle langford': 'R',
+  'stephen cloobeck': 'D', 'betty yee': 'D', 'eleni kounalakis': 'D',
+  'tom steyer': 'D', 'rob bonta': 'D', 'toni atkins': 'D',
+  // Oregon Senate
+  'jeff merkley': 'D',
+  // Oregon Governor
+  'tina kotek': 'D',
+  // Iowa Senate
+  'ashley hinson': 'R', 'jim carlin': 'R', 'john berman': 'R', 'joshua smith': 'R',
+  'zach wahls': 'D', 'jackie norris': 'D', 'josh turek': 'D',
+  // Michigan Senate
+  'mallory mcmorrow': 'D', 'haley stevens': 'D', 'abdul el sayed': 'D',
+  'joe tate': 'D', 'mike rogers': 'R', 'dana nessel': 'D',
+  'rashida tlaib': 'D', 'fred heurtebise': 'R', 'kent benham': 'R',
+  'bernadette smith': 'R', 'genevieve scott': 'R', 'andrew kamal': 'R',
+  // Minnesota Senate
+  'peggy flanagan': 'D', 'angie craig': 'D', 'keith ellison': 'D',
+  'melisa hortman': 'D', 'michele tafoya': 'R', 'royce white': 'R',
+  // Minnesota Governor
+  'amy klobuchar': 'D', 'lisa demuth': 'R', 'mike lindell': 'R', 'scott jensen': 'R',
+  // Nebraska Senate
+  'pete ricketts': 'R', 'dan osborn': 'I', 'dan osborne': 'I',
+  // Nebraska Governor
+  'jim pillen': 'R',
+  // Nevada Governor
+  'joe lombardo': 'R',
+  // Arizona Governor
+  'katie hobbs': 'D',
+  // Georgia Senate
+  'jon ossoff': 'D', 'buddy carter': 'R', 'mike collins': 'R', 'derek dooley': 'R',
+  // Georgia Governor
+  'burt jones': 'R', 'chris carr': 'R', 'brad raffensperger': 'R',
+  'rick jackson': 'R', 'keisha lance bottoms': 'D', 'michael thurmond': 'D',
+  // North Carolina Senate
+  'roy cooper': 'D', 'michael whatley': 'R', 'don brown': 'R', 'michele morrow': 'R',
+  // Texas Senate
+  'ken paxton': 'R', 'john cornyn': 'R', 'wesley hunt': 'R',
+  'jasmine crockett': 'D', 'james talarico': 'D',
+  // Ohio Senate
+  'jon husted': 'R', 'sherrod brown': 'D',
+  // Maine Senate
+  'susan collins': 'R', 'janet mills': 'D', 'david costello': 'D',
+  'graham platner': 'D', 'jordan wood': 'D', 'dan smeriglio': 'R',
+  // Colorado Senate
+  'john hickenlooper': 'D',
+  // Florida Senate
+  'ashley moody': 'R', 'alexander vindman': 'D',
+  // Florida Governor
+  'byron donalds': 'R', 'jay collins': 'R', 'paul renner': 'R', 'james fishback': 'R',
+  'nikki fried': 'D', 'debbie mucarsel powell': 'D', 'anna eskamani': 'D',
+  // Michigan Governor
+  'jocelyn benson': 'D', 'chris swanson': 'D', 'john james': 'R',
+  'aric nesbitt': 'R', 'mike cox': 'R', 'mike duggan': 'I',
+  // New Hampshire Senate
+  'maggie goodlander': 'D', 'colin van ostern': 'D', 'chuck morse': 'R', 'don bolduc': 'R',
+  // Kentucky Senate
+  'andy barr': 'R', 'daniel cameron': 'R', 'nate morris': 'R',
+  'charles booker': 'D', 'amy mcgrath': 'D',
+  // Illinois Senate
+  'raja krishnamoorthi': 'D', 'juliana stratton': 'D', 'robin kelly': 'D',
+  // Wisconsin Senate
+  'tammy baldwin': 'D',
+  // Virginia Senate
+  'tim kaine': 'D', 'hung cao': 'R',
+  // Kansas Governor
+  'derek schmidt': 'R', 'kris kobach': 'R', 'sharice davids': 'D',
+  // Ohio Governor
+  'vivek ramaswamy': 'R',
+};
+
+// Negative keywords — markets containing these are NOT election markets
+const NON_ELECTION_PATTERNS = /\bnhl\b|\bnba\b|\bnfl\b|\bmlb\b|\bmls\b|\bstanley\s*cup\b|\bsuper\s*bowl\b|\bworld\s*series\b|\bplayoffs?\b|\bchampionship\b|\bmvp\b|\bheisman\b|\bolympic|\bfifa\b|\bworld\s*cup\b|\bballon\s*d\s*or\b|\bpremier\s*league\b|\bla\s*liga\b|\bbundesliga\b|\bserie\s*a\b|\bligue\s*1\b|\bnascar\b|\bf1\b|\bformula\s*1\b|\bufc\b|\bboxing\b|\btennis\b|\bgolf\b|\bpga\b|\bwimbledon\b|\bus\s*open\b|\bcrypto|\bbitcoin\b|\bethereum\b|\bipo\b/;
+
+// Races with significant independent candidates: {state:raceType} -> independent candidate name
+const INDEPENDENT_RACES = {
+  'Nebraska:senate': 'Dan Osborn',
+  'Michigan:governor': 'Mike Duggan',
+};
+
 class ElectionLiveService {
   constructor() {
     this._memCache = null;
@@ -311,9 +404,10 @@ class ElectionLiveService {
     ];
 
     // Direct slug-based Polymarket fetching for guaranteed coverage
+    // Use lower volume threshold ($500) for targeted slug fetches since these are known election markets
     const slugs = this._generatePolymarketSlugs();
     const slugFetch = polymarketService.fetchEventsBySlugs(slugs, 10)
-      .then(events => polymarketService.normalizeMarkets(events))
+      .then(events => polymarketService.normalizeMarkets(events, { minVolume: 500 }))
       .catch(() => []);
 
     // Execute all in parallel
@@ -348,6 +442,9 @@ class ElectionLiveService {
    */
   _scoreMatch(market, stateName, raceType, districtNum = null) {
     const text = normalizeText(`${market.question} ${market.description} ${market.rawSearchText || ''}`);
+
+    // Reject non-election markets (sports, crypto, etc.)
+    if (NON_ELECTION_PATTERNS.test(text)) return 0;
 
     const stateNameLower = stateName.toLowerCase();
     const stateCode = (STATE_CODES[stateName] || '').toLowerCase();
@@ -415,16 +512,23 @@ class ElectionLiveService {
 
   /**
    * Extract D-win probability from a market's outcomes.
+   * Strategy: (1) Party-labeled outcomes, (2) question text, (3) candidate-party mapping.
    */
   _extractDemProbability(market) {
     const outcomes = market.outcomes || [];
     if (outcomes.length === 0) return null;
 
+    // Strategy 1: Look for party-labeled outcomes ("Democrat", "Republican")
     for (const o of outcomes) {
       const name = normalizeText(o.name || '');
-      if (/democrat|dem\b|blue/.test(name) && o.price != null) return o.price;
+      if (/\bdemocrat|\bdem\b|\bblue\b/.test(name) && o.price != null) return o.price;
+    }
+    for (const o of outcomes) {
+      const name = normalizeText(o.name || '');
+      if (/\brepublican|\brep\b|\bgop\b|\bred\b/.test(name) && o.price != null) return 1 - o.price;
     }
 
+    // Strategy 2: Check question text for party-specific framing
     const qText = normalizeText(market.question || '');
     const isAboutDemWinning = /democrat.*win|will.*democrat|dem.*flip|blue.*wave/.test(qText);
     const isAboutRepWinning = /republican.*win|will.*republican|rep.*flip|gop.*win|red.*wave/.test(qText);
@@ -435,12 +539,57 @@ class ElectionLiveService {
       if (isAboutRepWinning && yesPrice != null) return 1 - yesPrice;
     }
 
+    // Strategy 3: Use candidate-party mapping to compute D-win probability
+    // Sum up probabilities of all D candidates vs all R candidates
+    let dTotal = 0;
+    let rTotal = 0;
+    let matched = 0;
     for (const o of outcomes) {
+      if (o.price == null || o.price <= 0) continue;
       const name = normalizeText(o.name || '');
-      if (/\brepublican|\brep\b|\bgop\b|\bred\b/.test(name) && o.price != null) return 1 - o.price;
+      if (!name || name === 'other' || /^person\b|^option\b|^candidate\b/.test(name)) continue;
+      const party = CANDIDATE_PARTIES[name];
+      if (party === 'D') {
+        dTotal += o.price;
+        matched++;
+      } else if (party === 'R') {
+        rTotal += o.price;
+        matched++;
+      } else if (party === 'I') {
+        // Independent candidates don't count toward D or R
+        matched++;
+      }
+    }
+    // Only trust candidate mapping if we matched at least 2 outcomes
+    if (matched >= 2 && (dTotal + rTotal) > 0) {
+      return dTotal / (dTotal + rTotal);
     }
 
     return null;
+  }
+
+  /**
+   * Extract all candidate outcomes with party affiliations for a market.
+   * Used for races with independent/third-party candidates (e.g., Nebraska).
+   */
+  _extractAllCandidateOutcomes(market) {
+    const outcomes = market.outcomes || [];
+    const result = [];
+    for (const o of outcomes) {
+      if (o.price == null || o.price <= 0) continue;
+      const name = normalizeText(o.name || '');
+      if (!name || name === 'other' || /^person\b|^option\b|^candidate\b/.test(name)) continue;
+      const party = CANDIDATE_PARTIES[name];
+      if (party) {
+        result.push({
+          name: o.name,
+          party,
+          price: o.price,
+          pct: Math.round(o.price * 100),
+        });
+      }
+    }
+    return result.sort((a, b) => b.price - a.price);
   }
 
   /**
@@ -473,8 +622,13 @@ class ElectionLiveService {
 
       if (isPrimary) {
         // Primary markets: pass through all candidate outcomes with prices
+        // Filter out placeholder outcomes (Person X, Option X, Candidate X)
         const outcomes = (bestMatch.outcomes || [])
-          .filter(o => o.name && o.price != null)
+          .filter(o => {
+            if (!o.name || o.price == null) return false;
+            const n = normalizeText(o.name);
+            return n && n !== 'other' && !/^person\b|^option\b|^candidate\b/.test(n);
+          })
           .sort((a, b) => b.price - a.price)
           .slice(0, 10)
           .map(o => ({ name: o.name, pct: Math.round(o.price * 100) }));
@@ -499,8 +653,27 @@ class ElectionLiveService {
         const dProb = this._extractDemProbability(bestMatch);
         if (dProb == null) continue;
 
+        // Build richer outcomes with party info from candidate mapping
+        const allCandidateOutcomes = this._extractAllCandidateOutcomes(bestMatch);
+        const rawOutcomes = (bestMatch.outcomes || [])
+          .filter(o => {
+            if (!o.name || o.price == null) return false;
+            const n = normalizeText(o.name);
+            return n && n !== 'other' && !/^person\b|^option\b|^candidate\b/.test(n);
+          })
+          .sort((a, b) => (b.price || 0) - (a.price || 0))
+          .slice(0, 8)
+          .map(o => {
+            const party = CANDIDATE_PARTIES[normalizeText(o.name)] || null;
+            return {
+              name: o.name,
+              price: o.price != null ? Math.round(o.price * 100) : null,
+              party,
+            };
+          });
+
         const key = race.code ? `${race.state}:house:${race.code}` : `${race.state}:${race.type}`;
-        results[key] = {
+        const raceResult = {
           state: race.state,
           raceType: race.type,
           district: race.code || null,
@@ -511,11 +684,34 @@ class ElectionLiveService {
           marketUrl: bestMatch.url,
           marketSource: bestMatch.source,
           marketVolume: bestMatch.volume,
-          outcomes: (bestMatch.outcomes || []).slice(0, 4).map(o => ({
-            name: o.name,
-            price: o.price != null ? Math.round(o.price * 100) : null,
-          })),
+          outcomes: rawOutcomes,
+          // Include independent/third-party candidate data when available
+          candidateOutcomes: allCandidateOutcomes.length > 0 ? allCandidateOutcomes : undefined,
         };
+
+        // For races with significant independent candidates, compute I-win probability
+        const indepKey = `${race.state}:${race.type}`;
+        const indepCandidate = INDEPENDENT_RACES[indepKey];
+        if (indepCandidate) {
+          // Extract R and D probabilities directly from outcomes
+          let rDirect = null;
+          let dDirect = null;
+          for (const o of (bestMatch.outcomes || [])) {
+            if (o.price == null) continue;
+            const name = normalizeText(o.name || '');
+            if (/\brepublican|\brep\b|\bgop\b/.test(name)) rDirect = o.price;
+            if (/\bdemocrat|\bdem\b/.test(name)) dDirect = o.price;
+          }
+          if (rDirect != null && dDirect != null) {
+            const iProb = Math.max(0, 1 - rDirect - dDirect);
+            raceResult.iWinProb = Math.round(iProb * 100);
+            raceResult.rWinProb = Math.round(rDirect * 100);
+            raceResult.dWinProb = Math.round(dDirect * 100);
+            raceResult.independentCandidate = indepCandidate;
+          }
+        }
+
+        results[key] = raceResult;
       }
     }
 

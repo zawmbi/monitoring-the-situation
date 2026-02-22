@@ -928,6 +928,11 @@
   transition: width 0.8s ease;
 }
 
+.el-market-prob-fill-i {
+  background: #8c6ec9;
+  transition: width 0.8s ease;
+}
+
 .el-market-prob-fill-r {
   background: #d44040;
   border-radius: 0 3px 3px 0;

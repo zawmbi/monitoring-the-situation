@@ -470,17 +470,30 @@ function MarketOutcomes({ outcomes, marketSource, marketUrl }) {
         <span className="el-live-micro">LIVE</span>
       </div>
       <div className="el-market-outcomes-list">
-        {meaningful.slice(0, 6).map((o, i) => {
+        {meaningful.slice(0, 8).map((o, i) => {
           const pct = o.price != null ? Math.round(o.price) : 0;
-          // Try to infer party from name
+          // Use party field from backend when available, else infer from name
           const name = o.name || '';
-          const isD = /democrat|dem\b|blue|harris|fetterman|warnock|kelly|ossoff/i.test(name);
-          const isR = /republican|rep\b|gop|red|trump|paxton|cornyn|desantis/i.test(name);
-          const color = isD ? PARTY_COLORS.D : isR ? PARTY_COLORS.R : '#a67bc2';
+          let color;
+          if (o.party === 'D') color = PARTY_COLORS.D;
+          else if (o.party === 'R') color = PARTY_COLORS.R;
+          else if (o.party === 'I') color = PARTY_COLORS.I;
+          else {
+            const isD = /democrat|dem\b|blue/i.test(name);
+            const isR = /republican|rep\b|gop|red/i.test(name);
+            color = isD ? PARTY_COLORS.D : isR ? PARTY_COLORS.R : '#a67bc2';
+          }
 
           return (
             <div key={i} className="el-market-outcome-row">
-              <span className="el-market-outcome-name">{name}</span>
+              <span className="el-market-outcome-name">
+                {name}
+                {o.party && (
+                  <span className="el-party-tag" style={{ background: color, marginLeft: 4 }}>
+                    {o.party}
+                  </span>
+                )}
+              </span>
               <div className="el-market-outcome-bar-track">
                 <div
                   className="el-market-outcome-bar-fill"
@@ -494,7 +507,10 @@ function MarketOutcomes({ outcomes, marketSource, marketUrl }) {
       </div>
       {marketSource && (
         <div className="el-market-outcomes-source">
-          via {marketSource === 'kalshi' ? 'Kalshi' : marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
+          via{' '}
+          <a href={marketUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+            {marketSource === 'kalshi' ? 'Kalshi' : marketSource === 'predictit' ? 'PredictIt' : 'Polymarket'}
+          </a>
         </div>
       )}
     </div>
@@ -635,6 +651,8 @@ function MarketProbBar({ race }) {
   if (!race?.dWinProb && !race?.rWinProb) return null;
   const dProb = race.dWinProb || 0;
   const rProb = race.rWinProb || 0;
+  const iProb = race.iWinProb || 0;
+  const hasIndep = iProb > 0 && race.independentCandidate;
   const isLive = !race._fundamentalsOnly && race.marketSource;
   return (
     <div className="el-market-prob">
@@ -669,6 +687,12 @@ function MarketProbBar({ race }) {
           className="el-market-prob-fill-d"
           style={{ width: `${dProb}%` }}
         />
+        {hasIndep && (
+          <div
+            className="el-market-prob-fill-i"
+            style={{ width: `${iProb}%`, background: PARTY_COLORS.I }}
+          />
+        )}
         <div
           className="el-market-prob-fill-r"
           style={{ width: `${rProb}%` }}
@@ -676,6 +700,9 @@ function MarketProbBar({ race }) {
       </div>
       <div className="el-market-prob-labels">
         <span style={{ color: PARTY_COLORS.D }}>D {dProb}%</span>
+        {hasIndep && (
+          <span style={{ color: PARTY_COLORS.I }}>I {iProb}%</span>
+        )}
         {!isLive && <span className="el-static-badge">EST</span>}
         <span style={{ color: PARTY_COLORS.R }}>R {rProb}%</span>
       </div>
